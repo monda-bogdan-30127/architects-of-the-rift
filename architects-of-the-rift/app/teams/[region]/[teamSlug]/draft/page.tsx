@@ -10,7 +10,7 @@ import { teams } from "@/app/data/teams";
 import { players } from "@/app/data/players";
 import type { Player } from "@/app/types/player";
 import type { Role } from "@/app/types/champion";
-import useBackRedirect from "@/app/hooks/useBrowserBackRedirect.ts";
+import useBackRedirect from "@/app/hooks/useBrowserBackRedirect";
 
 type SelectedPlayers = Partial<Record<Role, Player>>;
 

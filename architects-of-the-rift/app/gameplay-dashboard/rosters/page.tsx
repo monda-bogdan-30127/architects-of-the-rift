@@ -8,7 +8,7 @@ import { players } from "@/app/data/players";
 import { teams } from "@/app/data/teams";
 import type { Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
-import useBackRedirect from "@/app/hooks/useBrowserBackRedirect.ts";
+import useBackRedirect from "@/app/hooks/useBrowserBackRedirect";
 
 type DraftSave = {
   region: string;
