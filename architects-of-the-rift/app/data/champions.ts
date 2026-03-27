@@ -421,14 +421,14 @@ const baseChampions: Champion[] = [
   createChampion({
     id: "nautilus",
     goodVs: [
-      { championId: "karma", score: 5 },
+      { championId: "karma", score: 4 },
       { championId: "nami", score: 4 },
       { championId: "seraphine", score: 4 },
       { championId: "lulu", score: 3 },
       { championId: "thresh", score: 2 }
     ],
     weakVs: [
-      { championId: "leona", score: 5 },
+      { championId: "leona", score: 4 },
       { championId: "bard", score: 3 },
       { championId: "poppy", score: 3 },
       { championId: "rakan", score: 2 },
@@ -803,8 +803,8 @@ const baseChampions: Champion[] = [
     ],
 
     weakVs: [
-      { championId: "nautilus", score: 5 },
-      { championId: "leona", score: 5 },
+      { championId: "nautilus", score: 4 },
+      { championId: "leona", score: 4 },
       { championId: "seraphine", score: 4 },
       { championId: "nami", score: 3 },
       { championId: "lulu", score: 2 }
@@ -4477,7 +4477,7 @@ const baseChampions: Champion[] = [
       { championId: "lee-sin", score: 5 },
       { championId: "nidalee", score: 4 },
       { championId: "naafiri", score: 3 },
-      { championId: "poppy", score: 3 },
+      { championId: "poppy", score: 1 },
       { championId: "kindred", score: 3 }
     ],
     synergyWith: [{ championId: "azir", score: 4 }, { championId: "corki", score: 4 }, { championId: "jinx", score: 3 }, { championId: "miss-fortune", score: 3 }],
