@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import { champions } from "@/app/data/champions";
@@ -580,6 +580,45 @@ function SidebarPanel({
   const lockedSlots = Array.from({ length: visibleLockedSlots }).map(
     (_, index) => lockedChampionIds[index] ?? null
   );
+  const swapButtonRefs = useRef<Partial<Record<Role, HTMLButtonElement | null>>>({});
+  const [swapMenuPosition, setSwapMenuPosition] = useState<{
+    top: number;
+    left?: number;
+    right?: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!openSwapRole) {
+      setSwapMenuPosition(null);
+      return;
+    }
+
+    const updateSwapMenuPosition = () => {
+      const button = swapButtonRefs.current[openSwapRole];
+      if (!button) return;
+
+      const rect = button.getBoundingClientRect();
+      const gap = 8;
+      const menuWidth = 160;
+
+      setSwapMenuPosition({
+        top: rect.top,
+        ...(alignRight
+          ? { right: Math.max(window.innerWidth - rect.left + gap, gap) }
+          : { left: rect.right + gap }),
+      });
+    };
+
+    updateSwapMenuPosition();
+
+    window.addEventListener("resize", updateSwapMenuPosition);
+    window.addEventListener("scroll", updateSwapMenuPosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updateSwapMenuPosition);
+      window.removeEventListener("scroll", updateSwapMenuPosition, true);
+    };
+  }, [alignRight, openSwapRole]);
 
   return (
     <aside
@@ -626,6 +665,9 @@ function SidebarPanel({
                   {showSwap && champion ? (
                     <div className={`relative shrink-0 ${alignRight ? "order-3" : "order-1"}`}>
                       <button
+                        ref={(node) => {
+                          swapButtonRefs.current[role] = node;
+                        }}
                         type="button"
                         onClick={() => onSwapToggle(role)}
                         className="flex h-[24px] w-[24px] items-center justify-center"
@@ -639,27 +681,6 @@ function SidebarPanel({
                           className="block h-[24px] w-[24px] object-contain"
                         />
                       </button>
-
-                      {isSwapMenuOpen && (
-                        <div
-                          className={`absolute top-0 z-50 flex w-[160px] flex-col whitespace-nowrap border bg-[var(--bg-elevated)] p-[10px] ${alignRight ? "right-full mr-[8px]" : "left-full ml-[8px]"}`}
-                          style={{
-                            borderColor: "var(--primary)",
-                            boxShadow: "0 6px 18px rgba(0,0,0,0.45)",
-                          }}
-                        >
-                          {swapTargets.map((targetRole) => (
-                            <button
-                              key={`${side}-${role}-${targetRole}`}
-                              type="button"
-                              onClick={() => onSwapSelect(role, targetRole)}
-                              className="label flex min-h-[40px] items-center whitespace-nowrap px-[10px] text-left text-[13px] text-[var(--text-primary)] hover:text-[var(--primary)]"
-                            >
-                              {getSwapLabel(targetRole)}
-                            </button>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   ) : (
                     <div className="h-[24px] w-[24px] shrink-0" />
@@ -723,6 +744,35 @@ function SidebarPanel({
           )}
         </div>
       </div>
+
+      {openSwapRole &&
+        swapMenuPosition &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={swapMenuContainerRef ?? null}
+            className="fixed z-[120] flex w-[160px] flex-col whitespace-nowrap border bg-[var(--bg-elevated)] p-[10px]"
+            style={{
+              top: swapMenuPosition.top,
+              left: swapMenuPosition.left,
+              right: swapMenuPosition.right,
+              borderColor: "var(--primary)",
+              boxShadow: "0 6px 18px rgba(0,0,0,0.45)",
+            }}
+          >
+            {ROLE_ORDER.filter((targetRole) => targetRole !== openSwapRole).map((targetRole) => (
+              <button
+                key={`${side}-${openSwapRole}-${targetRole}`}
+                type="button"
+                onClick={() => onSwapSelect(openSwapRole, targetRole)}
+                className="label flex min-h-[40px] items-center whitespace-nowrap px-[10px] text-left text-[13px] text-[var(--text-primary)] hover:text-[var(--primary)]"
+              >
+                {getSwapLabel(targetRole)}
+              </button>
+            ))}
+          </div>,
+          document.body
+        )}
     </aside>
   );
 }
