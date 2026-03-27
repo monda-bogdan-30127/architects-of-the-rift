@@ -488,7 +488,7 @@ export default function DraftPage() {
 
             <div className="sticky bottom-0 z-20 px-[18px] pt-[8px]">
               <div
-                className="flex justify-center border-t pt-[18px] backdrop-blur-[10px] pt-[16px] pb-[16px]"
+                className="flex justify-center border-t px-[8px] pt-[16px] pb-[16px] backdrop-blur-[10px]"
                 style={{
                   borderColor: "var(--border-divider)",
                   background: "var(--bg-main)",
@@ -583,13 +583,13 @@ function SidebarPanel({
 
   return (
     <aside
-      className="sticky top-0 z-30 h-screen w-[250px] shrink-0 self-start overflow-visible pt-[2px]"
+      className="sticky top-0 z-30 h-screen w-[250px] shrink-0 self-start overflow-hidden pt-[2px]"
       style={{
         background:
           "linear-gradient(180deg, rgba(5,10,20,0.98) 0%, rgba(5,10,20,0.96) 86%, rgba(5,10,20,0.82) 100%)",
       }}
     >
-      <div className="h-full overflow-y-auto overflow-x-visible pb-[10px]">
+      <div className="flex h-full flex-col overflow-y-auto overflow-x-visible pb-[10px]">
         <div className={`flex items-center gap-[16px] ${alignRight ? "justify-end" : ""}`}>
           {!alignRight && (
             <div className="label text-[var(--text-primary)]">{team.abbreviation}</div>
@@ -608,120 +608,120 @@ function SidebarPanel({
             return <MiniSquare key={`${side}-ban-${index}`} champion={champion} size={MINI_SLOT_SIZE} />;
           })}
         </div>
-      </div>
 
-      <div className="mt-[12px]">
-        <div className="flex flex-col gap-[12px] pb-[10px]">
-          {ROLE_ORDER.map((role) => {
-            const championId = assignments[role];
-            const champion = championId ? getChampionById(championId) : null;
-            const isSwapMenuOpen = openSwapRole === role;
-            const swapTargets = ROLE_ORDER.filter((targetRole) => targetRole !== role);
+        <div className="mt-[12px]">
+          <div className="flex flex-col gap-[12px] pb-[10px]">
+            {ROLE_ORDER.map((role) => {
+              const championId = assignments[role];
+              const champion = championId ? getChampionById(championId) : null;
+              const isSwapMenuOpen = openSwapRole === role;
+              const swapTargets = ROLE_ORDER.filter((targetRole) => targetRole !== role);
 
-            return (
-              <div
-                key={`${side}-${role}`}
-                className={`relative flex items-start gap-[12px] ${alignRight ? "flex-row-reverse" : ""}`}
-                ref={isSwapMenuOpen ? swapMenuContainerRef ?? null : null}
-              >
-                {showSwap && champion ? (
-                  <div className={`relative shrink-0 ${alignRight ? "order-3" : "order-1"}`}>
-                    <button
-                      type="button"
-                      onClick={() => onSwapToggle(role)}
-                      className="flex h-[24px] w-[24px] items-center justify-center"
-                      aria-label={`Open swap menu for ${getRoleLabel(role)}`}
-                    >
-                      <Image
-                        src="/svg/swap.svg"
-                        alt="swap"
-                        width={24}
-                        height={24}
-                        className="block h-[24px] w-[24px] object-contain"
-                      />
-                    </button>
-
-                    {isSwapMenuOpen && (
-                      <div
-                        className={`absolute top-0 z-50 flex w-[160px] flex-col whitespace-nowrap border bg-[var(--bg-elevated)] p-[10px] ${alignRight ? "right-full mr-[8px]" : "left-full ml-[8px]"}`}
-                        style={{
-                          borderColor: "var(--primary)",
-                          boxShadow: "0 6px 18px rgba(0,0,0,0.45)",
-                        }}
-                      >
-                        {swapTargets.map((targetRole) => (
-                          <button
-                            key={`${side}-${role}-${targetRole}`}
-                            type="button"
-                            onClick={() => onSwapSelect(role, targetRole)}
-                            className="label flex min-h-[40px] items-center whitespace-nowrap px-[10px] text-left text-[13px] text-[var(--text-primary)] hover:text-[var(--primary)]"
-                          >
-                            {getSwapLabel(targetRole)}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="h-[24px] w-[24px] shrink-0" />
-                )}
-
+              return (
                 <div
-                  className="relative shrink-0 overflow-hidden"
-                  style={{
-                    width: ROLE_CARD_SIZE,
-                    height: ROLE_CARD_SIZE,
-                    background: "rgba(255,255,255,0.2)",
-                    outline: isSwapMenuOpen ? "1px solid var(--primary)" : "none",
-                    outlineOffset: isSwapMenuOpen ? "2px" : "0px",
-                  }}
+                  key={`${side}-${role}`}
+                  className={`relative flex items-start gap-[12px] ${alignRight ? "flex-row-reverse" : ""}`}
+                  ref={isSwapMenuOpen ? swapMenuContainerRef ?? null : null}
                 >
-                  <Image
-                    src={champion?.image || "/pictures/champion-thumbnail-placeholder.png"}
-                    alt={champion?.name ?? "placeholder"}
-                    fill
-                    sizes={`${ROLE_CARD_SIZE}px`}
-                    className="object-cover"
-                  />
-                </div>
+                  {showSwap && champion ? (
+                    <div className={`relative shrink-0 ${alignRight ? "order-3" : "order-1"}`}>
+                      <button
+                        type="button"
+                        onClick={() => onSwapToggle(role)}
+                        className="flex h-[24px] w-[24px] items-center justify-center"
+                        aria-label={`Open swap menu for ${getRoleLabel(role)}`}
+                      >
+                        <Image
+                          src="/svg/swap.svg"
+                          alt="swap"
+                          width={24}
+                          height={24}
+                          className="block h-[24px] w-[24px] object-contain"
+                        />
+                      </button>
 
-                <div className={`min-w-0 flex-1 ${alignRight ? "items-end text-right" : "items-start text-left"}`}>
-                  <div className={`flex flex-col ${alignRight ? "items-end" : "items-start"}`}>
-                    <div className="label text-[13px] text-[var(--text-primary)]">{getRoleLabel(role)}</div>
-                    <div className="body-small mt-[4px] text-[var(--text-primary)]">
-                      {roster?.[role] ?? "—"}
+                      {isSwapMenuOpen && (
+                        <div
+                          className={`absolute top-0 z-50 flex w-[160px] flex-col whitespace-nowrap border bg-[var(--bg-elevated)] p-[10px] ${alignRight ? "right-full mr-[8px]" : "left-full ml-[8px]"}`}
+                          style={{
+                            borderColor: "var(--primary)",
+                            boxShadow: "0 6px 18px rgba(0,0,0,0.45)",
+                          }}
+                        >
+                          {swapTargets.map((targetRole) => (
+                            <button
+                              key={`${side}-${role}-${targetRole}`}
+                              type="button"
+                              onClick={() => onSwapSelect(role, targetRole)}
+                              className="label flex min-h-[40px] items-center whitespace-nowrap px-[10px] text-left text-[13px] text-[var(--text-primary)] hover:text-[var(--primary)]"
+                            >
+                              {getSwapLabel(targetRole)}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="h-[24px] w-[24px] shrink-0" />
+                  )}
+
+                  <div
+                    className="relative shrink-0 overflow-hidden"
+                    style={{
+                      width: ROLE_CARD_SIZE,
+                      height: ROLE_CARD_SIZE,
+                      background: "rgba(255,255,255,0.2)",
+                      outline: isSwapMenuOpen ? "1px solid var(--primary)" : "none",
+                      outlineOffset: isSwapMenuOpen ? "2px" : "0px",
+                    }}
+                  >
+                    <Image
+                      src={champion?.image || "/pictures/champion-thumbnail-placeholder.png"}
+                      alt={champion?.name ?? "placeholder"}
+                      fill
+                      sizes={`${ROLE_CARD_SIZE}px`}
+                      className="object-cover"
+                    />
+                  </div>
+
+                  <div className={`min-w-0 flex-1 ${alignRight ? "items-end text-right" : "items-start text-left"}`}>
+                    <div className={`flex flex-col ${alignRight ? "items-end" : "items-start"}`}>
+                      <div className="label text-[13px] text-[var(--text-primary)]">{getRoleLabel(role)}</div>
+                      <div className="body-small mt-[4px] text-[var(--text-primary)]">
+                        {roster?.[role] ?? "—"}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {lockedSlots.length > 0 && (
-          <div
-            className="mt-[18px] border-t pt-[10px]"
-            style={{ borderColor: "var(--border-divider)" }}
-          >
-            <div className={`label text-[var(--text-primary)] ${alignRight ? "text-right" : ""}`}>
-              LOCKED CHAMPIONS
-            </div>
-
-            <div className={`mt-[10px] grid grid-cols-5 gap-[4px] ${alignRight ? "justify-items-end" : ""}`}>
-              {lockedSlots.map((championId, index) => {
-                const champion = championId ? getChampionById(championId) : null;
-                return (
-                  <MiniSquare
-                    key={`${side}-locked-${index}`}
-                    champion={champion}
-                    size={MINI_SLOT_SIZE}
-                    opacity={champion ? 0.55 : 1}
-                  />
-                );
-              })}
-            </div>
+              );
+            })}
           </div>
-        )}
+
+          {lockedSlots.length > 0 && (
+            <div
+              className="mt-[18px] border-t pt-[10px]"
+              style={{ borderColor: "var(--border-divider)" }}
+            >
+              <div className={`label text-[var(--text-primary)] ${alignRight ? "text-right" : ""}`}>
+                LOCKED CHAMPIONS
+              </div>
+
+              <div className={`mt-[10px] grid grid-cols-5 gap-[4px] ${alignRight ? "justify-items-end" : ""}`}>
+                {lockedSlots.map((championId, index) => {
+                  const champion = championId ? getChampionById(championId) : null;
+                  return (
+                    <MiniSquare
+                      key={`${side}-locked-${index}`}
+                      champion={champion}
+                      size={MINI_SLOT_SIZE}
+                      opacity={champion ? 0.55 : 1}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );
