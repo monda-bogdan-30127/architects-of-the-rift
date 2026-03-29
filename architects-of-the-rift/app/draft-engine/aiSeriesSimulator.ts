@@ -9,6 +9,8 @@ import {
   resolveSeriesResult,
   seriesIsFinished,
 } from "./draftEngine";
+import { beginPlayerHistoryBatch, flushPlayerHistoryBatch } from "./playerHistoryStorage";
+import { beginPlayerSeasonBatch, flushPlayerSeasonBatch } from "./playerSeasonStorage";
 
 export function simulateAiVsAiSeries(
   series: ActiveDraftSeries,
@@ -22,36 +24,44 @@ export function simulateAiVsAiSeries(
     games: series.games.map((game) => ({ ...game })),
   };
 
-  while (!seriesIsFinished(workingSeries)) {
-    let currentGame = getCurrentGame(workingSeries);
-    if (!currentGame) break;
+  beginPlayerSeasonBatch();
+  beginPlayerHistoryBatch();
 
-    while (true) {
-      const step = getCurrentStep(currentGame);
-      if (!step) break;
+  try {
+    while (!seriesIsFinished(workingSeries)) {
+      let currentGame = getCurrentGame(workingSeries);
+      if (!currentGame) break;
 
-      const aiChoice = getAiChoice(workingSeries, currentGame, step, save);
-      if (!aiChoice) break;
+      while (true) {
+        const step = getCurrentStep(currentGame);
+        if (!step) break;
 
-      currentGame = commitActionToGame(
-        currentGame,
-        aiChoice.championId,
-        step.side,
-        step.action
-      );
+        const aiChoice = getAiChoice(workingSeries, currentGame, step, save);
+        if (!aiChoice) break;
+
+        currentGame = commitActionToGame(
+          currentGame,
+          aiChoice.championId,
+          step.side,
+          step.action
+        );
+      }
+
+      workingSeries = {
+        ...workingSeries,
+        games: workingSeries.games.map((game) =>
+          game.number === currentGame.number ? currentGame : game
+        ),
+      };
+
+      workingSeries = completeCurrentGame(workingSeries, save);
+
+      if (seriesIsFinished(workingSeries)) break;
+      workingSeries = advanceSeries(workingSeries);
     }
-
-    workingSeries = {
-      ...workingSeries,
-      games: workingSeries.games.map((game) =>
-        game.number === currentGame.number ? currentGame : game
-      ),
-    };
-
-    workingSeries = completeCurrentGame(workingSeries, save);
-
-    if (seriesIsFinished(workingSeries)) break;
-    workingSeries = advanceSeries(workingSeries);
+  } finally {
+    flushPlayerHistoryBatch();
+    flushPlayerSeasonBatch();
   }
 
   const result = resolveSeriesResult(workingSeries);

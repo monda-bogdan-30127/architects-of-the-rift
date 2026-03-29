@@ -771,7 +771,7 @@ export default function SeriesSchedule({
 
     if (resolution === "simulated") {
       setLoadingSeriesId(series.id);
-      await new Promise((resolve) => window.setTimeout(resolve, 700));
+      await new Promise((resolve) => window.setTimeout(resolve, 120));
     }
 
     let result: SeriesResult | null = null;

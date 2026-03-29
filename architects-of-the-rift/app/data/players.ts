@@ -1,9 +1,89 @@
-import type { Player, PlayerStats } from "../types/player";
+import type {
+  Player,
+  PlayerAdvancedProfile,
+  PlayerRating,
+  PlayerStats,
+} from "../types/player";
 import { calculateRosterPoints } from "../utils/playerUtils";
 
+const toRating = (value: number): PlayerRating =>
+  Math.max(1, Math.min(10, Math.round(value))) as PlayerRating;
+
+const weightedAverage = (entries: Array<[number, number]>): PlayerRating => {
+  const totalWeight = entries.reduce((sum, [, weight]) => sum + weight, 0);
+  if (!totalWeight) {
+    return 5;
+  }
+
+  const score =
+    entries.reduce((sum, [value, weight]) => sum + value * weight, 0) / totalWeight;
+
+  return toRating(score);
+};
+
+const deriveLegacyStats = (advancedProfile: PlayerAdvancedProfile): PlayerStats => {
+  const s = advancedProfile.substats;
+  const p = advancedProfile.playstyle;
+  const t = advancedProfile.tendencies;
+  const h = advancedProfile.hiddenTraits;
+
+  return {
+    mec: weightedAverage([
+      [s.microPrecision, 0.28],
+      [s.reactionTime, 0.22],
+      [s.comboExecution, 0.2],
+      [s.spacing, 0.15],
+      [s.handsConsistency, 0.15],
+    ]),
+    mac: weightedAverage([
+      [s.mapReading, 0.2],
+      [s.objectiveSetup, 0.18],
+      [s.rotationTiming, 0.2],
+      [s.laneAssignment, 0.14],
+      [s.visionCraft, 0.12],
+      [s.waveControl, 0.08],
+      [t.safeResetDiscipline, 0.08],
+    ]),
+    tfg: weightedAverage([
+      [s.positioningInFights, 0.24],
+      [s.targetSelection, 0.18],
+      [s.spellLayering, 0.12],
+      [s.frontToBackUnderstanding, 0.14],
+      [s.damageUptime, 0.18],
+      [s.engageFollowUp, 0.08],
+      [p.playmakingIntent, 0.06],
+    ]),
+    clt: weightedAverage([
+      [s.clutchDecisionMaking, 0.26],
+      [s.pressureExecution, 0.28],
+      [s.comebackNerve, 0.2],
+      [s.closeoutControl, 0.14],
+      [h.composure, 0.12],
+    ]),
+    con: weightedAverage([
+      [s.handsConsistency, 0.18],
+      [s.performanceFloor, 0.3],
+      [s.disciplineUnderPressure, 0.22],
+      [s.recoveryAfterMistakes, 0.14],
+      [h.communication, 0.08],
+      [10 - Math.max(0, h.volatility - 1), 0.08],
+    ]),
+    iq: weightedAverage([
+      [s.patchInterpretation, 0.2],
+      [s.championLearning, 0.18],
+      [s.draftReadiness, 0.18],
+      [s.styleElasticity, 0.18],
+      [s.problemSolving, 0.16],
+      [p.utilityComfort, 0.05],
+      [t.objectiveTradeBias, 0.05],
+    ]),
+  };
+};
+
 const createPlayer = (
-  base: Omit<Player, "rosterPoints" | "comfortChampions" | "championPool"> & {
-    stats: PlayerStats;
+  base: Omit<Player, "rosterPoints" | "comfortChampions" | "championPool" | "stats"> & {
+    stats?: PlayerStats;
+    advancedProfile?: PlayerAdvancedProfile;
     comfortChampions?: string[];
     championPool?: string[];
   }
@@ -13,12 +93,25 @@ const createPlayer = (
     ...base.bestChampions,
     ...comfortChampions,
   ]));
+  const stats =
+    base.stats ??
+    (base.advancedProfile
+      ? deriveLegacyStats(base.advancedProfile)
+      : {
+          mec: 5,
+          mac: 5,
+          tfg: 5,
+          clt: 5,
+          con: 5,
+          iq: 5,
+        });
 
   return {
     ...base,
+    stats,
     comfortChampions,
     championPool,
-    rosterPoints: calculateRosterPoints(base.stats),
+    rosterPoints: calculateRosterPoints(stats),
   };
 };
 
@@ -64,8 +157,77 @@ export const players: Player[] = [
     teamId: "bfx",
     role: "adc",
     image: "/players/lck/bfx/diable.webp",
-    stats: { mec: 9, mac: 7, tfg: 8, clt: 7, con: 7, iq: 7 },
+    advancedProfile: {
+      substats: {
+        microPrecision: 9,
+        reactionTime: 9,
+        comboExecution: 9,
+        spacing: 9,
+        handsConsistency: 8,
+
+        mapReading: 7,
+        objectiveSetup: 7,
+        rotationTiming: 7,
+        laneAssignment: 7,
+        visionCraft: 6,
+        waveControl: 8,
+
+        positioningInFights: 8,
+        targetSelection: 8,
+        spellLayering: 7,
+        frontToBackUnderstanding: 8,
+        damageUptime: 9,
+        engageFollowUp: 7,
+
+        clutchDecisionMaking: 7,
+        pressureExecution: 7,
+        comebackNerve: 7,
+        closeoutControl: 7,
+
+        performanceFloor: 7,
+        disciplineUnderPressure: 7,
+        recoveryAfterMistakes: 7,
+
+        patchInterpretation: 7,
+        championLearning: 7,
+        draftReadiness: 7,
+        styleElasticity: 8,
+        problemSolving: 7,
+      },
+      playstyle: {
+        carryResourceUsage: 8,
+        utilityComfort: 7,
+        playmakingIntent: 7,
+        scalingOrientation: 8,
+        laneControlBias: 8,
+        roamBias: 4,
+        riskAppetite: 6,
+        setupDependence: 6,
+      },
+      tendencies: {
+        invadeFrequency: 2,
+        laneRevisitBias: 4,
+        objectiveTradeBias: 7,
+        diveFrequency: 5,
+        flankPreference: 3,
+        sideLaneCatchBias: 6,
+        safeResetDiscipline: 7,
+      },
+      hiddenTraits: {
+        greed: 7,
+        composure: 7,
+        leadership: 5,
+        communication: 7,
+        volatility: 5,
+      },
+      notes: [
+        "Built as a mechanically strong ADC profile with front-to-back reliability.",
+        "Primary ratings stay legacy-compatible and are derived from the deeper profile.",
+      ],
+    },
     bestChampions: ["lucian", "aphelios", "yunara"],
+    comfortChampions: ["lucian", "aphelios", "yunara", "kai-sa", "xayah"],
+    championPool: ["lucian", "aphelios", "yunara", "kai-sa", "xayah", "jinx", "ezreal"],
     sortOrder: 5,
   }),
   createPlayer({

@@ -11,6 +11,9 @@ import { ROLE_ORDER } from "./draftTypes";
 export const PLAYER_HISTORY_STORAGE_KEY = "rift-player-history";
 const RECENT_WINDOW = 6;
 
+let batchDepth = 0;
+let batchedStore: PlayerHistoryStore | null = null;
+
 function emptyStatLine(): PlayerHistoryStatLine {
   return {
     games: 0,
@@ -35,14 +38,20 @@ function getLocalStorageSafe(): Storage | null {
 }
 
 export function readPlayerHistoryStore(): PlayerHistoryStore {
+  if (batchDepth > 0 && batchedStore) {
+    return batchedStore;
+  }
+
   const storage = getLocalStorageSafe();
   if (!storage) return {};
 
   try {
     const raw = storage.getItem(PLAYER_HISTORY_STORAGE_KEY);
     if (!raw) return {};
+
     const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== "object") return {};
+
     return normalizePlayerHistoryStore(parsed);
   } catch {
     return {};
@@ -50,6 +59,11 @@ export function readPlayerHistoryStore(): PlayerHistoryStore {
 }
 
 export function writePlayerHistoryStore(store: PlayerHistoryStore) {
+  if (batchDepth > 0) {
+    batchedStore = store;
+    return;
+  }
+
   const storage = getLocalStorageSafe();
   if (!storage) return;
 
@@ -60,7 +74,40 @@ export function writePlayerHistoryStore(store: PlayerHistoryStore) {
   }
 }
 
+export function beginPlayerHistoryBatch() {
+  if (batchDepth === 0) {
+    batchedStore = readPlayerHistoryStore();
+  }
+
+  batchDepth += 1;
+}
+
+export function flushPlayerHistoryBatch() {
+  if (batchDepth === 0) return;
+
+  batchDepth -= 1;
+
+  if (batchDepth > 0) return;
+
+  const nextStore = batchedStore;
+  batchedStore = null;
+
+  if (!nextStore) return;
+
+  const storage = getLocalStorageSafe();
+  if (!storage) return;
+
+  try {
+    storage.setItem(PLAYER_HISTORY_STORAGE_KEY, JSON.stringify(nextStore));
+  } catch {
+    // ignore write failures
+  }
+}
+
 export function resetPlayerHistoryStore() {
+  batchDepth = 0;
+  batchedStore = null;
+
   const storage = getLocalStorageSafe();
   if (!storage) return;
   storage.removeItem(PLAYER_HISTORY_STORAGE_KEY);
@@ -77,12 +124,12 @@ function ensurePlayerRecord(store: PlayerHistoryStore, playerId: string): Player
   return store[playerId];
 }
 
-function ensureStatLine(record: Record<string, PlayerHistoryStatLine>, key: string): PlayerHistoryStatLine {
+function ensureStatLine(record: Record<string, Partial<PlayerHistoryStatLine>>, key: string): PlayerHistoryStatLine {
   const existing = record[key];
 
   if (!existing) {
     record[key] = emptyStatLine();
-    return record[key];
+    return record[key] as PlayerHistoryStatLine;
   }
 
   const normalized = makeSafeStatLine(existing);
@@ -92,6 +139,7 @@ function ensureStatLine(record: Record<string, PlayerHistoryStatLine>, key: stri
 
 function pushRecentValue<T>(values: T[] | undefined, next: T, limit = RECENT_WINDOW) {
   if (!Array.isArray(values)) return;
+
   values.push(next);
   if (values.length > limit) {
     values.splice(0, values.length - limit);
@@ -99,7 +147,7 @@ function pushRecentValue<T>(values: T[] | undefined, next: T, limit = RECENT_WIN
 }
 
 function updateStatLine(
-  record: Record<string, PlayerHistoryStatLine>,
+  record: Record<string, Partial<PlayerHistoryStatLine>>,
   key: string,
   didWin: boolean,
   score: number,
@@ -158,7 +206,9 @@ export function updatePlayerHistoryFromResolvedGame(input: ResolvedHistoryGameIn
     if (bluePlayerId && blueChampionId) {
       const record = ensurePlayerRecord(store, bluePlayerId);
       const blueScore = scoreMap.get(bluePlayerId) ?? 0;
+
       updateStatLine(record.champions, blueChampionId, input.winnerSide === "blue", blueScore, stamp);
+
       if (redChampionId) {
         updateStatLine(
           record.matchups,
@@ -173,7 +223,9 @@ export function updatePlayerHistoryFromResolvedGame(input: ResolvedHistoryGameIn
     if (redPlayerId && redChampionId) {
       const record = ensurePlayerRecord(store, redPlayerId);
       const redScore = scoreMap.get(redPlayerId) ?? 0;
+
       updateStatLine(record.champions, redChampionId, input.winnerSide === "red", redScore, stamp);
+
       if (blueChampionId) {
         updateStatLine(
           record.matchups,

@@ -180,7 +180,7 @@ const baseChampions: Champion[] = [
       { championId: "qiyana", score: 4 },
       { championId: "lee-sin", score: 3 },
       { championId: "aatrox", score: 2 },
-      { championId: "vi", score: 1 }
+      { championId: "poppy", score: 3 }
     ],
     synergyWith: [{ championId: "orianna", score: 5 }, { championId: "rumble", score: 5 }, { championId: "galio", score: 4 }, { championId: "seraphine", score: 3 }],
     offers: [
@@ -669,7 +669,7 @@ const baseChampions: Champion[] = [
       { championId: "viktor", score: 5 },
       { championId: "ahri", score: 4 },
       { championId: "akali", score: 3 },
-      { championId: "taliyah", score: 1 }
+      { championId: "taliyah", score: 2 }
     ],
 
     weakVs: [

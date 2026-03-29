@@ -38,7 +38,7 @@ import {
   getPlayerChampionMatchupHistoryBonus,
 } from "./playerHistoryEvaluator"; 
 import { updatePlayerHistoryFromResolvedGame } from "./playerHistoryStorage";
-import { recordGame } from "./playerSeasonStorage";
+import { recordGames } from "./playerSeasonStorage";
 
 const teamsBySlug = new Map(teams.map((team) => [team.slug, team]));
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -529,21 +529,20 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   const seriesScore = computeSeriesScoreAfterGame(input, winnerSide);
   const reason = buildReason({ winnerSide, blueScores, redScores });
 
-  for (const playerScore of playerScores) {
-    const gameTeamSlugs = getGameTeamSlugsForGameNumber(input.series, input.game.number);
-    const teamSlug =
-      playerScore.side === "blue" ? gameTeamSlugs.blueTeamSlug : gameTeamSlugs.redTeamSlug;
+  const gameTeamSlugs = getGameTeamSlugsForGameNumber(input.series, input.game.number);
 
-    recordGame({
+  recordGames(
+    playerScores.map((playerScore) => ({
       playerId: playerScore.playerId,
-      teamSlug,
+      teamSlug:
+        playerScore.side === "blue" ? gameTeamSlugs.blueTeamSlug : gameTeamSlugs.redTeamSlug,
       role: playerScore.role,
       score: playerScore.score,
       side: playerScore.side,
       result: playerScore.side === winnerSide ? "win" : "loss",
       bestOf: input.series.bo,
-    });
-  }
+    }))
+  );
 
   updatePlayerHistoryFromResolvedGame({
     winnerSide,
