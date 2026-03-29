@@ -108,6 +108,94 @@ export function championMetaPower(championId: string | null) {
   );
 }
 
+function primaryStatScore(player: Player | null, key: keyof Player["advancedProfile"]["primary"], fallback = 5) {
+  if (!player) return fallback;
+  const value = player.advancedProfile?.primary?.[key];
+  return typeof value === "number" ? clamp(value / 10, 0, 10) : fallback;
+}
+
+function playstyleScore(player: Player | null, key: keyof Player["advancedProfile"]["playstyle"], fallback = 5) {
+  if (!player) return fallback;
+  const value = player.advancedProfile?.playstyle?.[key];
+  return typeof value === "number" ? clamp(value / 10, 0, 10) : fallback;
+}
+
+function tendenciesScore(player: Player | null, key: keyof Player["advancedProfile"]["tendencies"], fallback = 5) {
+  if (!player) return fallback;
+  const value = player.advancedProfile?.tendencies?.[key];
+  return typeof value === "number" ? clamp(value / 10, 0, 10) : fallback;
+}
+
+function offerDemand(champion: Champion | null, offerTypes: string[]) {
+  if (!champion) return 0;
+  return champion.offers
+    .filter((offer) => offerTypes.includes(offer.type))
+    .reduce((sum, offer) => sum + offer.strength, 0);
+}
+
+export function playerChampionArchetypeFit(playerId: string | null, championId: string | null) {
+  const player = getPlayerByIdSafe(playerId);
+  const champion = getChampionByIdSafe(championId);
+  if (!player || !champion) return 5;
+
+  const carryDemand = offerDemand(champion, ["burst", "sustainedDamage", "backlineAccess", "dive"]);
+  const utilityDemand = offerDemand(champion, ["peel", "antiDive", "disengage", "frontline", "reliableCC"]);
+  const playmakingDemand = offerDemand(champion, ["engage", "pick", "roamPressure", "followUp"]);
+  const scalingDemand = offerDemand(champion, ["frontToBack", "siege", "waveclear"]);
+  const laneDemand = offerDemand(champion, ["earlyPrio", "roamPressure", "waveclear"]);
+  const objectiveDemand = offerDemand(champion, ["objectiveControl", "zoneControl", "siege"]);
+
+  const carryReadiness = average([
+    primaryStatScore(player, "mechanics"),
+    primaryStatScore(player, "skirmishing"),
+    playstyleScore(player, "carryResourceUsage"),
+  ]);
+  const utilityReadiness = average([
+    primaryStatScore(player, "discipline"),
+    primaryStatScore(player, "positioning"),
+    playstyleScore(player, "utilityComfort"),
+  ]);
+  const playmakingReadiness = average([
+    primaryStatScore(player, "skirmishing"),
+    primaryStatScore(player, "rotationTiming"),
+    playstyleScore(player, "playmakingIntent"),
+  ]);
+  const scalingReadiness = average([
+    primaryStatScore(player, "teamfighting"),
+    primaryStatScore(player, "riskManagement"),
+    playstyleScore(player, "scalingOrientation"),
+  ]);
+  const laneReadiness = average([
+    primaryStatScore(player, "laning"),
+    primaryStatScore(player, "mechanics"),
+    playstyleScore(player, "laneControlBias"),
+  ]);
+  const objectiveReadiness = average([
+    primaryStatScore(player, "mapAwareness"),
+    primaryStatScore(player, "objectiveControl"),
+    tendenciesScore(player, "objectiveContestBias"),
+  ]);
+
+  const demandTotal = Math.max(1, carryDemand + utilityDemand + playmakingDemand + scalingDemand + laneDemand + objectiveDemand);
+  const weightedFit = (
+    carryReadiness * carryDemand +
+    utilityReadiness * utilityDemand +
+    playmakingReadiness * playmakingDemand +
+    scalingReadiness * scalingDemand +
+    laneReadiness * laneDemand +
+    objectiveReadiness * objectiveDemand
+  ) / demandTotal;
+
+  return clamp(weightedFit || average([
+    carryReadiness,
+    utilityReadiness,
+    playmakingReadiness,
+    scalingReadiness,
+    laneReadiness,
+    objectiveReadiness,
+  ]), 0, 10);
+}
+
 export function playerChampionDraftFit(playerId: string | null, championId: string | null) {
   const player = getPlayerByIdSafe(playerId);
   const champion = getChampionByIdSafe(championId);
@@ -115,7 +203,8 @@ export function playerChampionDraftFit(playerId: string | null, championId: stri
 
   const fit = getPlayerChampionFitScore(player.stats, champion.playerScaling);
   const comfort = getComfortScore(player, champion);
-  const baseFit = clamp(fit * 0.58 + comfort * 0.42, 0, 10);
+  const archetypeFit = playerChampionArchetypeFit(playerId, championId);
+  const baseFit = clamp(fit * 0.46 + comfort * 0.28 + archetypeFit * 0.26, 0, 10);
   return getHistoryAdjustedDraftFit(baseFit, player.id, champion.id);
 }
 
@@ -129,18 +218,81 @@ export function playerChampionMatchupHistoryEdge(
 
 export function playerClutchScore(playerId: string | null) {
   const player = getPlayerByIdSafe(playerId);
-  const con = statOf(player, "con", 5);
-  const iq = statOf(player, "iq", 5);
-  const tfg = statOf(player, "tfg", 5);
-  return clamp(con * 0.4 + iq * 0.3 + tfg * 0.3, 0, 10);
+  const legacyCon = statOf(player, "con", 5);
+  const legacyIq = statOf(player, "iq", 5);
+  const legacyTfg = statOf(player, "tfg", 5);
+  const advanced = average([
+    primaryStatScore(player, "clutchFactor", legacyCon),
+    primaryStatScore(player, "currentForm", legacyIq),
+    primaryStatScore(player, "discipline", legacyTfg),
+  ]);
+  const legacy = legacyCon * 0.38 + legacyIq * 0.28 + legacyTfg * 0.34;
+  return clamp(legacy * 0.45 + advanced * 0.55, 0, 10);
 }
 
 export function playerExecutionScore(playerId: string | null) {
   const player = getPlayerByIdSafe(playerId);
-  const mec = statOf(player, "mec", 5);
-  const mac = statOf(player, "mac", 5);
-  const clt = statOf(player, "clt", 5);
-  return clamp(mec * 0.4 + mac * 0.35 + clt * 0.25, 0, 10);
+  const legacyMec = statOf(player, "mec", 5);
+  const legacyMac = statOf(player, "mac", 5);
+  const legacyClt = statOf(player, "clt", 5);
+  const advanced = average([
+    primaryStatScore(player, "mechanics", legacyMec),
+    primaryStatScore(player, "skirmishing", legacyMac),
+    primaryStatScore(player, "positioning", legacyClt),
+  ]);
+  const legacy = legacyMec * 0.42 + legacyMac * 0.33 + legacyClt * 0.25;
+  return clamp(legacy * 0.42 + advanced * 0.58, 0, 10);
+}
+
+export function playerMacroScore(playerId: string | null) {
+  const player = getPlayerByIdSafe(playerId);
+  const legacyMac = statOf(player, "mac", 5);
+  return clamp(
+    legacyMac * 0.34 +
+      primaryStatScore(player, "mapAwareness", legacyMac) * 0.28 +
+      primaryStatScore(player, "objectiveControl", legacyMac) * 0.22 +
+      primaryStatScore(player, "rotationTiming", legacyMac) * 0.16,
+    0,
+    10
+  );
+}
+
+export function playerLaningScore(playerId: string | null) {
+  const player = getPlayerByIdSafe(playerId);
+  const legacyMec = statOf(player, "mec", 5);
+  return clamp(
+    legacyMec * 0.25 +
+      primaryStatScore(player, "laning", legacyMec) * 0.42 +
+      primaryStatScore(player, "mechanics", legacyMec) * 0.2 +
+      playstyleScore(player, "laneControlBias", legacyMec) * 0.13,
+    0,
+    10
+  );
+}
+
+export function playerTeamfightScore(playerId: string | null) {
+  const player = getPlayerByIdSafe(playerId);
+  const legacyTfg = statOf(player, "tfg", 5);
+  return clamp(
+    legacyTfg * 0.34 +
+      primaryStatScore(player, "teamfighting", legacyTfg) * 0.4 +
+      primaryStatScore(player, "positioning", legacyTfg) * 0.16 +
+      playstyleScore(player, "setupDependence", 5) * 0.1,
+    0,
+    10
+  );
+}
+
+export function playerConsistencyScore(playerId: string | null) {
+  const player = getPlayerByIdSafe(playerId);
+  const legacyCon = statOf(player, "con", 5);
+  return clamp(
+    legacyCon * 0.42 +
+      primaryStatScore(player, "consistency", legacyCon) * 0.36 +
+      primaryStatScore(player, "discipline", legacyCon) * 0.22,
+    0,
+    10
+  );
 }
 
 export function teamAssignmentQuality(

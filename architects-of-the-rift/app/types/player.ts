@@ -11,78 +11,106 @@ export type PlayerStats = {
   iq: PlayerRating;
 };
 
+export type PlayerSeed = {
+  execution: PlayerRating;
+  mapSense: PlayerRating;
+  combat: PlayerRating;
+  resilience: PlayerRating;
+  stability: PlayerRating;
+  gameRead: PlayerRating;
+};
+
+export type PlayerPrimaryStats = {
+  mechanics: number;
+  laning: number;
+  positioning: number;
+  skirmishing: number;
+  teamfighting: number;
+  mapAwareness: number;
+  objectiveControl: number;
+  rotationTiming: number;
+  consistency: number;
+  adaptability: number;
+  discipline: number;
+  clutchFactor: number;
+  championPoolSize: number;
+  metaReadiness: number;
+  blindPickStrength: number;
+  counterPickStrength: number;
+  aggression: number;
+  roamFrequency: number;
+  scalingPreference: number;
+  playmakingBias: number;
+  riskManagement: number;
+  currentForm: number;
+  patchComfort: number;
+};
+
 export type PlayerSubstats = {
-  microPrecision: PlayerRating;
-  reactionTime: PlayerRating;
-  comboExecution: PlayerRating;
-  spacing: PlayerRating;
-  handsConsistency: PlayerRating;
-
-  mapReading: PlayerRating;
-  objectiveSetup: PlayerRating;
-  rotationTiming: PlayerRating;
-  laneAssignment: PlayerRating;
-  visionCraft: PlayerRating;
-  waveControl: PlayerRating;
-
-  positioningInFights: PlayerRating;
-  targetSelection: PlayerRating;
-  spellLayering: PlayerRating;
-  frontToBackUnderstanding: PlayerRating;
-  damageUptime: PlayerRating;
-  engageFollowUp: PlayerRating;
-
-  clutchDecisionMaking: PlayerRating;
-  pressureExecution: PlayerRating;
-  comebackNerve: PlayerRating;
-  closeoutControl: PlayerRating;
-
-  performanceFloor: PlayerRating;
-  disciplineUnderPressure: PlayerRating;
-  recoveryAfterMistakes: PlayerRating;
-
-  patchInterpretation: PlayerRating;
-  championLearning: PlayerRating;
-  draftReadiness: PlayerRating;
-  styleElasticity: PlayerRating;
-  problemSolving: PlayerRating;
+  mechanicalExecution: number;
+  reactionTime: number;
+  laneTrading: number;
+  spacing: number;
+  comboPrecision: number;
+  skirmishInstinct: number;
+  teamfightSpacing: number;
+  targetSelection: number;
+  mapReading: number;
+  objectiveSetup: number;
+  rotationPlanning: number;
+  visionCraft: number;
+  metaAdaptation: number;
+  blindStability: number;
+  counterPrep: number;
+  pressureExecution: number;
+  disciplineUnderStress: number;
+  riskCalibration: number;
+  championDepth: number;
+  patchIntegration: number;
+  roamWindowReading: number;
+  carryComfort: number;
+  utilityComfort: number;
+  styleFlex: number;
 };
 
 export type PlayerPlaystyleProfile = {
-  carryResourceUsage: PlayerRating;
-  utilityComfort: PlayerRating;
-  playmakingIntent: PlayerRating;
-  scalingOrientation: PlayerRating;
-  laneControlBias: PlayerRating;
-  roamBias: PlayerRating;
-  riskAppetite: PlayerRating;
-  setupDependence: PlayerRating;
+  carryResourceUsage: number;
+  utilityComfort: number;
+  playmakingIntent: number;
+  scalingOrientation: number;
+  laneControlBias: number;
+  roamBias: number;
+  riskAppetite: number;
+  setupDependence: number;
+  styleFlex: number;
 };
 
 export type PlayerTendencies = {
-  invadeFrequency: PlayerRating;
-  laneRevisitBias: PlayerRating;
-  objectiveTradeBias: PlayerRating;
-  diveFrequency: PlayerRating;
-  flankPreference: PlayerRating;
-  sideLaneCatchBias: PlayerRating;
-  safeResetDiscipline: PlayerRating;
+  invadeFrequency: number;
+  towerDiveFrequency: number;
+  objectiveContestBias: number;
+  splitPushBias: number;
+  flankPreference: number;
+  safeLanePreference: number;
+  laneRevisitBias: number;
+  resetDiscipline: number;
 };
 
 export type PlayerHiddenTraits = {
-  greed: PlayerRating;
-  composure: PlayerRating;
-  leadership: PlayerRating;
-  communication: PlayerRating;
-  volatility: PlayerRating;
+  greed: number;
+  composure: number;
+  leadership: number;
+  communication: number;
+  volatility: number;
 };
 
 export type PlayerAdvancedProfile = {
+  seed: PlayerSeed;
+  primary: PlayerPrimaryStats;
   substats: PlayerSubstats;
   playstyle: PlayerPlaystyleProfile;
   tendencies: PlayerTendencies;
   hiddenTraits: PlayerHiddenTraits;
-  notes?: string[];
 };
 
 export type Player = {
@@ -93,7 +121,7 @@ export type Player = {
   role: Role;
   image: string;
   stats: PlayerStats;
-  advancedProfile?: PlayerAdvancedProfile;
+  advancedProfile: PlayerAdvancedProfile;
   bestChampions: string[];
   comfortChampions: string[];
   championPool: string[];

@@ -26,9 +26,14 @@ import {
   getChampionByIdSafe,
   lateGameScore,
   objectiveControlScore,
+  playerChampionArchetypeFit,
   playerChampionDraftFit,
   playerClutchScore,
+  playerConsistencyScore,
   playerExecutionScore,
+  playerLaningScore,
+  playerMacroScore,
+  playerTeamfightScore,
   round1,
   seededNoise,
   teamAssignmentQuality,
@@ -120,15 +125,29 @@ function computeExecutionTeamScore(
     const playerId = roster[role] ?? null;
     const championId = assignments[role] ?? null;
     const playerExec = playerExecutionScore(playerId);
+    const archetypeFit = playerChampionArchetypeFit(playerId, championId);
     const champDifficulty = championExecutionDifficulty(getChampionByIdSafe(championId));
-    return clamp(playerExec * 0.72 + (10 - champDifficulty) * 0.28, 0, 10);
+    return clamp(playerExec * 0.58 + archetypeFit * 0.16 + (10 - champDifficulty) * 0.26, 0, 10);
   });
 
   return round1(average(values));
 }
 
 function computeClutchTeamScore(roster: Partial<Record<Role, string>>) {
-  return round1(average(ROLE_ORDER.map((role) => playerClutchScore(roster[role] ?? null))));
+  return round1(
+    average(
+      ROLE_ORDER.map((role) => {
+        const playerId = roster[role] ?? null;
+        return clamp(
+          playerClutchScore(playerId) * 0.62 +
+            playerConsistencyScore(playerId) * 0.2 +
+            playerTeamfightScore(playerId) * 0.18,
+          0,
+          10
+        );
+      })
+    )
+  );
 }
 
 function computeMetaAverage(assignments: Partial<Record<Role, string>>) {
@@ -140,16 +159,27 @@ function computeStarPower(playerId: string | null) {
   if (!player) return 5;
 
   const stats = player.stats;
-  return clamp(
+  const advanced = player.advancedProfile?.primary;
+  const advancedStar = advanced
+    ? (
+      advanced.mechanics * 0.14 +
+      advanced.teamfighting * 0.16 +
+      advanced.mapAwareness * 0.12 +
+      advanced.clutchFactor * 0.2 +
+      advanced.currentForm * 0.18 +
+      advanced.metaReadiness * 0.2
+    ) / 10
+    : 5;
+
+  const legacyStar =
     stats.mec * 0.2 +
     stats.mac * 0.15 +
     stats.tfg * 0.15 +
     stats.con * 0.15 +
     stats.iq * 0.15 +
-    stats.clt * 0.2,
-    0,
-    10
-  );
+    stats.clt * 0.2;
+
+  return clamp(legacyStar * 0.38 + advancedStar * 0.62, 0, 10);
 }
 
 
@@ -314,28 +344,38 @@ function buildPlayerScores(args: {
       const fit = playerChampionDraftFit(entry.playerId, entry.championId);
       const clutch = playerClutchScore(entry.playerId);
       const execution = playerExecutionScore(entry.playerId);
+      const laning = playerLaningScore(entry.playerId);
+      const macro = playerMacroScore(entry.playerId);
+      const teamfight = playerTeamfightScore(entry.playerId);
+      const consistency = playerConsistencyScore(entry.playerId);
+      const archetypeFit = playerChampionArchetypeFit(entry.playerId, entry.championId);
       const starPower = computeStarPower(entry.playerId);
       const winModifier = entry.side === args.winnerSide ? 1.0 : -0.7;
       const laneModifier = (entry.laneScore - 5) * 0.2;
       const draftModifier = (entry.draftScore - 5) * 0.1;
-      const fitModifier = (fit - 5) * 0.18;
-      const executionModifier = (execution - 5) * 0.12;
+      const fitModifier = (fit - 5) * 0.16;
+      const executionModifier = (execution - 5) * 0.1;
       const clutchModifier = (clutch - 5) * 0.08;
+      const laneSkillModifier = (laning - 5) * 0.08;
+      const macroModifier = (macro - 5) * 0.06;
+      const teamfightModifier = (teamfight - 5) * 0.07;
+      const consistencyModifier = (consistency - 5) * 0.05;
+      const archetypeModifier = (archetypeFit - 5) * 0.08;
       const closeGameModifier = args.closeness * (clutch - 5) * 0.08;
-      const starModifier = (starPower - 5) * 0.16;
+      const starModifier = (starPower - 5) * 0.13;
       const rng = seededNoise(
         `${args.seriesId}:${role}:${entry.side}:${entry.playerId}:${entry.championId}`,
         0.35
       );
 
       const impact = clamp(
-        entry.laneScore * 0.27 + fit * 0.24 + clutch * 0.14 + execution * 0.18 + starPower * 0.17,
+        entry.laneScore * 0.2 + fit * 0.18 + clutch * 0.12 + execution * 0.15 + teamfight * 0.15 + macro * 0.08 + starPower * 0.12,
         0,
         10
       );
-      const stability = clamp(fit * 0.42 + execution * 0.33 + clutch * 0.25, 0, 10);
-      const carryFactor = clamp(impact * 0.58 + starPower * 0.22 + entry.laneScore * 0.2, 0, 10);
-      const mistakeRisk = clamp(10 - (execution * 0.46 + fit * 0.34 + clutch * 0.2), 0, 10);
+      const stability = clamp(fit * 0.26 + execution * 0.22 + clutch * 0.18 + consistency * 0.22 + archetypeFit * 0.12, 0, 10);
+      const carryFactor = clamp(impact * 0.42 + starPower * 0.16 + laning * 0.14 + teamfight * 0.16 + archetypeFit * 0.12, 0, 10);
+      const mistakeRisk = clamp(10 - (execution * 0.3 + fit * 0.22 + clutch * 0.16 + consistency * 0.2 + macro * 0.12), 0, 10);
 
       const score = clamp(
         6.1 +
@@ -345,6 +385,11 @@ function buildPlayerScores(args: {
         fitModifier +
         executionModifier +
         clutchModifier +
+        laneSkillModifier +
+        macroModifier +
+        teamfightModifier +
+        consistencyModifier +
+        archetypeModifier +
         closeGameModifier +
         starModifier +
         rng,

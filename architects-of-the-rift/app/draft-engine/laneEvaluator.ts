@@ -9,10 +9,12 @@ import {
   getPlayerByIdSafe,
   matchupPowerAgainst,
   playerChampionDraftFit,
-  playerExecutionScore,
   playerChampionMatchupHistoryEdge,
+  playerConsistencyScore,
+  playerExecutionScore,
+  playerLaningScore,
+  playerMacroScore,
   round1,
-  statOf,
 } from "./matchSimulationUtils";
 import { getHistoryAdjustedLaneBonus } from "./playerHistoryEvaluator";
 
@@ -37,10 +39,10 @@ function jungleInfluence(role: Role, playerId: string | null, championId: string
     .filter((offer) => ["roamPressure", "engage", "earlyPrio", "reliableCC"].includes(offer.type))
     .reduce((sum, offer) => sum + offer.strength, 0);
 
-  const mac = statOf(player, "mac", 5);
-  const iq = statOf(player, "iq", 5);
+  const macro = playerMacroScore(playerId);
+  const execution = playerExecutionScore(playerId);
 
-  return clamp(roam * 0.7 + mac * 0.8 + iq * 0.5, 0, 10);
+  return clamp(roam * 0.68 + macro * 0.82 + execution * 0.35, 0, 10);
 }
 
 function buildRoleBreakdown(
@@ -58,6 +60,10 @@ function buildRoleBreakdown(
 
   const blueExec = playerExecutionScore(bluePlayerId);
   const redExec = playerExecutionScore(redPlayerId);
+  const blueLaning = playerLaningScore(bluePlayerId);
+  const redLaning = playerLaningScore(redPlayerId);
+  const blueConsistency = playerConsistencyScore(bluePlayerId);
+  const redConsistency = playerConsistencyScore(redPlayerId);
 
   const blueEarly = earlyStatScore(blueChampionId);
   const redEarly = earlyStatScore(redChampionId);
@@ -87,27 +93,31 @@ function buildRoleBreakdown(
   );
 
   const blueBase = clamp(
-    blueEarly * 0.34 +
-      blueDraftFit * 0.23 +
-      blueExec * 0.14 +
-      blueBlind * 0.08 +
-      jungleInfluence(role, bluePlayerId, blueChampionId) * 0.2 +
-      blueMatchup * 0.48 +
-      blueHistoryMatchup * 0.35 +
-      blueHistoryLaneBonus * 0.8,
+    blueEarly * 0.26 +
+      blueDraftFit * 0.2 +
+      blueExec * 0.1 +
+      blueLaning * 0.16 +
+      blueConsistency * 0.08 +
+      blueBlind * 0.06 +
+      jungleInfluence(role, bluePlayerId, blueChampionId) * 0.14 +
+      blueMatchup * 0.42 +
+      blueHistoryMatchup * 0.3 +
+      blueHistoryLaneBonus * 0.7,
     0,
     10
   );
 
   const redBase = clamp(
-    redEarly * 0.34 +
-      redDraftFit * 0.23 +
-      redExec * 0.14 +
-      redBlind * 0.08 +
-      jungleInfluence(role, redPlayerId, redChampionId) * 0.2 +
-      redMatchup * 0.48 +
-      redHistoryMatchup * 0.35 +
-      redHistoryLaneBonus * 0.8,
+    redEarly * 0.26 +
+      redDraftFit * 0.2 +
+      redExec * 0.1 +
+      redLaning * 0.16 +
+      redConsistency * 0.08 +
+      redBlind * 0.06 +
+      jungleInfluence(role, redPlayerId, redChampionId) * 0.14 +
+      redMatchup * 0.42 +
+      redHistoryMatchup * 0.3 +
+      redHistoryLaneBonus * 0.7,
     0,
     10
   );

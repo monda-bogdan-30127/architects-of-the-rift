@@ -79,17 +79,34 @@ function addVectorValue(vector: TeamCompVector, key: string, amount: number) {
   }
 }
 
+function advancedPrimary(player: Player, key: keyof Player["advancedProfile"]["primary"], fallback = 5) {
+  const value = player.advancedProfile?.primary?.[key];
+  return typeof value === "number" ? clamp(value / 10, 0, 10) : fallback;
+}
+
+function advancedPlaystyle(player: Player, key: keyof Player["advancedProfile"]["playstyle"], fallback = 5) {
+  const value = player.advancedProfile?.playstyle?.[key];
+  return typeof value === "number" ? clamp(value / 10, 0, 10) : fallback;
+}
+
 function getRawPlayerQuality(player: Player) {
-  return clamp(
+  const legacy =
     player.stats.mec * 0.2 +
-      player.stats.mac * 0.16 +
-      player.stats.tfg * 0.18 +
-      player.stats.con * 0.16 +
-      player.stats.iq * 0.15 +
-      player.stats.clt * 0.15,
-    0,
-    10
-  );
+    player.stats.mac * 0.16 +
+    player.stats.tfg * 0.18 +
+    player.stats.con * 0.16 +
+    player.stats.iq * 0.15 +
+    player.stats.clt * 0.15;
+
+  const advanced =
+    advancedPrimary(player, "mechanics", player.stats.mec) * 0.16 +
+    advancedPrimary(player, "mapAwareness", player.stats.mac) * 0.16 +
+    advancedPrimary(player, "teamfighting", player.stats.tfg) * 0.18 +
+    advancedPrimary(player, "consistency", player.stats.con) * 0.16 +
+    advancedPrimary(player, "metaReadiness", player.stats.iq) * 0.16 +
+    advancedPrimary(player, "clutchFactor", player.stats.clt) * 0.18;
+
+  return clamp(legacy * 0.42 + advanced * 0.58, 0, 10);
 }
 
 function getOfferStrength(champion: Champion | null, attributes: string[]) {
@@ -286,9 +303,16 @@ function evaluateRosterExecution(roster: Partial<Record<Role, string>>, champion
     const champion = championByRole.get(role) ?? null;
     if (!player || !champion) continue;
 
-    const playerSkill = (player.stats.mec + player.stats.mac + player.stats.iq + player.stats.tfg) / 4;
+    const legacySkill = (player.stats.mec + player.stats.mac + player.stats.iq + player.stats.tfg) / 4;
+    const advancedSkill = average([
+      advancedPrimary(player, "mechanics", player.stats.mec),
+      advancedPrimary(player, "mapAwareness", player.stats.mac),
+      advancedPrimary(player, "adaptability", player.stats.iq),
+      advancedPrimary(player, "teamfighting", player.stats.tfg),
+    ]);
+    const playerSkill = legacySkill * 0.4 + advancedSkill * 0.6;
     const difficulty = average(Object.values(champion.playerScaling ?? {}) as number[]) || 5;
-    scores.push(clamp(playerSkill * 0.72 + (10 - difficulty) * 0.28, 0, 10));
+    scores.push(clamp(playerSkill * 0.74 + (10 - difficulty) * 0.26, 0, 10));
   }
 
   return scores.length > 0 ? average(scores) : 5;
@@ -451,10 +475,16 @@ export function evaluatePlayerPower(
     const adjustedFit = getHistoryAdjustedDraftFit(fit, player.id, champion.id);
     const historyBonus = getPlayerChampionHistoryBonus(player.id, champion.id);
     const rawPlayerQuality = getRawPlayerQuality(player);
+    const advancedRoleFit = average([
+      advancedPrimary(player, role === "jungle" ? "objectiveControl" : role === "support" ? "positioning" : "laning"),
+      advancedPrimary(player, role === "adc" ? "teamfighting" : role === "mid" ? "skirmishing" : "mechanics"),
+      advancedPlaystyle(player, role === "support" ? "utilityComfort" : role === "adc" ? "scalingOrientation" : role === "jungle" ? "roamBias" : "laneControlBias"),
+    ]);
     total +=
-      adjustedFit * 0.42 +
-      comfort * 0.28 +
-      rawPlayerQuality * 0.22 +
+      adjustedFit * 0.34 +
+      comfort * 0.2 +
+      advancedRoleFit * 0.18 +
+      rawPlayerQuality * 0.2 +
       (5 + historyBonus * 2) * 0.08;
     count += 1;
   }

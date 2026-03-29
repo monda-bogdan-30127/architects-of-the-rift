@@ -1,89 +1,181 @@
 import type {
   Player,
   PlayerAdvancedProfile,
-  PlayerRating,
+  PlayerHiddenTraits,
+  PlayerPlaystyleProfile,
+  PlayerPrimaryStats,
+  PlayerSeed,
   PlayerStats,
+  PlayerSubstats,
+  PlayerTendencies,
 } from "../types/player";
+import type { Role } from "../types/champion";
 import { calculateRosterPoints } from "../utils/playerUtils";
 
-const toRating = (value: number): PlayerRating =>
-  Math.max(1, Math.min(10, Math.round(value))) as PlayerRating;
+const clamp = (value: number, min = 35, max = 99): number => Math.max(min, Math.min(max, Math.round(value)));
+const clampRating = (value: number): PlayerStats[keyof PlayerStats] =>
+  Math.max(1, Math.min(10, Math.round(value))) as PlayerStats[keyof PlayerStats];
 
-const weightedAverage = (entries: Array<[number, number]>): PlayerRating => {
-  const totalWeight = entries.reduce((sum, [, weight]) => sum + weight, 0);
-  if (!totalWeight) {
-    return 5;
-  }
+const AGGRESSIVE_CHAMPIONS = new Set(["aatrox", "akali", "ambessa", "draven", "irelia", "jarvan-iv", "jayce", "kalista", "kaisa", "lee-sin", "leona", "lucian", "naafiri", "nocturne", "pantheon", "qiyana", "renekton", "rell", "samira", "sylas", "vi", "wukong", "xin-zhao", "yone"]);
+const SCALING_CHAMPIONS = new Set(["aphelios", "ashe", "azir", "corki", "ezreal", "gwen", "jinx", "jhin", "kayle", "ornn", "orianna", "ryze", "sivir", "smolder", "viktor", "xayah", "zeri"]);
+const PLAYMAKING_CHAMPIONS = new Set(["ahri", "alistar", "bard", "galio", "jarvan-iv", "lee-sin", "nautilus", "neeko", "pantheon", "poppy", "pyke", "rakan", "rell", "renata-glasc", "sylas", "taliyah", "thresh", "vi"]);
+const UTILITY_CHAMPIONS = new Set(["braum", "dr-mundo", "galio", "karma", "ksante", "lulu", "maokai", "nami", "ornn", "renata-glasc", "sejuani", "sion", "tahm-kench"]);
 
-  const score =
-    entries.reduce((sum, [value, weight]) => sum + value * weight, 0) / totalWeight;
-
-  return toRating(score);
+const ROLE_BIAS: Record<Role, { lane: number; roam: number; scaling: number; playmaking: number; objective: number; blind: number; counter: number; utility: number; carry: number; safeLane: number; split: number; flank: number; invade: number; leadership: number; }> = {
+  top: { lane: 5, roam: -8, scaling: 4, playmaking: 0, objective: 0, blind: 3, counter: 8, utility: -6, carry: 8, safeLane: 8, split: 20, flank: 12, invade: -10, leadership: 0 },
+  jungle: { lane: -8, roam: 20, scaling: -2, playmaking: 8, objective: 12, blind: 0, counter: 3, utility: 2, carry: 2, safeLane: -6, split: -12, flank: 4, invade: 18, leadership: 4 },
+  mid: { lane: 8, roam: 10, scaling: 6, playmaking: 8, objective: 4, blind: 4, counter: 8, utility: -2, carry: 10, safeLane: -2, split: 6, flank: 12, invade: -2, leadership: 4 },
+  adc: { lane: 2, roam: -18, scaling: 18, playmaking: -10, objective: 4, blind: 2, counter: 2, utility: -12, carry: 18, safeLane: 18, split: -14, flank: -14, invade: -18, leadership: -4 },
+  support: { lane: -2, roam: 18, scaling: -8, playmaking: 10, objective: 6, blind: 8, counter: 4, utility: 18, carry: -18, safeLane: 6, split: -18, flank: 6, invade: 6, leadership: 8 },
 };
 
-const deriveLegacyStats = (advancedProfile: PlayerAdvancedProfile): PlayerStats => {
-  const s = advancedProfile.substats;
-  const p = advancedProfile.playstyle;
-  const t = advancedProfile.tendencies;
-  const h = advancedProfile.hiddenTraits;
+const countTaggedChampions = (champions: string[]) => ({
+  aggressive: champions.filter((champion) => AGGRESSIVE_CHAMPIONS.has(champion)).length,
+  scaling: champions.filter((champion) => SCALING_CHAMPIONS.has(champion)).length,
+  playmaking: champions.filter((champion) => PLAYMAKING_CHAMPIONS.has(champion)).length,
+  utility: champions.filter((champion) => UTILITY_CHAMPIONS.has(champion)).length,
+});
+
+const deriveSubstats = (role: Role, seed: PlayerSeed, bestChampions: string[]): PlayerSubstats => {
+  const roleBias = ROLE_BIAS[role];
+  const tags = countTaggedChampions(bestChampions);
+  const execution = seed.execution * 10;
+  const mapSense = seed.mapSense * 10;
+  const combat = seed.combat * 10;
+  const resilience = seed.resilience * 10;
+  const stability = seed.stability * 10;
+  const gameRead = seed.gameRead * 10;
+
+  const styleFlexBase = clamp((gameRead * 0.35) + (mapSense * 0.25) + (execution * 0.15) + (stability * 0.15) + ((tags.utility + tags.playmaking) * 4) + ((tags.scaling + tags.aggressive) * 2));
 
   return {
-    mec: weightedAverage([
-      [s.microPrecision, 0.28],
-      [s.reactionTime, 0.22],
-      [s.comboExecution, 0.2],
-      [s.spacing, 0.15],
-      [s.handsConsistency, 0.15],
-    ]),
-    mac: weightedAverage([
-      [s.mapReading, 0.2],
-      [s.objectiveSetup, 0.18],
-      [s.rotationTiming, 0.2],
-      [s.laneAssignment, 0.14],
-      [s.visionCraft, 0.12],
-      [s.waveControl, 0.08],
-      [t.safeResetDiscipline, 0.08],
-    ]),
-    tfg: weightedAverage([
-      [s.positioningInFights, 0.24],
-      [s.targetSelection, 0.18],
-      [s.spellLayering, 0.12],
-      [s.frontToBackUnderstanding, 0.14],
-      [s.damageUptime, 0.18],
-      [s.engageFollowUp, 0.08],
-      [p.playmakingIntent, 0.06],
-    ]),
-    clt: weightedAverage([
-      [s.clutchDecisionMaking, 0.26],
-      [s.pressureExecution, 0.28],
-      [s.comebackNerve, 0.2],
-      [s.closeoutControl, 0.14],
-      [h.composure, 0.12],
-    ]),
-    con: weightedAverage([
-      [s.handsConsistency, 0.18],
-      [s.performanceFloor, 0.3],
-      [s.disciplineUnderPressure, 0.22],
-      [s.recoveryAfterMistakes, 0.14],
-      [h.communication, 0.08],
-      [10 - Math.max(0, h.volatility - 1), 0.08],
-    ]),
-    iq: weightedAverage([
-      [s.patchInterpretation, 0.2],
-      [s.championLearning, 0.18],
-      [s.draftReadiness, 0.18],
-      [s.styleElasticity, 0.18],
-      [s.problemSolving, 0.16],
-      [p.utilityComfort, 0.05],
-      [t.objectiveTradeBias, 0.05],
-    ]),
+    mechanicalExecution: clamp((execution * 0.72) + (combat * 0.18) + (stability * 0.10)),
+    reactionTime: clamp((execution * 0.58) + (combat * 0.22) + (resilience * 0.20)),
+    laneTrading: clamp((execution * 0.36) + (combat * 0.24) + (stability * 0.18) + (gameRead * 0.12) + roleBias.lane + (tags.aggressive * 2) + (tags.scaling * 1)),
+    spacing: clamp((execution * 0.34) + (combat * 0.20) + (stability * 0.22) + (gameRead * 0.14) + (resilience * 0.10) + (role === "adc" ? 8 : 0)),
+    comboPrecision: clamp((execution * 0.55) + (combat * 0.30) + (resilience * 0.15) + (tags.playmaking * 2)),
+    skirmishInstinct: clamp((combat * 0.45) + (execution * 0.20) + (mapSense * 0.15) + (resilience * 0.10) + (gameRead * 0.10) + roleBias.playmaking + (tags.aggressive * 3)),
+    teamfightSpacing: clamp((combat * 0.38) + (stability * 0.24) + (gameRead * 0.18) + (resilience * 0.20) + (role === "adc" ? 10 : role === "support" ? 4 : 0)),
+    targetSelection: clamp((combat * 0.32) + (gameRead * 0.32) + (mapSense * 0.18) + (stability * 0.18) + (role === "adc" ? 6 : 0)),
+    mapReading: clamp((mapSense * 0.46) + (gameRead * 0.30) + (stability * 0.14) + (resilience * 0.10) + (tags.utility * 2)),
+    objectiveSetup: clamp((mapSense * 0.34) + (gameRead * 0.28) + (combat * 0.18) + (stability * 0.10) + (resilience * 0.10) + roleBias.objective),
+    rotationPlanning: clamp((mapSense * 0.38) + (gameRead * 0.30) + (stability * 0.18) + (resilience * 0.14) + roleBias.roam + (tags.playmaking * 2)),
+    visionCraft: clamp((mapSense * 0.36) + (gameRead * 0.24) + (stability * 0.20) + (resilience * 0.10) + (role === "support" ? 18 : role === "jungle" ? 8 : 0) + (tags.utility * 3)),
+    metaAdaptation: clamp((gameRead * 0.40) + (mapSense * 0.24) + (stability * 0.18) + (execution * 0.10) + (combat * 0.08)),
+    blindStability: clamp((stability * 0.32) + (gameRead * 0.28) + (mapSense * 0.20) + (execution * 0.20) + roleBias.blind + (tags.utility * 2) + (tags.scaling * 1)),
+    counterPrep: clamp((execution * 0.24) + (gameRead * 0.30) + (combat * 0.20) + (mapSense * 0.16) + (stability * 0.10) + roleBias.counter + (tags.aggressive * 2) + (tags.playmaking * 2)),
+    pressureExecution: clamp((resilience * 0.42) + (combat * 0.18) + (execution * 0.16) + (stability * 0.14) + (gameRead * 0.10)),
+    disciplineUnderStress: clamp((stability * 0.44) + (gameRead * 0.26) + (mapSense * 0.20) + (resilience * 0.10) - (tags.aggressive * 2)),
+    riskCalibration: clamp((stability * 0.34) + (gameRead * 0.24) + (mapSense * 0.24) + (resilience * 0.10) + (combat * 0.08) - (tags.aggressive * 2) + (tags.utility * 2)),
+    championDepth: clamp((gameRead * 0.26) + (execution * 0.20) + (mapSense * 0.20) + (stability * 0.14) + (combat * 0.10) + (resilience * 0.10) + (bestChampions.length * 2)),
+    patchIntegration: clamp((gameRead * 0.34) + (mapSense * 0.28) + (stability * 0.18) + (execution * 0.10) + (resilience * 0.10)),
+    roamWindowReading: clamp((mapSense * 0.30) + (gameRead * 0.26) + (combat * 0.18) + (execution * 0.12) + (stability * 0.14) + roleBias.roam + (tags.playmaking * 2)),
+    carryComfort: clamp((execution * 0.28) + (combat * 0.24) + (resilience * 0.12) + (stability * 0.12) + (gameRead * 0.12) + roleBias.carry + (tags.aggressive * 4) + (tags.scaling * 3) - (tags.utility * 2)),
+    utilityComfort: clamp((mapSense * 0.22) + (gameRead * 0.24) + (stability * 0.18) + (combat * 0.10) + (resilience * 0.10) + roleBias.utility + (tags.utility * 5) + (tags.playmaking * 2)),
+    styleFlex: styleFlexBase,
+  };
+};
+
+const derivePrimaryStats = (role: Role, substats: PlayerSubstats): PlayerPrimaryStats => ({
+  mechanics: clamp((substats.mechanicalExecution * 0.34) + (substats.reactionTime * 0.22) + (substats.comboPrecision * 0.22) + (substats.spacing * 0.22)),
+  laning: clamp((substats.laneTrading * 0.42) + (substats.spacing * 0.22) + (substats.mapReading * 0.16) + (substats.disciplineUnderStress * 0.20)),
+  positioning: clamp((substats.teamfightSpacing * 0.52) + (substats.targetSelection * 0.26) + (substats.riskCalibration * 0.22)),
+  skirmishing: clamp((substats.skirmishInstinct * 0.45) + (substats.comboPrecision * 0.20) + (substats.reactionTime * 0.15) + (substats.roamWindowReading * 0.20)),
+  teamfighting: clamp((substats.teamfightSpacing * 0.34) + (substats.targetSelection * 0.26) + (substats.pressureExecution * 0.20) + (substats.riskCalibration * 0.20)),
+  mapAwareness: clamp((substats.mapReading * 0.46) + (substats.rotationPlanning * 0.26) + (substats.visionCraft * 0.14) + (substats.roamWindowReading * 0.14)),
+  objectiveControl: clamp((substats.objectiveSetup * 0.50) + (substats.mapReading * 0.16) + (substats.rotationPlanning * 0.16) + (substats.riskCalibration * 0.18)),
+  rotationTiming: clamp((substats.rotationPlanning * 0.48) + (substats.mapReading * 0.18) + (substats.roamWindowReading * 0.18) + (substats.disciplineUnderStress * 0.16)),
+  consistency: clamp((substats.disciplineUnderStress * 0.34) + (substats.spacing * 0.20) + (substats.teamfightSpacing * 0.16) + (substats.patchIntegration * 0.14) + (substats.riskCalibration * 0.16)),
+  adaptability: clamp((substats.metaAdaptation * 0.34) + (substats.patchIntegration * 0.22) + (substats.styleFlex * 0.22) + (substats.counterPrep * 0.12) + (substats.roamWindowReading * 0.10)),
+  discipline: clamp((substats.disciplineUnderStress * 0.42) + (substats.riskCalibration * 0.26) + (substats.mapReading * 0.16) + (substats.rotationPlanning * 0.16)),
+  clutchFactor: clamp((substats.pressureExecution * 0.50) + (substats.targetSelection * 0.12) + (substats.teamfightSpacing * 0.18) + (substats.riskCalibration * 0.20)),
+  championPoolSize: clamp((substats.championDepth * 0.38) + (substats.styleFlex * 0.28) + (substats.metaAdaptation * 0.16) + (substats.carryComfort * 0.10) + (substats.utilityComfort * 0.08)),
+  metaReadiness: clamp((substats.metaAdaptation * 0.44) + (substats.patchIntegration * 0.30) + (substats.championDepth * 0.12) + (substats.styleFlex * 0.14)),
+  blindPickStrength: clamp((substats.blindStability * 0.56) + (substats.disciplineUnderStress * 0.18) + (substats.spacing * 0.10) + (substats.mapReading * 0.16) + (role === "top" || role === "support" ? 2 : 0)),
+  counterPickStrength: clamp((substats.counterPrep * 0.56) + (substats.comboPrecision * 0.12) + (substats.laneTrading * 0.18) + (substats.styleFlex * 0.14) + (role === "top" || role === "mid" ? 3 : 0)),
+  aggression: clamp((substats.skirmishInstinct * 0.34) + (substats.comboPrecision * 0.10) + (substats.carryComfort * 0.20) + (100 - substats.riskCalibration) * 0.16 + (substats.roamWindowReading * 0.20)),
+  roamFrequency: clamp((substats.roamWindowReading * 0.50) + (substats.rotationPlanning * 0.22) + (substats.skirmishInstinct * 0.12) + (0), 20, 99),
+  scalingPreference: clamp((substats.championDepth * 0.12) + (substats.patchIntegration * 0.18) + (substats.utilityComfort * 0.06) + (substats.carryComfort * 0.24) + (substats.blindStability * 0.18) + (substats.riskCalibration * 0.22) + (role === "adc" ? 8 : role === "mid" ? 4 : 0)),
+  playmakingBias: clamp((substats.skirmishInstinct * 0.28) + (substats.counterPrep * 0.12) + (substats.roamWindowReading * 0.28) + (substats.carryComfort * 0.12) + (100 - substats.riskCalibration) * 0.20 + (role === "support" ? 6 : role === "mid" ? 4 : 0)),
+  riskManagement: clamp((substats.riskCalibration * 0.44) + (substats.disciplineUnderStress * 0.20) + (substats.mapReading * 0.18) + (substats.pressureExecution * 0.18)),
+  currentForm: clamp((substats.pressureExecution * 0.30) + (substats.disciplineUnderStress * 0.24) + (substats.teamfightSpacing * 0.16) + (substats.comboPrecision * 0.14) + (substats.patchIntegration * 0.16)),
+  patchComfort: clamp((substats.patchIntegration * 0.44) + (substats.metaAdaptation * 0.22) + (substats.styleFlex * 0.18) + (substats.championDepth * 0.16)),
+});
+
+const derivePlaystyle = (role: Role, primary: PlayerPrimaryStats, substats: PlayerSubstats, bestChampions: string[]): PlayerPlaystyleProfile => {
+  const tags = countTaggedChampions(bestChampions);
+
+  return {
+    carryResourceUsage: clamp((substats.carryComfort * 0.44) + (primary.mechanics * 0.16) + (primary.teamfighting * 0.12) + (role === "adc" ? 16 : role === "mid" ? 8 : role === "top" ? 6 : 0), 20, 99),
+    utilityComfort: clamp((substats.utilityComfort * 0.58) + (primary.mapAwareness * 0.12) + (primary.discipline * 0.10) + (tags.utility * 4), 20, 99),
+    playmakingIntent: clamp((primary.playmakingBias * 0.56) + (primary.aggression * 0.18) + (substats.skirmishInstinct * 0.16) + (tags.playmaking * 4), 20, 99),
+    scalingOrientation: clamp((primary.scalingPreference * 0.60) + (substats.blindStability * 0.10) + (tags.scaling * 5), 20, 99),
+    laneControlBias: clamp((primary.laning * 0.58) + (substats.laneTrading * 0.18) + (substats.mapReading * 0.10) + (role === "mid" ? 4 : role === "top" ? 2 : 0), 20, 99),
+    roamBias: clamp((primary.roamFrequency * 0.62) + (substats.rotationPlanning * 0.14) + (tags.playmaking * 3), 20, 99),
+    riskAppetite: clamp((primary.aggression * 0.56) + ((100 - primary.riskManagement) * 0.24) + (tags.aggressive * 5), 20, 99),
+    setupDependence: clamp((substats.utilityComfort * 0.18) + ((100 - substats.carryComfort) * 0.32) + (role === "adc" ? 18 : role === "support" ? 8 : 0), 20, 99),
+    styleFlex: clamp((substats.styleFlex * 0.64) + (primary.adaptability * 0.16) + (tags.utility * 2) + (tags.playmaking * 2), 20, 99),
+  };
+};
+
+const deriveTendencies = (role: Role, primary: PlayerPrimaryStats, playstyle: PlayerPlaystyleProfile, bestChampions: string[]): PlayerTendencies => {
+  const tags = countTaggedChampions(bestChampions);
+  const roleBias = ROLE_BIAS[role];
+
+  return {
+    invadeFrequency: clamp((primary.roamFrequency * 0.34) + (primary.aggression * 0.22) + (playstyle.playmakingIntent * 0.14) + roleBias.invade + (tags.aggressive * 4), 10, 99),
+    towerDiveFrequency: clamp((primary.aggression * 0.38) + (primary.skirmishing * 0.18) + (playstyle.playmakingIntent * 0.18) + ((100 - primary.riskManagement) * 0.14) + (tags.aggressive * 4), 10, 99),
+    objectiveContestBias: clamp((primary.objectiveControl * 0.36) + (primary.teamfighting * 0.18) + (primary.mapAwareness * 0.18) + (primary.clutchFactor * 0.12) + (role === "jungle" ? 10 : 0), 10, 99),
+    splitPushBias: clamp((primary.laning * 0.16) + (primary.counterPickStrength * 0.16) + (playstyle.carryResourceUsage * 0.14) + roleBias.split + (tags.scaling * 2), 5, 99),
+    flankPreference: clamp((playstyle.playmakingIntent * 0.34) + (primary.roamFrequency * 0.18) + (primary.skirmishing * 0.18) + roleBias.flank + (tags.playmaking * 5), 5, 99),
+    safeLanePreference: clamp((playstyle.scalingOrientation * 0.28) + (primary.riskManagement * 0.26) + (primary.consistency * 0.16) + roleBias.safeLane - (tags.aggressive * 4), 5, 99),
+    laneRevisitBias: clamp((primary.roamFrequency * 0.24) + (primary.playmakingBias * 0.22) + (primary.mapAwareness * 0.14) + (role === "jungle" || role === "support" ? 14 : 0), 5, 99),
+    resetDiscipline: clamp((primary.discipline * 0.46) + (primary.consistency * 0.24) + (primary.riskManagement * 0.18) + (playstyle.scalingOrientation * 0.12), 5, 99),
+  };
+};
+
+const deriveHiddenTraits = (role: Role, seed: PlayerSeed, primary: PlayerPrimaryStats, playstyle: PlayerPlaystyleProfile, bestChampions: string[]): PlayerHiddenTraits => {
+  const tags = countTaggedChampions(bestChampions);
+  const roleBias = ROLE_BIAS[role];
+
+  return {
+    greed: clamp((playstyle.carryResourceUsage * 0.42) + (primary.aggression * 0.18) + ((100 - primary.riskManagement) * 0.20) + (tags.aggressive * 4) - (tags.utility * 3), 5, 99),
+    composure: clamp((primary.clutchFactor * 0.34) + (primary.consistency * 0.22) + (primary.riskManagement * 0.22) + (seed.resilience * 10 * 0.22), 5, 99),
+    leadership: clamp((seed.gameRead * 10 * 0.30) + (primary.mapAwareness * 0.20) + (primary.objectiveControl * 0.18) + (primary.metaReadiness * 0.12) + roleBias.leadership, 5, 99),
+    communication: clamp((seed.mapSense * 10 * 0.26) + (seed.gameRead * 10 * 0.24) + (primary.rotationTiming * 0.18) + (primary.objectiveControl * 0.14) + roleBias.leadership, 5, 99),
+    volatility: clamp((primary.aggression * 0.34) + ((100 - primary.consistency) * 0.34) + ((100 - primary.riskManagement) * 0.18) + (tags.aggressive * 5) - (tags.utility * 2), 5, 99),
+  };
+};
+
+const deriveLegacyStats = (profile: PlayerAdvancedProfile): PlayerStats => ({
+  mec: clampRating((profile.primary.mechanics * 0.50 + profile.primary.laning * 0.15 + profile.primary.positioning * 0.15 + profile.primary.skirmishing * 0.20) / 10),
+  mac: clampRating((profile.primary.mapAwareness * 0.34 + profile.primary.objectiveControl * 0.24 + profile.primary.rotationTiming * 0.24 + profile.primary.riskManagement * 0.18) / 10),
+  tfg: clampRating((profile.primary.teamfighting * 0.45 + profile.primary.skirmishing * 0.25 + profile.primary.positioning * 0.15 + profile.primary.playmakingBias * 0.15) / 10),
+  clt: clampRating((profile.primary.clutchFactor * 0.55 + profile.primary.currentForm * 0.25 + profile.hiddenTraits.composure * 0.20) / 10),
+  con: clampRating((profile.primary.consistency * 0.45 + profile.primary.discipline * 0.35 + profile.primary.riskManagement * 0.20) / 10),
+  iq: clampRating((profile.primary.metaReadiness * 0.22 + profile.primary.mapAwareness * 0.20 + profile.primary.adaptability * 0.20 + profile.primary.championPoolSize * 0.12 + profile.primary.blindPickStrength * 0.12 + profile.primary.counterPickStrength * 0.14) / 10),
+});
+
+const createAdvancedProfile = (role: Role, seed: PlayerSeed, bestChampions: string[]): PlayerAdvancedProfile => {
+  const substats = deriveSubstats(role, seed, bestChampions);
+  const primary = derivePrimaryStats(role, substats);
+  const playstyle = derivePlaystyle(role, primary, substats, bestChampions);
+  const tendencies = deriveTendencies(role, primary, playstyle, bestChampions);
+  const hiddenTraits = deriveHiddenTraits(role, seed, primary, playstyle, bestChampions);
+
+  return {
+    seed,
+    primary,
+    substats,
+    playstyle,
+    tendencies,
+    hiddenTraits,
   };
 };
 
 const createPlayer = (
   base: Omit<Player, "rosterPoints" | "comfortChampions" | "championPool" | "stats"> & {
-    stats?: PlayerStats;
-    advancedProfile?: PlayerAdvancedProfile;
+    seed: PlayerSeed;
     comfortChampions?: string[];
     championPool?: string[];
   }
@@ -93,30 +185,26 @@ const createPlayer = (
     ...base.bestChampions,
     ...comfortChampions,
   ]));
-  const stats =
-    base.stats ??
-    (base.advancedProfile
-      ? deriveLegacyStats(base.advancedProfile)
-      : {
-          mec: 5,
-          mac: 5,
-          tfg: 5,
-          clt: 5,
-          con: 5,
-          iq: 5,
-        });
+  const advancedProfile = createAdvancedProfile(base.role, base.seed, championPool);
 
   return {
-    ...base,
-    stats,
+    id: base.id,
+    slug: base.slug,
+    name: base.name,
+    teamId: base.teamId,
+    role: base.role,
+    image: base.image,
+    bestChampions: base.bestChampions,
     comfortChampions,
     championPool,
-    rosterPoints: calculateRosterPoints(stats),
+    advancedProfile,
+    stats: deriveLegacyStats(advancedProfile),
+    rosterPoints: calculateRosterPoints(deriveLegacyStats(advancedProfile)),
+    sortOrder: base.sortOrder,
   };
 };
 
 export const players: Player[] = [
-  // BNK FEARX
   createPlayer({
     id: "clear",
     slug: "clear",
@@ -124,7 +212,7 @@ export const players: Player[] = [
     teamId: "bfx",
     role: "top",
     image: "/players/lck/bfx/clear.webp",
-    stats: { mec: 7, mac: 7, tfg: 7, clt: 6, con: 7, iq: 6 },
+    seed: { execution: 7, mapSense: 7, combat: 7, resilience: 6, stability: 7, gameRead: 6 },
     bestChampions: ["ksante", "gnar", "renekton"],
     sortOrder: 1,
   }),
@@ -135,7 +223,7 @@ export const players: Player[] = [
     teamId: "bfx",
     role: "jungle",
     image: "/players/lck/bfx/raptor.webp",
-    stats: { mec: 7, mac: 7, tfg: 7, clt: 6, con: 7, iq: 7 },
+    seed: { execution: 7, mapSense: 7, combat: 7, resilience: 6, stability: 7, gameRead: 7 },
     bestChampions: ["xin-zhao", "maokai", "naafiri"],
     sortOrder: 2,
   }),
@@ -146,7 +234,7 @@ export const players: Player[] = [
     teamId: "bfx",
     role: "mid",
     image: "/players/lck/bfx/vicla.webp",
-    stats: { mec: 8, mac: 7, tfg: 8, clt: 7, con: 7, iq: 7 },
+    seed: { execution: 8, mapSense: 7, combat: 8, resilience: 7, stability: 7, gameRead: 7 },
     bestChampions: ["ryze", "orianna", "ahri"],
     sortOrder: 3,
   }),
@@ -157,77 +245,8 @@ export const players: Player[] = [
     teamId: "bfx",
     role: "adc",
     image: "/players/lck/bfx/diable.webp",
-    advancedProfile: {
-      substats: {
-        microPrecision: 9,
-        reactionTime: 9,
-        comboExecution: 9,
-        spacing: 9,
-        handsConsistency: 8,
-
-        mapReading: 7,
-        objectiveSetup: 7,
-        rotationTiming: 7,
-        laneAssignment: 7,
-        visionCraft: 6,
-        waveControl: 8,
-
-        positioningInFights: 8,
-        targetSelection: 8,
-        spellLayering: 7,
-        frontToBackUnderstanding: 8,
-        damageUptime: 9,
-        engageFollowUp: 7,
-
-        clutchDecisionMaking: 7,
-        pressureExecution: 7,
-        comebackNerve: 7,
-        closeoutControl: 7,
-
-        performanceFloor: 7,
-        disciplineUnderPressure: 7,
-        recoveryAfterMistakes: 7,
-
-        patchInterpretation: 7,
-        championLearning: 7,
-        draftReadiness: 7,
-        styleElasticity: 8,
-        problemSolving: 7,
-      },
-      playstyle: {
-        carryResourceUsage: 8,
-        utilityComfort: 7,
-        playmakingIntent: 7,
-        scalingOrientation: 8,
-        laneControlBias: 8,
-        roamBias: 4,
-        riskAppetite: 6,
-        setupDependence: 6,
-      },
-      tendencies: {
-        invadeFrequency: 2,
-        laneRevisitBias: 4,
-        objectiveTradeBias: 7,
-        diveFrequency: 5,
-        flankPreference: 3,
-        sideLaneCatchBias: 6,
-        safeResetDiscipline: 7,
-      },
-      hiddenTraits: {
-        greed: 7,
-        composure: 7,
-        leadership: 5,
-        communication: 7,
-        volatility: 5,
-      },
-      notes: [
-        "Built as a mechanically strong ADC profile with front-to-back reliability.",
-        "Primary ratings stay legacy-compatible and are derived from the deeper profile.",
-      ],
-    },
+    seed: { execution: 9, mapSense: 7, combat: 8, resilience: 7, stability: 7, gameRead: 7 },
     bestChampions: ["lucian", "aphelios", "yunara"],
-    comfortChampions: ["lucian", "aphelios", "yunara", "kai-sa", "xayah"],
-    championPool: ["lucian", "aphelios", "yunara", "kai-sa", "xayah", "jinx", "ezreal"],
     sortOrder: 5,
   }),
   createPlayer({
@@ -237,12 +256,10 @@ export const players: Player[] = [
     teamId: "bfx",
     role: "support",
     image: "/players/lck/bfx/kellin.webp",
-    stats: { mec: 6, mac: 8, tfg: 7, clt: 7, con: 7, iq: 8 },
+    seed: { execution: 6, mapSense: 8, combat: 7, resilience: 7, stability: 7, gameRead: 8 },
     bestChampions: ["rakan", "nami", "karma"],
     sortOrder: 6,
   }),
-
-  // DN SOOPERS
   createPlayer({
     id: "dudu",
     slug: "dudu",
@@ -250,7 +267,7 @@ export const players: Player[] = [
     teamId: "dns",
     role: "top",
     image: "/players/lck/dns/dudu.webp",
-    stats: { mec: 7, mac: 6, tfg: 7, clt: 6, con: 7, iq: 6 },
+    seed: { execution: 7, mapSense: 6, combat: 7, resilience: 6, stability: 7, gameRead: 6 },
     bestChampions: ["ksante", "rumble", "renekton"],
     sortOrder: 7,
   }),
@@ -261,7 +278,7 @@ export const players: Player[] = [
     teamId: "dns",
     role: "jungle",
     image: "/players/lck/dns/pyosik.webp",
-    stats: { mec: 7, mac: 7, tfg: 7, clt: 7, con: 7, iq: 7 },
+    seed: { execution: 7, mapSense: 7, combat: 7, resilience: 7, stability: 7, gameRead: 7 },
     bestChampions: ["lee-sin", "viego", "vi"],
     sortOrder: 8,
   }),
@@ -272,7 +289,7 @@ export const players: Player[] = [
     teamId: "dns",
     role: "mid",
     image: "/players/lck/dns/clozer.webp",
-    stats: { mec: 8, mac: 7, tfg: 7, clt: 7, con: 7, iq: 7 },
+    seed: { execution: 8, mapSense: 7, combat: 7, resilience: 7, stability: 7, gameRead: 7 },
     bestChampions: ["azir", "ahri", "taliyah"],
     sortOrder: 9,
   }),
@@ -283,7 +300,7 @@ export const players: Player[] = [
     teamId: "dns",
     role: "adc",
     image: "/players/lck/dns/deokdam.webp",
-    stats: { mec: 8, mac: 6, tfg: 8, clt: 6, con: 6, iq: 6 },
+    seed: { execution: 8, mapSense: 6, combat: 8, resilience: 6, stability: 6, gameRead: 6 },
     bestChampions: ["ezreal", "xayah", "kaisa"],
     sortOrder: 10,
   }),
@@ -294,12 +311,10 @@ export const players: Player[] = [
     teamId: "dns",
     role: "support",
     image: "/players/lck/dns/peter.webp",
-    stats: { mec: 6, mac: 8, tfg: 7, clt: 6, con: 7, iq: 8 },
+    seed: { execution: 6, mapSense: 8, combat: 7, resilience: 6, stability: 7, gameRead: 8 },
     bestChampions: ["rakan", "alistar", "neeko"],
     sortOrder: 11,
   }),
-
-  // DRX
   createPlayer({
     id: "rich",
     slug: "rich",
@@ -307,7 +322,7 @@ export const players: Player[] = [
     teamId: "drx",
     role: "top",
     image: "/players/lck/drx/rich.webp",
-    stats: { mec: 7, mac: 6, tfg: 7, clt: 6, con: 6, iq: 6 },
+    seed: { execution: 7, mapSense: 6, combat: 7, resilience: 6, stability: 6, gameRead: 6 },
     bestChampions: ["aatrox", "gnar", "jayce"],
     sortOrder: 12,
   }),
@@ -318,7 +333,7 @@ export const players: Player[] = [
     teamId: "drx",
     role: "jungle",
     image: "/players/lck/drx/willer.webp",
-    stats: { mec: 6, mac: 6, tfg: 6, clt: 6, con: 6, iq: 6 },
+    seed: { execution: 6, mapSense: 6, combat: 6, resilience: 6, stability: 6, gameRead: 6 },
     bestChampions: ["wukong", "pantheon", "xin-zhao"],
     sortOrder: 13,
   }),
@@ -329,7 +344,7 @@ export const players: Player[] = [
     teamId: "drx",
     role: "mid",
     image: "/players/lck/drx/ucal.webp",
-    stats: { mec: 7, mac: 6, tfg: 7, clt: 5, con: 5, iq: 6 },
+    seed: { execution: 7, mapSense: 6, combat: 7, resilience: 5, stability: 5, gameRead: 6 },
     bestChampions: ["taliyah", "sylas", "azir"],
     sortOrder: 14,
   }),
@@ -340,7 +355,7 @@ export const players: Player[] = [
     teamId: "drx",
     role: "adc",
     image: "/players/lck/drx/jiwoo.webp",
-    stats: { mec: 8, mac: 6, tfg: 8, clt: 6, con: 6, iq: 8 },
+    seed: { execution: 8, mapSense: 6, combat: 8, resilience: 6, stability: 6, gameRead: 8 },
     bestChampions: ["zeri", "ezreal", "sivir"],
     sortOrder: 15,
   }),
@@ -351,12 +366,10 @@ export const players: Player[] = [
     teamId: "drx",
     role: "support",
     image: "/players/lck/drx/andil.webp",
-    stats: { mec: 5, mac: 7, tfg: 6, clt: 6, con: 6, iq: 7 },
+    seed: { execution: 5, mapSense: 7, combat: 6, resilience: 6, stability: 6, gameRead: 7 },
     bestChampions: ["nautilus", "rakan", "bard"],
     sortOrder: 16,
   }),
-
-  // DPLUS KIA
   createPlayer({
     id: "siwoo",
     slug: "siwoo",
@@ -364,7 +377,7 @@ export const players: Player[] = [
     teamId: "dk",
     role: "top",
     image: "/players/lck/dk/siwoo.webp",
-    stats: { mec: 7, mac: 7, tfg: 7, clt: 7, con: 7, iq: 7 },
+    seed: { execution: 7, mapSense: 7, combat: 7, resilience: 7, stability: 7, gameRead: 7 },
     bestChampions: ["ksante", "jax", "rumble"],
     sortOrder: 17,
   }),
@@ -375,7 +388,7 @@ export const players: Player[] = [
     teamId: "dk",
     role: "jungle",
     image: "/players/lck/dk/lucid.webp",
-    stats: { mec: 8, mac: 8, tfg: 8, clt: 7, con: 7, iq: 8 },
+    seed: { execution: 8, mapSense: 8, combat: 8, resilience: 7, stability: 7, gameRead: 8 },
     bestChampions: ["vi", "jarvan-iv", "wukong"],
     sortOrder: 18,
   }),
@@ -386,7 +399,7 @@ export const players: Player[] = [
     teamId: "dk",
     role: "mid",
     image: "/players/lck/dk/showmaker.webp",
-    stats: { mec: 9, mac: 8, tfg: 8, clt: 8, con: 8, iq: 8 },
+    seed: { execution: 9, mapSense: 8, combat: 8, resilience: 8, stability: 8, gameRead: 8 },
     bestChampions: ["syndra", "azir", "ryze"],
     sortOrder: 19,
   }),
@@ -397,7 +410,7 @@ export const players: Player[] = [
     teamId: "dk",
     role: "adc",
     image: "/players/lck/dk/smash.webp",
-    stats: { mec: 9, mac: 7, tfg: 9, clt: 8, con: 8, iq: 7 },
+    seed: { execution: 9, mapSense: 7, combat: 9, resilience: 8, stability: 8, gameRead: 7 },
     bestChampions: ["varus", "lucian", "zeri"],
     sortOrder: 20,
   }),
@@ -408,12 +421,10 @@ export const players: Player[] = [
     teamId: "dk",
     role: "support",
     image: "/players/lck/dk/career.webp",
-    stats: { mec: 6, mac: 8, tfg: 7, clt: 7, con: 7, iq: 8 },
+    seed: { execution: 6, mapSense: 8, combat: 7, resilience: 7, stability: 7, gameRead: 8 },
     bestChampions: ["rakan", "bard", "lulu"],
     sortOrder: 21,
   }),
-
-  // GEN.G
   createPlayer({
     id: "kiin",
     slug: "kiin",
@@ -421,7 +432,7 @@ export const players: Player[] = [
     teamId: "geng",
     role: "top",
     image: "/players/lck/geng/kiin.webp",
-    stats: { mec: 9, mac: 8, tfg: 8, clt: 8, con: 10, iq: 9 },
+    seed: { execution: 9, mapSense: 8, combat: 8, resilience: 8, stability: 10, gameRead: 9 },
     bestChampions: ["ksante", "gwen", "rumble"],
     sortOrder: 22,
   }),
@@ -432,7 +443,7 @@ export const players: Player[] = [
     teamId: "geng",
     role: "jungle",
     image: "/players/lck/geng/canyon.webp",
-    stats: { mec: 9, mac: 10, tfg: 9, clt: 9, con: 8, iq: 10 },
+    seed: { execution: 9, mapSense: 10, combat: 9, resilience: 9, stability: 8, gameRead: 10 },
     bestChampions: ["vi", "wukong", "nidalee"],
     sortOrder: 23,
   }),
@@ -443,7 +454,7 @@ export const players: Player[] = [
     teamId: "geng",
     role: "mid",
     image: "/players/lck/geng/chovy.webp",
-    stats: { mec: 10, mac: 9, tfg: 10, clt: 9, con: 10, iq: 9 },
+    seed: { execution: 10, mapSense: 9, combat: 10, resilience: 9, stability: 10, gameRead: 9 },
     bestChampions: ["azir", "taliyah", "ahri"],
     sortOrder: 24,
   }),
@@ -454,7 +465,7 @@ export const players: Player[] = [
     teamId: "geng",
     role: "adc",
     image: "/players/lck/geng/ruler.webp",
-    stats: { mec: 10, mac: 8, tfg: 9, clt: 9, con: 9, iq: 8 },
+    seed: { execution: 10, mapSense: 8, combat: 9, resilience: 9, stability: 9, gameRead: 8 },
     bestChampions: ["varus", "jhin", "ashe"],
     sortOrder: 25,
   }),
@@ -465,12 +476,10 @@ export const players: Player[] = [
     teamId: "geng",
     role: "support",
     image: "/players/lck/geng/duro.webp",
-    stats: { mec: 5, mac: 9, tfg: 8, clt: 8, con: 9, iq: 8 },
+    seed: { execution: 5, mapSense: 9, combat: 8, resilience: 8, stability: 9, gameRead: 8 },
     bestChampions: ["rakan", "neeko", "bard"],
     sortOrder: 26,
   }),
-
-  // HANJIN BRION
   createPlayer({
     id: "casting",
     slug: "casting",
@@ -478,7 +487,7 @@ export const players: Player[] = [
     teamId: "bro",
     role: "top",
     image: "/players/lck/bro/casting.webp",
-    stats: { mec: 6, mac: 5, tfg: 6, clt: 5, con: 5, iq: 6 },
+    seed: { execution: 6, mapSense: 5, combat: 6, resilience: 5, stability: 5, gameRead: 6 },
     bestChampions: ["ksante", "aatrox", "rumble"],
     sortOrder: 27,
   }),
@@ -489,7 +498,7 @@ export const players: Player[] = [
     teamId: "bro",
     role: "jungle",
     image: "/players/lck/bro/gideon.webp",
-    stats: { mec: 6, mac: 6, tfg: 5, clt: 5, con: 5, iq: 6 },
+    seed: { execution: 6, mapSense: 6, combat: 5, resilience: 5, stability: 5, gameRead: 6 },
     bestChampions: ["poppy", "xin-zhao", "maokai"],
     sortOrder: 28,
   }),
@@ -500,7 +509,7 @@ export const players: Player[] = [
     teamId: "bro",
     role: "mid",
     image: "/players/lck/bro/roamer.webp",
-    stats: { mec: 6, mac: 5, tfg: 6, clt: 5, con: 5, iq: 6 },
+    seed: { execution: 6, mapSense: 5, combat: 6, resilience: 5, stability: 5, gameRead: 6 },
     bestChampions: ["azir", "ahri", "syndra"],
     sortOrder: 29,
   }),
@@ -511,7 +520,7 @@ export const players: Player[] = [
     teamId: "bro",
     role: "adc",
     image: "/players/lck/bro/teddy.webp",
-    stats: { mec: 8, mac: 6, tfg: 7, clt: 6, con: 6, iq: 7 },
+    seed: { execution: 8, mapSense: 6, combat: 7, resilience: 6, stability: 6, gameRead: 7 },
     bestChampions: ["ezreal", "varus", "kalista"],
     sortOrder: 30,
   }),
@@ -522,12 +531,10 @@ export const players: Player[] = [
     teamId: "bro",
     role: "support",
     image: "/players/lck/bro/namgung.webp",
-    stats: { mec: 6, mac: 6, tfg: 6, clt: 5, con: 5, iq: 7 },
+    seed: { execution: 6, mapSense: 6, combat: 6, resilience: 5, stability: 5, gameRead: 7 },
     bestChampions: ["braum", "rakan", "nautilus"],
     sortOrder: 31,
   }),
-
-  // HANWHA LIFE ESPORTS
   createPlayer({
     id: "zeus",
     slug: "zeus",
@@ -535,7 +542,7 @@ export const players: Player[] = [
     teamId: "hle",
     role: "top",
     image: "/players/lck/hle/zeus.webp",
-    stats: { mec: 8, mac: 8, tfg: 8, clt: 7, con: 7, iq: 8 },
+    seed: { execution: 8, mapSense: 8, combat: 8, resilience: 7, stability: 7, gameRead: 8 },
     bestChampions: ["gnar", "jayce", "rumble"],
     sortOrder: 32,
   }),
@@ -546,7 +553,7 @@ export const players: Player[] = [
     teamId: "hle",
     role: "jungle",
     image: "/players/lck/hle/kanavi.webp",
-    stats: { mec: 8, mac: 9, tfg: 8, clt: 7, con: 7, iq: 9 },
+    seed: { execution: 8, mapSense: 9, combat: 8, resilience: 7, stability: 7, gameRead: 9 },
     bestChampions: ["wukong", "vi", "pantheon"],
     sortOrder: 33,
   }),
@@ -557,7 +564,7 @@ export const players: Player[] = [
     teamId: "hle",
     role: "mid",
     image: "/players/lck/hle/zeka.webp",
-    stats: { mec: 9, mac: 7, tfg: 8, clt: 7, con: 7, iq: 7 },
+    seed: { execution: 9, mapSense: 7, combat: 8, resilience: 7, stability: 7, gameRead: 7 },
     bestChampions: ["sylas", "yone", "akali"],
     sortOrder: 34,
   }),
@@ -568,7 +575,7 @@ export const players: Player[] = [
     teamId: "hle",
     role: "adc",
     image: "/players/lck/hle/gumayusi.webp",
-    stats: { mec: 9, mac: 8, tfg: 9, clt: 8, con: 8, iq: 8 },
+    seed: { execution: 9, mapSense: 8, combat: 9, resilience: 8, stability: 8, gameRead: 8 },
     bestChampions: ["varus", "xayah", "kalista"],
     sortOrder: 35,
   }),
@@ -579,12 +586,10 @@ export const players: Player[] = [
     teamId: "hle",
     role: "support",
     image: "/players/lck/hle/delight.webp",
-    stats: { mec: 6, mac: 8, tfg: 7, clt: 7, con: 7, iq: 8 },
+    seed: { execution: 6, mapSense: 8, combat: 7, resilience: 7, stability: 7, gameRead: 8 },
     bestChampions: ["rakan", "alistar", "bard"],
     sortOrder: 36,
   }),
-
-  // KT ROLSTER
   createPlayer({
     id: "perfect",
     slug: "perfect",
@@ -592,7 +597,7 @@ export const players: Player[] = [
     teamId: "kt",
     role: "top",
     image: "/players/lck/kt/perfect.webp",
-    stats: { mec: 6, mac: 6, tfg: 6, clt: 6, con: 5, iq: 6 },
+    seed: { execution: 6, mapSense: 6, combat: 6, resilience: 6, stability: 5, gameRead: 6 },
     bestChampions: ["rumble", "jayce", "ksante"],
     sortOrder: 37,
   }),
@@ -603,7 +608,7 @@ export const players: Player[] = [
     teamId: "kt",
     role: "jungle",
     image: "/players/lck/kt/cuzz.webp",
-    stats: { mec: 7, mac: 8, tfg: 7, clt: 6, con: 7, iq: 8 },
+    seed: { execution: 7, mapSense: 8, combat: 7, resilience: 6, stability: 7, gameRead: 8 },
     bestChampions: ["wukong", "dr-mundo", "viego"],
     sortOrder: 38,
   }),
@@ -614,7 +619,7 @@ export const players: Player[] = [
     teamId: "kt",
     role: "mid",
     image: "/players/lck/kt/bdd.webp",
-    stats: { mec: 8, mac: 8, tfg: 8, clt: 7, con: 8, iq: 8 },
+    seed: { execution: 8, mapSense: 8, combat: 8, resilience: 7, stability: 8, gameRead: 8 },
     bestChampions: ["azir", "orianna", "taliyah"],
     sortOrder: 39,
   }),
@@ -625,7 +630,7 @@ export const players: Player[] = [
     teamId: "kt",
     role: "adc",
     image: "/players/lck/kt/aiming.webp",
-    stats: { mec: 9, mac: 7, tfg: 8, clt: 7, con: 7, iq: 7 },
+    seed: { execution: 9, mapSense: 7, combat: 8, resilience: 7, stability: 7, gameRead: 7 },
     bestChampions: ["aphelios", "zeri", "ezreal"],
     sortOrder: 40,
   }),
@@ -636,11 +641,10 @@ export const players: Player[] = [
     teamId: "kt",
     role: "support",
     image: "/players/lck/kt/pollu.webp",
-    stats: { mec: 5, mac: 6, tfg: 6, clt: 5, con: 5, iq: 6 },
+    seed: { execution: 5, mapSense: 6, combat: 6, resilience: 5, stability: 5, gameRead: 6 },
     bestChampions: ["nautilus", "rell", "alistar"],
     sortOrder: 41,
   }),
-  // NONGSHIM REDFORCE
   createPlayer({
     id: "kingen",
     slug: "kingen",
@@ -648,7 +652,7 @@ export const players: Player[] = [
     teamId: "ns",
     role: "top",
     image: "/players/lck/ns/kingen.webp",
-    stats: { mec: 7, mac: 6, tfg: 6, clt: 5, con: 5, iq: 6 },
+    seed: { execution: 7, mapSense: 6, combat: 6, resilience: 5, stability: 5, gameRead: 6 },
     bestChampions: ["aatrox", "ornn", "ksante"],
     sortOrder: 43,
   }),
@@ -659,7 +663,7 @@ export const players: Player[] = [
     teamId: "ns",
     role: "jungle",
     image: "/players/lck/ns/sponge.webp",
-    stats: { mec: 6, mac: 6, tfg: 6, clt: 6, con: 5, iq: 6 },
+    seed: { execution: 6, mapSense: 6, combat: 6, resilience: 6, stability: 5, gameRead: 6 },
     bestChampions: ["xin-zhao", "pantheon", "jarvan-iv"],
     sortOrder: 44,
   }),
@@ -670,7 +674,7 @@ export const players: Player[] = [
     teamId: "ns",
     role: "mid",
     image: "/players/lck/ns/scout.webp",
-    stats: { mec: 8, mac: 8, tfg: 8, clt: 7, con: 7, iq: 8 },
+    seed: { execution: 8, mapSense: 8, combat: 8, resilience: 7, stability: 7, gameRead: 8 },
     bestChampions: ["azir", "ryze", "sylas"],
     sortOrder: 45,
   }),
@@ -681,7 +685,7 @@ export const players: Player[] = [
     teamId: "ns",
     role: "adc",
     image: "/players/lck/ns/taeyoon.webp",
-    stats: { mec: 8, mac: 6, tfg: 8, clt: 6, con: 6, iq: 6 },
+    seed: { execution: 8, mapSense: 6, combat: 8, resilience: 6, stability: 6, gameRead: 6 },
     bestChampions: ["varus", "kaisa", "ezreal"],
     sortOrder: 46,
   }),
@@ -692,12 +696,10 @@ export const players: Player[] = [
     teamId: "ns",
     role: "support",
     image: "/players/lck/ns/lehends.webp",
-    stats: { mec: 6, mac: 8, tfg: 7, clt: 6, con: 6, iq: 8 },
+    seed: { execution: 6, mapSense: 8, combat: 7, resilience: 6, stability: 6, gameRead: 8 },
     bestChampions: ["leona", "rakan", "neeko"],
     sortOrder: 47,
   }),
-
-  // T1
   createPlayer({
     id: "doran",
     slug: "doran",
@@ -705,7 +707,7 @@ export const players: Player[] = [
     teamId: "t1",
     role: "top",
     image: "/players/lck/t1/doran.webp",
-    stats: { mec: 8, mac: 8, tfg: 8, clt: 8, con: 7, iq: 8 },
+    seed: { execution: 8, mapSense: 8, combat: 8, resilience: 8, stability: 7, gameRead: 8 },
     bestChampions: ["gnar", "jax", "rumble"],
     sortOrder: 48,
   }),
@@ -716,7 +718,7 @@ export const players: Player[] = [
     teamId: "t1",
     role: "jungle",
     image: "/players/lck/t1/oner.webp",
-    stats: { mec: 8, mac: 8, tfg: 8, clt: 8, con: 8, iq: 8 },
+    seed: { execution: 8, mapSense: 8, combat: 8, resilience: 8, stability: 8, gameRead: 8 },
     bestChampions: ["xin-zhao", "nocturne", "lee-sin"],
     sortOrder: 49,
   }),
@@ -727,7 +729,7 @@ export const players: Player[] = [
     teamId: "t1",
     role: "mid",
     image: "/players/lck/t1/faker.webp",
-    stats: { mec: 8, mac: 8, tfg: 8, clt: 10, con: 8, iq: 10 },
+    seed: { execution: 8, mapSense: 8, combat: 8, resilience: 10, stability: 8, gameRead: 10 },
     bestChampions: ["azir", "ryze", "galio"],
     sortOrder: 50,
   }),
@@ -738,7 +740,7 @@ export const players: Player[] = [
     teamId: "t1",
     role: "adc",
     image: "/players/lck/t1/peyz.webp",
-    stats: { mec: 9, mac: 7, tfg: 9, clt: 8, con: 8, iq: 7 },
+    seed: { execution: 9, mapSense: 7, combat: 9, resilience: 8, stability: 8, gameRead: 7 },
     bestChampions: ["varus", "kalista", "kaisa"],
     sortOrder: 51,
   }),
@@ -749,7 +751,7 @@ export const players: Player[] = [
     teamId: "t1",
     role: "support",
     image: "/players/lck/t1/keria.webp",
-    stats: { mec: 7, mac: 9, tfg: 8, clt: 9, con: 9, iq: 10 },
+    seed: { execution: 7, mapSense: 9, combat: 8, resilience: 9, stability: 9, gameRead: 10 },
     bestChampions: ["bard", "renata-glasc", "neeko"],
     sortOrder: 52,
   }),
@@ -760,7 +762,7 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "top",
     image: "/players/free-agents/theshy.webp",
-    stats: { mec: 9, mac: 7, tfg: 8, clt: 7, con: 6, iq: 8 },
+    seed: { execution: 9, mapSense: 7, combat: 8, resilience: 7, stability: 6, gameRead: 8 },
     bestChampions: ["jayce", "rumble", "sion"],
     sortOrder: 53,
   }),
@@ -771,7 +773,7 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "top",
     image: "/players/free-agents/canna.webp",
-    stats: { mec: 7, mac: 7, tfg: 7, clt: 6, con: 7, iq: 7 },
+    seed: { execution: 7, mapSense: 7, combat: 7, resilience: 6, stability: 7, gameRead: 7 },
     bestChampions: ["jayce", "renekton", "kennen"],
     sortOrder: 54,
   }),
@@ -782,7 +784,7 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "top",
     image: "/players/free-agents/soboro.webp",
-    stats: { mec: 6, mac: 6, tfg: 6, clt: 5, con: 5, iq: 6 },
+    seed: { execution: 6, mapSense: 6, combat: 6, resilience: 5, stability: 5, gameRead: 6 },
     bestChampions: ["rumble", "ambessa", "sion"],
     sortOrder: 55,
   }),
@@ -793,7 +795,7 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "jungle",
     image: "/players/free-agents/tarzan.webp",
-    stats: { mec: 8, mac: 9, tfg: 8, clt: 7, con: 8, iq: 9 },
+    seed: { execution: 8, mapSense: 9, combat: 8, resilience: 7, stability: 8, gameRead: 9 },
     bestChampions: ["xin-zhao", "pantheon", "qiyana"],
     sortOrder: 56,
   }),
@@ -804,7 +806,7 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "jungle",
     image: "/players/free-agents/peanut.webp",
-    stats: { mec: 6, mac: 8, tfg: 8, clt: 7, con: 7, iq: 9 },
+    seed: { execution: 6, mapSense: 8, combat: 8, resilience: 7, stability: 7, gameRead: 9 },
     bestChampions: ["sejuani", "xin-zhao", "vi"],
     sortOrder: 57,
   }),
@@ -815,7 +817,7 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "jungle",
     image: "/players/free-agents/clid.webp",
-    stats: { mec: 6, mac: 7, tfg: 6, clt: 5, con: 7, iq: 7 },
+    seed: { execution: 6, mapSense: 7, combat: 6, resilience: 5, stability: 7, gameRead: 7 },
     bestChampions: ["jarvan-iv", "vi", "maokai"],
     sortOrder: 58,
   }),
@@ -826,7 +828,7 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "mid",
     image: "/players/free-agents/doinb.webp",
-    stats: { mec: 7, mac: 9, tfg: 8, clt: 7, con: 7, iq: 9 },
+    seed: { execution: 7, mapSense: 9, combat: 8, resilience: 7, stability: 7, gameRead: 9 },
     bestChampions: ["ryze", "viktor", "galio"],
     sortOrder: 59,
   }),
@@ -837,7 +839,7 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "mid",
     image: "/players/free-agents/rookie.webp",
-    stats: { mec: 8, mac: 7, tfg: 8, clt: 7, con: 6, iq: 8 },
+    seed: { execution: 8, mapSense: 7, combat: 8, resilience: 7, stability: 6, gameRead: 8 },
     bestChampions: ["orianna", "taliyah", "syndra"],
     sortOrder: 60,
   }),
@@ -848,7 +850,7 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "mid",
     image: "/players/free-agents/bulldog.webp",
-    stats: { mec: 7, mac: 6, tfg: 7, clt: 5, con: 5, iq: 6 },
+    seed: { execution: 7, mapSense: 6, combat: 7, resilience: 5, stability: 5, gameRead: 6 },
     bestChampions: ["ahri", "taliyah", "azir"],
     sortOrder: 60,
   }),
@@ -859,7 +861,7 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "adc",
     image: "/players/free-agents/viper.webp",
-    stats: { mec: 9, mac: 8, tfg: 9, clt: 8, con: 9, iq: 8 },
+    seed: { execution: 9, mapSense: 8, combat: 9, resilience: 8, stability: 9, gameRead: 8 },
     bestChampions: ["kaisa", "ezreal", "varus"],
     sortOrder: 61,
   }),
@@ -870,7 +872,7 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "adc",
     image: "/players/free-agents/berserker.webp",
-    stats: { mec: 8, mac: 6, tfg: 8, clt: 7, con: 7, iq: 7 },
+    seed: { execution: 8, mapSense: 6, combat: 8, resilience: 7, stability: 7, gameRead: 7 },
     bestChampions: ["zeri", "aphelios", "varus"],
     sortOrder: 62,
   }),
@@ -881,7 +883,7 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "adc",
     image: "/players/free-agents/deft.webp",
-    stats: { mec: 7, mac: 6, tfg: 8, clt: 6, con: 6, iq: 5 },
+    seed: { execution: 7, mapSense: 6, combat: 8, resilience: 6, stability: 6, gameRead: 5 },
     bestChampions: ["ezreal", "ashe", "corki"],
     sortOrder: 63,
   }),
@@ -892,7 +894,7 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "support",
     image: "/players/free-agents/kael.webp",
-    stats: { mec: 7, mac: 8, tfg: 8, clt: 7, con: 8, iq: 8 },
+    seed: { execution: 7, mapSense: 8, combat: 8, resilience: 7, stability: 8, gameRead: 8 },
     bestChampions: ["alistar", "neeko", "bard"],
     sortOrder: 64,
   }),
@@ -903,19 +905,8 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "support",
     image: "/players/free-agents/beryl.webp",
-    stats: { mec: 6, mac: 8, tfg: 7, clt: 8, con: 5, iq: 8 },
+    seed: { execution: 6, mapSense: 8, combat: 7, resilience: 8, stability: 5, gameRead: 8 },
     bestChampions: ["rakan", "bard", "braum"],
     sortOrder: 65,
   }),
-  createPlayer({
-    id: "effort",
-    slug: "effort",
-    name: "Effort",
-    teamId: "free-agent",
-    role: "support",
-    image: "/players/free-agents/effort.webp",
-    stats: { mec: 5, mac: 6, tfg: 6, clt: 5, con: 6, iq: 7 },
-    bestChampions: ["rakan", "thresh", "nautilus"],
-    sortOrder: 66,
-  })
 ];
