@@ -174,7 +174,7 @@ const createAdvancedProfile = (role: Role, seed: PlayerSeed, bestChampions: stri
 };
 
 const createPlayer = (
-  base: Omit<Player, "rosterPoints" | "comfortChampions" | "championPool" | "stats"> & {
+  base: Omit<Player, "rosterPoints" | "comfortChampions" | "championPool" | "stats" | "advancedProfile"> & {
     seed: PlayerSeed;
     comfortChampions?: string[];
     championPool?: string[];
