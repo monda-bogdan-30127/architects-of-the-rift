@@ -37,12 +37,201 @@ import {
   getPlayerChampionMatchupDraftBias,
   getPlayerChampionSignatureBonus,
 } from "./playerHistoryEvaluator";
+import { getUserBanTargetBias } from "./userDraftMemory";
 
 const playersById = new Map(players.map((player) => [player.id, player]));
 const championMap = new Map(champions.map((champion) => [champion.id, champion]));
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
+}
+
+
+function getConfigNumber(value: number | undefined, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function hashString(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return Math.abs(hash >>> 0);
+}
+
+function getDeterministicRoll(seed: string) {
+  const hash = hashString(seed);
+  return (hash % 10000) / 10000;
+}
+
+function getTeamSlugForSide(series: ActiveDraftSeries, side: Side) {
+  return side === "blue" ? series.blueTeamSlug : series.redTeamSlug;
+}
+
+type TeamDraftIdentity =
+  | "meta-standard"
+  | "flex-heavy"
+  | "comfort-focused"
+  | "counterpick-oriented"
+  | "early-priority"
+  | "creative";
+
+function getTeamIdentity(teamSlug: string): TeamDraftIdentity {
+  const identities: TeamDraftIdentity[] = [
+    "meta-standard",
+    "flex-heavy",
+    "comfort-focused",
+    "counterpick-oriented",
+    "early-priority",
+    "creative",
+  ];
+  return identities[hashString(teamSlug) % identities.length] ?? "meta-standard";
+}
+
+function countHistoricalTeamUsage(series: ActiveDraftSeries, teamSlug: string, candidateId: string) {
+  let pickCount = 0;
+  let firstPickCount = 0;
+  let banCount = 0;
+
+  for (const draftGame of series.games) {
+    if (draftGame.number >= series.currentGameNumber) continue;
+
+    const teamSide: Side =
+      draftGame.number % 2 === 1
+        ? teamSlug === series.blueTeamSlug
+          ? "blue"
+          : "red"
+        : teamSlug === series.redTeamSlug
+          ? "blue"
+          : "red";
+
+    const picks = teamSide === "blue" ? draftGame.picksBlue : draftGame.picksRed;
+    const bans = teamSide === "blue" ? draftGame.bansBlue : draftGame.bansRed;
+
+    pickCount += picks.filter((championId) => championId === candidateId).length;
+    banCount += bans.filter((championId) => championId === candidateId).length;
+    if (picks[0] === candidateId) firstPickCount += 1;
+  }
+
+  return { pickCount, firstPickCount, banCount };
+}
+
+function getRepeatPickPenalty(candidateId: string, side: Side, game: DraftGameState, series: ActiveDraftSeries) {
+  const teamSlug = getTeamSlugForSide(series, side);
+  const usage = countHistoricalTeamUsage(series, teamSlug, candidateId);
+  const pickNumber = getPickNumberForSide(game, side);
+
+  let penalty = usage.pickCount * 1.15;
+  if (pickNumber === 1) penalty += usage.firstPickCount * 1.8;
+  if (usage.pickCount >= 2) penalty += 0.9;
+
+  return clamp(penalty, 0, 6.4);
+}
+
+function getRepeatBanPenalty(candidateId: string, side: Side, series: ActiveDraftSeries) {
+  const teamSlug = getTeamSlugForSide(series, side);
+  const usage = countHistoricalTeamUsage(series, teamSlug, candidateId);
+  return clamp(usage.banCount * 0.95, 0, 4.2);
+}
+
+function getTeamIdentityPickBias(args: {
+  candidate: Champion;
+  teamSlug: string;
+  side: Side;
+  game: DraftGameState;
+  metaPriority: number;
+  comfortScore: number;
+  playerFitScore: number;
+  counterValue: number;
+  flexPickBonus: number;
+  blueBias: number;
+  redBias: number;
+  blindRiskPenalty: number;
+  preservationBonus: number;
+  historyBias: number;
+  matchupBias: number;
+}) {
+  const {
+    candidate,
+    teamSlug,
+    side,
+    game,
+    metaPriority,
+    comfortScore,
+    playerFitScore,
+    counterValue,
+    flexPickBonus,
+    blueBias,
+    redBias,
+    blindRiskPenalty,
+    preservationBonus,
+    historyBias,
+    matchupBias,
+  } = args;
+
+  const identity = getTeamIdentity(teamSlug);
+  const pickNumber = getPickNumberForSide(game, side);
+  const isEarlyPick = pickNumber <= 3;
+  const prioScore = clamp((candidate.stats.prioScore ?? 0) / 10, 0, 10);
+
+  let bias = 0;
+  switch (identity) {
+    case "meta-standard":
+      bias += metaPriority * 0.22 + prioScore * 0.16;
+      break;
+    case "flex-heavy":
+      bias += flexPickBonus * 1.15 + (candidate.roles.length >= 2 ? 1.6 : 0);
+      if (isEarlyPick) bias += Math.max(0, 1.2 - blindRiskPenalty * 0.14);
+      break;
+    case "comfort-focused":
+      bias += Math.max(0, comfortScore - 5) * 0.72 + Math.max(0, playerFitScore - 5) * 0.58 + historyBias * 0.42;
+      break;
+    case "counterpick-oriented":
+      bias += preservationBonus * 0.78 + redBias * 0.44 + counterValue * (side === "red" ? 0.28 : 0.16);
+      if (side === "blue" && isEarlyPick) bias -= 0.6;
+      break;
+    case "early-priority":
+      bias += blueBias * 0.6 + metaPriority * 0.18 + prioScore * 0.4;
+      if (isEarlyPick) bias += 1.1;
+      break;
+    case "creative":
+      bias += flexPickBonus * 0.62 + historyBias * 0.28 + matchupBias * 0.25 + (candidate.roles.length >= 2 ? 0.8 : 0);
+      bias -= metaPriority * 0.06;
+      break;
+  }
+
+  return clamp(bias, -2.2, 7.5);
+}
+
+function chooseWeightedCandidate(
+  ranked: DraftCandidateBreakdown[],
+  config: DraftAiConfig,
+  seed: string
+): DraftCandidateBreakdown | null {
+  if (ranked.length === 0) return null;
+  if (ranked.length === 1) return ranked[0] ?? null;
+
+  const bestScore = ranked[0]?.totalScore ?? -Infinity;
+  const shortlistWindow = getConfigNumber(config.shortlistWindow, DEFAULT_AI_CONFIG.shortlistWindow ?? 7);
+  const shortlist = ranked.filter((entry) => entry.totalScore >= bestScore - shortlistWindow);
+  if (shortlist.length <= 1) return shortlist[0] ?? ranked[0] ?? null;
+
+  const temperature = clamp(getConfigNumber(config.temperature, DEFAULT_AI_CONFIG.temperature ?? 0.72), 0.25, 1.6);
+  const denominator = 1.4 + temperature * 2.6;
+
+  const weights = shortlist.map((entry) => Math.exp((entry.totalScore - bestScore) / denominator));
+  const totalWeight = weights.reduce((sum, value) => sum + value, 0);
+  if (totalWeight <= 0) return shortlist[0] ?? ranked[0] ?? null;
+
+  const roll = getDeterministicRoll(seed) * totalWeight;
+  let cursor = 0;
+  for (let index = 0; index < shortlist.length; index += 1) {
+    cursor += weights[index] ?? 0;
+    if (roll <= cursor) return shortlist[index] ?? shortlist[0] ?? null;
+  }
+
+  return shortlist[0] ?? ranked[0] ?? null;
 }
 
 function getTeamRosterFromSave(teamSlug: string, save: DraftSave | null): Partial<Record<Role, string>> {
@@ -547,6 +736,9 @@ function scorePickCandidate(candidate: Champion, side: Side, game: DraftGameStat
     championById: (championId) => championMap.get(championId) ?? null,
   });
   const executionPenalty = evaluation.executionDifficultyPenalty * 0.65 - evaluation.rosterExecutionScore * 0.18;
+  const teamSlug = getTeamSlugForSide(series, side);
+  const varietyWeight = getConfigNumber(config.varietyWeight, DEFAULT_AI_CONFIG.varietyWeight ?? 1);
+  const teamIdentityWeight = getConfigNumber(config.teamIdentityWeight, DEFAULT_AI_CONFIG.teamIdentityWeight ?? 1);
 
   const structuralValue =
     evaluation.damageBalanceScore * 0.85 +
@@ -559,6 +751,26 @@ function scorePickCandidate(candidate: Champion, side: Side, game: DraftGameStat
     evaluation.primaryEngageScore * 0.32 +
     evaluation.followUpScore * 0.28 +
     evaluation.rangeProfileScore * 0.15;
+
+  const variabilityPenalty = getRepeatPickPenalty(candidate.id, side, game, series) * varietyWeight;
+  const teamIdentityBias =
+    getTeamIdentityPickBias({
+      candidate,
+      teamSlug,
+      side,
+      game,
+      metaPriority,
+      comfortScore,
+      playerFitScore,
+      counterValue: evaluation.counterScore,
+      flexPickBonus,
+      blueBias,
+      redBias,
+      blindRiskPenalty,
+      preservationBonus: information.preserveBonus + preservationBonus,
+      historyBias,
+      matchupBias,
+    }) * teamIdentityWeight;
 
   const totalScore =
     metaPriority * config.metaWeight * (side === "blue" ? 1.1 : 0.95) +
@@ -577,6 +789,7 @@ function scorePickCandidate(candidate: Champion, side: Side, game: DraftGameStat
     carrySelfDefenseBias * 0.9 +
     flexPickBonus * 0.72 +
     plan.bias +
+    teamIdentityBias +
     (information.preserveBonus + preservationBonus) * 1.05 +
     information.forcedResponseBonus * 0.95 -
     offMetaPenalty * 1.28 -
@@ -585,6 +798,7 @@ function scorePickCandidate(candidate: Champion, side: Side, game: DraftGameStat
     mustWithTiming.penalty * 1.38 -
     information.leakPenalty * 0.95 -
     protectionPenalty * 1.2 -
+    variabilityPenalty -
     Math.max(0, executionPenalty);
 
   const projectedRole = ROLE_ORDER.find((role) => candidate.roles.includes(role) && currentOpenRoles.includes(role)) ?? null;
@@ -601,6 +815,8 @@ function scorePickCandidate(candidate: Champion, side: Side, game: DraftGameStat
     redBias >= 2 ? "red-response" : null,
     blueBias >= 2 ? "blue-prio" : null,
     offMetaPenalty >= 6 ? "off-meta-tax" : null,
+    variabilityPenalty >= 2 ? "variety" : null,
+    teamIdentityBias >= 1.5 ? `team-${getTeamIdentity(teamSlug)}` : null,
   ].filter(Boolean) as string[];
 
   return {
@@ -628,6 +844,8 @@ function scorePickCandidate(candidate: Champion, side: Side, game: DraftGameStat
     forcedResponseBonus: information.forcedResponseBonus,
     protectionPenalty,
     executionPenalty: Math.max(0, executionPenalty),
+    variabilityPenalty,
+    teamIdentityBias,
     reasonTags,
     totalScore,
   };
@@ -675,6 +893,12 @@ function scoreBanCandidate(candidate: Champion, side: Side, game: DraftGameState
   const enemySignatureThreat = getEnemySignatureBanThreat(candidate, projectedEnemyPlayer);
   const enemyMatchupThreat = getEnemyMatchupSignatureBanThreat(candidate, projectedEnemyPlayer, getSideChampionIds(game, side));
   const seriesThreat = getSeriesAwareBanBonus(candidate.id, side, series);
+  const userPatternBias =
+    getUserBanTargetBias(candidate, side, series) *
+    getConfigNumber(config.userExploitWeight, DEFAULT_AI_CONFIG.userExploitWeight ?? 1);
+  const variabilityPenalty =
+    getRepeatBanPenalty(candidate.id, side, series) *
+    getConfigNumber(config.varietyWeight, DEFAULT_AI_CONFIG.varietyWeight ?? 1);
 
   const openRolePressure = clamp((3 - openRoles.length) * 1.1, 0, 2.2);
   const targetedWindowBonus = roleFitBonus * (1 + openRolePressure * 0.35);
@@ -688,8 +912,10 @@ function scoreBanCandidate(candidate: Champion, side: Side, game: DraftGameState
     enemyMatchupThreat * 1.05 +
     seriesThreat * 1.2 +
     redDenyBonus * 1.2 +
-    targetedWindowBonus -
-    keepOpenPenalty * 1.45;
+    targetedWindowBonus +
+    userPatternBias -
+    keepOpenPenalty * 1.45 -
+    variabilityPenalty;
 
   return {
     championId: candidate.id,
@@ -703,6 +929,8 @@ function scoreBanCandidate(candidate: Champion, side: Side, game: DraftGameState
     counterValue: counterThreat + redDenyBonus + enemySignatureThreat + enemyMatchupThreat + seriesThreat + targetedWindowBonus,
     weaknessPenalty: keepOpenPenalty,
     signatureThreat: enemySignatureThreat + enemyMatchupThreat + seriesThreat,
+    variabilityPenalty,
+    userPatternBias,
     totalScore,
   };
 }
@@ -726,6 +954,9 @@ export function chooseAiAction(pool: Champion[], step: DraftStep, game: DraftGam
     .map((candidate) => scoreDraftCandidate(candidate, step, game, series, save, config))
     .sort((a, b) => b.totalScore - a.totalScore);
 
+  if (ranked.length === 0) return null;
+
+  let selectionPool = ranked;
   if (step.action === "pick" && ranked.length > 1 && shouldRestrictToMetaShortlist(step, game)) {
     const bestScore = ranked[0]?.totalScore ?? -Infinity;
     const strictThreshold = getStrictEarlyMetaThreshold(game, step.side);
@@ -737,9 +968,13 @@ export function chooseAiAction(pool: Champion[], step: DraftStep, game: DraftGam
     });
 
     if (metaShortlist.length > 0) {
-      return metaShortlist[0] ?? ranked[0] ?? null;
+      selectionPool = metaShortlist;
     }
   }
 
-  return ranked[0] ?? null;
+  return chooseWeightedCandidate(
+    selectionPool,
+    config,
+    `${series.seriesId}:${series.currentGameNumber}:${game.phaseIndex}:${step.side}:${step.action}:${selectionPool.map((entry) => entry.championId).join("|")}`
+  );
 }

@@ -142,6 +142,9 @@ export type DraftCandidateBreakdown = {
   forcedResponseBonus?: number;
   protectionPenalty?: number;
   executionPenalty?: number;
+  variabilityPenalty?: number;
+  teamIdentityBias?: number;
+  userPatternBias?: number;
   reasonTags?: string[];
 };
 
@@ -154,6 +157,11 @@ export type DraftAiConfig = {
   counterWeight: number;
   weaknessWeight: number;
   banThreatWeight: number;
+  varietyWeight?: number;
+  temperature?: number;
+  userExploitWeight?: number;
+  teamIdentityWeight?: number;
+  shortlistWindow?: number;
 };
 
 export type DraftSimulationResult = FullMatchSimulationResult;
@@ -195,4 +203,9 @@ export const DEFAULT_AI_CONFIG: DraftAiConfig = {
   counterWeight: 1.2,
   weaknessWeight: 1.2,
   banThreatWeight: 1.35,
+  varietyWeight: 1,
+  temperature: 0.72,
+  userExploitWeight: 1,
+  teamIdentityWeight: 1,
+  shortlistWindow: 7,
 };

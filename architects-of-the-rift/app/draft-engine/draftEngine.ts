@@ -24,6 +24,7 @@ import { chooseAiAction } from "./draftAI";
 import { evaluateTeamDraft } from "./draftEvaluator";
 import { mapPicksToRoleOrder, resolveRoleAssignments } from "./draftRoleResolver";
 import { simulateFullMatch } from "./matchSimulator";
+import { recordCompletedUserDraftGame } from "./userDraftMemory";
 
 const playersById = new Map(players.map((player) => [player.id, player]));
 const teamsBySlug = new Map(teams.map((team) => [team.slug, team]));
@@ -410,20 +411,25 @@ export function completeCurrentGame(
   const resolvedGame = resolveFinishedDraftAssignments(currentGame, series, save);
   const simulation = simulateDraftResult(resolvedGame, series, save);
   const { evaluationBlue, evaluationRed } = evaluateDraftGame(resolvedGame, series, save);
+  const completedGame: DraftGameState = {
+    ...resolvedGame,
+    completed: true,
+    winnerSide: simulation.winnerSide,
+    evaluationBlue,
+    evaluationRed,
+    simulation,
+  };
+
+  try {
+    recordCompletedUserDraftGame(series, completedGame);
+  } catch {
+    // localStorage is best-effort only
+  }
 
   return {
     ...series,
     games: series.games.map((game) =>
-      game.number === currentGame.number
-        ? {
-            ...resolvedGame,
-            completed: true,
-            winnerSide: simulation.winnerSide,
-            evaluationBlue,
-            evaluationRed,
-            simulation,
-          }
-        : game
+      game.number === currentGame.number ? completedGame : game
     ),
   };
 }
