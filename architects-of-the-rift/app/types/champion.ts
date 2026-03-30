@@ -97,7 +97,8 @@ export type EffectType =
   | 'vision'
   | 'anti-engage'
   | 'mobility'
-  | 'setup';
+  | 'setup'
+  | 'pick';
 
 export type ChampionEffect = {
   type: EffectType;

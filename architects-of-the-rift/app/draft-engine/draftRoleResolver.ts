@@ -1,7 +1,11 @@
 import type { Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
 import { players } from "@/app/data/players";
-import { getChampionById, getComfortScore, getPlayerChampionFitScore } from "./draftEvaluator";
+import {
+  getChampionById,
+  getComfortScore,
+  getPlayerChampionFitScore,
+} from "./draftEvaluator";
 import { ROLE_ORDER } from "./draftTypes";
 
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -22,20 +26,17 @@ function getRoleAssignmentScore(
   if (!champion.roles.includes(role)) return -999;
 
   let score = 25;
+
   const playerId = roster[role];
   const player = (playerId ? playersById.get(playerId) : null) ?? null;
 
   if (player) {
     score += getPlayerChampionFitScore(player.stats, champion.playerScaling) * 1.2;
     score += getComfortScore(player as Player, champion);
-    if (player.role === role) {
-      score += 4;
-    }
+    if (player.role === role) score += 4;
   }
 
-  if (champion.roles[0] === role) {
-    score += 2;
-  }
+  if (champion.roles[0] === role) score += 2;
 
   return score;
 }
@@ -45,6 +46,7 @@ function getBestAssignment(
   roster: Partial<Record<Role, string>>
 ): AssignmentResult {
   const cleanIds = pickedChampionIds.slice(0, ROLE_ORDER.length).filter(Boolean);
+
   if (cleanIds.length === 0) {
     return { assignment: {}, assignedCount: 0, score: 0 };
   }
@@ -89,7 +91,6 @@ function getBestAssignment(
 
         usedRoles.add(role);
         currentAssignment[role] = championId;
-
         dfs(
           championIndex + 1,
           usedRoles,
@@ -97,7 +98,6 @@ function getBestAssignment(
           currentScore + roleScore,
           assignedCount + 1
         );
-
         delete currentAssignment[role];
         usedRoles.delete(role);
       }
@@ -126,10 +126,23 @@ export function mapPicksToRoleOrder(
 }
 
 export function canAssignPickedChampionsToUniqueRoles(
-  pickedChampionIds: string[]
+  pickedChampionIds: string[],
+  roster: Partial<Record<Role, string>> = {}
 ): boolean {
-  const result = getBestAssignment(pickedChampionIds, {});
-  return result.assignedCount === pickedChampionIds.slice(0, ROLE_ORDER.length).length;
+  const cleanIds = pickedChampionIds.slice(0, ROLE_ORDER.length).filter(Boolean);
+  const result = getBestAssignment(cleanIds, roster);
+  return result.assignedCount === cleanIds.length;
+}
+
+export function canPickChampionIntoUniqueRoles(
+  pickedChampionIds: string[],
+  candidateChampionId: string,
+  roster: Partial<Record<Role, string>> = {}
+): boolean {
+  return canAssignPickedChampionsToUniqueRoles(
+    [...pickedChampionIds, candidateChampionId],
+    roster
+  );
 }
 
 export function getOpenRolesForPickedChampions(
@@ -139,6 +152,35 @@ export function getOpenRolesForPickedChampions(
   const result = getBestAssignment(pickedChampionIds, roster);
   const usedRoles = new Set<Role>(Object.keys(result.assignment) as Role[]);
   return ROLE_ORDER.filter((role) => !usedRoles.has(role));
+}
+
+export function getPreferredRolesForChampion(
+  pickedChampionIds: string[],
+  candidateChampionId: string,
+  roster: Partial<Record<Role, string>> = {}
+): Role[] {
+  const nextPicks = [...pickedChampionIds, candidateChampionId];
+  const result = getBestAssignment(nextPicks, roster);
+
+  const candidate = getChampionById(candidateChampionId);
+  if (!candidate) return [];
+
+  const assignedRole = (Object.entries(result.assignment).find(
+    ([, championId]) => championId === candidateChampionId
+  )?.[0] ?? null) as Role | null;
+
+  if (assignedRole) {
+    return [assignedRole, ...candidate.roles.filter((role) => role !== assignedRole)];
+  }
+
+  const openRoles = getOpenRolesForPickedChampions(pickedChampionIds, roster);
+  return candidate.roles
+    .filter((role) => openRoles.includes(role))
+    .sort(
+      (a, b) =>
+        getRoleAssignmentScore(b, candidateChampionId, roster) -
+        getRoleAssignmentScore(a, candidateChampionId, roster)
+    );
 }
 
 export function resolveRoleAssignments(

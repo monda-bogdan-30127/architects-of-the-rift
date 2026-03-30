@@ -196,16 +196,17 @@ export const DRAFT_SEQUENCE: DraftStep[] = [
   { label: "R2", side: "red", action: "pick" },
   { label: "B2", side: "blue", action: "pick" },
   { label: "B3", side: "blue", action: "pick" },
+  { label: "R3", side: "red", action: "pick" },
 
   { label: "R4", side: "red", action: "ban" },
   { label: "B4", side: "blue", action: "ban" },
   { label: "R5", side: "red", action: "ban" },
   { label: "B5", side: "blue", action: "ban" },
 
-  { label: "R3", side: "red", action: "pick" },
-  { label: "B4", side: "blue", action: "pick" },
   { label: "R4", side: "red", action: "pick" },
+  { label: "B4", side: "blue", action: "pick" },
   { label: "B5", side: "blue", action: "pick" },
+  { label: "R5", side: "red", action: "pick" },
 ];
 
 export const REQUIRED_BANS_PER_SIDE = 5;

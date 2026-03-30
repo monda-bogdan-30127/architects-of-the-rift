@@ -116,14 +116,5 @@ export const championProfileOverrides: Record<RoleOverrideKey, ChampionRoleProfi
     threatProfile: { backlineThreat: 2, frontlineThreat: 5, pickThreat: 5, zoneThreat: 5, antiDiveThreat: 10 },
     phaseIdentity: { earlyRole: "peel", midRole: "peel", lateRole: "peel" },
   },
-  "gragas:jungle": {
-    tags: ["melee", "engage", "pick", "disengage", "ap"],
-    abilities: [
-      { key: "e", name: "Body Slam", effects: [{ type: "dash", strength: 7, reliability: 8, priority: 7 }, { type: "stun", strength: 7, reliability: 8, priority: 7 }, { type: "anti-engage", subtype: "interrupt", strength: 8, reliability: 8, priority: 8 }] },
-      { key: "r", name: "Explosive Cask", effects: [{ type: "displacement", strength: 10, reliability: 8, priority: 10 }, { type: "setup", subtype: "isolation", strength: 8, reliability: 8, priority: 8 }, { type: "anti-engage", subtype: "reset", strength: 8, reliability: 8, priority: 8 }] },
-    ],
-    accessProfile: { engageRange: 7, targetAccess: 7, stickiness: 5 },
-    threatProfile: { backlineThreat: 7, frontlineThreat: 5, pickThreat: 9, zoneThreat: 6, antiDiveThreat: 8 },
-    phaseIdentity: { earlyRole: "pick", midRole: "utility", lateRole: "pick" },
-  },
+  
 };
