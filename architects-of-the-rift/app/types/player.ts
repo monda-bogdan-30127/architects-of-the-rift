@@ -113,6 +113,40 @@ export type PlayerAdvancedProfile = {
   hiddenTraits: PlayerHiddenTraits;
 };
 
+export type PlayerPhaseSnapshot = {
+  laneControl: number;
+  skirmish: number;
+  stability: number;
+  mapPlay: number;
+  teamfight: number;
+  clutch: number;
+};
+
+export type PlayerPhaseProfile = {
+  early: PlayerPhaseSnapshot;
+  mid: PlayerPhaseSnapshot;
+  late: PlayerPhaseSnapshot;
+};
+
+export type PlayerArchetypeAffinity = {
+  engage: number;
+  enchanter: number;
+  carry: number;
+  tank: number;
+  poke: number;
+  setup: number;
+  utility: number;
+  dive: number;
+  frontToBack: number;
+};
+
+export type PlayerAdaptationProfile = {
+  draftFlex: number;
+  creativity: number;
+  composure: number;
+  matchupLearning: number;
+};
+
 export type Player = {
   id: string;
   slug: string;
@@ -127,4 +161,7 @@ export type Player = {
   championPool: string[];
   rosterPoints: number;
   sortOrder: number;
+  phaseProfile?: PlayerPhaseProfile;
+  archetypeAffinity?: PlayerArchetypeAffinity;
+  adaptationProfile?: PlayerAdaptationProfile;
 };

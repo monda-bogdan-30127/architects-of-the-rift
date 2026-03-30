@@ -113,6 +113,15 @@ export type TeamDraftEvaluation = {
   draftPower: number;
   missingNeeds: NeedStatus[];
   topStrengths: Array<{ type: CompAttribute; value: number }>;
+  accessScore?: number;
+  threatScore?: number;
+  roleProfileScore?: number;
+  teamIdentityScore?: number;
+  simulationReadinessScore?: number;
+  simulationRisks?: string[];
+  identityMatchedTags?: string[];
+  identityAvoidedTags?: string[];
+  identityNote?: string;
 };
 
 export type DraftCandidateBreakdown = {
@@ -145,7 +154,12 @@ export type DraftCandidateBreakdown = {
   variabilityPenalty?: number;
   teamIdentityBias?: number;
   userPatternBias?: number;
+  accessValue?: number;
+  threatValue?: number;
+  synergyRuleValue?: number;
+  simulatedFitValue?: number;
   reasonTags?: string[];
+  explanation?: string[];
 };
 
 export type DraftAiConfig = {

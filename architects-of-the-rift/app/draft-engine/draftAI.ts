@@ -1,5 +1,7 @@
 import { champions } from "@/app/data/champions";
 import { players } from "@/app/data/players";
+import { teams } from "@/app/data/teams";
+import { explainDraftCandidate } from "./draftDecisionExplainer";
 import type { Champion, Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
 import type {
@@ -24,6 +26,7 @@ import {
   getComfortScore,
   getMetaPriorityScore,
   getPlayerChampionFitScore,
+  getProjectedPlayerChampionFitScore,
 } from "./draftEvaluator";
 import {
   canAssignPickedChampionsToUniqueRoles,
@@ -41,6 +44,7 @@ import { getUserBanTargetBias } from "./userDraftMemory";
 
 const playersById = new Map(players.map((player) => [player.id, player]));
 const championMap = new Map(champions.map((champion) => [champion.id, champion]));
+const teamsBySlug = new Map(teams.map((team) => [team.slug, team]));
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -78,15 +82,15 @@ type TeamDraftIdentity =
   | "creative";
 
 function getTeamIdentity(teamSlug: string): TeamDraftIdentity {
-  const identities: TeamDraftIdentity[] = [
-    "meta-standard",
-    "flex-heavy",
-    "comfort-focused",
-    "counterpick-oriented",
-    "early-priority",
-    "creative",
-  ];
-  return identities[hashString(teamSlug) % identities.length] ?? "meta-standard";
+  const team = teamsBySlug.get(teamSlug);
+  const identity = team?.identity;
+  if (!identity) return "meta-standard";
+  if ((identity.flexBias ?? 0) >= 8) return "flex-heavy";
+  if ((identity.counterpickBias ?? 0) >= 8) return "counterpick-oriented";
+  if ((identity.earlyPriorityBias ?? 0) >= 8) return "early-priority";
+  if ((identity.creativity ?? 0) >= 8) return "creative";
+  if ((identity.comfortBias ?? 0) >= 8) return "comfort-focused";
+  return "meta-standard";
 }
 
 function countHistoricalTeamUsage(series: ActiveDraftSeries, teamSlug: string, candidateId: string) {
@@ -327,7 +331,7 @@ function getBestProjectedPlayer(candidate: Champion, openRoles: Role[], roster: 
     if (!player) continue;
 
     const score =
-      getPlayerChampionFitScore(player.stats, candidate.playerScaling) +
+      getProjectedPlayerChampionFitScore(player, candidate, player.role) +
       getComfortScore(player, candidate);
 
     if (score > bestScore) {
@@ -692,11 +696,13 @@ function scorePickCandidate(candidate: Champion, side: Side, game: DraftGameStat
   const metaPriority = getMetaPriorityScore(candidate);
   const roleCoverageBonus = getRoleCoverageBonus(candidate, currentOpenRoles);
   const comfortScore = projectedPlayer ? getComfortScore(projectedPlayer, candidate) : 5;
-  const playerFitScore = projectedPlayer ? getPlayerChampionFitScore(projectedPlayer.stats, candidate.playerScaling) : 5;
+  const playerFitScore = projectedPlayer ? getProjectedPlayerChampionFitScore(projectedPlayer, candidate, projectedRole ?? projectedPlayer.role) : 5;
 
+  const teamSlug = getTeamSlugForSide(series, side);
+  const baseTeam = teamsBySlug.get(teamSlug) ?? null;
   const evaluation = evaluateTeamDraft({
     side,
-    team: null,
+    team: baseTeam ? { ...baseTeam, isPlayerControlled: save?.controlledTeamSlug === teamSlug } : null,
     roster,
     playersById,
     championIds: allyChampionIds,
@@ -754,23 +760,25 @@ function scorePickCandidate(candidate: Champion, side: Side, game: DraftGameStat
 
   const variabilityPenalty = getRepeatPickPenalty(candidate.id, side, game, series) * varietyWeight;
   const teamIdentityBias =
-    getTeamIdentityPickBias({
-      candidate,
-      teamSlug,
-      side,
-      game,
-      metaPriority,
-      comfortScore,
-      playerFitScore,
-      counterValue: evaluation.counterScore,
-      flexPickBonus,
-      blueBias,
-      redBias,
-      blindRiskPenalty,
-      preservationBonus: information.preserveBonus + preservationBonus,
-      historyBias,
-      matchupBias,
-    }) * teamIdentityWeight;
+    save?.controlledTeamSlug === teamSlug
+      ? 0
+      : getTeamIdentityPickBias({
+          candidate,
+          teamSlug,
+          side,
+          game,
+          metaPriority,
+          comfortScore,
+          playerFitScore,
+          counterValue: evaluation.counterScore,
+          flexPickBonus,
+          blueBias,
+          redBias,
+          blindRiskPenalty,
+          preservationBonus: information.preserveBonus + preservationBonus,
+          historyBias,
+          matchupBias,
+        }) * teamIdentityWeight;
 
   const totalScore =
     metaPriority * config.metaWeight * (side === "blue" ? 1.1 : 0.95) +
@@ -878,7 +886,7 @@ function scoreBanCandidate(candidate: Champion, side: Side, game: DraftGameState
   const projectedEnemyPlayer = getBestProjectedPlayer(candidate, openRoles, enemyRoster);
   const metaPriority = getMetaPriorityScore(candidate);
   const comfortScore = projectedEnemyPlayer ? getComfortScore(projectedEnemyPlayer, candidate) : 5;
-  const playerFitScore = projectedEnemyPlayer ? getPlayerChampionFitScore(projectedEnemyPlayer.stats, candidate.playerScaling) : 5;
+  const playerFitScore = projectedEnemyPlayer ? getProjectedPlayerChampionFitScore(projectedEnemyPlayer, candidate, projectedEnemyPlayer.role) : 5;
 
   let counterThreat = 5;
   for (const allyChampionId of getSideChampionIds(game, side)) {
