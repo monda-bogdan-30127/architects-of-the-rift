@@ -488,7 +488,7 @@ export const players: Player[] = [
     role: "top",
     image: "/players/lck/bro/casting.webp",
     seed: { execution: 6, mapSense: 5, combat: 6, resilience: 5, stability: 5, gameRead: 6 },
-    bestChampions: ["ksante", "aatrox", "rumble"],
+    bestChampions: ["ksante", "aatrox", "rumble", "ornn", "jax"],
     sortOrder: 27,
   }),
   createPlayer({
@@ -499,7 +499,7 @@ export const players: Player[] = [
     role: "jungle",
     image: "/players/lck/bro/gideon.webp",
     seed: { execution: 6, mapSense: 6, combat: 5, resilience: 5, stability: 5, gameRead: 6 },
-    bestChampions: ["poppy", "xin-zhao", "maokai"],
+    bestChampions: ["poppy", "xin-zhao", "maokai", "vi", "pantheon"],
     sortOrder: 28,
   }),
   createPlayer({
@@ -510,7 +510,7 @@ export const players: Player[] = [
     role: "mid",
     image: "/players/lck/bro/roamer.webp",
     seed: { execution: 6, mapSense: 5, combat: 6, resilience: 5, stability: 5, gameRead: 6 },
-    bestChampions: ["azir", "ahri", "syndra"],
+    bestChampions: ["azir", "ahri", "syndra", "ryze", "galio"],
     sortOrder: 29,
   }),
   createPlayer({
@@ -521,7 +521,7 @@ export const players: Player[] = [
     role: "adc",
     image: "/players/lck/bro/teddy.webp",
     seed: { execution: 8, mapSense: 6, combat: 7, resilience: 6, stability: 6, gameRead: 7 },
-    bestChampions: ["ezreal", "varus", "kalista"],
+    bestChampions: ["ezreal", "varus", "kalista", "miss-fortune", "kaisa"],
     sortOrder: 30,
   }),
   createPlayer({
@@ -532,7 +532,7 @@ export const players: Player[] = [
     role: "support",
     image: "/players/lck/bro/namgung.webp",
     seed: { execution: 6, mapSense: 6, combat: 6, resilience: 5, stability: 5, gameRead: 7 },
-    bestChampions: ["braum", "rakan", "nautilus", "wukong", "nidalee"],
+    bestChampions: ["braum", "rakan", "nautilus", "neeko", "elise"],
     sortOrder: 31,
   }),
   createPlayer({
@@ -806,7 +806,7 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "jungle",
     image: "/players/free-agents/peanut.webp",
-    seed: { execution: 6, mapSense: 8, combat: 7, resilience: 7, stability: 7, gameRead: 8 },
+    seed: { execution: 6, mapSense: 7, combat: 7, resilience: 7, stability: 7, gameRead: 8 },
     bestChampions: ["sejuani", "xin-zhao", "vi", "wukong", "jarvan-iv"],
     sortOrder: 57,
   }),
@@ -817,7 +817,7 @@ export const players: Player[] = [
     teamId: "free-agent",
     role: "jungle",
     image: "/players/free-agents/clid.webp",
-    seed: { execution: 5, mapSense: 7, combat: 6, resilience: 5, stability: 6, gameRead: 7 },
+    seed: { execution: 5, mapSense: 6, combat: 6, resilience: 5, stability: 6, gameRead: 7 },
     bestChampions: ["jarvan-iv", "vi", "maokai", "wukong", "pantheon"],
     sortOrder: 58,
   }),
