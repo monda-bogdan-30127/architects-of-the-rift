@@ -2,7 +2,6 @@ import type { Champion } from "@/app/types/champion";
 import type { TeamDraftEvaluation } from "./draftTypes";
 import { getChampionRoleProfile } from "./championProfileSystem";
 
-// 🔥 FIX: derivăm tipul din funcție (nu mai depindem de export lipsă)
 type DerivedChampionRoleProfile = NonNullable<
   ReturnType<typeof getChampionRoleProfile>
 >;

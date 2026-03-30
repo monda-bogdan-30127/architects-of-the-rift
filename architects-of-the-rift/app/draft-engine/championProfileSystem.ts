@@ -5,6 +5,18 @@ import type { CompAttribute } from "@/app/types/compAttributes";
 const clamp = (value: number, min = 0, max = 10) => Math.max(min, Math.min(max, value));
 const avg = (values: number[]) => (values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0);
 
+function offer(champion: Champion, type: CompAttribute) {
+  return champion.offers.find((entry) => entry.type === type)?.strength ?? 0;
+}
+
+function needPriority(champion: Champion, type: CompAttribute) {
+  return champion.needs.find((entry) => entry.type === type)?.priority ?? 0;
+}
+
+function hasRole(champion: Champion, role: Role) {
+  return champion.roles.includes(role);
+}
+
 function lanePressureValue(champion: Champion, role: Role) {
   const waveclear = offer(champion, "waveclear") * 2;
   const poke = offer(champion, "poke") * 2;
@@ -18,27 +30,15 @@ function lanePressureValue(champion: Champion, role: Role) {
       return clamp(avg([waveclear, poke, pick, roamPressure, 5]));
     case "support":
       return clamp(avg([poke, pick, engage, roamPressure, 4]));
+    case "top":
+      return clamp(avg([waveclear, sustainedDamage, engage, 4]));
+    case "jungle":
+      return clamp(avg([engage, pick, roamPressure, sustainedDamage, 4]));
     case "adc":
       return clamp(avg([poke, sustainedDamage, waveclear, 4]));
-    case "top":
-      return clamp(avg([waveclear, poke, engage, 4]));
-    case "jungle":
-      return clamp(avg([engage, pick, roamPressure, 4]));
     default:
-      return clamp(avg([waveclear, poke, pick, 4]));
+      return 5;
   }
-}
-
-function offer(champion: Champion, type: CompAttribute) {
-  return champion.offers.find((entry) => entry.type === type)?.strength ?? 0;
-}
-
-function needPriority(champion: Champion, type: CompAttribute) {
-  return champion.needs.find((entry) => entry.type === type)?.priority ?? 0;
-}
-
-function hasRole(champion: Champion, role: Role) {
-  return champion.roles.includes(role);
 }
 
 function toTags(champion: Champion, role: Role): string[] {
@@ -189,6 +189,7 @@ export function deriveChampionRoleProfile(champion: Champion, role: Role): Champ
   const scaling = offer(champion, "scaling") * 2;
   const dive = offer(champion, "dive") * 2;
   const backline = offer(champion, "backlineAccess") * 2;
+  const lanePressure = lanePressureValue(champion, role);
 
   const tags = toTags(champion, role);
   const executionLoad = avg(Object.values(champion.playerScaling ?? {}) as number[]) || 3.5;
@@ -242,7 +243,7 @@ export function deriveChampionRoleProfile(champion: Champion, role: Role): Champ
       antiDiveThreat: clamp(avg([antiDive, peel, offer(champion, "disengage") * 2])),
     },
     scaling: {
-      early: { power: clamp(avg([lanePressureValue(champion, role), engage, dive, 4])), execution: clamp(4 + executionLoad * 1.1) },
+      early: { power: clamp(avg([lanePressure, engage, dive, 4])), execution: clamp(4 + executionLoad * 1.1) },
       mid: { power: clamp(avg([engage, pick, baseDamageBurst, waveclear, 5])), execution: clamp(4.5 + executionLoad * 1.15) },
       late: { power: clamp(avg([scaling, baseDamageDps, pick, 5])), execution: clamp(5 + executionLoad * 1.2) },
     },
@@ -264,7 +265,7 @@ export function deriveChampionRoleProfile(champion: Champion, role: Role): Champ
     },
     draftProfile: {
       flexValue: champion.roles.length >= 2 ? 7 : 2,
-      blindPick: clamp(((champion.stats.blindPickRate ?? 40) / 10), 0, 10),
+      blindPick: clamp((champion.stats.blindPickRate ?? 40) / 10, 0, 10),
       contestPriority: clamp(getContestPriority(champion), 0, 10),
     },
     comboDependency: {
@@ -275,7 +276,7 @@ export function deriveChampionRoleProfile(champion: Champion, role: Role): Champ
       needsEnchanter: champion.id === "zeri" || champion.id === "xin-zhao" ? 7 : 0,
     },
     synergy: buildSynergyRules(champion),
-    roleSpecific: buildRoleSpecific(role, champion),
+    roleSpecific: buildRoleSpecific(role, champion, lanePressure),
   };
 
   const override = getOverride(champion, role);
@@ -315,7 +316,7 @@ export function deriveChampionRoleProfile(champion: Champion, role: Role): Champ
   };
 }
 
-function buildRoleSpecific(role: Role, champion: Champion): ChampionRoleProfile["roleSpecific"] {
+function buildRoleSpecific(role: Role, champion: Champion, lanePressure: number): ChampionRoleProfile["roleSpecific"] {
   switch (role) {
     case "jungle":
       return { jungle: {
@@ -323,11 +324,11 @@ function buildRoleSpecific(role: Role, champion: Champion): ChampionRoleProfile[
         healthAfterClear: clamp(avg([offer(champion, "frontline") * 2, offer(champion, "peel") * 2, 5])),
         gankPower: clamp(avg([offer(champion, "engage") * 2, offer(champion, "pick") * 2, offer(champion, "roamPressure") * 2])),
         objectiveControl: clamp(offer(champion, "objectiveControl") * 2),
-        invade: clamp(avg([lanePressureValue(champion, role), offer(champion, "burstDamage") * 2, 4])),
+        invade: clamp(avg([lanePressure, offer(champion, "burstDamage") * 2, 4])),
       } };
     case "support":
       return { support: {
-        lanePressure: clamp(avg([lanePressureValue(champion, role), offer(champion, "poke") * 2, offer(champion, "pick") * 2])),
+        lanePressure: clamp(avg([lanePressure, offer(champion, "poke") * 2, offer(champion, "pick") * 2])),
         roamValue: clamp(avg([offer(champion, "roamPressure") * 2, offer(champion, "pick") * 2, 4])),
         visionControl: clamp(avg([offer(champion, "pick") * 2, offer(champion, "roamPressure") * 2, 5])),
         peelExecution: clamp(avg([offer(champion, "peel") * 2, offer(champion, "antiDive") * 2, 4])),
@@ -346,7 +347,7 @@ function buildRoleSpecific(role: Role, champion: Champion): ChampionRoleProfile[
       } };
     case "mid":
       return { mid: {
-        waveControl: clamp(avg([offer(champion, "waveclear") * 2, lanePressureValue(champion, role), 5])),
+        waveControl: clamp(avg([offer(champion, "waveclear") * 2, lanePressure, 5])),
         setupPower: clamp(avg([offer(champion, "pick") * 2, offer(champion, "followUp") * 2, offer(champion, "engage") * 2])),
         roamPressure: clamp(avg([offer(champion, "roamPressure") * 2, offer(champion, "pick") * 2, 4])),
       } };

@@ -1,4 +1,4 @@
-import { champions } from "@/app/data/champions";
+import { getChampionMap, getChampionPool } from "./championPool";
 import { players } from "@/app/data/players";
 import { teams } from "@/app/data/teams";
 import { explainDraftCandidate } from "./draftDecisionExplainer";
@@ -43,7 +43,8 @@ import {
 import { getUserBanTargetBias } from "./userDraftMemory";
 
 const playersById = new Map(players.map((player) => [player.id, player]));
-const championMap = new Map(champions.map((champion) => [champion.id, champion]));
+const champions = getChampionPool();
+const championMap = getChampionMap();
 const teamsBySlug = new Map(teams.map((team) => [team.slug, team]));
 
 function clamp(value: number, min: number, max: number) {
@@ -695,12 +696,12 @@ function scorePickCandidate(candidate: Champion, side: Side, game: DraftGameStat
 
   const metaPriority = getMetaPriorityScore(candidate);
   const roleCoverageBonus = getRoleCoverageBonus(candidate, currentOpenRoles);
+  const comfortScore = projectedPlayer ? getComfortScore(projectedPlayer, candidate) : 5;
   const projectedRole =
     ROLE_ORDER.find((role) => candidate.roles.includes(role) && currentOpenRoles.includes(role)) ??
     projectedPlayer?.role ??
     candidate.roles[0] ??
     null;
-  const comfortScore = projectedPlayer ? getComfortScore(projectedPlayer, candidate) : 5;
   const playerFitScore = projectedPlayer ? getProjectedPlayerChampionFitScore(projectedPlayer, candidate, projectedRole ?? projectedPlayer.role) : 5;
 
   const teamSlug = getTeamSlugForSide(series, side);
