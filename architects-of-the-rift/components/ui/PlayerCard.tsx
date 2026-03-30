@@ -42,7 +42,7 @@ export default function PlayerCard({
       (champion): champion is NonNullable<(typeof champions)[number]> =>
         Boolean(champion)
     )
-    .slice(0, 3);
+    .slice(0, 4);
 
   const clearHoverTimer = () => {
     if (hoverTimerRef.current !== null) {
