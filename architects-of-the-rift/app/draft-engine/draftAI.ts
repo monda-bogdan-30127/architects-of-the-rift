@@ -695,6 +695,11 @@ function scorePickCandidate(candidate: Champion, side: Side, game: DraftGameStat
 
   const metaPriority = getMetaPriorityScore(candidate);
   const roleCoverageBonus = getRoleCoverageBonus(candidate, currentOpenRoles);
+  const projectedRole =
+    ROLE_ORDER.find((role) => candidate.roles.includes(role) && currentOpenRoles.includes(role)) ??
+    projectedPlayer?.role ??
+    candidate.roles[0] ??
+    null;
   const comfortScore = projectedPlayer ? getComfortScore(projectedPlayer, candidate) : 5;
   const playerFitScore = projectedPlayer ? getProjectedPlayerChampionFitScore(projectedPlayer, candidate, projectedRole ?? projectedPlayer.role) : 5;
 
@@ -742,7 +747,6 @@ function scorePickCandidate(candidate: Champion, side: Side, game: DraftGameStat
     championById: (championId) => championMap.get(championId) ?? null,
   });
   const executionPenalty = evaluation.executionDifficultyPenalty * 0.65 - evaluation.rosterExecutionScore * 0.18;
-  const teamSlug = getTeamSlugForSide(series, side);
   const varietyWeight = getConfigNumber(config.varietyWeight, DEFAULT_AI_CONFIG.varietyWeight ?? 1);
   const teamIdentityWeight = getConfigNumber(config.teamIdentityWeight, DEFAULT_AI_CONFIG.teamIdentityWeight ?? 1);
 
@@ -809,7 +813,6 @@ function scorePickCandidate(candidate: Champion, side: Side, game: DraftGameStat
     variabilityPenalty -
     Math.max(0, executionPenalty);
 
-  const projectedRole = ROLE_ORDER.find((role) => candidate.roles.includes(role) && currentOpenRoles.includes(role)) ?? null;
   const reasonTags = [
     evaluation.compIdentity,
     plan.type,
