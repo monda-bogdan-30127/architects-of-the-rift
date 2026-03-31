@@ -221,7 +221,12 @@ function getCounterpickPreservationBonus(
   return 0;
 }
 
-function getBlindRiskPenalty(game: DraftGameState, side: Side, candidate: Champion, projectedRole: Role | null) {
+function getBlindRiskPenalty(
+  game: DraftGameState,
+  side: Side,
+  candidate: Champion,
+  projectedRole: Role | null
+) {
   if (!projectedRole) return 0;
 
   const ownPickNumber = getCurrentPickNumberForSide(game, side);
@@ -256,9 +261,18 @@ function getCompSynergyScore(ownPicks: string[], candidate: Champion) {
     const picked = getChampionById(pickedId);
     if (!picked) continue;
 
-    const directSynergy = candidate.synergyWith?.find((entry: { championId: string; score?: number }) => entry.championId === picked.id)?.score ?? 0;
-    const reverseSynergy = picked.synergyWith?.find((entry: { championId: string; score?: number }) => entry.championId === candidate.id)?.score ?? 0;
-    const mustPair = candidate.mustWith?.find((entry: { championId: string; score?: number }) => entry.championId === picked.id)?.score ?? 0;
+    const directSynergy =
+      candidate.synergyWith?.find(
+        (entry: { championId: string; score?: number }) => entry.championId === picked.id
+      )?.score ?? 0;
+    const reverseSynergy =
+      picked.synergyWith?.find(
+        (entry: { championId: string; score?: number }) => entry.championId === candidate.id
+      )?.score ?? 0;
+    const mustPair =
+      candidate.mustWith?.find(
+        (entry: { championId: string; score?: number }) => entry.championId === picked.id
+      )?.score ?? 0;
 
     synergy += directSynergy * 0.38;
     synergy += reverseSynergy * 0.38;
@@ -274,8 +288,14 @@ function getCounterValueScore(enemyPicks: string[], candidate: Champion) {
     const enemy = getChampionById(enemyId);
     if (!enemy) continue;
 
-    const intoEnemy = candidate.goodVs?.find((entry: { championId: string; score?: number }) => entry.championId === enemy.id)?.score ?? 0;
-    const threatenedByEnemy = candidate.weakVs?.find((entry: { championId: string; score?: number }) => entry.championId === enemy.id)?.score ?? 0;
+    const intoEnemy =
+      candidate.goodVs?.find(
+        (entry: { championId: string; score?: number }) => entry.championId === enemy.id
+      )?.score ?? 0;
+    const threatenedByEnemy =
+      candidate.weakVs?.find(
+        (entry: { championId: string; score?: number }) => entry.championId === enemy.id
+      )?.score ?? 0;
 
     counter += intoEnemy * 0.7;
     counter -= threatenedByEnemy * 0.55;
@@ -445,6 +465,20 @@ function scorePickCandidate(
   };
 }
 
+// ─── FIX #2: helper care detecteaza daca rolurile candidatului sunt deja
+// acoperite de picks-urile inamicului → ban inutil pe acel campion ───────────
+function isRoleAlreadyCoveredByEnemy(
+  candidate: Champion,
+  enemyPicks: string[]
+): boolean {
+  if (!enemyPicks.length) return false;
+  const enemyAssignments = resolveRoleAssignments(enemyPicks, {});
+  const coveredRoles = new Set(Object.keys(enemyAssignments) as Role[]);
+  // daca TOATE rolurile posibile ale candidatului sunt deja acoperite,
+  // ban-ul nu mai aduce valoare reala
+  return candidate.roles.every((role) => coveredRoles.has(role));
+}
+
 function scoreBanCandidate(
   candidate: Champion,
   step: DraftStep,
@@ -457,16 +491,27 @@ function scoreBanCandidate(
   const metaPriority = clamp(getMetaPriorityScore(candidate), 0, 10);
   const enemyComfortPressure = clamp((candidate.stats?.prioScore ?? 50) / 13.5, 0, 8);
   const enemyCounterWindow =
-    ownState.picks.length >= 3 && (candidate.roles.includes("top") || candidate.roles.includes("mid"))
+    ownState.picks.length >= 3 &&
+    (candidate.roles.includes("top") || candidate.roles.includes("mid"))
       ? 1.15
       : 0;
   const userBias = getUserBanTargetBias(candidate, step.side, series);
+
+  // FIX #2: penalitate daca rolul candidatului e deja umplut de inamic
+  // (ex: AI baneaza Xayah dupa ce tu ai ales deja Ezreal pe ADC)
+  const redundantBanPenalty = isRoleAlreadyCoveredByEnemy(
+    candidate,
+    enemyState.picks
+  )
+    ? -7
+    : 0;
 
   const totalScore =
     metaPriority * 1.3 +
     enemyComfortPressure +
     enemyCounterWindow +
     userBias +
+    redundantBanPenalty +
     (candidate.roles.length >= 2 ? 0.8 : 0);
 
   return {
@@ -541,8 +586,13 @@ export function chooseAiAction(
     });
 
   if (step.action === "pick") {
-    const valid = ranked.filter((entry) => !entry.reasonTags?.includes("invalid-role-map"));
-    return valid[0] ?? ranked[0] ?? null;
+    const valid = ranked.filter(
+      (entry) => !entry.reasonTags?.includes("invalid-role-map")
+    );
+    // FIX #1: eliminat fallback-ul `?? ranked[0]` care facea AI-ul sa aleaga
+    // campioni invalizi (acelasi rol de doua ori) cand pool-ul valid era gol.
+    // Mai bine returnam null decat un pick care duplica un rol.
+    return valid[0] ?? null;
   }
 
   return ranked[0] ?? null;
