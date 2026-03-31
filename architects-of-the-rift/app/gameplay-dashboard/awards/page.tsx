@@ -362,8 +362,8 @@ export default function AwardsPage() {
 
   const dashboardLabel =
     controlledTeam?.name != null
-      ? `<${controlledTeam.name}>’s Dashboard`
-      : "<Selected/Control Team Name>’s Dashboard";
+      ? `${controlledTeam.name} Dashboard`
+      : "Gameplay Dashboard";
 
   const mvp = getMvpRace();
   const top = getBestTop();
@@ -412,26 +412,12 @@ export default function AwardsPage() {
                   paddingBottom: 8,
                 }}
               >
-                <div className="flex flex-col" style={{ gap: 8 }}>
-                  <p
-                    className="text-[var(--text-primary)]"
-                    style={{
-                      fontSize: 14,
-                      lineHeight: "18px",
-                      fontWeight: 400,
-                    }}
-                  >
+                <div className="flex flex-col gap-[8px]">
+                  <p className="body-small text-[var(--text-primary)]">
                     {dashboardLabel}
                   </p>
 
-                  <h1
-                    className="text-[var(--text-primary)]"
-                    style={{
-                      fontSize: 56,
-                      lineHeight: 0.95,
-                      fontWeight: 500,
-                    }}
-                  >
+                  <h1 className="h1 text-[var(--text-primary)]">
                     Award Race
                   </h1>
                 </div>

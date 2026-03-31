@@ -385,8 +385,8 @@ export default function RostersPage() {
 
   const dashboardLabel =
     controlledTeam?.name != null
-      ? `<${controlledTeam.name}>’s Dashboard`
-      : "<Selected/Control Team Name>’s Dashboard";
+      ? `${controlledTeam.name} Dashboard`
+      : "Gameplay Dashboard";
 
   return (
     <PageContainer className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)]">
@@ -429,26 +429,11 @@ export default function RostersPage() {
                 }}
               >
                 <div className="flex flex-col gap-[8px]">
-                  <p
-                    className="text-[var(--text-primary)]"
-                    style={{
-                      fontSize: 14,
-                      lineHeight: "18px",
-                      fontWeight: 400,
-                    }}
-                  >
+                  <p className="body-small text-[var(--text-primary)]">
                     {dashboardLabel}
                   </p>
 
-                  <h1
-                    className="text-[var(--text-primary)]"
-                    style={{
-                      fontSize: 56,
-                      lineHeight: 0.95,
-                      fontWeight: 500,
-                      fontFamily: "Beaufort, serif",
-                    }}
-                  >
+                  <h1 className="h1 text-[var(--text-primary)]">
                     Rosters
                   </h1>
                 </div>
