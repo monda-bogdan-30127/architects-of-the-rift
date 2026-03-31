@@ -2,9 +2,13 @@ import type { ChampionRoleProfile, Role } from "@/app/types/champion";
 
 type RoleOverrideKey = `${string}:${Role}`;
 export type ChampionRoleProfileOverride = {
-  [K in keyof ChampionRoleProfile]?: ChampionRoleProfile[K] extends object
-    ? Partial<ChampionRoleProfile[K]>
-    : ChampionRoleProfile[K];
+  [K in keyof ChampionRoleProfile]?: ChampionRoleProfile[K] extends readonly unknown[]
+    ? ChampionRoleProfile[K]
+    : ChampionRoleProfile[K] extends unknown[]
+      ? ChampionRoleProfile[K]
+      : ChampionRoleProfile[K] extends object
+        ? Partial<ChampionRoleProfile[K]>
+        : ChampionRoleProfile[K];
 };
 
 export const championProfileOverrides: Record<RoleOverrideKey, ChampionRoleProfileOverride> = {
