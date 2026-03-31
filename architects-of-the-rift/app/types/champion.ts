@@ -167,6 +167,7 @@ export type ChampionComboDependencyProfile = {
   needsFrontline?: number;
   needsPeel?: number;
   needsEnchanter?: number;
+  needsFollowUp?: number;
 };
 
 export type ChampionScalingByCount = {
