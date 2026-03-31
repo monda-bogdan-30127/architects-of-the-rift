@@ -41,7 +41,7 @@ import {
 import {
   getPlayerChampionHistoryBonus,
   getPlayerChampionMatchupHistoryBonus,
-} from "./playerHistoryEvaluator"; 
+} from "./playerHistoryEvaluator";
 import { updatePlayerHistoryFromResolvedGame } from "./playerHistoryStorage";
 import { recordGames } from "./playerSeasonStorage";
 
@@ -60,9 +60,9 @@ function getTeamRoster(teamSlug: string, save: DraftSave | null): Partial<Record
 
   const typedTeam = team as
     | {
-      slug?: string;
-      roster?: Partial<Record<Role, string>>;
-    }
+        slug?: string;
+        roster?: Partial<Record<Role, string>>;
+      }
     | null;
 
   const baseRoster =
@@ -75,8 +75,8 @@ function getTeamRoster(teamSlug: string, save: DraftSave | null): Partial<Record
 }
 
 function getGameTeamSlugsForGameNumber(series: ActiveDraftSeries, gameNumber: number) {
-  let blueTeamSlug = series.games[0]?.number === 1 ? series.blueTeamSlug : series.blueTeamSlug;
-  let redTeamSlug = series.games[0]?.number === 1 ? series.redTeamSlug : series.redTeamSlug;
+  const blueTeamSlug = series.games[0]?.number === 1 ? series.blueTeamSlug : series.blueTeamSlug;
+  const redTeamSlug = series.games[0]?.number === 1 ? series.redTeamSlug : series.redTeamSlug;
 
   const swapCountFromCurrent = Math.max(0, series.currentGameNumber - gameNumber);
   if (swapCountFromCurrent % 2 === 1) {
@@ -115,6 +115,36 @@ function computeSeriesScoreAfterGame(input: MatchSimulationInput, winnerSide: "b
   if (currentWinnerTeamSlug === input.series.redTeamSlug) redWins += 1;
 
   return { blueWins, redWins };
+}
+
+// ─── FIX MOMENTUM: bonus psihologic bazat pe victoriile anterioare din serie ─
+// O echipa care conduce 2-0 are un mic avantaj de moral/incredere.
+// O echipa care pierde 0-2 are o mica penalitate (presiune).
+// Efectul e intentionat mic (max ±0.45) ca sa nu domine, dar sa existe.
+function computeSeriesMomentum(
+  series: ActiveDraftSeries,
+  side: "blue" | "red",
+  currentGameNumber: number
+): number {
+  let wins = 0;
+  let losses = 0;
+
+  for (const game of series.games) {
+    if (game.number >= currentGameNumber) continue;
+    if (!game.completed || !game.winnerSide) continue;
+
+    const gameTeams = getGameTeamSlugsForGameNumber(series, game.number);
+    const winnerTeamSlug =
+      game.winnerSide === "blue" ? gameTeams.blueTeamSlug : gameTeams.redTeamSlug;
+    const sideTeamSlug =
+      side === "blue" ? series.blueTeamSlug : series.redTeamSlug;
+
+    if (winnerTeamSlug === sideTeamSlug) wins += 1;
+    else losses += 1;
+  }
+
+  // Net wins * 0.15 per joc: 2-0 → +0.30, 0-2 → -0.30, 1-1 → 0
+  return clamp((wins - losses) * 0.15, -0.45, 0.45);
 }
 
 function computeExecutionTeamScore(
@@ -161,14 +191,13 @@ function computeStarPower(playerId: string | null) {
   const stats = player.stats;
   const advanced = player.advancedProfile?.primary;
   const advancedStar = advanced
-    ? (
-      advanced.mechanics * 0.14 +
-      advanced.teamfighting * 0.16 +
-      advanced.mapAwareness * 0.12 +
-      advanced.clutchFactor * 0.2 +
-      advanced.currentForm * 0.18 +
-      advanced.metaReadiness * 0.2
-    ) / 10
+    ? (advanced.mechanics * 0.14 +
+        advanced.teamfighting * 0.16 +
+        advanced.mapAwareness * 0.12 +
+        advanced.clutchFactor * 0.2 +
+        advanced.currentForm * 0.18 +
+        advanced.metaReadiness * 0.2) /
+      10
     : 5;
 
   const legacyStar =
@@ -182,33 +211,47 @@ function computeStarPower(playerId: string | null) {
   return clamp(legacyStar * 0.38 + advancedStar * 0.62, 0, 10);
 }
 
-
 function determineMatchProfile(args: {
   blueAssignments: Partial<Record<Role, string>>;
   redAssignments: Partial<Record<Role, string>>;
   blueDraft: ReturnType<typeof evaluateTeamDraft>;
   redDraft: ReturnType<typeof evaluateTeamDraft>;
   laneVolatility: number;
-}) : MatchProfile {
-  const allBlue = ROLE_ORDER.map((role) => args.blueAssignments[role] ?? null).filter(Boolean) as string[];
-  const allRed = ROLE_ORDER.map((role) => args.redAssignments[role] ?? null).filter(Boolean) as string[];
+}): MatchProfile {
+  const allBlue = ROLE_ORDER.map((role) => args.blueAssignments[role] ?? null).filter(
+    Boolean
+  ) as string[];
+  const allRed = ROLE_ORDER.map((role) => args.redAssignments[role] ?? null).filter(
+    Boolean
+  ) as string[];
 
   const blueLanePrio = allBlue
     .map((id) => getChampionById(id))
     .filter(Boolean)
     .flatMap((champion) => champion?.offers ?? [])
-    .filter((offer) => ["earlyPrio", "roamPressure", "objectiveControl"].includes(String(offer.type)))
+    .filter((offer) =>
+      ["earlyPrio", "roamPressure", "objectiveControl"].includes(String(offer.type))
+    )
     .reduce((sum, offer) => sum + offer.strength, 0);
 
   const redLanePrio = allRed
     .map((id) => getChampionById(id))
     .filter(Boolean)
     .flatMap((champion) => champion?.offers ?? [])
-    .filter((offer) => ["earlyPrio", "roamPressure", "objectiveControl"].includes(String(offer.type)))
+    .filter((offer) =>
+      ["earlyPrio", "roamPressure", "objectiveControl"].includes(String(offer.type))
+    )
     .reduce((sum, offer) => sum + offer.strength, 0);
 
   const maxPrio = Math.max(blueLanePrio, redLanePrio);
-  const maxScaling = Math.max(args.blueDraft.rangeProfileScore + args.blueDraft.protectionScore + args.blueDraft.frontlineScore, args.redDraft.rangeProfileScore + args.redDraft.protectionScore + args.redDraft.frontlineScore);
+  const maxScaling = Math.max(
+    args.blueDraft.rangeProfileScore +
+      args.blueDraft.protectionScore +
+      args.blueDraft.frontlineScore,
+    args.redDraft.rangeProfileScore +
+      args.redDraft.protectionScore +
+      args.redDraft.frontlineScore
+  );
 
   if (maxPrio >= 12 || args.laneVolatility >= 6.8) return "snowball";
   if (maxScaling >= 20 && args.laneVolatility <= 5.4) return "scaling";
@@ -226,7 +269,6 @@ function getProfileWeights(profile: MatchProfile) {
   }
 }
 
-
 function buildTeamPhaseScores(args: {
   draft: number;
   playerPower: number;
@@ -237,19 +279,22 @@ function buildTeamPhaseScores(args: {
   clutch: number;
   late: number;
   rng: number;
+  momentum: number;
   profile?: MatchProfile;
 }): TeamPhaseScores {
   const weights = getProfileWeights(args.profile ?? "standard");
   const total = clamp(
     args.draft * 0.19 +
-    args.playerPower * 0.2 +
-    args.assignment * 0.08 +
-    args.lane * 0.15 * weights.lane +
-    args.objectives * 0.1 * weights.objectives +
-    args.execution * 0.1 * weights.execution +
-    args.clutch * 0.1 * weights.clutch +
-    args.late * 0.08 * weights.late +
-    args.rng,
+      args.playerPower * 0.2 +
+      args.assignment * 0.08 +
+      args.lane * 0.15 * weights.lane +
+      args.objectives * 0.1 * weights.objectives +
+      args.execution * 0.1 * weights.execution +
+      args.clutch * 0.1 * weights.clutch +
+      args.late * 0.08 * weights.late +
+      // FIX MOMENTUM: contribuie direct la scorul total al echipei
+      args.momentum +
+      args.rng,
     0,
     10
   );
@@ -267,7 +312,12 @@ function buildTeamPhaseScores(args: {
   };
 }
 
-function determineFlow(blueTotal: number, redTotal: number, laneGap: number, volatility: number) {
+function determineFlow(
+  blueTotal: number,
+  redTotal: number,
+  laneGap: number,
+  volatility: number
+) {
   const diff = Math.abs(blueTotal - redTotal);
   if (diff >= 1.8 && laneGap >= 1.2) return "stomp" as const;
   if (diff >= 1.1) return "controlled" as const;
@@ -311,6 +361,8 @@ function buildPlayerScores(args: {
   lane: ReturnType<typeof evaluateLanePhase>;
   closeness: number;
   seriesId: string;
+  // FIX SCORE BASE: game number adaugat la seed pentru variatie intre jocuri
+  gameNumber: number;
 }): PlayerGameScore[] {
   const result: PlayerGameScore[] = [];
 
@@ -350,49 +402,80 @@ function buildPlayerScores(args: {
       const consistency = playerConsistencyScore(entry.playerId);
       const archetypeFit = playerChampionArchetypeFit(entry.playerId, entry.championId);
       const starPower = computeStarPower(entry.playerId);
-      const winModifier = entry.side === args.winnerSide ? 1.0 : -0.7;
-      const laneModifier = (entry.laneScore - 5) * 0.2;
-      const draftModifier = (entry.draftScore - 5) * 0.1;
-      const fitModifier = (fit - 5) * 0.16;
-      const executionModifier = (execution - 5) * 0.1;
-      const clutchModifier = (clutch - 5) * 0.08;
-      const laneSkillModifier = (laning - 5) * 0.08;
-      const macroModifier = (macro - 5) * 0.06;
-      const teamfightModifier = (teamfight - 5) * 0.07;
-      const consistencyModifier = (consistency - 5) * 0.05;
-      const archetypeModifier = (archetypeFit - 5) * 0.08;
-      const closeGameModifier = args.closeness * (clutch - 5) * 0.08;
-      const starModifier = (starPower - 5) * 0.13;
+
+      // FIX SCORE BASE: base redus de la 6.1 la 5.0 + modificatori mai mari
+      // → distributie mai larga: perdantii pot face 3-4, castigatorii pot face 9-10
+      // winModifier crescut: +1.4 win / -1.0 loss (vs +1.0 / -0.7 original)
+      const winModifier = entry.side === args.winnerSide ? 1.4 : -1.0;
+      const laneModifier = (entry.laneScore - 5) * 0.22;
+      const draftModifier = (entry.draftScore - 5) * 0.12;
+      const fitModifier = (fit - 5) * 0.18;
+      const executionModifier = (execution - 5) * 0.11;
+      const clutchModifier = (clutch - 5) * 0.09;
+      const laneSkillModifier = (laning - 5) * 0.09;
+      const macroModifier = (macro - 5) * 0.07;
+      const teamfightModifier = (teamfight - 5) * 0.08;
+      const consistencyModifier = (consistency - 5) * 0.06;
+      const archetypeModifier = (archetypeFit - 5) * 0.09;
+      const closeGameModifier = args.closeness * (clutch - 5) * 0.09;
+      const starModifier = (starPower - 5) * 0.14;
+
+      // FIX SCORE BASE: seed include si gameNumber → scoruri diferite intre
+      // jocuri chiar daca acelasi jucator joaca acelasi campion
       const rng = seededNoise(
-        `${args.seriesId}:${role}:${entry.side}:${entry.playerId}:${entry.championId}`,
-        0.35
+        `${args.seriesId}:g${args.gameNumber}:${role}:${entry.side}:${entry.playerId}:${entry.championId}`,
+        0.55  // crescut de la 0.35 → mai multa variatie realista
       );
 
       const impact = clamp(
-        entry.laneScore * 0.2 + fit * 0.18 + clutch * 0.12 + execution * 0.15 + teamfight * 0.15 + macro * 0.08 + starPower * 0.12,
+        entry.laneScore * 0.2 +
+          fit * 0.18 +
+          clutch * 0.12 +
+          execution * 0.15 +
+          teamfight * 0.15 +
+          macro * 0.08 +
+          starPower * 0.12,
         0,
         10
       );
-      const stability = clamp(fit * 0.26 + execution * 0.22 + clutch * 0.18 + consistency * 0.22 + archetypeFit * 0.12, 0, 10);
-      const carryFactor = clamp(impact * 0.42 + starPower * 0.16 + laning * 0.14 + teamfight * 0.16 + archetypeFit * 0.12, 0, 10);
-      const mistakeRisk = clamp(10 - (execution * 0.3 + fit * 0.22 + clutch * 0.16 + consistency * 0.2 + macro * 0.12), 0, 10);
+      const stability = clamp(
+        fit * 0.26 + execution * 0.22 + clutch * 0.18 + consistency * 0.22 + archetypeFit * 0.12,
+        0,
+        10
+      );
+      const carryFactor = clamp(
+        impact * 0.42 +
+          starPower * 0.16 +
+          laning * 0.14 +
+          teamfight * 0.16 +
+          archetypeFit * 0.12,
+        0,
+        10
+      );
+      const mistakeRisk = clamp(
+        10 -
+          (execution * 0.3 + fit * 0.22 + clutch * 0.16 + consistency * 0.2 + macro * 0.12),
+        0,
+        10
+      );
 
+      // FIX SCORE BASE: 5.0 in loc de 6.1
       const score = clamp(
-        6.1 +
-        winModifier +
-        laneModifier +
-        draftModifier +
-        fitModifier +
-        executionModifier +
-        clutchModifier +
-        laneSkillModifier +
-        macroModifier +
-        teamfightModifier +
-        consistencyModifier +
-        archetypeModifier +
-        closeGameModifier +
-        starModifier +
-        rng,
+        5.0 +
+          winModifier +
+          laneModifier +
+          draftModifier +
+          fitModifier +
+          executionModifier +
+          clutchModifier +
+          laneSkillModifier +
+          macroModifier +
+          teamfightModifier +
+          consistencyModifier +
+          archetypeModifier +
+          closeGameModifier +
+          starModifier +
+          rng,
         1,
         10
       );
@@ -498,12 +581,16 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   );
 
   const blueDraftComposite = clamp(
-    blueDraftEval.draftPower * 0.68 + computeMetaAverage(assignmentsBlue) * 0.22 + bluePlayerPower * 0.1,
+    blueDraftEval.draftPower * 0.68 +
+      computeMetaAverage(assignmentsBlue) * 0.22 +
+      bluePlayerPower * 0.1,
     0,
     10
   );
   const redDraftComposite = clamp(
-    redDraftEval.draftPower * 0.68 + computeMetaAverage(assignmentsRed) * 0.22 + redPlayerPower * 0.1,
+    redDraftEval.draftPower * 0.68 +
+      computeMetaAverage(assignmentsRed) * 0.22 +
+      redPlayerPower * 0.1,
     0,
     10
   );
@@ -522,6 +609,10 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     laneVolatility: volatility,
   });
 
+  // FIX MOMENTUM: calculam bonusul psihologic bazat pe jocurile anterioare
+  const blueMomentum = computeSeriesMomentum(input.series, "blue", input.game.number);
+  const redMomentum = computeSeriesMomentum(input.series, "red", input.game.number);
+
   const blueScores = buildTeamPhaseScores({
     draft: blueDraftComposite,
     playerPower: bluePlayerPower,
@@ -532,6 +623,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     clutch: blueClutch,
     late: blueLate,
     rng: blueRng,
+    momentum: blueMomentum,
     profile: matchProfile,
   });
 
@@ -545,10 +637,22 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     clutch: redClutch,
     late: redLate,
     rng: redRng,
+    momentum: redMomentum,
     profile: matchProfile,
   });
 
-  const winnerSide = blueScores.total >= redScores.total ? "blue" : "red";
+  // ─── FIX WINNER PROBABILISTIC ─────────────────────────────────────────────
+  // In loc de "cel mai mare total castiga mereu", transformam diferenta de
+  // scor intr-o probabilitate prin functia sigmoid.
+  // La 0 diferenta: 50/50. La diferenta de 2+: ~92% favorit.
+  // Astfel, echipe mai slabe pot castiga meciuri strinse — ca in realitate.
+  const scoreDiff = blueScores.total - redScores.total;
+  const winProb = 1 / (1 + Math.exp(-scoreDiff * 1.4));
+  // Seed include numarul jocului si seriesId pentru a nu fi fix
+  const winRoll = seededNoise(`${seedRoot}:winner:outcome`, 1) * 0.5 + 0.5;
+  const winnerSide: "blue" | "red" = winRoll < winProb ? "blue" : "red";
+  // ──────────────────────────────────────────────────────────────────────────
+
   const closeness = round1(1 - clamp(Math.abs(blueScores.total - redScores.total) / 3, 0, 1));
   const flow = determineFlow(
     blueScores.total,
@@ -568,6 +672,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     lane,
     closeness,
     seriesId: input.series.seriesId,
+    gameNumber: input.game.number,
   });
 
   const mvp = [...playerScores].sort((a, b) => b.score - a.score)[0] ?? null;

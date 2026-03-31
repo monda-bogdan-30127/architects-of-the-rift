@@ -30,6 +30,8 @@ import {
   getUserPickPreferenceBias,
   getUserPreferredOpenRoleBias,
 } from "./userDraftMemory";
+// FIX #1 — import shortlist pentru variatie draft AI
+import { chooseFromAdaptiveShortlist } from "./draftVariationSystem";
 
 const playersById = new Map(players.map((player) => [player.id, player]));
 
@@ -465,8 +467,7 @@ function scorePickCandidate(
   };
 }
 
-// ─── FIX #2: helper care detecteaza daca rolurile candidatului sunt deja
-// acoperite de picks-urile inamicului → ban inutil pe acel campion ───────────
+// ─── FIX #2: ban inutil daca rolul e deja acoperit de inamic ─────────────────
 function isRoleAlreadyCoveredByEnemy(
   candidate: Champion,
   enemyPicks: string[]
@@ -474,19 +475,73 @@ function isRoleAlreadyCoveredByEnemy(
   if (!enemyPicks.length) return false;
   const enemyAssignments = resolveRoleAssignments(enemyPicks, {});
   const coveredRoles = new Set(Object.keys(enemyAssignments) as Role[]);
-  // daca TOATE rolurile posibile ale candidatului sunt deja acoperite,
-  // ban-ul nu mai aduce valoare reala
   return candidate.roles.every((role) => coveredRoles.has(role));
+}
+
+// ─── FIX #3: ban pe campioni care completeaza sinergia inamicului (faza 2) ───
+// Daca inamicul a luat deja 2-3 campioni cu synergy intre ei, candidatul
+// care le-ar amplifica sinergia (ex: Orianna + Jarvan → Rumble tare cu ei)
+// primeste bonus de ban.
+function getEnemySynergyCompletionBonus(
+  candidate: Champion,
+  enemyPicks: string[]
+): number {
+  if (enemyPicks.length < 2) return 0;
+  let bonus = 0;
+  for (const enemyId of enemyPicks) {
+    const enemy = getChampionById(enemyId);
+    if (!enemy) continue;
+
+    // Cat de bine se sinergiaza candidatul cu pick-urile deja facute de inamic?
+    const synergyWithEnemy =
+      enemy.synergyWith?.find(
+        (e: { championId: string; score?: number }) => e.championId === candidate.id
+      )?.score ?? 0;
+    const mustWithEnemy =
+      enemy.mustWith?.find(
+        (e: { championId: string; score?: number }) => e.championId === candidate.id
+      )?.score ?? 0;
+
+    bonus += synergyWithEnemy * 0.42 + mustWithEnemy * 0.65;
+  }
+  return clamp(bonus, 0, 4.2);
+}
+
+// ─── FIX #4: ban signature pentru AI vs AI ───────────────────────────────────
+// In contextul original, getUserBanTargetBias functioneaza doar pentru
+// jucatorul uman. Aceasta functie aplica aceeasi logica pentru orice echipa,
+// uitandu-se la bestChampions/comfortChampions ale jucatorilor inamici.
+function getAiSignatureBanBonus(
+  candidate: Champion,
+  enemyTeamSlug: string,
+  save: DraftSave | null
+): number {
+  const enemyRoster = getTeamRosterFromSources({ teamSlug: enemyTeamSlug, save });
+  let bonus = 0;
+
+  for (const playerId of Object.values(enemyRoster)) {
+    if (!playerId) continue;
+    const player = playersById.get(playerId);
+    if (!player) continue;
+
+    if (player.bestChampions?.includes(candidate.id)) bonus += 2.8;
+    else if (player.comfortChampions?.includes(candidate.id)) bonus += 1.5;
+    else if (player.championPool?.includes(candidate.id)) bonus += 0.65;
+  }
+
+  return clamp(bonus, 0, 5.0);
 }
 
 function scoreBanCandidate(
   candidate: Champion,
   step: DraftStep,
   game: DraftGameState,
-  series: ActiveDraftSeries
+  series: ActiveDraftSeries,
+  save: DraftSave | null
 ): DraftCandidateBreakdown {
   const ownState = getOwnState(game, step.side);
   const enemyState = getEnemyState(game, step.side);
+  const enemyTeamSlug = getTeamSlugForSide(series, step.side === "blue" ? "red" : "blue");
 
   const metaPriority = clamp(getMetaPriorityScore(candidate), 0, 10);
   const enemyComfortPressure = clamp((candidate.stats?.prioScore ?? 50) / 13.5, 0, 8);
@@ -498,19 +553,27 @@ function scoreBanCandidate(
   const userBias = getUserBanTargetBias(candidate, step.side, series);
 
   // FIX #2: penalitate daca rolul candidatului e deja umplut de inamic
-  // (ex: AI baneaza Xayah dupa ce tu ai ales deja Ezreal pe ADC)
-  const redundantBanPenalty = isRoleAlreadyCoveredByEnemy(
-    candidate,
-    enemyState.picks
-  )
+  const redundantBanPenalty = isRoleAlreadyCoveredByEnemy(candidate, enemyState.picks)
     ? -7
     : 0;
+
+  // FIX #3: bonus pentru ban-uri in faza 2 care distrug sinergia inamicului
+  // Activat dupa prima tura de pick-uri (phaseIndex >= 12)
+  const synergyCompletionBonus =
+    game.phaseIndex >= 12
+      ? getEnemySynergyCompletionBonus(candidate, enemyState.picks)
+      : 0;
+
+  // FIX #4: bonus pentru ban-uri signature pe campionii "best" ai inamicului
+  const signatureBonus = getAiSignatureBanBonus(candidate, enemyTeamSlug, save);
 
   const totalScore =
     metaPriority * 1.3 +
     enemyComfortPressure +
     enemyCounterWindow +
     userBias +
+    synergyCompletionBonus +
+    signatureBonus +
     redundantBanPenalty +
     (candidate.roles.length >= 2 ? 0.8 : 0);
 
@@ -529,7 +592,7 @@ function scoreBanCandidate(
     planType: "deny-signature",
     historyBias: userBias,
     reasonTags: [
-      userBias > 1 ? "user-pattern" : "meta-ban",
+      userBias > 1 || signatureBonus > 2 ? "user-pattern" : "meta-ban",
       candidate.roles.length >= 2 ? "flex" : "single-role",
     ],
   };
@@ -544,7 +607,7 @@ export function scoreDraftCandidate(
   config: DraftAiConfig = DEFAULT_AI_CONFIG
 ): DraftCandidateBreakdown {
   if (step.action === "ban") {
-    return scoreBanCandidate(candidate, step, game, series);
+    return scoreBanCandidate(candidate, step, game, series, save);
   }
 
   return scorePickCandidate(candidate, step, game, series, save, config);
@@ -589,11 +652,16 @@ export function chooseAiAction(
     const valid = ranked.filter(
       (entry) => !entry.reasonTags?.includes("invalid-role-map")
     );
-    // FIX #1: eliminat fallback-ul `?? ranked[0]` care facea AI-ul sa aleaga
-    // campioni invalizi (acelasi rol de doua ori) cand pool-ul valid era gol.
-    // Mai bine returnam null decat un pick care duplica un rol.
-    return valid[0] ?? null;
+
+    // FIX #5 (vechi Fix #1): eliminat fallback-ul `?? ranked[0]` care facea
+    // AI-ul sa aleaga campioni invalizi (acelasi rol de doua ori).
+    // FIX #1 (nou): folosim chooseFromAdaptiveShortlist pentru variatie reala —
+    // AI-ul nu va mai alege mereu exact acelasi campion in aceeasi situatie.
+    const seed = `${series.seriesId}:${series.currentGameNumber}:${game.phaseIndex}:${step.side}`;
+    return chooseFromAdaptiveShortlist(valid, seed) ?? null;
   }
 
+  // Pentru ban-uri, pastrăm cel mai bun scor (ban-urile trebuie să fie mai
+  // deterministe — variația e mai puțin dorita la bans).
   return ranked[0] ?? null;
 }
