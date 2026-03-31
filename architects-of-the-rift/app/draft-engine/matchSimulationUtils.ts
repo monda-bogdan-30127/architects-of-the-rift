@@ -1,3 +1,8 @@
+import { derivePlayerPhaseProfile } from "./playerProfileSystem";
+import { getChampionRoleProfile } from "./championProfileSystem";
+import type { PlayerPhaseSnapshot } from "@/app/types/player";
+import type { Role } from "@/app/types/champion";
+// (Note: Role might already be imported — check before duplicating)
 import { champions } from "@/app/data/champions";
 import { players } from "@/app/data/players";
 import type { Champion } from "@/app/types/champion";
@@ -349,4 +354,120 @@ export function seededNoise(seed: string, magnitude = 1) {
   const x = Math.sin(hash) * 10000;
   const unit = x - Math.floor(x);
   return (unit * 2 - 1) * magnitude;
+}
+
+export function getPlayerPhaseStrength(
+  playerId: string | null,
+  phase: "early" | "mid" | "late",
+  role: import("@/app/types/champion").Role
+): number {
+  const player = getPlayerByIdSafe(playerId);
+  if (!player) return 5;
+
+  const phaseProfile = derivePlayerPhaseProfile(player);
+  const snap: PlayerPhaseSnapshot = phaseProfile[phase];
+
+  switch (role) {
+    case "top":
+      return clamp(
+        snap.laneControl * 0.28 + snap.stability * 0.22 + snap.teamfight * 0.20 +
+        snap.mapPlay * 0.15 + snap.clutch * 0.15, 0, 10);
+    case "jungle":
+      return clamp(
+        snap.mapPlay * 0.30 + snap.skirmish * 0.25 + snap.stability * 0.15 +
+        snap.teamfight * 0.15 + snap.clutch * 0.15, 0, 10);
+    case "mid":
+      return clamp(
+        snap.laneControl * 0.22 + snap.skirmish * 0.18 + snap.mapPlay * 0.20 +
+        snap.teamfight * 0.20 + snap.clutch * 0.20, 0, 10);
+    case "adc":
+      return clamp(
+        snap.stability * 0.25 + snap.teamfight * 0.30 + snap.laneControl * 0.15 +
+        snap.clutch * 0.20 + snap.mapPlay * 0.10, 0, 10);
+    case "support":
+      return clamp(
+        snap.mapPlay * 0.30 + snap.teamfight * 0.20 + snap.skirmish * 0.15 +
+        snap.stability * 0.20 + snap.clutch * 0.15, 0, 10);
+    default:
+      return clamp(
+        snap.laneControl * 0.2 + snap.skirmish * 0.2 + snap.stability * 0.2 +
+        snap.mapPlay * 0.2 + snap.teamfight * 0.1 + snap.clutch * 0.1, 0, 10);
+  }
+}
+
+export function getTeamPhaseStrength(
+  roster: Partial<Record<import("@/app/types/champion").Role, string>>,
+  assignments: Partial<Record<import("@/app/types/champion").Role, string>>,
+  phase: "early" | "mid" | "late"
+): number {
+  const roles: import("@/app/types/champion").Role[] = ["top", "jungle", "mid", "adc", "support"];
+  const scores = roles.map((role) => getPlayerPhaseStrength(roster[role] ?? null, phase, role));
+  return round1(average(scores));
+}
+
+export function getChampionPhasePower(
+  championId: string | null,
+  role: import("@/app/types/champion").Role | null,
+  phase: "early" | "mid" | "late"
+): number {
+  const champion = getChampionByIdSafe(championId);
+  if (!champion) return 5;
+
+  const profile = getChampionRoleProfile(champion, role);
+  if (!profile) return 5;
+
+  const phaseData = profile.scaling[phase];
+  if (!phaseData) return 5;
+
+  return clamp(phaseData.power * 0.78 + (10 - phaseData.execution) * 0.22, 0, 10);
+}
+
+export function getTeamChampionPhasePower(
+  assignments: Partial<Record<import("@/app/types/champion").Role, string>>,
+  phase: "early" | "mid" | "late"
+): number {
+  const roles: import("@/app/types/champion").Role[] = ["top", "jungle", "mid", "adc", "support"];
+  const scores = roles.map((role) => getChampionPhasePower(assignments[role] ?? null, role, phase));
+  return round1(average(scores));
+}
+
+export function getPhaseIdentityAlignment(
+  playerId: string | null,
+  championId: string | null,
+  role: import("@/app/types/champion").Role,
+  phase: "early" | "mid" | "late"
+): number {
+  const player = getPlayerByIdSafe(playerId);
+  const champion = getChampionByIdSafe(championId);
+  if (!player || !champion) return 0;
+
+  const profile = getChampionRoleProfile(champion, role);
+  if (!profile?.phaseIdentity) return 0;
+
+  const phaseProfile = derivePlayerPhaseProfile(player);
+  const snap = phaseProfile[phase];
+
+  const phaseKey = phase === "early" ? "earlyRole" : phase === "mid" ? "midRole" : "lateRole";
+  const identity = profile.phaseIdentity[phaseKey];
+
+  switch (identity) {
+    case "carry":
+      return clamp((snap.teamfight + snap.clutch) / 2 - 5, -2, 2);
+    case "secondary-carry":
+      return clamp((snap.stability + snap.teamfight) / 2 - 5, -1.5, 1.5);
+    case "setup":
+      return clamp((snap.mapPlay + snap.skirmish) / 2 - 5, -1.5, 1.5);
+    case "utility":
+      return clamp((snap.mapPlay + snap.stability) / 2 - 5, -1, 1);
+    case "tank":
+      return clamp((snap.stability + snap.teamfight) / 2 - 5, -1, 1);
+    case "pick":
+      return clamp((snap.skirmish + snap.mapPlay) / 2 - 5, -1.5, 1.5);
+    case "zone-control":
+      return clamp((snap.mapPlay + snap.stability) / 2 - 5, -1, 1);
+    case "peel":
+      return clamp((snap.teamfight + snap.stability) / 2 - 5, -1, 1);
+    default:
+      return 0;
+  }
 }

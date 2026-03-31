@@ -1,5 +1,18 @@
 import type { Role } from "@/app/types/champion";
 
+// ─── Phase-level scoring (Upgrade 1: 3-phase simulation) ───────────────────
+export type PhaseScore = {
+  playerStrength: number;
+  championPower: number;
+  phaseTotal: number;
+};
+
+export type PhaseBreakdown = {
+  early: PhaseScore;
+  mid: PhaseScore;
+  late: PhaseScore;
+};
+
 export type TeamPhaseScores = {
   draft: number;
   playerPower: number;
@@ -10,6 +23,7 @@ export type TeamPhaseScores = {
   clutch: number;
   late: number;
   total: number;
+  phases: PhaseBreakdown;
 };
 
 export type LaneRoleBreakdown = {

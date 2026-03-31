@@ -16,7 +16,7 @@ import {
 } from "./draftEvaluator";
 import { resolveRoleAssignments } from "./draftRoleResolver";
 import { ROLE_ORDER } from "./draftTypes";
-import type { MatchProfile, PlayerGameScore, TeamPhaseScores } from "./matchSimulationTypes";
+import type { MatchProfile, PhaseBreakdown, PlayerGameScore, TeamPhaseScores } from "./matchSimulationTypes";
 import { evaluateLanePhase } from "./laneEvaluator";
 import {
   average,
@@ -24,6 +24,9 @@ import {
   championMetaPower,
   clamp,
   getChampionByIdSafe,
+  getTeamPhaseStrength,
+  getTeamChampionPhasePower,
+  getPhaseIdentityAlignment,
   lateGameScore,
   objectiveControlScore,
   playerChampionArchetypeFit,
@@ -60,9 +63,9 @@ function getTeamRoster(teamSlug: string, save: DraftSave | null): Partial<Record
 
   const typedTeam = team as
     | {
-        slug?: string;
-        roster?: Partial<Record<Role, string>>;
-      }
+      slug?: string;
+      roster?: Partial<Record<Role, string>>;
+    }
     | null;
 
   const baseRoster =
@@ -170,8 +173,8 @@ function computeClutchTeamScore(roster: Partial<Record<Role, string>>) {
         const playerId = roster[role] ?? null;
         return clamp(
           playerClutchScore(playerId) * 0.62 +
-            playerConsistencyScore(playerId) * 0.2 +
-            playerTeamfightScore(playerId) * 0.18,
+          playerConsistencyScore(playerId) * 0.2 +
+          playerTeamfightScore(playerId) * 0.18,
           0,
           10
         );
@@ -192,12 +195,12 @@ function computeStarPower(playerId: string | null) {
   const advanced = player.advancedProfile?.primary;
   const advancedStar = advanced
     ? (advanced.mechanics * 0.14 +
-        advanced.teamfighting * 0.16 +
-        advanced.mapAwareness * 0.12 +
-        advanced.clutchFactor * 0.2 +
-        advanced.currentForm * 0.18 +
-        advanced.metaReadiness * 0.2) /
-      10
+      advanced.teamfighting * 0.16 +
+      advanced.mapAwareness * 0.12 +
+      advanced.clutchFactor * 0.2 +
+      advanced.currentForm * 0.18 +
+      advanced.metaReadiness * 0.2) /
+    10
     : 5;
 
   const legacyStar =
@@ -246,11 +249,11 @@ function determineMatchProfile(args: {
   const maxPrio = Math.max(blueLanePrio, redLanePrio);
   const maxScaling = Math.max(
     args.blueDraft.rangeProfileScore +
-      args.blueDraft.protectionScore +
-      args.blueDraft.frontlineScore,
+    args.blueDraft.protectionScore +
+    args.blueDraft.frontlineScore,
     args.redDraft.rangeProfileScore +
-      args.redDraft.protectionScore +
-      args.redDraft.frontlineScore
+    args.redDraft.protectionScore +
+    args.redDraft.frontlineScore
   );
 
   if (maxPrio >= 12 || args.laneVolatility >= 6.8) return "snowball";
@@ -269,6 +272,66 @@ function getProfileWeights(profile: MatchProfile) {
   }
 }
 
+function computePhaseBreakdown(args: {
+  roster: Partial<Record<Role, string>>;
+  assignments: Partial<Record<Role, string>>;
+  laneScore: number;
+  draftPower: number;
+  matchProfile: MatchProfile;
+  momentum: number;
+  seedRoot: string;
+  side: "blue" | "red";
+}): PhaseBreakdown {
+  const { roster, assignments, laneScore, draftPower, matchProfile, momentum, seedRoot, side } = args;
+
+  // ─── EARLY (0-15 min): lane + early player/champion power ─────────────
+  const earlyPlayerStr = getTeamPhaseStrength(roster, assignments, "early");
+  const earlyChampPower = getTeamChampionPhasePower(assignments, "early");
+  const earlyTotal = clamp(
+    laneScore * 0.38 + earlyPlayerStr * 0.28 + earlyChampPower * 0.22 +
+    draftPower * 0.08 + momentum * 0.5 +
+    seededNoise(`${seedRoot}:${side}:early`, 0.3),
+    0, 10
+  );
+
+  // ─── MID (15-25 min): objectives + carry-over from early ──────────────
+  const midPlayerStr = getTeamPhaseStrength(roster, assignments, "mid");
+  const midChampPower = getTeamChampionPhasePower(assignments, "mid");
+  const earlyCarryOver = (earlyTotal - 5) * 0.2;
+  const midTotal = clamp(
+    midPlayerStr * 0.30 + midChampPower * 0.24 + draftPower * 0.14 +
+    earlyCarryOver + momentum * 0.3 +
+    seededNoise(`${seedRoot}:${side}:mid`, 0.28),
+    0, 10
+  );
+
+  // ─── LATE (25+ min): teamfight + clutch + carry-over from mid ─────────
+  const latePlayerStr = getTeamPhaseStrength(roster, assignments, "late");
+  const lateChampPower = getTeamChampionPhasePower(assignments, "late");
+  const midCarryOver = (midTotal - 5) * 0.15;
+  const lateTotal = clamp(
+    latePlayerStr * 0.32 + lateChampPower * 0.26 + draftPower * 0.12 +
+    midCarryOver + momentum * 0.2 +
+    seededNoise(`${seedRoot}:${side}:late`, 0.32),
+    0, 10
+  );
+
+  return {
+    early: { playerStrength: round1(earlyPlayerStr), championPower: round1(earlyChampPower), phaseTotal: round1(earlyTotal) },
+    mid: { playerStrength: round1(midPlayerStr), championPower: round1(midChampPower), phaseTotal: round1(midTotal) },
+    late: { playerStrength: round1(latePlayerStr), championPower: round1(lateChampPower), phaseTotal: round1(lateTotal) },
+  };
+}
+
+function getPhaseWeights(profile: MatchProfile) {
+  switch (profile) {
+    case "snowball": return { early: 0.45, mid: 0.35, late: 0.20 };
+    case "scaling": return { early: 0.20, mid: 0.30, late: 0.50 };
+    default: return { early: 0.30, mid: 0.35, late: 0.35 };
+  }
+}
+
+
 function buildTeamPhaseScores(args: {
   draft: number;
   playerPower: number;
@@ -281,23 +344,33 @@ function buildTeamPhaseScores(args: {
   rng: number;
   momentum: number;
   profile?: MatchProfile;
+  phases: PhaseBreakdown;
 }): TeamPhaseScores {
   const weights = getProfileWeights(args.profile ?? "standard");
-  const total = clamp(
-    args.draft * 0.19 +
-      args.playerPower * 0.2 +
-      args.assignment * 0.08 +
-      args.lane * 0.15 * weights.lane +
-      args.objectives * 0.1 * weights.objectives +
-      args.execution * 0.1 * weights.execution +
-      args.clutch * 0.1 * weights.clutch +
-      args.late * 0.08 * weights.late +
-      // FIX MOMENTUM: contribuie direct la scorul total al echipei
-      args.momentum +
-      args.rng,
-    0,
-    10
+  const phaseW = getPhaseWeights(args.profile ?? "standard");
+
+  const phaseComposite = clamp(
+    args.phases.early.phaseTotal * phaseW.early +
+    args.phases.mid.phaseTotal * phaseW.mid +
+    args.phases.late.phaseTotal * phaseW.late,
+    0, 10
   );
+
+  const categoryTotal = clamp(
+    args.draft * 0.19 +
+    args.playerPower * 0.12 +
+    args.assignment * 0.08 +
+    args.lane * 0.10 * weights.lane +
+    args.objectives * 0.08 * weights.objectives +
+    args.execution * 0.08 * weights.execution +
+    args.clutch * 0.06 * weights.clutch +
+    args.late * 0.05 * weights.late +
+    args.momentum +
+    args.rng,
+    0, 10
+  );
+
+  const total = clamp(categoryTotal * 0.60 + phaseComposite * 0.40, 0, 10);
 
   return {
     draft: round1(args.draft),
@@ -309,22 +382,39 @@ function buildTeamPhaseScores(args: {
     clutch: round1(args.clutch),
     late: round1(args.late),
     total: round1(total),
+    phases: args.phases,
   };
 }
+
 
 function determineFlow(
   blueTotal: number,
   redTotal: number,
   laneGap: number,
-  volatility: number
+  volatility: number,
+  bluePhases?: PhaseBreakdown,
+  redPhases?: PhaseBreakdown
 ) {
   const diff = Math.abs(blueTotal - redTotal);
+
+  if (bluePhases && redPhases) {
+    const earlyGap = Math.abs(bluePhases.early.phaseTotal - redPhases.early.phaseTotal);
+    const lateGap = Math.abs(bluePhases.late.phaseTotal - redPhases.late.phaseTotal);
+    const earlyWinner = bluePhases.early.phaseTotal > redPhases.early.phaseTotal ? "blue" : "red";
+    const lateWinner = bluePhases.late.phaseTotal > redPhases.late.phaseTotal ? "blue" : "red";
+
+    if (earlyGap >= 1.5 && lateGap >= 1.0 && earlyWinner !== lateWinner) return "comeback" as const;
+    if (earlyGap >= 1.8 && diff >= 1.2) return "stomp" as const;
+    if (earlyGap <= 0.4 && lateGap <= 0.4 && diff <= 0.5) return "late-decider" as const;
+  }
+
   if (diff >= 1.8 && laneGap >= 1.2) return "stomp" as const;
   if (diff >= 1.1) return "controlled" as const;
   if (volatility >= 6.5 && diff <= 0.8) return "comeback" as const;
   if (diff <= 0.45) return "late-decider" as const;
   return "back-and-forth" as const;
 }
+
 
 function buildReason(args: {
   winnerSide: "blue" | "red";
@@ -342,6 +432,9 @@ function buildReason(args: {
     { value: winner.execution - loser.execution, label: "easier execution" },
     { value: winner.clutch - loser.clutch, label: "better clutch under pressure" },
     { value: winner.late - loser.late, label: "stronger late-game closeout" },
+    { value: winner.phases.early.phaseTotal - loser.phases.early.phaseTotal, label: "early game dominance" },
+    { value: winner.phases.mid.phaseTotal - loser.phases.mid.phaseTotal, label: "mid game control" },
+    { value: winner.phases.late.phaseTotal - loser.phases.late.phaseTotal, label: "late game scaling advantage" },
   ].sort((a, b) => b.value - a.value);
 
   return deltas
@@ -349,6 +442,7 @@ function buildReason(args: {
     .map((entry) => entry.label)
     .join(" + ");
 }
+
 
 function buildPlayerScores(args: {
   winnerSide: "blue" | "red";
@@ -401,6 +495,10 @@ function buildPlayerScores(args: {
       const teamfight = playerTeamfightScore(entry.playerId);
       const consistency = playerConsistencyScore(entry.playerId);
       const archetypeFit = playerChampionArchetypeFit(entry.playerId, entry.championId);
+      const earlyAlign = getPhaseIdentityAlignment(entry.playerId, entry.championId, role, "early");
+      const midAlign = getPhaseIdentityAlignment(entry.playerId, entry.championId, role, "mid");
+      const lateAlign = getPhaseIdentityAlignment(entry.playerId, entry.championId, role, "late");
+      const phaseAlignMod = (earlyAlign * 0.3 + midAlign * 0.35 + lateAlign * 0.35) * 0.12;
       const starPower = computeStarPower(entry.playerId);
 
       // FIX SCORE BASE: base redus de la 6.1 la 5.0 + modificatori mai mari
@@ -429,12 +527,12 @@ function buildPlayerScores(args: {
 
       const impact = clamp(
         entry.laneScore * 0.2 +
-          fit * 0.18 +
-          clutch * 0.12 +
-          execution * 0.15 +
-          teamfight * 0.15 +
-          macro * 0.08 +
-          starPower * 0.12,
+        fit * 0.18 +
+        clutch * 0.12 +
+        execution * 0.15 +
+        teamfight * 0.15 +
+        macro * 0.08 +
+        starPower * 0.12,
         0,
         10
       );
@@ -445,16 +543,16 @@ function buildPlayerScores(args: {
       );
       const carryFactor = clamp(
         impact * 0.42 +
-          starPower * 0.16 +
-          laning * 0.14 +
-          teamfight * 0.16 +
-          archetypeFit * 0.12,
+        starPower * 0.16 +
+        laning * 0.14 +
+        teamfight * 0.16 +
+        archetypeFit * 0.12,
         0,
         10
       );
       const mistakeRisk = clamp(
         10 -
-          (execution * 0.3 + fit * 0.22 + clutch * 0.16 + consistency * 0.2 + macro * 0.12),
+        (execution * 0.3 + fit * 0.22 + clutch * 0.16 + consistency * 0.2 + macro * 0.12),
         0,
         10
       );
@@ -462,20 +560,21 @@ function buildPlayerScores(args: {
       // FIX SCORE BASE: 5.0 in loc de 6.1
       const score = clamp(
         5.0 +
-          winModifier +
-          laneModifier +
-          draftModifier +
-          fitModifier +
-          executionModifier +
-          clutchModifier +
-          laneSkillModifier +
-          macroModifier +
-          teamfightModifier +
-          consistencyModifier +
-          archetypeModifier +
-          closeGameModifier +
-          starModifier +
-          rng,
+        winModifier +
+        laneModifier +
+        draftModifier +
+        fitModifier +
+        executionModifier +
+        clutchModifier +
+        laneSkillModifier +
+        macroModifier +
+        teamfightModifier +
+        consistencyModifier +
+        archetypeModifier +
+        phaseAlignMod +
+        closeGameModifier +
+        starModifier +
+        rng,
         1,
         10
       );
@@ -582,15 +681,15 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
 
   const blueDraftComposite = clamp(
     blueDraftEval.draftPower * 0.68 +
-      computeMetaAverage(assignmentsBlue) * 0.22 +
-      bluePlayerPower * 0.1,
+    computeMetaAverage(assignmentsBlue) * 0.22 +
+    bluePlayerPower * 0.1,
     0,
     10
   );
   const redDraftComposite = clamp(
     redDraftEval.draftPower * 0.68 +
-      computeMetaAverage(assignmentsRed) * 0.22 +
-      redPlayerPower * 0.1,
+    computeMetaAverage(assignmentsRed) * 0.22 +
+    redPlayerPower * 0.1,
     0,
     10
   );
@@ -613,6 +712,29 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   const blueMomentum = computeSeriesMomentum(input.series, "blue", input.game.number);
   const redMomentum = computeSeriesMomentum(input.series, "red", input.game.number);
 
+  const bluePhases = computePhaseBreakdown({
+    roster: blueRoster,
+    assignments: assignmentsBlue,
+    laneScore: lane.blueScore,
+    draftPower: blueDraftComposite,
+    matchProfile,
+    momentum: blueMomentum,
+    seedRoot,
+    side: "blue",
+  });
+
+  const redPhases = computePhaseBreakdown({
+    roster: redRoster,
+    assignments: assignmentsRed,
+    laneScore: lane.redScore,
+    draftPower: redDraftComposite,
+    matchProfile,
+    momentum: redMomentum,
+    seedRoot,
+    side: "red",
+  });
+
+
   const blueScores = buildTeamPhaseScores({
     draft: blueDraftComposite,
     playerPower: bluePlayerPower,
@@ -625,6 +747,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     rng: blueRng,
     momentum: blueMomentum,
     profile: matchProfile,
+    phases: bluePhases,
   });
 
   const redScores = buildTeamPhaseScores({
@@ -639,6 +762,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     rng: redRng,
     momentum: redMomentum,
     profile: matchProfile,
+    phases: redPhases,
   });
 
   // ─── FIX WINNER PROBABILISTIC ─────────────────────────────────────────────
@@ -658,8 +782,11 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     blueScores.total,
     redScores.total,
     Math.abs(lane.blueScore - lane.redScore),
-    volatility
+    volatility,
+    bluePhases,
+    redPhases
   );
+
 
   const playerScores = buildPlayerScores({
     winnerSide,
