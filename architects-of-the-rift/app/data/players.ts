@@ -741,7 +741,7 @@ export const players: Player[] = [
     role: "adc",
     image: "/players/lck/t1/peyz.webp",
     seed: { execution: 9, mapSense: 8, combat: 9, resilience: 8, stability: 8, gameRead: 7 },
-    bestChampions: ["varus", "kalista", "kaisa", "wukong", "nidalee"],
+    bestChampions: ["varus", "kalista", "kaisa", "zeri", "sivir"],
     sortOrder: 51,
   }),
   createPlayer({

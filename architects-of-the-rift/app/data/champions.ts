@@ -5891,6 +5891,15 @@ const baseChampions: Champion[] = [
       { championId: "rakan", score: 5 },
       { championId: "seraphine", score: 4 }
     ],
+
+    synergyWith: [
+      { championId: "sivir", score: 4 }, 
+      { championId: "ezreal", score: 4 }, 
+      { championId: "aphelios", score: 2 },
+      { championId: "twitch", score: 2 },
+      { championId: "yunara", score: 3 },
+    ],
+
     offers: [
       { type: "peel", strength: 5 },
       { type: "antiDive", strength: 4 },
