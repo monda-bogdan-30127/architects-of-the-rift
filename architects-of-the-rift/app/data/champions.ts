@@ -2849,7 +2849,7 @@ const baseChampions: Champion[] = [
 
     name: "Mel",
     image: "/champions/mel.png",
-    roles: ["mid", "adc", "support"],
+    roles: ["mid"],
     damageProfile: ["AP"],
     stats: {
       picks: 18,

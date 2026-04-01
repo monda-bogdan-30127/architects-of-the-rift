@@ -17,6 +17,7 @@ import {
 import { resolveRoleAssignments } from "./draftRoleResolver";
 import { ROLE_ORDER } from "./draftTypes";
 import type { MatchProfile, PhaseBreakdown, PlayerGameScore, TeamPhaseScores } from "./matchSimulationTypes";
+import { computeTendencyEvents } from "./tendencyEventSystem";
 import { evaluateLanePhase } from "./laneEvaluator";
 import {
   average,
@@ -281,8 +282,10 @@ function computePhaseBreakdown(args: {
   momentum: number;
   seedRoot: string;
   side: "blue" | "red";
+  tendencyBonus?: { earlyBonus: number; midBonus: number; lateBonus: number };
 }): PhaseBreakdown {
-  const { roster, assignments, laneScore, draftPower, matchProfile, momentum, seedRoot, side } = args;
+
+  const { roster, assignments, laneScore, draftPower, matchProfile, momentum, seedRoot, side, tendencyBonus } = args;
 
   // ─── EARLY (0-15 min): lane + early player/champion power ─────────────
   const earlyPlayerStr = getTeamPhaseStrength(roster, assignments, "early");
@@ -290,7 +293,8 @@ function computePhaseBreakdown(args: {
   const earlyTotal = clamp(
     laneScore * 0.38 + earlyPlayerStr * 0.28 + earlyChampPower * 0.22 +
     draftPower * 0.08 + momentum * 0.5 +
-    seededNoise(`${seedRoot}:${side}:early`, 0.3),
+    seededNoise(`${seedRoot}:${side}:early`, 0.3) +
+    (tendencyBonus?.earlyBonus ?? 0),
     0, 10
   );
 
@@ -301,7 +305,8 @@ function computePhaseBreakdown(args: {
   const midTotal = clamp(
     midPlayerStr * 0.30 + midChampPower * 0.24 + draftPower * 0.14 +
     earlyCarryOver + momentum * 0.3 +
-    seededNoise(`${seedRoot}:${side}:mid`, 0.28),
+    seededNoise(`${seedRoot}:${side}:mid`, 0.28) +
+    (tendencyBonus?.midBonus ?? 0),
     0, 10
   );
 
@@ -312,8 +317,10 @@ function computePhaseBreakdown(args: {
   const lateTotal = clamp(
     latePlayerStr * 0.32 + lateChampPower * 0.26 + draftPower * 0.12 +
     midCarryOver + momentum * 0.2 +
-    seededNoise(`${seedRoot}:${side}:late`, 0.32),
+    seededNoise(`${seedRoot}:${side}:late`, 0.32) +
+    (tendencyBonus?.lateBonus ?? 0),
     0, 10
+
   );
 
   return {
@@ -712,6 +719,24 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   const blueMomentum = computeSeriesMomentum(input.series, "blue", input.game.number);
   const redMomentum = computeSeriesMomentum(input.series, "red", input.game.number);
 
+  const blueTendencyEvents = computeTendencyEvents({
+    roster: blueRoster,
+    assignments: assignmentsBlue,
+    enemyRoster: redRoster,
+    enemyAssignments: assignmentsRed,
+    seedRoot,
+    side: "blue",
+  });
+
+  const redTendencyEvents = computeTendencyEvents({
+    roster: redRoster,
+    assignments: assignmentsRed,
+    enemyRoster: blueRoster,
+    enemyAssignments: assignmentsBlue,
+    seedRoot,
+    side: "red",
+  });
+
   const bluePhases = computePhaseBreakdown({
     roster: blueRoster,
     assignments: assignmentsBlue,
@@ -721,6 +746,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     momentum: blueMomentum,
     seedRoot,
     side: "blue",
+    tendencyBonus: blueTendencyEvents,
   });
 
   const redPhases = computePhaseBreakdown({
@@ -732,8 +758,8 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     momentum: redMomentum,
     seedRoot,
     side: "red",
+    tendencyBonus: redTendencyEvents,
   });
-
 
   const blueScores = buildTeamPhaseScores({
     draft: blueDraftComposite,
