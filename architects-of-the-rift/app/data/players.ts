@@ -641,7 +641,7 @@ export const players: Player[] = [
     teamId: "kt",
     role: "support",
     image: "/players/lck/kt/effort.webp",
-    seed: { execution: 5, mapSense: 6, combat: 6, resilience: 5, stability: 5, gameRead: 7 },
+    seed: { execution: 5, mapSense: 6, combat: 6, resilience: 6, stability: 5, gameRead: 7 },
     bestChampions: ["nautilus", "lulu", "alistar", "rakan", "seraphine"],
     sortOrder: 41,
   }),
