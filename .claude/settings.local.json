@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "WebFetch(domain:gol.gg)",
+      "Bash(grep -n 'id: \"\"poppy\"\"\\\\|id: \"\"malphite\"\"\\\\|id: \"\"naafiri\"\"\\\\|id: \"\"sylas\"\"\\\\|id: \"\"maokai\"\"\\\\|id: \"\"camille\"\"\\\\|id: \"\"vayne\"\"\\\\|id: \"\"tristana\"\"\\\\|id: \"\"volibear\"\"\\\\|id: \"\"smolder\"\"\\\\|id: \"\"shen\"\"\\\\|id: \"\"swain\"\"\\\\|id: \"\"ziggs\"\"\\\\|id: \"\"vladimir\"\"\\\\|id: \"\"zac\"\"' \"d:/Project/ARCHITECTS OF THE RIFT/game/architects-of-the-rift/app/data/champions.ts\")"
+    ]
+  }
+}

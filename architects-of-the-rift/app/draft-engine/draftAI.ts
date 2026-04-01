@@ -32,6 +32,12 @@ import {
 } from "./userDraftMemory";
 // FIX #1 — import shortlist pentru variatie draft AI
 import { chooseFromAdaptiveShortlist } from "./draftVariationSystem";
+import { getChampionRoleProfile } from "./championProfileSystem";
+import {
+  derivePlayerArchetypeAffinity,
+  derivePlayerAdaptationProfile,
+} from "./playerProfileSystem";
+
 
 const playersById = new Map(players.map((player) => [player.id, player]));
 
@@ -345,6 +351,223 @@ function getProjectedPlayerScores(
   };
 }
 
+function getOffMetaPenalty(
+  candidate: Champion,
+  series: ActiveDraftSeries
+): number {
+  const effectivePresence = Math.max(
+    candidate.stats.presence ?? 0,
+    candidate.stats.picks + candidate.stats.bans
+  );
+  // Low sample — no data to judge, give small penalty
+  if (effectivePresence <= 0) return 4.5;
+
+  const picks = candidate.stats.picks ?? 0;
+  const proWinRate = candidate.stats.proWinRate ?? null;
+
+  // Thresholds: a champion with <5 picks and <10% presence is clearly off-meta
+  const presenceRate = effectivePresence / Math.max(1, 80); // ~80 = typical high presence
+  const isOffMeta = presenceRate < 0.15 || picks < 5;
+  const isVeryOffMeta = presenceRate < 0.08 || picks < 2;
+
+  if (!isOffMeta) return 0;
+
+  // Base penalty scales with how off-meta the champion is
+  let penalty = isVeryOffMeta ? 6.5 : 3.5;
+
+  // If the champion has a decent pro win rate despite low picks, reduce penalty
+  if (proWinRate !== null && proWinRate >= 0.52 && picks >= 3) {
+    penalty *= 0.55;
+  }
+
+  // Game number factor: penalty is full in game 1, reduced in game 3+
+  // Late games in a series = teams adapt, try different things
+  const gameNumber = series.currentGameNumber ?? 1;
+  if (gameNumber >= 4) penalty *= 0.35;       // game 4-5: almost no penalty
+  else if (gameNumber >= 3) penalty *= 0.55;   // game 3: moderate reduction
+  else if (gameNumber >= 2) penalty *= 0.80;   // game 2: small reduction
+  // game 1: full penalty
+
+  return clamp(penalty, 0, 8);
+}
+
+function getArchetypeAffinityScore(
+  roster: Partial<Record<Role, string>>,
+  projectedRole: Role | null,
+  candidate: Champion
+): number {
+  if (!projectedRole) return 0;
+
+  const playerId = roster[projectedRole];
+  if (!playerId) return 0;
+
+  const player = playersById.get(playerId);
+  if (!player) return 0;
+
+  const archetype = derivePlayerArchetypeAffinity(player);
+  const profile = getChampionRoleProfile(candidate, projectedRole);
+  if (!profile) return 0;
+
+  const tags = new Set(profile.tags ?? []);
+  let affinitySum = 0;
+  let matchCount = 0;
+
+  // Map champion tags to player archetype scores
+  const tagMap: Array<[string, number]> = [
+    ["engage", archetype.engage],
+    ["enchanter", archetype.enchanter],
+    ["frontline", archetype.tank],
+    ["tank", archetype.tank],
+    ["dive", archetype.dive],
+    ["dps", archetype.carry],
+    ["burst", archetype.carry],
+    ["poke", archetype.poke],
+    ["setup", archetype.setup],
+    ["utility", archetype.utility],
+    ["warden", archetype.enchanter],
+    ["pick", archetype.setup],
+    ["zone-control", archetype.poke],
+    ["follow-up", archetype.dive],
+    ["anti-dive", archetype.tank],
+    ["peel", archetype.enchanter],
+  ];
+
+  for (const [tag, affinity] of tagMap) {
+    if (tags.has(tag)) {
+      affinitySum += affinity;
+      matchCount += 1;
+    }
+  }
+
+  if (matchCount === 0) return 0;
+
+  // Average affinity across matched tags, centered at 5
+  const avgAffinity = affinitySum / matchCount;
+  // Return a score from -3 to +3 (centered at 0)
+  return clamp((avgAffinity - 5) * 0.6, -3, 3);
+}
+
+function getComboDependencyPenalty(
+  ownPicks: string[],
+  candidate: Champion,
+  projectedRole: Role | null
+): number {
+  const profile = getChampionRoleProfile(candidate, projectedRole);
+  if (!profile?.comboDependency) return 0;
+
+  const dep = profile.comboDependency;
+  let penalty = 0;
+
+  // Check each dependency against existing picks
+  const pickedProfiles = ownPicks
+    .map((id) => {
+      const champ = getChampionById(id);
+      if (!champ) return null;
+      return getChampionRoleProfile(champ);
+    })
+    .filter(Boolean);
+
+  const allTags = new Set(pickedProfiles.flatMap((p) => p?.tags ?? []));
+
+  // needsKnockup: check for allies with knockup CC
+  if ((dep.needsKnockup ?? 0) >= 5) {
+    const hasKnockup = pickedProfiles.some((p) =>
+      p?.abilities?.some((a) =>
+        a.effects?.some((e) => e.type === "knockup" && e.strength >= 6)
+      )
+    );
+    if (!hasKnockup) {
+      // Only penalize if we've already picked enough allies that knockup SHOULD exist
+      if (ownPicks.length >= 2) {
+        penalty += (dep.needsKnockup ?? 0) * 0.65;
+      }
+    }
+  }
+
+  // needsEngage
+  if ((dep.needsEngage ?? 0) >= 5 && !allTags.has("engage")) {
+    if (ownPicks.length >= 2) penalty += (dep.needsEngage ?? 0) * 0.35;
+  }
+
+  // needsFrontline
+  if ((dep.needsFrontline ?? 0) >= 5 && !allTags.has("frontline")) {
+    if (ownPicks.length >= 2) penalty += (dep.needsFrontline ?? 0) * 0.3;
+  }
+
+  // needsPeel
+  if ((dep.needsPeel ?? 0) >= 5 && !allTags.has("peel") && !allTags.has("warden") && !allTags.has("enchanter")) {
+    if (ownPicks.length >= 3) penalty += (dep.needsPeel ?? 0) * 0.3;
+  }
+
+  // needsEnchanter
+  if ((dep.needsEnchanter ?? 0) >= 5 && !allTags.has("enchanter")) {
+    if (ownPicks.length >= 3) penalty += (dep.needsEnchanter ?? 0) * 0.3;
+  }
+
+  return clamp(penalty, 0, 8);
+}
+
+function getWinConditionCoherenceScore(
+  ownPicks: string[],
+  candidate: Champion,
+  projectedRole: Role | null
+): number {
+  if (ownPicks.length < 2) return 0; // Too early to have a clear identity
+
+  // Build current comp identity from existing picks
+  const existingOffers: Record<string, number> = {};
+  for (const pickedId of ownPicks) {
+    const picked = getChampionById(pickedId);
+    if (!picked) continue;
+    for (const offer of picked.offers) {
+      existingOffers[offer.type] = (existingOffers[offer.type] ?? 0) + offer.strength;
+    }
+  }
+
+  // Detect emerging identity
+  const diveSignal = (existingOffers["dive"] ?? 0) + (existingOffers["backlineAccess"] ?? 0) + (existingOffers["engage"] ?? 0);
+  const pokeSignal = (existingOffers["poke"] ?? 0) + (existingOffers["siege"] ?? 0) + (existingOffers["waveclear"] ?? 0);
+  const pickSignal = (existingOffers["pick"] ?? 0) + (existingOffers["reliableCC"] ?? 0) + (existingOffers["roamPressure"] ?? 0);
+  const frontToBackSignal = (existingOffers["frontline"] ?? 0) + (existingOffers["peel"] ?? 0) + (existingOffers["sustainedDamage"] ?? 0);
+
+  const signals = [
+    { id: "dive", value: diveSignal },
+    { id: "poke", value: pokeSignal },
+    { id: "pick", value: pickSignal },
+    { id: "front-to-back", value: frontToBackSignal },
+  ].sort((a, b) => b.value - a.value);
+
+  const dominant = signals[0];
+  if (!dominant || dominant.value < 6) return 0; // No clear identity yet
+
+  // Check how well the candidate fits the dominant identity
+  const candidateOffers = new Set(candidate.offers.map((o) => String(o.type)));
+  const candidateProfile = getChampionRoleProfile(candidate, projectedRole);
+  const candidateTags = new Set(candidateProfile?.tags ?? []);
+
+  let coherence = 0;
+
+  switch (dominant.id) {
+    case "dive":
+      if (candidateTags.has("dive") || candidateTags.has("engage") || candidateTags.has("follow-up")) coherence += 2.0;
+      if (candidateOffers.has("poke") && !candidateTags.has("dive")) coherence -= 1.5; // poke in dive = bad
+      break;
+    case "poke":
+      if (candidateOffers.has("poke") || candidateOffers.has("siege") || candidateOffers.has("waveclear")) coherence += 2.0;
+      if (candidateTags.has("dive") && !candidateOffers.has("poke")) coherence -= 1.5; // dive piece in poke = bad
+      break;
+    case "pick":
+      if (candidateTags.has("pick") || candidateOffers.has("reliableCC") || candidateOffers.has("roamPressure")) coherence += 1.8;
+      break;
+    case "front-to-back":
+      if (candidateTags.has("frontline") || candidateTags.has("peel") || candidateOffers.has("sustainedDamage")) coherence += 1.8;
+      if (candidateTags.has("dive") && !candidateTags.has("frontline")) coherence -= 1.2;
+      break;
+  }
+
+  return clamp(coherence, -3, 3);
+}
+
 function scorePickCandidate(
   candidate: Champion,
   step: DraftStep,
@@ -399,6 +622,10 @@ function scorePickCandidate(
   const needFill = getNeedFillScore(ownState.picks, candidate);
   const counterValue = getCounterValueScore(enemyState.picks, candidate);
   const weaknessPenalty = getWeaknessPenalty(enemyState.picks, candidate);
+  const offMetaPenalty = getOffMetaPenalty(candidate, series);
+  const archetypeAffinity = getArchetypeAffinityScore(roster, projected.projectedRole, candidate);
+  const comboDependencyPenalty = getComboDependencyPenalty(ownState.picks, candidate, projected.projectedRole);
+  const winConditionCoherence = getWinConditionCoherenceScore(ownState.picks, candidate, projected.projectedRole);
 
   const userBias = getUserPickPreferenceBias(
     candidate,
@@ -424,9 +651,13 @@ function scorePickCandidate(
     roleCoverage +
     counterpickPreservationBonus +
     userBias +
-    userRoleBias -
+    userRoleBias +
+    archetypeAffinity +
+    winConditionCoherence -
     weaknessPenalty * config.weaknessWeight -
     blindRiskPenalty -
+    comboDependencyPenalty -
+    offMetaPenalty -
     invalidRolePenalty;
 
   let planType: DraftCandidateBreakdown["planType"] = "stabilize-comp";
@@ -547,7 +778,7 @@ function scoreBanCandidate(
   const enemyComfortPressure = clamp((candidate.stats?.prioScore ?? 50) / 13.5, 0, 8);
   const enemyCounterWindow =
     ownState.picks.length >= 3 &&
-    (candidate.roles.includes("top") || candidate.roles.includes("mid"))
+      (candidate.roles.includes("top") || candidate.roles.includes("mid"))
       ? 1.15
       : 0;
   const userBias = getUserBanTargetBias(candidate, step.side, series);
