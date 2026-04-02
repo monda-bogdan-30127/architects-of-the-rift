@@ -18,6 +18,9 @@ import { resolveRoleAssignments } from "./draftRoleResolver";
 import { ROLE_ORDER } from "./draftTypes";
 import type { MatchProfile, PhaseBreakdown, PlayerGameScore, TeamPhaseScores } from "./matchSimulationTypes";
 import { computeTendencyEvents } from "./tendencyEventSystem";
+import { computeTeamChemistry, getPlayerPersonalityModifiers } from "./personalitySystem";
+import { evaluateTeamfight } from "./teamfightSystem";
+import { getChampionRoleProfile } from "./championProfileSystem";
 import { evaluateLanePhase } from "./laneEvaluator";
 import {
   average,
@@ -283,9 +286,10 @@ function computePhaseBreakdown(args: {
   seedRoot: string;
   side: "blue" | "red";
   tendencyBonus?: { earlyBonus: number; midBonus: number; lateBonus: number };
+  teamfightEdge?: number;
 }): PhaseBreakdown {
 
-  const { roster, assignments, laneScore, draftPower, matchProfile, momentum, seedRoot, side, tendencyBonus } = args;
+  const { roster, assignments, laneScore, draftPower, matchProfile, momentum, seedRoot, side, tendencyBonus, teamfightEdge } = args;
 
   // ─── EARLY (0-15 min): lane + early player/champion power ─────────────
   const earlyPlayerStr = getTeamPhaseStrength(roster, assignments, "early");
@@ -306,7 +310,8 @@ function computePhaseBreakdown(args: {
     midPlayerStr * 0.30 + midChampPower * 0.24 + draftPower * 0.14 +
     earlyCarryOver + momentum * 0.3 +
     seededNoise(`${seedRoot}:${side}:mid`, 0.28) +
-    (tendencyBonus?.midBonus ?? 0),
+    (tendencyBonus?.midBonus ?? 0) +
+    (teamfightEdge ?? 0) * 0.35,
     0, 10
   );
 
@@ -318,7 +323,8 @@ function computePhaseBreakdown(args: {
     latePlayerStr * 0.32 + lateChampPower * 0.26 + draftPower * 0.12 +
     midCarryOver + momentum * 0.2 +
     seededNoise(`${seedRoot}:${side}:late`, 0.32) +
-    (tendencyBonus?.lateBonus ?? 0),
+    (tendencyBonus?.lateBonus ?? 0) +
+    (teamfightEdge ?? 0) * 0.65,
     0, 10
 
   );
@@ -495,6 +501,7 @@ function buildPlayerScores(args: {
       if (!player || !champion) continue;
 
       const fit = playerChampionDraftFit(entry.playerId, entry.championId);
+      const champRoleProfile = getChampionRoleProfile(getChampionById(entry.championId), role);
       const clutch = playerClutchScore(entry.playerId);
       const execution = playerExecutionScore(entry.playerId);
       const laning = playerLaningScore(entry.playerId);
@@ -507,6 +514,9 @@ function buildPlayerScores(args: {
       const lateAlign = getPhaseIdentityAlignment(entry.playerId, entry.championId, role, "late");
       const phaseAlignMod = (earlyAlign * 0.3 + midAlign * 0.35 + lateAlign * 0.35) * 0.12;
       const starPower = computeStarPower(entry.playerId);
+      const champProfile = getChampionRoleProfile(getChampionById(entry.championId), role);
+      const champTags = new Set(champProfile?.tags ?? []);
+      const personality = getPlayerPersonalityModifiers(entry.playerId, champTags, args.closeness);
 
       // FIX SCORE BASE: base redus de la 6.1 la 5.0 + modificatori mai mari
       // → distributie mai larga: perdantii pot face 3-4, castigatorii pot face 9-10
@@ -522,14 +532,14 @@ function buildPlayerScores(args: {
       const teamfightModifier = (teamfight - 5) * 0.08;
       const consistencyModifier = (consistency - 5) * 0.06;
       const archetypeModifier = (archetypeFit - 5) * 0.09;
-      const closeGameModifier = args.closeness * (clutch - 5) * 0.09;
+      const closeGameModifier = args.closeness * (clutch - 5) * 0.09 * personality.composureClutchScale;
       const starModifier = (starPower - 5) * 0.14;
 
       // FIX SCORE BASE: seed include si gameNumber → scoruri diferite intre
       // jocuri chiar daca acelasi jucator joaca acelasi campion
       const rng = seededNoise(
         `${args.seriesId}:g${args.gameNumber}:${role}:${entry.side}:${entry.playerId}:${entry.championId}`,
-        0.55  // crescut de la 0.35 → mai multa variatie realista
+        0.55 * personality.volatilityRngScale
       );
 
       const impact = clamp(
@@ -553,13 +563,16 @@ function buildPlayerScores(args: {
         starPower * 0.16 +
         laning * 0.14 +
         teamfight * 0.16 +
-        archetypeFit * 0.12,
+        archetypeFit * 0.12 +
+        personality.greedCarryAmplifier * 3,
         0,
         10
       );
+
       const mistakeRisk = clamp(
         10 -
-        (execution * 0.3 + fit * 0.22 + clutch * 0.16 + consistency * 0.2 + macro * 0.12),
+        (execution * 0.3 + fit * 0.22 + clutch * 0.16 + consistency * 0.2 + macro * 0.12) +
+        personality.greedRiskAmplifier * 3,
         0,
         10
       );
@@ -718,6 +731,18 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   // FIX MOMENTUM: calculam bonusul psihologic bazat pe jocurile anterioare
   const blueMomentum = computeSeriesMomentum(input.series, "blue", input.game.number);
   const redMomentum = computeSeriesMomentum(input.series, "red", input.game.number);
+  const blueChemistry = computeTeamChemistry(blueRoster);
+  const redChemistry = computeTeamChemistry(redRoster);
+
+  // UPGRADE 4: chemistry adjusts objectives and clutch
+  const blueObjectivesAdj = round1(clamp(blueObjectives + blueChemistry.leadershipBonus, 0, 10));
+  const redObjectivesAdj = round1(clamp(redObjectives + redChemistry.leadershipBonus, 0, 10));
+  const blueClutchAdj = round1(clamp(blueClutch + blueChemistry.communicationBonus, 0, 10));
+  const redClutchAdj = round1(clamp(redClutch + redChemistry.communicationBonus, 0, 10));
+  const teamfight = evaluateTeamfight({
+    blueAssignments: assignmentsBlue,
+    redAssignments: assignmentsRed,
+  });
 
   const blueTendencyEvents = computeTendencyEvents({
     roster: blueRoster,
@@ -747,6 +772,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     seedRoot,
     side: "blue",
     tendencyBonus: blueTendencyEvents,
+    teamfightEdge: teamfight.blueTeamfightEdge
   });
 
   const redPhases = computePhaseBreakdown({
@@ -759,6 +785,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     seedRoot,
     side: "red",
     tendencyBonus: redTendencyEvents,
+    teamfightEdge: teamfight.redTeamfightEdge
   });
 
   const blueScores = buildTeamPhaseScores({
@@ -766,9 +793,9 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     playerPower: bluePlayerPower,
     assignment: blueAssignment,
     lane: lane.blueScore,
-    objectives: blueObjectives,
+    objectives: blueObjectivesAdj,
     execution: blueExecution,
-    clutch: blueClutch,
+    clutch: blueClutchAdj,
     late: blueLate,
     rng: blueRng,
     momentum: blueMomentum,
@@ -781,9 +808,9 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     playerPower: redPlayerPower,
     assignment: redAssignment,
     lane: lane.redScore,
-    objectives: redObjectives,
+    objectives: redObjectivesAdj,
     execution: redExecution,
-    clutch: redClutch,
+    clutch: redClutchAdj,
     late: redLate,
     rng: redRng,
     momentum: redMomentum,

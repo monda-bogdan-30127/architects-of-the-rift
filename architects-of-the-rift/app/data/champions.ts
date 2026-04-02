@@ -575,7 +575,7 @@ const baseChampions: Champion[] = [
 
     name: "Ryze",
     image: "/champions/ryze.png",
-    roles: ["mid", "top"],
+    roles: ["mid"],
     damageProfile: ["AP"],
     stats: {
       picks: 63,
@@ -5274,7 +5274,8 @@ const baseChampions: Champion[] = [
   createChampion({
     id: "vayne",
     goodVs: [
-      { championId: "kaisa", score: 3 }
+      { championId: "kaisa", score: 3 },
+      { championId: "ksante", score: 3 }
     ],
 
     weakVs: [
