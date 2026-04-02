@@ -550,7 +550,7 @@ const baseChampions: Champion[] = [
       { championId: "syndra", score: 3 }
     ],
     weakVs: [{ championId: "cassiopeia", score: 3 }, { championId: "swain", score: 3 }, { championId: "akali", score: 5 }, { championId: "aurelion-sol", score: 3 }, { championId: "aurora", score: 3 }],
-    synergyWith: [{ championId: "vi", score: 3 }, { championId: "nautilus", score: 3 }, { championId: "alistar", score: 3 }, { championId: "xin-zhao", score: 4 }],
+    synergyWith: [{ championId: "vi", score: 3 }, { championId: "pantheon", score: 4 }, { championId: "naafiri", score: 3 }, { championId: "xin-zhao", score: 4 }],
     offers: [
       { type: "waveclear", strength: 4 },
       { type: "sustainedDamage", strength: 4 },
@@ -871,7 +871,7 @@ const baseChampions: Champion[] = [
       { championId: "caitlyn", score: 3 },
       { championId: "aphelios", score: 3 }
     ],
-    synergyWith: [{ championId: "karma", score: 5 }, { championId: "bard", score: 4 }, { championId: "leona", score: 3 }, { championId: "braum", score: 3 }],
+    synergyWith: [{ championId: "karma", score: 5 }, { championId: "bard", score: 4 }, { championId: "leona", score: 3 }, { championId: "braum", score: 3 }, { championId: "thresh", score: 3 }],
     offers: [
       { type: "poke", strength: 5 },
       { type: "siege", strength: 3 },

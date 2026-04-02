@@ -37,6 +37,12 @@ import {
   derivePlayerArchetypeAffinity,
   derivePlayerAdaptationProfile,
 } from "./playerProfileSystem";
+import { getAdaptivePriorityBonus } from "./adaptivePrioritySystem";
+import { getContestabilityPenalty } from "./draftContestability";
+import { getDraftPhase, getPhaseBias } from "./draftPhase";
+import { getDraftIntent } from "./draftIntentSystem";
+import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
+import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
 
 
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -582,6 +588,15 @@ function scorePickCandidate(
   const roster = getTeamRosterFromSources({ teamSlug, save });
 
   const canFit = canPickChampionIntoUniqueRoles(ownState.picks, candidate.id, roster);
+  const totalPicksSoFar = game.picksBlue.length + game.picksRed.length;
+  const draftPhase = getDraftPhase(totalPicksSoFar + 1);
+  const phaseBias = getPhaseBias(draftPhase);
+  const adjustedConfig = {
+    ...config,
+    metaWeight: config.metaWeight * phaseBias.metaWeight,
+    counterWeight: config.counterWeight * phaseBias.counter,
+    synergyWeight: config.synergyWeight * phaseBias.compIdentity,
+  };
   const projected = getProjectedRoleAndPlayer(candidate, ownState.picks, roster);
 
   const metaPriority = clamp(getMetaPriorityScore(candidate), 0, 10);
@@ -628,6 +643,46 @@ function scorePickCandidate(
   const winConditionCoherence = getWinConditionCoherenceScore(ownState.picks, candidate, projected.projectedRole);
   const proPickTiming = getProPickTimingBonus(candidate, game, step.side, projected.projectedRole);
 
+  const adaptivePriority = getAdaptivePriorityBonus({
+    candidate,
+    side: step.side,
+    game,
+    enemyChampionIds: enemyState.picks,
+  });
+
+  const contestability = getContestabilityPenalty({
+    candidate,
+    side: step.side,
+    game,
+    series,
+    allyChampionIds: ownState.picks,
+    enemyChampionIds: enemyState.picks,
+  });
+
+  const carryNeedEvaluation = {
+    protectionScore: 5,
+    antiDiveScore: 5,
+    frontlineScore: 5,
+  } as Parameters<typeof inferCarryNeedPenalty>[0]["evaluation"];
+
+  const carryNeedPenalty = inferCarryNeedPenalty({
+    candidate,
+    allyChampionIds: ownState.picks,
+    evaluation: carryNeedEvaluation,
+    championById: getChampionById,
+  });
+
+  let botLaneFitBonus = 0;
+  if (projected.projectedRole === "support" || projected.projectedRole === "adc") {
+    const currentPicks = [...ownState.picks, candidate.id];
+    const fitResult = getBotLaneArchetypeFit({
+      championIds: currentPicks,
+      championById: getChampionById,
+    });
+
+    botLaneFitBonus = clamp((fitResult - 5) * 0.5, -2, 2);
+  }
+
   const userBias = getUserPickPreferenceBias(
     candidate,
     projected.projectedRole,
@@ -641,12 +696,12 @@ function scorePickCandidate(
 
   const invalidRolePenalty = canFit ? 0 : 100;
   const totalScore =
-    metaPriority * config.metaWeight +
-    comfortScore * config.comfortWeight +
-    playerFitScore * config.fitWeight +
-    compSynergy * config.synergyWeight +
-    needFill * config.needWeight +
-    counterValue * config.counterWeight +
+    metaPriority * adjustedConfig.metaWeight +
+    comfortScore * adjustedConfig.comfortWeight +
+    playerFitScore * adjustedConfig.fitWeight +
+    compSynergy * adjustedConfig.synergyWeight +
+    needFill * adjustedConfig.needWeight +
+    counterValue * adjustedConfig.counterWeight +
     identityBias +
     flexBonus +
     roleCoverage +
@@ -655,11 +710,15 @@ function scorePickCandidate(
     userRoleBias +
     archetypeAffinity +
     winConditionCoherence +
-    proPickTiming -
-    weaknessPenalty * config.weaknessWeight -
+    proPickTiming +
+    adaptivePriority +
+    botLaneFitBonus -
+    weaknessPenalty * adjustedConfig.weaknessWeight -
     blindRiskPenalty -
     comboDependencyPenalty -
     offMetaPenalty -
+    contestability -
+    carryNeedPenalty -
     invalidRolePenalty;
 
   let planType: DraftCandidateBreakdown["planType"] = "stabilize-comp";
@@ -696,6 +755,18 @@ function scorePickCandidate(
       canFit ? "valid-role-map" : "invalid-role-map",
       candidate.roles.length >= 2 ? "flex" : "single-role",
       projected.projectedRole ?? "unassigned",
+      getDraftIntent({
+        candidate,
+        side: step.side,
+        game,
+        synergyScore: compSynergy,
+        counterScore: counterValue,
+        comfortScore,
+        planBonus: identityBias + roleCoverage,
+      }).primary,
+      offMetaPenalty >= 3 ? "off-meta" : "meta-ok",
+      contestability >= 2 ? "high-contestability" : "safe-pick",
+      draftPhase,
     ],
   };
 }
@@ -900,6 +971,9 @@ function scoreBanCandidate(
   const signatureBonus = getAiSignatureBanBonus(candidate, enemyTeamSlug, save);
 
   const banRepeatPenalty = getBanRepeatPenalty(candidate, game, series);
+  const seriesAwareBan = getSeriesAwareBanBonus(candidate.id, step.side, series);
+  const comfortRepeatThreat = getSeriesComfortRepeatThreat(candidate.id, step.side, series);
+
 
   // FIX A: Reduce metaPriority dominance, boost signature bans
   const totalScore =
@@ -910,7 +984,9 @@ function scoreBanCandidate(
     synergyCompletionBonus +
     signatureBonus * 1.4 +          // Boosted from 1.0 — signature bans should compete with meta
     redundantBanPenalty -
-    banRepeatPenalty +               // NEW: penalize repeat bans across series
+    banRepeatPenalty +
+    seriesAwareBan +
+    comfortRepeatThreat +              // NEW: penalize repeat bans across series
     (candidate.roles.length >= 2 ? 0.8 : 0);
 
 
@@ -998,7 +1074,7 @@ export function chooseAiAction(
     return chooseFromAdaptiveShortlist(valid, seed) ?? null;
   }
 
-   // FIX A: Use shortlist for bans too — but with a narrow window (top 3)
+  // FIX A: Use shortlist for bans too — but with a narrow window (top 3)
   const banSeed = `${series.seriesId}:${series.currentGameNumber}:${game.phaseIndex}:ban:${step.side}`;
   const banShortlist = ranked.slice(0, 3);
   // Deterministic pick from top 3 based on seed
