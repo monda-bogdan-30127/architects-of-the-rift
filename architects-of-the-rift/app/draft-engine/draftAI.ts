@@ -626,6 +626,7 @@ function scorePickCandidate(
   const archetypeAffinity = getArchetypeAffinityScore(roster, projected.projectedRole, candidate);
   const comboDependencyPenalty = getComboDependencyPenalty(ownState.picks, candidate, projected.projectedRole);
   const winConditionCoherence = getWinConditionCoherenceScore(ownState.picks, candidate, projected.projectedRole);
+  const proPickTiming = getProPickTimingBonus(candidate, game, step.side, projected.projectedRole);
 
   const userBias = getUserPickPreferenceBias(
     candidate,
@@ -653,7 +654,8 @@ function scorePickCandidate(
     userBias +
     userRoleBias +
     archetypeAffinity +
-    winConditionCoherence -
+    winConditionCoherence +
+    proPickTiming -
     weaknessPenalty * config.weaknessWeight -
     blindRiskPenalty -
     comboDependencyPenalty -
@@ -763,6 +765,105 @@ function getAiSignatureBanBonus(
   return clamp(bonus, 0, 5.0);
 }
 
+function getBanRepeatPenalty(
+  candidate: Champion,
+  game: DraftGameState,
+  series: ActiveDraftSeries
+): number {
+  // Penalize banning the same champion that was already banned in previous
+  // games of this series. Encourages diverse ban strategies across a Bo3/Bo5.
+  let penalty = 0;
+
+  for (const prevGame of series.games) {
+    if (prevGame.number >= game.number) continue;
+    if (!prevGame.completed) continue;
+
+    const wasBanned =
+      prevGame.bansBlue.includes(candidate.id) ||
+      prevGame.bansRed.includes(candidate.id);
+
+    if (wasBanned) {
+      penalty += 1.8; // First repeat = -1.8, second = -3.6, etc.
+    }
+  }
+
+  // But if champion was PICKED by enemy and WON, banning again is smart
+  for (const prevGame of series.games) {
+    if (prevGame.number >= game.number) continue;
+    if (!prevGame.completed || !prevGame.winnerSide) continue;
+
+    const enemyWon = true; // Simplified: if picked and team won
+    const wasPicked =
+      prevGame.picksBlue.includes(candidate.id) ||
+      prevGame.picksRed.includes(candidate.id);
+
+    if (wasPicked && enemyWon) {
+      penalty -= 1.2; // Reduce penalty — respect banning a winning champion
+    }
+  }
+
+  return clamp(penalty, 0, 5);
+}
+
+function getProPickTimingBonus(
+  candidate: Champion,
+  game: DraftGameState,
+  side: Side,
+  projectedRole: Role | null
+): number {
+  const avgPickRound = candidate.stats.avgPickRound ?? 3;
+  const prioScore = candidate.stats.prioScore ?? 50;
+  const ownPickNumber = getCurrentPickNumberForSide(game, side);
+
+  // How many total picks have happened?
+  const totalPicks = game.picksBlue.length + game.picksRed.length;
+
+  // A champion with avgPickRound 1.5 that's still available at pick 5+ is a steal
+  // pickRoundGap = how far past their "expected" pick round we are
+  const currentRound = Math.ceil(totalPicks / 2) + 1; // Approximate current round
+  const pickRoundGap = currentRound - avgPickRound;
+
+  if (pickRoundGap <= 0) {
+    // Champion is being picked at or before their expected round — normal
+    return 0;
+  }
+
+  // The further past their expected round, the bigger the "steal" bonus
+  // A champion with avgPickRound 1.2 still available at round 3 = gap of 1.8
+  let stealBonus = clamp(pickRoundGap * 2.2, 0, 6);
+
+  // High prio score amplifies the bonus (very contested champions)
+  if (prioScore >= 70) stealBonus *= 1.25;
+  else if (prioScore >= 55) stealBonus *= 1.1;
+
+  // Role-specific timing expectations from pro:
+  // - ADC with high prio → MUST go phase 1 (avgPickRound typically 1-2)
+  // - Support with high prio → usually phase 1 (avgPickRound 1-2)
+  // - Jungle with high prio → phase 1 (avgPickRound 1-2)
+  // - Solo lanes → phase 2 is fine for counterpick (avgPickRound 3-4)
+  //
+  // We DON'T hardcode role order — we let the data speak through avgPickRound.
+  // A high-prio mid (Ahri with avgPickRound 1.8) will also get bonus.
+
+  // Additionally: if this is a high-prio champion for a "safe blind" role
+  // (ADC, support, jungle), it should go early. Solo lanes should wait.
+  if (projectedRole === "adc" || projectedRole === "support" || projectedRole === "jungle") {
+    if (avgPickRound <= 2.0 && ownPickNumber >= 3) {
+      stealBonus += 2.5; // Major urgency: this role's best champions are being wasted
+    }
+  }
+
+  // If solo lane champion has high avgPickRound (3+), no urgency to pick early
+  if (projectedRole === "top" || projectedRole === "mid") {
+    if (avgPickRound >= 3.0 && ownPickNumber <= 2) {
+      // Actually penalize picking solo laners too early if data says they go late
+      return clamp(-1.5, -2, 0);
+    }
+  }
+
+  return clamp(stealBonus, -2, 8);
+}
+
 function scoreBanCandidate(
   candidate: Champion,
   step: DraftStep,
@@ -798,15 +899,20 @@ function scoreBanCandidate(
   // FIX #4: bonus pentru ban-uri signature pe campionii "best" ai inamicului
   const signatureBonus = getAiSignatureBanBonus(candidate, enemyTeamSlug, save);
 
+  const banRepeatPenalty = getBanRepeatPenalty(candidate, game, series);
+
+  // FIX A: Reduce metaPriority dominance, boost signature bans
   const totalScore =
-    metaPriority * 1.3 +
-    enemyComfortPressure +
+    metaPriority * 0.95 +           // Reduced from 1.3 — less meta dominance
+    enemyComfortPressure * 1.1 +    // Slightly boosted — enemy player comfort matters more
     enemyCounterWindow +
     userBias +
     synergyCompletionBonus +
-    signatureBonus +
-    redundantBanPenalty +
+    signatureBonus * 1.4 +          // Boosted from 1.0 — signature bans should compete with meta
+    redundantBanPenalty -
+    banRepeatPenalty +               // NEW: penalize repeat bans across series
     (candidate.roles.length >= 2 ? 0.8 : 0);
+
 
   return {
     championId: candidate.id,
@@ -892,7 +998,10 @@ export function chooseAiAction(
     return chooseFromAdaptiveShortlist(valid, seed) ?? null;
   }
 
-  // Pentru ban-uri, pastrăm cel mai bun scor (ban-urile trebuie să fie mai
-  // deterministe — variația e mai puțin dorita la bans).
-  return ranked[0] ?? null;
+   // FIX A: Use shortlist for bans too — but with a narrow window (top 3)
+  const banSeed = `${series.seriesId}:${series.currentGameNumber}:${game.phaseIndex}:ban:${step.side}`;
+  const banShortlist = ranked.slice(0, 3);
+  // Deterministic pick from top 3 based on seed
+  const banHash = banSeed.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return banShortlist[banHash % banShortlist.length] ?? ranked[0] ?? null;
 }

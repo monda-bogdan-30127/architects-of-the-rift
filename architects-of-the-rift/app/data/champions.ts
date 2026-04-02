@@ -3797,6 +3797,7 @@ const baseChampions: Champion[] = [
 
     weakVs: [
       { championId: "taliyah", score: 4 },
+      { championId: "galio", score: 2 },
       { championId: "ryze", score: 3 }
     ],
     offers: [
