@@ -43,6 +43,7 @@ import { getDraftPhase, getPhaseBias } from "./draftPhase";
 import { getDraftIntent } from "./draftIntentSystem";
 import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
+import { getTrapBanReduction, getTrapCounterBonus } from "./trapDraftSystem";
 
 
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -195,7 +196,11 @@ function getRoleCoverageUrgency(
 
   if (ownPickNumber <= 2) {
     if (projectedRole === "jungle") value += 2.2;
-    if (projectedRole === "adc" || projectedRole === "support") value += 1.2;
+    if (projectedRole === "adc" || projectedRole === "support") value += 2.8; // Increased from 1.2
+  }
+  // NEW: if ADC/support still not picked at pick 3, extra urgency
+  if (ownPickNumber === 3) {
+    if (projectedRole === "adc" || projectedRole === "support") value += 1.8;
   }
 
   if (ownPickNumber <= 3 && (projectedRole === "top" || projectedRole === "mid")) {
@@ -384,6 +389,27 @@ function getOffMetaPenalty(
   // If the champion has a decent pro win rate despite low picks, reduce penalty
   if (proWinRate !== null && proWinRate >= 0.52 && picks >= 3) {
     penalty *= 0.55;
+  }
+
+  // UPGRADE 8C: SoloQ win rate — a champion dominant in Korean Challenger
+  // with low pro presence is a viable niche pick, not truly off-meta
+  const soloqWR = candidate.stats.soloqKrChallengerWinRate ?? null;
+  if (soloqWR !== null && soloqWR >= 52) {
+    // High soloQ WR = champion is strong, just not popular in pro
+    // Reduce penalty proportionally: 52% → 10% reduction, 55%+ → 40% reduction
+    const soloqDiscount = clamp((soloqWR - 51) / 10, 0.1, 0.4);
+    penalty *= (1 - soloqDiscount);
+  }
+
+  // UPGRADE 8D: Champions with strong lane stats are less "off-meta"
+  // Even with low pro picks, a champion that wins lane hard is viable
+  const csDiff = candidate.stats.csDiffAt15 ?? null;
+  const goldDiff = candidate.stats.goldDiffAt15 ?? null;
+  if (csDiff !== null && csDiff >= 8) {
+    penalty *= 0.85; // Strong laner — not truly off-meta
+  }
+  if (goldDiff !== null && goldDiff >= 300) {
+    penalty *= 0.85; // Gold advantage at 15 — champion performs well
   }
 
   // Game number factor: penalty is full in game 1, reduced in game 3+
@@ -672,6 +698,9 @@ function scorePickCandidate(
     championById: getChampionById,
   });
 
+  // UPGRADE 8A: Trap counter bonus — if enemy picked the bait, counter it
+  const trapCounter = getTrapCounterBonus(candidate, game, series, step.side);
+
   let botLaneFitBonus = 0;
   if (projected.projectedRole === "support" || projected.projectedRole === "adc") {
     const currentPicks = [...ownState.picks, candidate.id];
@@ -712,7 +741,8 @@ function scorePickCandidate(
     winConditionCoherence +
     proPickTiming +
     adaptivePriority +
-    botLaneFitBonus -
+    botLaneFitBonus +
+    trapCounter -
     weaknessPenalty * adjustedConfig.weaknessWeight -
     blindRiskPenalty -
     comboDependencyPenalty -
@@ -920,7 +950,11 @@ function getProPickTimingBonus(
   // (ADC, support, jungle), it should go early. Solo lanes should wait.
   if (projectedRole === "adc" || projectedRole === "support" || projectedRole === "jungle") {
     if (avgPickRound <= 2.0 && ownPickNumber >= 3) {
-      stealBonus += 2.5; // Major urgency: this role's best champions are being wasted
+      stealBonus += 4.0; // Increased from 2.5 — much stronger urgency
+    }
+    // Even at pick 2, ADC with very low avgPickRound should be considered
+    if (avgPickRound <= 1.5 && ownPickNumber >= 2) {
+      stealBonus += 2.0; // Early signal: this champion is first-pickable
     }
   }
 
@@ -971,6 +1005,9 @@ function scoreBanCandidate(
   const signatureBonus = getAiSignatureBanBonus(candidate, enemyTeamSlug, save);
 
   const banRepeatPenalty = getBanRepeatPenalty(candidate, game, series);
+
+  // UPGRADE 8A: Trap draft — reduce ban score for bait champion
+  const trapBanReduction = getTrapBanReduction(candidate, game, series, step.side);
   const seriesAwareBan = getSeriesAwareBanBonus(candidate.id, step.side, series);
   const comfortRepeatThreat = getSeriesComfortRepeatThreat(candidate.id, step.side, series);
 
@@ -987,7 +1024,8 @@ function scoreBanCandidate(
     banRepeatPenalty +
     seriesAwareBan +
     comfortRepeatThreat +              // NEW: penalize repeat bans across series
-    (candidate.roles.length >= 2 ? 0.8 : 0);
+    (candidate.roles.length >= 2 ? 0.8 : 0) +
+    trapBanReduction;
 
 
   return {
