@@ -26,11 +26,7 @@ type DraftSave = {
 };
 
 const roleOrder: Role[] = ["top", "jungle", "mid", "adc", "support"];
-const REGION_BUDGET: Record<string, number> = {
-  lck: 39,
-  lec: 37,
-};
-const DEFAULT_BUDGET = 39;
+const MAX_BUDGET = 39;
 
 export default function DraftPage() {
   const router = useRouter();
@@ -40,7 +36,6 @@ export default function DraftPage() {
 
   const region = (params.region ?? "").toLowerCase();
   const teamSlug = params.teamSlug ?? "";
-  const maxBudget = REGION_BUDGET[region] ?? DEFAULT_BUDGET;
 
   const [selectedPlayers, setSelectedPlayers] = useState<SelectedPlayers>({});
   const [isReadyDialogOpen, setIsReadyDialogOpen] = useState(false);
@@ -85,12 +80,12 @@ export default function DraftPage() {
   }, [selectedPlayers]);
 
   const remainingRpRaw = useMemo(() => {
-    return maxBudget - usedBudget;
-  }, [maxBudget, usedBudget]);
+    return MAX_BUDGET - usedBudget;
+  }, [usedBudget]);
 
   const leftRp = useMemo(() => {
-    return maxBudget - usedBudget;
-  }, [maxBudget, usedBudget]);
+    return MAX_BUDGET - usedBudget;
+  }, [usedBudget]);
 
   const allRolesFilled = useMemo(() => {
     return roleOrder.every((role) => selectedPlayers[role]);
@@ -235,7 +230,7 @@ export default function DraftPage() {
         <div className="flex flex-col items-center gap-[32px]">
           <div className="flex flex-col items-center gap-[4px]">
             <p className="h3 text-center text-[var(--text-primary)]">
-              {region.toUpperCase()} Region - {" "}
+              {region.toUpperCase()} Region -{" "}
               {selectedTeam?.name ?? "<Chosen Team Name>"}
             </p>
 
@@ -245,7 +240,7 @@ export default function DraftPage() {
           </div>
 
           <p className="h3 w-[720px] text-center text-[var(--text-highlight)]">
-            You have a {maxBudget} Roster Points budget.
+            You have a {MAX_BUDGET} Roster Points budget.
           </p>
 
           <p className="body w-[720px] text-center text-[var(--text-secondary)]">

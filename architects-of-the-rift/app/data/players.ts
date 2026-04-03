@@ -206,7 +206,7 @@ const createPlayer = (
 
 export const players: Player[] = [
 
-//LCK
+  //LCK
 
   createPlayer({
     id: "clear",
@@ -759,7 +759,7 @@ export const players: Player[] = [
     sortOrder: 52,
   }),
 
-//Free Agents
+  //Free Agents
 
   createPlayer({
     id: "theshy",
@@ -993,7 +993,7 @@ export const players: Player[] = [
     role: "top",
     image: "/players/lec/g2/brokenblade.webp",
     seed: { execution: 8, mapSense: 7, combat: 8, resilience: 7, stability: 7, gameRead: 8 },
-    bestChampions: ["renekton", "gnar", "ksante", "rumble", "jax"],
+    bestChampions: ["renekton", "gnar", "ksante", "kennen", "jax"],
     sortOrder: 72,
   }),
   createPlayer({
@@ -1115,7 +1115,7 @@ export const players: Player[] = [
     teamId: "kc",
     role: "jungle",
     image: "/players/lec/kc/yike.webp",
-    seed: { execution: 7, mapSense: 7, combat: 7, resilience: 7, stability: 7, gameRead: 7 },
+    seed: { execution: 7, mapSense: 8, combat: 8, resilience: 7, stability: 7, gameRead: 7 },
     bestChampions: ["vi", "maokai", "wukong", "xin-zhao", "poppy"],
     sortOrder: 83,
   }),
@@ -1221,14 +1221,14 @@ export const players: Player[] = [
     sortOrder: 92,
   }),
   createPlayer({
-    id: "lyncas",
-    slug: "lyncas",
-    name: "Lyncas",
+    id: "rhilech",
+    slug: "rhilech",
+    name: "Rhilech",
     teamId: "navi",
     role: "jungle",
-    image: "/players/lec/navi/lynqas.webp",
-    seed: { execution: 7, mapSense: 6, combat: 7, resilience: 6, stability: 6, gameRead: 6 },
-    bestChampions: ["vi", "xin-zhao", "jarvan-iv", "wukong", "poppy"],
+    image: "/players/lec/navi/rhilech.webp",
+    seed: { execution: 7, mapSense: 7, combat: 7, resilience: 6, stability: 7, gameRead: 7, },
+    bestChampions: ["vi", "xin-zhao", "wukong", "jarvan-iv", "lee-sin"],
     sortOrder: 93,
   }),
   createPlayer({
@@ -1238,7 +1238,7 @@ export const players: Player[] = [
     teamId: "navi",
     role: "mid",
     image: "/players/lec/navi/poby.webp",
-    seed: { execution: 7, mapSense: 6, combat: 7, resilience: 6, stability: 6, gameRead: 6 },
+    seed: { execution: 7, mapSense: 7, combat: 7, resilience: 7, stability: 6, gameRead: 6 },
     bestChampions: ["ahri", "azir", "taliyah", "orianna", "sylas"],
     sortOrder: 94,
   }),
@@ -1328,7 +1328,7 @@ export const players: Player[] = [
     teamId: "sk",
     role: "top",
     image: "/players/lec/sk/wunder.webp",
-    seed: { execution: 7, mapSense: 7, combat: 6, resilience: 6, stability: 6, gameRead: 7 },
+    seed: { execution: 7, mapSense: 7, combat: 6, resilience: 6, stability: 5, gameRead: 7 },
     bestChampions: ["gnar", "ornn", "ksante", "rumble", "renekton"],
     sortOrder: 102,
   }),
