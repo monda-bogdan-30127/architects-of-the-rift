@@ -1109,8 +1109,8 @@ export const players: Player[] = [
     sortOrder: 82,
   }),
   createPlayer({
-    id: "yike-kc",
-    slug: "yike-kc",
+    id: "yike",
+    slug: "yike",
     name: "Yike",
     teamId: "kc",
     role: "jungle",

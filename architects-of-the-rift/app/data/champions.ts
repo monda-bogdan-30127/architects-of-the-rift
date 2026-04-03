@@ -2512,7 +2512,8 @@ const baseChampions: Champion[] = [
       { championId: "nautilus", score: 4 },
       { championId: "rell", score: 3 }
     ],
-    synergyWith: [{ championId: "ashe", score: 4 }, { championId: "varus", score: 4 }, { championId: "dr-mundo", score: 3 }, { championId: "jarvan-iv", score: 3 }],
+    synergyWith: [{ championId: "miss-fortune", score: 3 }, { championId: "varus", score: 2 }, { championId: "dr-mundo", score: 3 }, { championId: "jarvan-iv", score: 3 }, { championId: "xin-zhao", score: 3 }],
+    mustWith: [{ championId:"ashe", score:5}],
     offers: [
       { type: "waveclear", strength: 4 },
       { type: "disengage", strength: 4 },
