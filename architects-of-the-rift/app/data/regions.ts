@@ -7,5 +7,13 @@ export const regions: Region[] = [
     server: "Korean Server",
     teams: 10,
     logo: "/region-logos/League_of_Legends_Champions_Korea_logo.svg"
-  }
+  },
+
+  {
+  id: "lec",
+  name: "League of Legends EMEA Championship",
+  server: "EU Server",
+  teams: 10,
+  logo: "/region-logos/lec.png"
+}
 ]
