@@ -11,10 +11,10 @@ import type {
 } from "../types/player";
 import type { Role } from "../types/champion";
 import { calculateRosterPoints } from "../utils/playerUtils";
+import { playerProfileOverrides } from "./playerProfileOverrides";
 
 const clamp = (value: number, min = 35, max = 99): number => Math.max(min, Math.min(max, Math.round(value)));
-const clampRating = (value: number): PlayerStats[keyof PlayerStats] =>
-  Math.max(1, Math.min(10, Math.round(value))) as PlayerStats[keyof PlayerStats];
+const clampStat100 = (value: number): number => Math.max(10, Math.min(100, Math.round(value)));
 
 const AGGRESSIVE_CHAMPIONS = new Set(["aatrox", "akali", "ambessa", "draven", "irelia", "jarvan-iv", "jayce", "kalista", "kaisa", "lee-sin", "leona", "lucian", "naafiri", "nocturne", "pantheon", "qiyana", "renekton", "rell", "samira", "sylas", "vi", "wukong", "xin-zhao", "yone"]);
 const SCALING_CHAMPIONS = new Set(["aphelios", "ashe", "azir", "corki", "ezreal", "gwen", "jinx", "jhin", "kayle", "ornn", "orianna", "ryze", "sivir", "smolder", "viktor", "xayah", "zeri"]);
@@ -148,12 +148,12 @@ const deriveHiddenTraits = (role: Role, seed: PlayerSeed, primary: PlayerPrimary
 };
 
 const deriveLegacyStats = (profile: PlayerAdvancedProfile): PlayerStats => ({
-  mec: clampRating((profile.primary.mechanics * 0.50 + profile.primary.laning * 0.15 + profile.primary.positioning * 0.15 + profile.primary.skirmishing * 0.20) / 10),
-  mac: clampRating((profile.primary.mapAwareness * 0.34 + profile.primary.objectiveControl * 0.24 + profile.primary.rotationTiming * 0.24 + profile.primary.riskManagement * 0.18) / 10),
-  tfg: clampRating((profile.primary.teamfighting * 0.45 + profile.primary.skirmishing * 0.25 + profile.primary.positioning * 0.15 + profile.primary.playmakingBias * 0.15) / 10),
-  clt: clampRating((profile.primary.clutchFactor * 0.55 + profile.primary.currentForm * 0.25 + profile.hiddenTraits.composure * 0.20) / 10),
-  con: clampRating((profile.primary.consistency * 0.45 + profile.primary.discipline * 0.35 + profile.primary.riskManagement * 0.20) / 10),
-  iq: clampRating((profile.primary.metaReadiness * 0.22 + profile.primary.mapAwareness * 0.20 + profile.primary.adaptability * 0.20 + profile.primary.championPoolSize * 0.12 + profile.primary.blindPickStrength * 0.12 + profile.primary.counterPickStrength * 0.14) / 10),
+  mec: clampStat100(profile.primary.mechanics * 0.50 + profile.primary.laning * 0.15 + profile.primary.positioning * 0.15 + profile.primary.skirmishing * 0.20),
+  mac: clampStat100(profile.primary.mapAwareness * 0.34 + profile.primary.objectiveControl * 0.24 + profile.primary.rotationTiming * 0.24 + profile.primary.riskManagement * 0.18),
+  tfg: clampStat100(profile.primary.teamfighting * 0.45 + profile.primary.skirmishing * 0.25 + profile.primary.positioning * 0.15 + profile.primary.playmakingBias * 0.15),
+  clt: clampStat100(profile.primary.clutchFactor * 0.55 + profile.primary.currentForm * 0.25 + profile.hiddenTraits.composure * 0.20),
+  con: clampStat100(profile.primary.consistency * 0.45 + profile.primary.discipline * 0.35 + profile.primary.riskManagement * 0.20),
+  iq: clampStat100(profile.primary.metaReadiness * 0.22 + profile.primary.mapAwareness * 0.20 + profile.primary.adaptability * 0.20 + profile.primary.championPoolSize * 0.12 + profile.primary.blindPickStrength * 0.12 + profile.primary.counterPickStrength * 0.14),
 });
 
 const createAdvancedProfile = (role: Role, seed: PlayerSeed, bestChampions: string[]): PlayerAdvancedProfile => {
@@ -186,6 +186,8 @@ const createPlayer = (
     ...comfortChampions,
   ]));
   const advancedProfile = createAdvancedProfile(base.role, base.seed, championPool);
+  const stats = deriveLegacyStats(advancedProfile);
+  const overrides = playerProfileOverrides[base.id];
 
   return {
     id: base.id,
@@ -198,9 +200,33 @@ const createPlayer = (
     comfortChampions,
     championPool,
     advancedProfile,
-    stats: deriveLegacyStats(advancedProfile),
-    rosterPoints: calculateRosterPoints(deriveLegacyStats(advancedProfile)),
+    stats,
+    rosterPoints: calculateRosterPoints(stats),
     sortOrder: base.sortOrder,
+    phaseProfile: overrides?.phaseProfile,
+    archetypeAffinity: overrides?.archetypeAffinity
+      ? {
+          engage: 0,
+          enchanter: 0,
+          carry: 0,
+          tank: 0,
+          poke: 0,
+          setup: 0,
+          utility: 0,
+          dive: 0,
+          frontToBack: 0,
+          ...overrides.archetypeAffinity,
+        }
+      : undefined,
+    adaptationProfile: overrides?.adaptationProfile
+      ? {
+          draftFlex: 0,
+          creativity: 0,
+          composure: 0,
+          matchupLearning: 0,
+          ...overrides.adaptationProfile,
+        }
+      : undefined,
   };
 };
 
@@ -772,39 +798,6 @@ export const players: Player[] = [
     bestChampions: ["jayce", "rumble", "sion", "gnar", "ornn"],
     sortOrder: 53,
   }),
-  /*createPlayer({
-    id: "canna",
-    slug: "canna",
-    name: "Canna",
-    teamId: "kc",
-    role: "top",
-    image: "/players/lec/kc/canna.webp",
-    seed: { execution: 7, mapSense: 7, combat: 7, resilience: 6, stability: 7, gameRead: 7 },
-    bestChampions: ["jayce", "renekton", "kennen", "rumble", "ornn"],
-    sortOrder: 54,
-  }),*/
-  createPlayer({
-    id: "soboro",
-    slug: "soboro",
-    name: "Soboro",
-    teamId: "free-agent",
-    role: "top",
-    image: "/players/free-agents/soboro.webp",
-    seed: { execution: 6, mapSense: 6, combat: 6, resilience: 5, stability: 5, gameRead: 6 },
-    bestChampions: ["rumble", "ambessa", "sion", "jax", "jayce"],
-    sortOrder: 55,
-  }),
-  createPlayer({
-    id: "tarzan",
-    slug: "tarzan",
-    name: "Tarzan",
-    teamId: "free-agent",
-    role: "jungle",
-    image: "/players/free-agents/tarzan.webp",
-    seed: { execution: 8, mapSense: 9, combat: 8, resilience: 8, stability: 8, gameRead: 9 },
-    bestChampions: ["xin-zhao", "pantheon", "qiyana", "wukong", "trundle"],
-    sortOrder: 56,
-  }),
   createPlayer({
     id: "peanut",
     slug: "peanut",
@@ -839,50 +832,6 @@ export const players: Player[] = [
     sortOrder: 59,
   }),
   createPlayer({
-    id: "rookie",
-    slug: "rookie",
-    name: "Rookie",
-    teamId: "free-agent",
-    role: "mid",
-    image: "/players/free-agents/rookie.webp",
-    seed: { execution: 8, mapSense: 7, combat: 8, resilience: 7, stability: 6, gameRead: 7 },
-    bestChampions: ["orianna", "taliyah", "syndra", "azir", "ahri"],
-    sortOrder: 60,
-  }),
-  createPlayer({
-    id: "bulldog",
-    slug: "bulldog",
-    name: "BuLLDoG",
-    teamId: "free-agent",
-    role: "mid",
-    image: "/players/free-agents/bulldog.webp",
-    seed: { execution: 7, mapSense: 6, combat: 7, resilience: 5, stability: 5, gameRead: 6 },
-    bestChampions: ["ahri", "taliyah", "azir", "yone", "ryze"],
-    sortOrder: 60,
-  }),
-  createPlayer({
-    id: "viper",
-    slug: "viper",
-    name: "Viper",
-    teamId: "free-agent",
-    role: "adc",
-    image: "/players/free-agents/viper.webp",
-    seed: { execution: 9, mapSense: 8, combat: 9, resilience: 8, stability: 10, gameRead: 8 },
-    bestChampions: ["kaisa", "ezreal", "varus", "sivir", "ashe"],
-    sortOrder: 61,
-  }),
-  createPlayer({
-    id: "berserker",
-    slug: "berserker",
-    name: "Berserker",
-    teamId: "free-agent",
-    role: "adc",
-    image: "/players/free-agents/berserker.webp",
-    seed: { execution: 8, mapSense: 6, combat: 8, resilience: 7, stability: 7, gameRead: 7 },
-    bestChampions: ["zeri", "aphelios", "varus", "kaisa", "sivir"],
-    sortOrder: 62,
-  }),
-  createPlayer({
     id: "deft",
     slug: "deft",
     name: "Deft",
@@ -893,17 +842,7 @@ export const players: Player[] = [
     bestChampions: ["ezreal", "ashe", "corki", "lucian", "jinx"],
     sortOrder: 63,
   }),
-  createPlayer({
-    id: "kael",
-    slug: "kael",
-    name: "Kael",
-    teamId: "free-agent",
-    role: "support",
-    image: "/players/free-agents/kael.webp",
-    seed: { execution: 7, mapSense: 8, combat: 8, resilience: 7, stability: 8, gameRead: 8 },
-    bestChampions: ["alistar", "neeko", "bard", "nami", "nautilus"],
-    sortOrder: 64,
-  }),
+
   createPlayer({
     id: "beryl",
     slug: "beryl",

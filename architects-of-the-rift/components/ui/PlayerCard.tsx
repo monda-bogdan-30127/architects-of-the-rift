@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Player } from "@/app/types/player";
 import { teams } from "@/app/data/teams";
 import { champions } from "@/app/data/champions";
+import { getPlayerStyleInfo } from "@/app/utils/playerStyleUtils";
 import PlayerCardTooltip from "@/components/ui/PlayerCardTooltip";
 
 type Props = {
@@ -35,14 +36,13 @@ export default function PlayerCard({
     player.teamId === "free-agent" ? "Free Agent" : team?.name ?? "Unknown Team";
 
   const bestChampions = player.bestChampions
-    .map((championId) =>
-      champions.find((champion) => champion.id === championId)
-    )
+    .map((championId) => champions.find((champion) => champion.id === championId))
     .filter(
-      (champion): champion is NonNullable<(typeof champions)[number]> =>
-        Boolean(champion)
+      (champion): champion is NonNullable<(typeof champions)[number]> => Boolean(champion)
     )
     .slice(0, 4);
+
+  const styleInfo = getPlayerStyleInfo(player);
 
   const clearHoverTimer = () => {
     if (hoverTimerRef.current !== null) {
@@ -81,20 +81,21 @@ export default function PlayerCard({
         width: 252,
         minWidth: 252,
         flex: "0 0 252px",
+        alignSelf: "stretch",
       }}
     >
       <button
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className={`player-card ${
-          selected ? "player-card--selected" : ""
-        } ${disabled ? "player-card--disabled" : ""}`}
+        className={`player-card ${selected ? "player-card--selected" : ""} ${
+          disabled ? "player-card--disabled" : ""
+        }`}
         style={{
           width: 252,
           minWidth: 252,
           maxWidth: 252,
-          minHeight: 380,
+          height: 410,
           display: "flex",
           overflow: "hidden",
           textAlign: "left",
@@ -141,6 +142,7 @@ export default function PlayerCard({
             flexDirection: "column",
             padding: "14px 14px 14px",
             textAlign: "left",
+            height: "100%",
           }}
         >
           <div
@@ -175,7 +177,7 @@ export default function PlayerCard({
           <div
             className="player-card__identity"
             style={{
-              marginBottom: 10,
+              marginBottom: 8,
               textAlign: "left",
             }}
           >
@@ -196,10 +198,51 @@ export default function PlayerCard({
                 fontSize: 12,
                 lineHeight: 1.2,
                 textAlign: "left",
+                marginBottom: 6,
               }}
             >
               {teamName} - {player.role.toUpperCase()}
             </div>
+            <div
+              className="player-card__playstyle button"
+              style={{
+                fontSize: 12,
+                lineHeight: 1.2,
+                textAlign: "left",
+              }}
+            >
+              {styleInfo.primary} - {styleInfo.secondary}
+            </div>
+          </div>
+
+          <div
+            className="player-card__tags"
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 6,
+              marginBottom: 12,
+              minHeight: 40,
+              alignContent: "flex-start",
+            }}
+          >
+            {styleInfo.tags.map((tag) => (
+              <span
+                key={tag}
+                className="player-card__tag button"
+                style={{
+                  fontSize: 10,
+                  lineHeight: 1,
+                  padding: "4px 6px",
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  borderRadius: 999,
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+              >
+                {tag}
+              </span>
+            ))}
           </div>
 
           <div
@@ -211,113 +254,27 @@ export default function PlayerCard({
               marginBottom: 12,
             }}
           >
-            <div
-              className="player-card__stat"
-              style={{ display: "flex", alignItems: "baseline", gap: 6 }}
-            >
-              <span
-                className="player-card__stat-label button"
-                style={{ fontSize: 12 }}
+            {[
+              ["MEC", player.stats.mec],
+              ["MAC", player.stats.mac],
+              ["TFG", player.stats.tfg],
+              ["CLT", player.stats.clt],
+              ["CON", player.stats.con],
+              ["IQ", player.stats.iq],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="player-card__stat"
+                style={{ display: "flex", alignItems: "baseline", gap: 6 }}
               >
-                MEC
-              </span>
-              <span
-                className="player-card__stat-value body"
-                style={{ fontSize: 13 }}
-              >
-                {player.stats.mec}
-              </span>
-            </div>
-
-            <div
-              className="player-card__stat"
-              style={{ display: "flex", alignItems: "baseline", gap: 6 }}
-            >
-              <span
-                className="player-card__stat-label button"
-                style={{ fontSize: 12 }}
-              >
-                MAC
-              </span>
-              <span
-                className="player-card__stat-value body"
-                style={{ fontSize: 13 }}
-              >
-                {player.stats.mac}
-              </span>
-            </div>
-
-            <div
-              className="player-card__stat"
-              style={{ display: "flex", alignItems: "baseline", gap: 6 }}
-            >
-              <span
-                className="player-card__stat-label button"
-                style={{ fontSize: 12 }}
-              >
-                TFG
-              </span>
-              <span
-                className="player-card__stat-value body"
-                style={{ fontSize: 13 }}
-              >
-                {player.stats.tfg}
-              </span>
-            </div>
-
-            <div
-              className="player-card__stat"
-              style={{ display: "flex", alignItems: "baseline", gap: 6 }}
-            >
-              <span
-                className="player-card__stat-label button"
-                style={{ fontSize: 12 }}
-              >
-                CLT
-              </span>
-              <span
-                className="player-card__stat-value body"
-                style={{ fontSize: 13 }}
-              >
-                {player.stats.clt}
-              </span>
-            </div>
-
-            <div
-              className="player-card__stat"
-              style={{ display: "flex", alignItems: "baseline", gap: 6 }}
-            >
-              <span
-                className="player-card__stat-label button"
-                style={{ fontSize: 12 }}
-              >
-                CON
-              </span>
-              <span
-                className="player-card__stat-value body"
-                style={{ fontSize: 13 }}
-              >
-                {player.stats.con}
-              </span>
-            </div>
-
-            <div
-              className="player-card__stat"
-              style={{ display: "flex", alignItems: "baseline", gap: 6 }}
-            >
-              <span
-                className="player-card__stat-label button"
-                style={{ fontSize: 12 }}
-              >
-                IQ
-              </span>
-              <span
-                className="player-card__stat-value body"
-                style={{ fontSize: 13 }}
-              >
-                {player.stats.iq}
-              </span>
-            </div>
+                <span className="player-card__stat-label button" style={{ fontSize: 12 }}>
+                  {label}
+                </span>
+                <span className="player-card__stat-value body" style={{ fontSize: 13 }}>
+                  {value}
+                </span>
+              </div>
+            ))}
           </div>
 
           <div

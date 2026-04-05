@@ -1,14 +1,14 @@
 import type { Role } from "./champion";
 
-export type PlayerRating = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+export type PlayerRating = number;
 
 export type PlayerStats = {
-  mec: PlayerRating;
-  mac: PlayerRating;
-  tfg: PlayerRating;
-  clt: PlayerRating;
-  con: PlayerRating;
-  iq: PlayerRating;
+  mec: number;
+  mac: number;
+  tfg: number;
+  clt: number;
+  con: number;
+  iq: number;
 };
 
 export type PlayerSeed = {

@@ -1,17 +1,19 @@
-import type { PlayerStats } from "../types/player";
-import type { ChampionPlayerScaling } from "../types/champion";
+import type { PlayerStats } from "@/app/types/player";
+import type { ChampionPlayerScaling } from "@/app/types/champion";
 
 export function calculateRosterPoints(stats: PlayerStats): number {
+  const normalize = (value: number) => value / 10;
+
   const score =
-    (stats.mec * 1.2 +
-      stats.mac * 1.1 +
-      stats.tfg * 1.2 +
-      stats.clt * 1.0 +
-      stats.con * 1.1 +
-      stats.iq * 1.0) /
+    (normalize(stats.mec) * 1.2 +
+      normalize(stats.mac) * 1.1 +
+      normalize(stats.tfg) * 1.2 +
+      normalize(stats.clt) * 1.0 +
+      normalize(stats.con) * 1.1 +
+      normalize(stats.iq) * 1.0) /
     6.6;
 
-  return Math.round(score);
+  return Math.max(1, Math.min(10, Math.round(score)));
 }
 
 export function calculateChampionFit(
