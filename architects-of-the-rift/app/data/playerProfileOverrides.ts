@@ -1,9 +1,10 @@
-import type { PlayerAdaptationProfile, PlayerArchetypeAffinity, PlayerPhaseProfile } from "@/app/types/player";
+import type { PlayerAdaptationProfile, PlayerArchetypeAffinity, PlayerPhaseProfile, PlayerStyleLabel } from "@/app/types/player";
 
 type PlayerProfileOverride = {
   phaseProfile?: PlayerPhaseProfile;
   archetypeAffinity?: Partial<PlayerArchetypeAffinity>;
   adaptationProfile?: Partial<PlayerAdaptationProfile>;
+  secondaryStyle?: PlayerStyleLabel;
 };
 
 export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
@@ -105,5 +106,20 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { tank: 9.0, carry: 8.8, frontToBack: 9.1, utility: 8.2 },
     adaptationProfile: { draftFlex: 8.6, creativity: 7.8, composure: 9.0, matchupLearning: 8.7 },
+    secondaryStyle: "carry"
   },
+
+  // optional manual semantic nudges; if omitted, secondaryStyle is derived automatically
+  brokenblade: { secondaryStyle: "weakside" },
+  carzzy: { secondaryStyle: "weakside" },
+  myrwn: { secondaryStyle: "aggressive" },
+  elyoya: { secondaryStyle: "carry" },
+  jojopyun: { secondaryStyle: "carry" },
+  empyros: { secondaryStyle: "weakside" },
+  "naak-nako": { secondaryStyle: "carry" },
+  wunder: { secondaryStyle: "weakside" },
+  theshy: { secondaryStyle: "aggressive" },
+  kingen: { secondaryStyle: "weakside" },
+  pyosik: { secondaryStyle: "aggressive" },
+  casting: {secondaryStyle: "weakside"},
 };

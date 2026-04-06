@@ -147,6 +147,25 @@ export type PlayerAdaptationProfile = {
   matchupLearning: number;
 };
 
+
+export type PlayerStyleLabel =
+  | "carry"
+  | "utility"
+  | "playmaker"
+  | "scaler"
+  | "lane_bully"
+  | "roamer"
+  | "aggressive"
+  | "setup"
+  | "flex"
+  | "weakside";
+
+export type PlayerStyleIdentity = {
+  primary: PlayerStyleLabel;
+  secondary: PlayerStyleLabel;
+  scores: Record<PlayerStyleLabel, number>;
+};
+
 export type Player = {
   id: string;
   slug: string;
@@ -156,6 +175,7 @@ export type Player = {
   image: string;
   stats: PlayerStats;
   advancedProfile: PlayerAdvancedProfile;
+  playstyleIdentity: PlayerStyleIdentity;
   bestChampions: string[];
   comfortChampions: string[];
   championPool: string[];

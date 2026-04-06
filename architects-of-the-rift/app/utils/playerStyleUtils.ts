@@ -70,6 +70,34 @@ const adaptationScore = (
   scale = 1
 ) => norm10(player.adaptationProfile?.[key] ?? 0) * scale;
 
+
+const toDisplayStyleLabel = (style?: Player["playstyleIdentity"]["secondary"]): string | undefined => {
+  switch (style) {
+    case "carry":
+      return "Carry";
+    case "utility":
+      return "Utility";
+    case "playmaker":
+      return "Playmaker";
+    case "scaler":
+      return "Scaler";
+    case "lane_bully":
+      return "Lane Bully";
+    case "roamer":
+      return "Roamer";
+    case "aggressive":
+      return "Aggressive";
+    case "setup":
+      return "Setup";
+    case "flex":
+      return "Flexible";
+    case "weakside":
+      return "Weakside";
+    default:
+      return undefined;
+  }
+};
+
 export function getPlayerStyleInfo(player: Player): StyleInfo {
   const playstyle = player.advancedProfile.playstyle;
   const primary = player.advancedProfile.primary;
@@ -447,10 +475,17 @@ export function getPlayerStyleInfo(player: Player): StyleInfo {
 
   const sortedStyles = sortByScoreDesc(styleCandidates);
   const primaryStyle = sortedStyles[0]?.label ?? "Flexible";
-  const secondaryCandidate = sortedStyles[1];
-  const secondaryStyle = secondaryCandidate && secondaryCandidate.score >= 0.42
-    ? secondaryCandidate.label
-    : byRoleFallback[role].secondary;
+
+  const derivedSecondary =
+    sortedStyles[1] && sortedStyles[1].score >= 0.42
+      ? sortedStyles[1].label
+      : byRoleFallback[role].secondary;
+
+  const overriddenSecondary = toDisplayStyleLabel(player.playstyleIdentity?.secondary);
+  const secondaryStyle =
+    overriddenSecondary && overriddenSecondary !== primaryStyle
+      ? overriddenSecondary
+      : derivedSecondary;
 
   const tags = pickTopTagLabels(tagCandidates, [primaryStyle, secondaryStyle], byRoleFallback[role].tags, 3);
 
