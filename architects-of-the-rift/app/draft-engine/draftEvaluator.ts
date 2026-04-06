@@ -470,6 +470,7 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
       accessScore,
       threatScore,
       roleProfileScore,
+      compIdentity,
     }
   );
   const simulationReadinessScore = clamp(average([

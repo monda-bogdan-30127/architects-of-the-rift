@@ -370,57 +370,43 @@ function getOffMetaPenalty(
     candidate.stats.presence ?? 0,
     candidate.stats.picks + candidate.stats.bans
   );
-  // Low sample — no data to judge, give small penalty
-  if (effectivePresence <= 0) return 4.5;
+  if (effectivePresence <= 0) return 6.5;
 
   const picks = candidate.stats.picks ?? 0;
   const proWinRate = candidate.stats.proWinRate ?? null;
 
-  // Thresholds: a champion with <5 picks and <10% presence is clearly off-meta
-  const presenceRate = effectivePresence / Math.max(1, 80); // ~80 = typical high presence
-  const isOffMeta = presenceRate < 0.15 || picks < 5;
-  const isVeryOffMeta = presenceRate < 0.08 || picks < 2;
+  const presenceRate = effectivePresence / Math.max(1, 80);
+  const isOffMeta = presenceRate < 0.18 || picks < 7;
+  const isVeryOffMeta = presenceRate < 0.10 || picks < 3;
 
   if (!isOffMeta) return 0;
 
-  // Base penalty scales with how off-meta the champion is
-  let penalty = isVeryOffMeta ? 6.5 : 3.5;
+  let penalty = isVeryOffMeta ? 10.5 : 6.0;
 
-  // If the champion has a decent pro win rate despite low picks, reduce penalty
-  if (proWinRate !== null && proWinRate >= 0.52 && picks >= 3) {
-    penalty *= 0.55;
+  if (proWinRate !== null && proWinRate >= 0.55 && picks >= 4) {
+    penalty *= 0.65;
+  } else if (proWinRate !== null && proWinRate >= 0.52 && picks >= 5) {
+    penalty *= 0.80;
   }
 
-  // UPGRADE 8C: SoloQ win rate — a champion dominant in Korean Challenger
-  // with low pro presence is a viable niche pick, not truly off-meta
   const soloqWR = candidate.stats.soloqKrChallengerWinRate ?? null;
-  if (soloqWR !== null && soloqWR >= 52) {
-    // High soloQ WR = champion is strong, just not popular in pro
-    // Reduce penalty proportionally: 52% → 10% reduction, 55%+ → 40% reduction
-    const soloqDiscount = clamp((soloqWR - 51) / 10, 0.1, 0.4);
+  if (soloqWR !== null && soloqWR >= 53) {
+    const soloqDiscount = clamp((soloqWR - 52) / 15, 0.05, 0.20);
     penalty *= (1 - soloqDiscount);
   }
 
-  // UPGRADE 8D: Champions with strong lane stats are less "off-meta"
-  // Even with low pro picks, a champion that wins lane hard is viable
   const csDiff = candidate.stats.csDiffAt15 ?? null;
   const goldDiff = candidate.stats.goldDiffAt15 ?? null;
-  if (csDiff !== null && csDiff >= 8) {
-    penalty *= 0.85; // Strong laner — not truly off-meta
-  }
-  if (goldDiff !== null && goldDiff >= 300) {
-    penalty *= 0.85; // Gold advantage at 15 — champion performs well
-  }
+  if (csDiff !== null && csDiff >= 8) penalty *= 0.92;
+  if (goldDiff !== null && goldDiff >= 300) penalty *= 0.92;
 
-  // Game number factor: penalty is full in game 1, reduced in game 3+
-  // Late games in a series = teams adapt, try different things
   const gameNumber = series.currentGameNumber ?? 1;
-  if (gameNumber >= 4) penalty *= 0.35;       // game 4-5: almost no penalty
-  else if (gameNumber >= 3) penalty *= 0.55;   // game 3: moderate reduction
-  else if (gameNumber >= 2) penalty *= 0.80;   // game 2: small reduction
-  // game 1: full penalty
+  if (gameNumber >= 5) penalty *= 0.25;
+  else if (gameNumber >= 4) penalty *= 0.40;
+  else if (gameNumber >= 3) penalty *= 0.65;
+  else if (gameNumber >= 2) penalty *= 0.90;
 
-  return clamp(penalty, 0, 8);
+  return clamp(penalty, 0, 12);
 }
 
 function getArchetypeAffinityScore(

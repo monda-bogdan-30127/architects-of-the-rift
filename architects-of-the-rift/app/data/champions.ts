@@ -1496,7 +1496,8 @@ const baseChampions: Champion[] = [
       { championId: "yunara", score: 2 },
       { championId: "corki", score: 2 }
     ],
-    synergyWith: [{ championId: "braum", score: 4 }, { championId: "karma", score: 4 }, { championId: "seraphine", score: 5 }, { championId: "bard", score: 4 }],
+    synergyWith: [{ championId: "braum", score: 3 }, { championId: "karma", score: 2 }, { championId: "bard", score: 4 }],
+    mustWith: [{ championId: "seraphine", score: 5 }],
     offers: [
       { type: "pick", strength: 4 },
       { type: "poke", strength: 3 },
@@ -1820,7 +1821,7 @@ const baseChampions: Champion[] = [
       { championId: "bard", score: 3 },
       { championId: "thresh", score: 2 }
     ],
-    synergyWith: [{ championId: "aphelios", score: 5 }, { championId: "jinx", score: 4 }, { championId: "zeri", score: 5 }, { championId: "cassiopeia", score: 3 }],
+    synergyWith: [{ championId: "aphelios", score: 5 }, { championId: "jinx", score: 5 }, { championId: "zeri", score: 5 }, { championId: "kogmaw", score: 5 }, { championId: "yunara", score: 3 }],
     // Example: enchanter + hypercarry pairs are often strong synergy, not always true must-picks.
     offers: [
       { type: "peel", strength: 5 },
@@ -2513,7 +2514,7 @@ const baseChampions: Champion[] = [
       { championId: "rell", score: 3 }
     ],
     synergyWith: [{ championId: "miss-fortune", score: 3 }, { championId: "varus", score: 2 }, { championId: "dr-mundo", score: 3 }, { championId: "jarvan-iv", score: 3 }, { championId: "xin-zhao", score: 3 }],
-    mustWith: [{ championId:"ashe", score:5}],
+    mustWith: [{ championId: "ashe", score: 5 }],
     offers: [
       { type: "waveclear", strength: 4 },
       { type: "disengage", strength: 4 },
@@ -5896,8 +5897,8 @@ const baseChampions: Champion[] = [
     ],
 
     synergyWith: [
-      { championId: "sivir", score: 4 }, 
-      { championId: "ezreal", score: 4 }, 
+      { championId: "sivir", score: 4 },
+      { championId: "ezreal", score: 4 },
       { championId: "aphelios", score: 2 },
       { championId: "twitch", score: 2 },
       { championId: "yunara", score: 3 },
