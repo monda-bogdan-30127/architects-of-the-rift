@@ -121,5 +121,5 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   theshy: { secondaryStyle: "aggressive" },
   kingen: { secondaryStyle: "weakside" },
   pyosik: { secondaryStyle: "aggressive" },
-  casting: {secondaryStyle: "weakside"},
+  casting: {secondaryStyle: "weakside"}
 };
