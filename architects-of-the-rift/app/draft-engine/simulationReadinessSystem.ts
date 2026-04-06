@@ -70,118 +70,54 @@ export function evaluateSimulationReadiness(
   const followUpCoverage = clamp(evaluation.followUpScore ?? 5, 0, 10);
 
   const conditionScores: number[] = [];
-
   const compIdentity = evaluation.compIdentity ?? "balanced";
   const risks: string[] = [];
 
-  type RiskProfile = {
-    needsFrontline: number;
-    needsEngage: number;
-    needsPeel: number;
-    needsFollowUp: number;
-    needsDisengage: number;
-    needsRange: number;
-  };
-
-  const riskProfiles: Record<string, RiskProfile> = {
-    "front-to-back": {
-      needsFrontline: 1.0,
-      needsEngage: 0.3,
-      needsPeel: 1.0,
-      needsFollowUp: 0.4,
-      needsDisengage: 0.5,
-      needsRange: 0.8,
-    },
-    "dive": {
-      needsFrontline: 0.6,
-      needsEngage: 1.0,
-      needsPeel: 0.2,
-      needsFollowUp: 1.0,
-      needsDisengage: 0.1,
-      needsRange: 0.2,
-    },
-    "poke": {
-      needsFrontline: 0.2,
-      needsEngage: 0.1,
-      needsPeel: 0.6,
-      needsFollowUp: 0.2,
-      needsDisengage: 1.0,
-      needsRange: 1.0,
-    },
-    "pick": {
-      needsFrontline: 0.3,
-      needsEngage: 0.4,
-      needsPeel: 0.3,
-      needsFollowUp: 0.8,
-      needsDisengage: 0.4,
-      needsRange: 0.6,
-    },
-    "teamfight": {
-      needsFrontline: 0.9,
-      needsEngage: 0.8,
-      needsPeel: 0.6,
-      needsFollowUp: 0.8,
-      needsDisengage: 0.3,
-      needsRange: 0.5,
-    },
-    "balanced": {
-      needsFrontline: 0.6,
-      needsEngage: 0.6,
-      needsPeel: 0.5,
-      needsFollowUp: 0.5,
-      needsDisengage: 0.4,
-      needsRange: 0.5,
-    },
+  const riskProfiles: Record<string, any> = {
+    "front-to-back": { needsFrontline:1.0, needsEngage:0.3, needsPeel:1.0, needsFollowUp:0.4, needsDisengage:0.5, needsRange:0.8 },
+    "dive": { needsFrontline:0.6, needsEngage:1.0, needsPeel:0.2, needsFollowUp:1.0, needsDisengage:0.1, needsRange:0.2 },
+    "poke": { needsFrontline:0.2, needsEngage:0.1, needsPeel:0.6, needsFollowUp:0.2, needsDisengage:1.0, needsRange:1.0 },
+    "pick": { needsFrontline:0.3, needsEngage:0.4, needsPeel:0.3, needsFollowUp:0.8, needsDisengage:0.4, needsRange:0.6 },
+    "teamfight": { needsFrontline:0.9, needsEngage:0.8, needsPeel:0.6, needsFollowUp:0.8, needsDisengage:0.3, needsRange:0.5 },
+    "balanced": { needsFrontline:0.6, needsEngage:0.6, needsPeel:0.5, needsFollowUp:0.5, needsDisengage:0.4, needsRange:0.5 },
   };
 
   const profile = riskProfiles[compIdentity] ?? riskProfiles.balanced;
+
+  if (frontlineCoverage < 4.5 && profile.needsFrontline >= 0.7) risks.push("no frontline");
+  if (engageCoverage < 4.5 && profile.needsEngage >= 0.7) risks.push("no engage");
+  if (protectionCoverage < 4.5 && profile.needsPeel >= 0.7) risks.push("no peel");
+  if (followUpCoverage < 4.5 && profile.needsFollowUp >= 0.7) risks.push("no follow-up");
 
   for (const profile of profiles) {
     let profileScore = 8;
 
     if (profile.conditions.requiresPeel && protectionCoverage < 5.5) {
       profileScore -= 2.2;
+      risks.push(
+        `${profile.role}: low peel coverage for a protection-reliant pick`
+      );
     }
 
     if (profile.conditions.requiresFrontline && frontlineCoverage < 5.5) {
       profileScore -= 2.2;
+      risks.push(`${profile.role}: frontline requirement is underfilled`);
     }
 
     if (profile.conditions.requiresEngage && engageCoverage < 5.3) {
       profileScore -= 1.8;
+      risks.push(`${profile.role}: engage requirement is underfilled`);
     }
 
     if (profile.conditions.requiresFollowUp && followUpCoverage < 5.3) {
       profileScore -= 1.6;
+      risks.push(`${profile.role}: follow-up requirement is underfilled`);
     }
 
     conditionScores.push(clamp(profileScore, 0, 10));
   }
 
   const conditionScore = avg(conditionScores);
-
-  if (frontlineCoverage < 4.5 && profile.needsFrontline >= 0.7) {
-    risks.push("no frontline");
-  }
-  if (engageCoverage < 4.5 && profile.needsEngage >= 0.7) {
-    risks.push("no engage");
-  }
-  if (protectionCoverage < 4.5 && profile.needsPeel >= 0.7) {
-    risks.push("no peel");
-  }
-  if (followUpCoverage < 4.5 && profile.needsFollowUp >= 0.7) {
-    risks.push("no follow-up");
-  }
-
-  if (compIdentity === "dive" && profiles.filter((p) => p.tags.includes("dive")).length < 2) {
-    risks.push("insufficient divers");
-  }
-  if (compIdentity === "poke" && profiles.filter((p) => p.tags.includes("ranged")).length < 3) {
-    risks.push("poke comp lacks range");
-  }
-  if (compIdentity === "front-to-back" && profiles.filter((p) => p.tags.includes("frontline")).length < 2) {
-    risks.push("carry comp needs more frontline");
-  }
 
   const score = clamp(
     avg([

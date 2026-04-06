@@ -522,18 +522,18 @@ function buildPlayerScores(args: {
       // → distributie mai larga: perdantii pot face 3-4, castigatorii pot face 9-10
       // winModifier crescut: +1.4 win / -1.0 loss (vs +1.0 / -0.7 original)
       const winModifier = entry.side === args.winnerSide ? 1.1 : -0.85;
-      const laneModifier = (entry.laneScore - 5) * 0.18;
-      const draftModifier = (entry.draftScore - 5) * 0.09;
-      const fitModifier = (fit - 5) * 0.14;
-      const executionModifier = (execution - 5) * 0.09;
-      const clutchModifier = (clutch - 5) * 0.07;
-      const laneSkillModifier = (laning - 5) * 0.07;
-      const macroModifier = (macro - 5) * 0.06;
-      const teamfightModifier = (teamfight - 5) * 0.06;
-      const consistencyModifier = (consistency - 5) * 0.05;
-      const archetypeModifier = (archetypeFit - 5) * 0.07;
-      const closeGameModifier = args.closeness * (clutch - 5) * 0.07 * personality.composureClutchScale;
-      const starModifier = (starPower - 5) * 0.10;
+      const laneModifier = (entry.laneScore - 5) * 0.22;
+      const draftModifier = (entry.draftScore - 5) * 0.12;
+      const fitModifier = (fit - 5) * 0.18;
+      const executionModifier = (execution - 5) * 0.11;
+      const clutchModifier = (clutch - 5) * 0.09;
+      const laneSkillModifier = (laning - 5) * 0.09;
+      const macroModifier = (macro - 5) * 0.07;
+      const teamfightModifier = (teamfight - 5) * 0.08;
+      const consistencyModifier = (consistency - 5) * 0.06;
+      const archetypeModifier = (archetypeFit - 5) * 0.09;
+      const closeGameModifier = args.closeness * (clutch - 5) * 0.09 * personality.composureClutchScale;
+      const starModifier = (starPower - 5) * 0.14;
 
       // FIX SCORE BASE: seed include si gameNumber → scoruri diferite intre
       // jocuri chiar daca acelasi jucator joaca acelasi campion
@@ -605,7 +605,7 @@ function buildPlayerScores(args: {
         compressedScore = 2.5 - Math.log(1 + deficit) * 0.9;
       }
 
-      const score = clamp(compressedScore, 1, 10);
+      const score = Math.min(Math.max(compressedScore, 1), 10);
 
       let note = "solid game";
       if (score >= 9.0) note = "hard carry";
