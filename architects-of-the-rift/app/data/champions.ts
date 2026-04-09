@@ -36,14 +36,15 @@ const baseChampions: Champion[] = [
     id: "orianna",
     weakVs: [
       { championId: "aurelion-sol", score: 5 },
-      { championId: "sylas", score: 5 }
+      { championId: "sylas", score: 3 },
+      { championId: "akali", score: 4 }
     ],
     goodVs: [
       { championId: "viktor", score: 5 },
       { championId: "syndra", score: 5 },
       { championId: "taliyah", score: 4 },
       { championId: "aurora", score: 3 },
-      { championId: "akali", score: 2 }
+      { championId: "leblanc", score: 2 }
     ],
     synergyWith: [{ championId: "vi", score: 5 }, { championId: "jarvan-iv", score: 4 }, { championId: "wukong", score: 4 }, { championId: "rakan", score: 3 }, { championId: "dr-mundo", score: 3 }],
     // Example of a near-mandatory pairing in coordinated play.
@@ -248,7 +249,7 @@ const baseChampions: Champion[] = [
       { championId: "galio", score: 3 }
     ],
 
-    synergyWith: [{ championId: "jarvan-iv", score: 5 }, { championId: "vi", score: 4 }, { championId: "nautilus", score: 4 }, { championId: "rell", score: 4 }],
+    synergyWith: [{ championId: "jarvan-iv", score: 5 }, { championId: "vi", score: 4 }, { championId: "nautilus", score: 4 }, { championId: "wukong", score: 4 }, { championId: "rakan", score: 2 }],
     offers: [
       { type: "zoneControl", strength: 5 },
       { type: "waveclear", strength: 3 },
@@ -549,7 +550,7 @@ const baseChampions: Champion[] = [
       { championId: "ahri", score: 3 },
       { championId: "syndra", score: 3 }
     ],
-    weakVs: [{ championId: "cassiopeia", score: 3 }, { championId: "swain", score: 3 }, { championId: "akali", score: 5 }, { championId: "aurelion-sol", score: 3 }, { championId: "aurora", score: 3 }],
+    weakVs: [{ championId: "cassiopeia", score: 3 }, { championId: "swain", score: 3 }, { championId: "akali", score: 4 }, { championId: "anivia", score: 3 }, { championId: "aurora", score: 3 }],
     synergyWith: [{ championId: "vi", score: 3 }, { championId: "pantheon", score: 4 }, { championId: "naafiri", score: 3 }, { championId: "xin-zhao", score: 4 }],
     offers: [
       { type: "waveclear", strength: 4 },
@@ -673,11 +674,11 @@ const baseChampions: Champion[] = [
     ],
 
     weakVs: [
-      { championId: "zoe", score: 5 },
-      { championId: "syndra", score: 4 },
-      { championId: "aurora", score: 3 },
+      { championId: "zoe", score: 3 },
+      { championId: "syndra", score: 3 },
+      { championId: "aurora", score: 2 },
       { championId: "ziggs", score: 3 },
-      { championId: "yone", score: 2 }
+      { championId: "yone", score: 3 }
     ],
     synergyWith: [{ championId: "maokai", score: 4 }, { championId: "sejuani", score: 4 }, { championId: "braum", score: 3 }, { championId: "ornn", score: 4 }],
     offers: [
@@ -1552,8 +1553,8 @@ const baseChampions: Champion[] = [
       { championId: "jhin", score: 4 },
       { championId: "aphelios", score: 2 },
       { championId: "lucian", score: 2 },
-      { championId: "ashe", score: 1 },
-      { championId: "sivir", score: 1 }
+      { championId: "ashe", score: 2 },
+      { championId: "sivir", score: 2 }
     ],
 
     weakVs: [
@@ -2513,7 +2514,7 @@ const baseChampions: Champion[] = [
       { championId: "nautilus", score: 4 },
       { championId: "rell", score: 3 }
     ],
-    synergyWith: [{ championId: "miss-fortune", score: 3 }, { championId: "varus", score: 2 }, { championId: "dr-mundo", score: 3 }, { championId: "jarvan-iv", score: 3 }, { championId: "xin-zhao", score: 3 }],
+    synergyWith: [{ championId: "miss-fortune", score: 2 }, { championId: "jhin", score: 2 }, { championId: "dr-mundo", score: 3 }, { championId: "jarvan-iv", score: 3 }, { championId: "xin-zhao", score: 3 }],
     mustWith: [{ championId: "ashe", score: 5 }],
     offers: [
       { type: "waveclear", strength: 4 },
@@ -2565,7 +2566,8 @@ const baseChampions: Champion[] = [
     goodVs: [
       { championId: "taliyah", score: 4 },
       { championId: "cassiopeia", score: 4 },
-      { championId: "ryze", score: 5 }
+      { championId: "ryze", score: 5 },
+      { championId: "aurora", score: 2}
     ],
 
     weakVs: [
@@ -2575,6 +2577,14 @@ const baseChampions: Champion[] = [
       { championId: "akali", score: 3 },
       { championId: "ryze", score: 5 }
     ],
+
+    synergyWith: [
+      { championId: "poppy", score:4},
+      { championId: "jarvan-iv", score:3},
+      { championId: "vi", score:2},
+      { championId: "nocturne", score:2}
+    ],
+
     offers: [
       { type: "waveclear", strength: 5 },
       { type: "zoneControl", strength: 5 },
@@ -2632,10 +2642,10 @@ const baseChampions: Champion[] = [
     ],
 
     weakVs: [
-      { championId: "neeko", score: 4 },
+      { championId: "neeko", score: 3 },
       { championId: "seraphine", score: 4 },
       { championId: "bard", score: 3 },
-      { championId: "karma", score: 3 },
+      { championId: "poppy", score: 4 },
       { championId: "alistar", score: 2 }
     ],
     synergyWith: [{ championId: "yasuo", score: 4 }, { championId: "orianna", score: 3 }, { championId: "ahri", score: 3 }],
@@ -4089,7 +4099,8 @@ const baseChampions: Champion[] = [
     goodVs: [
       { championId: "galio", score: 3 },
       { championId: "viktor", score: 3 },
-      { championId: "taliyah", score: 3 }
+      { championId: "taliyah", score: 3 },
+      { championId: "azir", score:3}
     ],
 
     weakVs: [
@@ -4480,7 +4491,7 @@ const baseChampions: Champion[] = [
       { championId: "lee-sin", score: 5 },
       { championId: "nidalee", score: 4 },
       { championId: "naafiri", score: 3 },
-      { championId: "poppy", score: 1 },
+      { championId: "braum", score: 3 },
       { championId: "kindred", score: 3 }
     ],
     synergyWith: [{ championId: "azir", score: 4 }, { championId: "corki", score: 4 }, { championId: "jinx", score: 3 }, { championId: "miss-fortune", score: 3 }],

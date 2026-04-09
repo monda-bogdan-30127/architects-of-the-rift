@@ -108,6 +108,61 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     adaptationProfile: { draftFlex: 8.6, creativity: 7.8, composure: 9.0, matchupLearning: 8.7 },
     secondaryStyle: "carry"
   },
+  xiaohu: {
+    phaseProfile: {
+      early: { laneControl: 8.3, skirmish: 7.8, stability: 8.4, mapPlay: 8.5, teamfight: 8.1, clutch: 8.4 },
+      mid: { laneControl: 8.1, skirmish: 8.0, stability: 8.6, mapPlay: 8.8, teamfight: 8.5, clutch: 8.7 },
+      late: { laneControl: 7.9, skirmish: 7.8, stability: 8.8, mapPlay: 8.9, teamfight: 8.9, clutch: 8.8 },
+    },
+    archetypeAffinity: { setup: 9.0, utility: 8.9, carry: 8.4, frontToBack: 8.8 },
+    adaptationProfile: { draftFlex: 8.9, creativity: 8.2, composure: 8.9, matchupLearning: 9.0 },
+  },
+  meiko: {
+    phaseProfile: {
+      early: { laneControl: 8.1, skirmish: 7.9, stability: 8.6, mapPlay: 8.8, teamfight: 8.3, clutch: 8.4 },
+      mid: { laneControl: 7.8, skirmish: 8.0, stability: 8.8, mapPlay: 9.0, teamfight: 8.7, clutch: 8.6 },
+      late: { laneControl: 7.5, skirmish: 7.8, stability: 9.0, mapPlay: 9.1, teamfight: 9.0, clutch: 8.9 },
+    },
+    archetypeAffinity: { enchanter: 8.8, engage: 8.7, utility: 9.3, setup: 9.0, frontToBack: 9.1 },
+    adaptationProfile: { draftFlex: 8.7, creativity: 8.0, composure: 9.0, matchupLearning: 8.9 },
+  },
+  tarzan: {
+    phaseProfile: {
+      early: { laneControl: 6.0, skirmish: 8.8, stability: 8.2, mapPlay: 9.0, teamfight: 8.0, clutch: 8.1 },
+      mid: { laneControl: 5.8, skirmish: 8.5, stability: 8.4, mapPlay: 9.2, teamfight: 8.3, clutch: 8.3 },
+      late: { laneControl: 5.6, skirmish: 7.9, stability: 8.7, mapPlay: 9.0, teamfight: 8.6, clutch: 8.4 },
+    },
+    archetypeAffinity: { engage: 8.8, tank: 8.6, dive: 8.8, setup: 9.0 },
+    adaptationProfile: { draftFlex: 8.4, creativity: 7.8, composure: 8.8, matchupLearning: 8.9 },
+  },
+  bin: {
+    phaseProfile: {
+      early: { laneControl: 9.3, skirmish: 9.0, stability: 7.6, mapPlay: 7.5, teamfight: 8.4, clutch: 8.0 },
+      mid: { laneControl: 9.0, skirmish: 9.1, stability: 7.6, mapPlay: 7.8, teamfight: 8.7, clutch: 8.2 },
+      late: { laneControl: 8.6, skirmish: 8.6, stability: 7.8, mapPlay: 7.9, teamfight: 8.9, clutch: 8.4 },
+    },
+    archetypeAffinity: { carry: 9.6, dive: 9.1, engage: 8.0, poke: 7.5 },
+    adaptationProfile: { draftFlex: 8.4, creativity: 8.8, composure: 7.8, matchupLearning: 8.7 },
+    secondaryStyle: "aggressive",
+  },
+  knight: {
+    phaseProfile: {
+      early: { laneControl: 9.4, skirmish: 8.6, stability: 9.2, mapPlay: 8.8, teamfight: 8.7, clutch: 8.8 },
+      mid: { laneControl: 9.3, skirmish: 8.8, stability: 9.1, mapPlay: 9.0, teamfight: 9.0, clutch: 9.0 },
+      late: { laneControl: 9.1, skirmish: 8.7, stability: 9.3, mapPlay: 9.1, teamfight: 9.4, clutch: 9.2 },
+    },
+    archetypeAffinity: { carry: 9.8, poke: 9.2, frontToBack: 8.8, setup: 8.4 },
+    adaptationProfile: { draftFlex: 9.1, creativity: 8.7, composure: 9.0, matchupLearning: 9.2 },
+  },
+  elk: {
+    phaseProfile: {
+      early: { laneControl: 8.6, skirmish: 8.7, stability: 8.4, mapPlay: 7.8, teamfight: 8.8, clutch: 8.6 },
+      mid: { laneControl: 8.3, skirmish: 8.6, stability: 8.5, mapPlay: 8.0, teamfight: 9.0, clutch: 8.8 },
+      late: { laneControl: 8.1, skirmish: 8.3, stability: 8.8, mapPlay: 8.1, teamfight: 9.4, clutch: 9.0 },
+    },
+    archetypeAffinity: { carry: 9.6, frontToBack: 9.2, poke: 8.5 },
+    adaptationProfile: { draftFlex: 8.2, creativity: 8.0, composure: 8.8, matchupLearning: 8.4 },
+  },
 
   // optional manual semantic nudges; if omitted, secondaryStyle is derived automatically
   brokenblade: { secondaryStyle: "weakside" },
@@ -121,5 +176,15 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   theshy: { secondaryStyle: "aggressive" },
   kingen: { secondaryStyle: "weakside" },
   pyosik: { secondaryStyle: "aggressive" },
-  casting: {secondaryStyle: "weakside"}
+  casting: { secondaryStyle: "weakside" },
+  xun: { secondaryStyle: "carry" },
+  zdz: { secondaryStyle: "weakside" },
+  breathe: { secondaryStyle: "aggressive" },
+  xiaoxu: { secondaryStyle: "aggressive" },
+  hongq: { secondaryStyle: "aggressive" },
+  369: { secondaryStyle: "weakside" },
+  "hans-sama": { secondaryStyle: "aggressive" },
+  caliste: { secondaryStyle: "aggressive" },
+  maynter: { secondaryStyle: "weakside"},
+  jackeylove: { secondaryStyle: "aggressive"}
 };

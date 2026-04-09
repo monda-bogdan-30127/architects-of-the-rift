@@ -28,6 +28,7 @@ type DraftSave = {
 const roleOrder: Role[] = ["top", "jungle", "mid", "adc", "support"];
 const REGION_BUDGET: Record<string, number> = {
   lck: 39,
+  lpl: 39,
   lec: 37,
 };
 const DEFAULT_BUDGET = 39;

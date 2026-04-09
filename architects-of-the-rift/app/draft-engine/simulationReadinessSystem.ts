@@ -30,10 +30,36 @@ function getProfiles(
       champion ? getChampionRoleProfile(champion) : null
     )
     .filter(
-      (profile): profile is DerivedChampionRoleProfile =>
-        Boolean(profile)
+      (p): p is DerivedChampionRoleProfile =>
+        Boolean(p)
     );
 }
+
+// ─── Contextual risk weights per comp identity ──────────────────────────────
+// Each comp type cares about different things:
+//   - front-to-back wants frontline + peel, doesn't need engage
+//   - dive wants engage + follow-up, doesn't need peel or disengage
+//   - poke wants range + disengage, doesn't need frontline or engage
+//   - pick wants follow-up + burst, moderate needs overall
+//   - teamfight wants AoE engage + frontline + follow-up
+//   - balanced wants a bit of everything
+//
+// Values 0-1: how much this comp NEEDS the attribute (1.0 = critical)
+type RiskWeights = {
+  needsFrontline: number;
+  needsEngage: number;
+  needsPeel: number;
+  needsFollowUp: number;
+};
+
+const RISK_WEIGHTS: Record<string, RiskWeights> = {
+  "front-to-back": { needsFrontline: 1.0, needsEngage: 0.3, needsPeel: 1.0, needsFollowUp: 0.4 },
+  "dive":          { needsFrontline: 0.6, needsEngage: 1.0, needsPeel: 0.2, needsFollowUp: 1.0 },
+  "poke":          { needsFrontline: 0.2, needsEngage: 0.1, needsPeel: 0.6, needsFollowUp: 0.2 },
+  "pick":          { needsFrontline: 0.3, needsEngage: 0.4, needsPeel: 0.3, needsFollowUp: 0.8 },
+  "teamfight":     { needsFrontline: 0.9, needsEngage: 0.8, needsPeel: 0.6, needsFollowUp: 0.8 },
+  "balanced":      { needsFrontline: 0.6, needsEngage: 0.6, needsPeel: 0.5, needsFollowUp: 0.5 },
+};
 
 export function evaluateSimulationReadiness(
   champions: Array<Champion | null>,
@@ -69,70 +95,86 @@ export function evaluateSimulationReadiness(
   const engageCoverage = clamp(evaluation.primaryEngageScore ?? 5, 0, 10);
   const followUpCoverage = clamp(evaluation.followUpScore ?? 5, 0, 10);
 
-  const conditionScores: number[] = [];
   const compIdentity = evaluation.compIdentity ?? "balanced";
+  const weights = RISK_WEIGHTS[compIdentity] ?? RISK_WEIGHTS.balanced;
+
   const risks: string[] = [];
 
-  const riskProfiles: Record<string, any> = {
-    "front-to-back": { needsFrontline:1.0, needsEngage:0.3, needsPeel:1.0, needsFollowUp:0.4, needsDisengage:0.5, needsRange:0.8 },
-    "dive": { needsFrontline:0.6, needsEngage:1.0, needsPeel:0.2, needsFollowUp:1.0, needsDisengage:0.1, needsRange:0.2 },
-    "poke": { needsFrontline:0.2, needsEngage:0.1, needsPeel:0.6, needsFollowUp:0.2, needsDisengage:1.0, needsRange:1.0 },
-    "pick": { needsFrontline:0.3, needsEngage:0.4, needsPeel:0.3, needsFollowUp:0.8, needsDisengage:0.4, needsRange:0.6 },
-    "teamfight": { needsFrontline:0.9, needsEngage:0.8, needsPeel:0.6, needsFollowUp:0.8, needsDisengage:0.3, needsRange:0.5 },
-    "balanced": { needsFrontline:0.6, needsEngage:0.6, needsPeel:0.5, needsFollowUp:0.5, needsDisengage:0.4, needsRange:0.5 },
-  };
+  // ─── Contextual team-level risks ─────────────────────────────────────────
+  // Only flag as risk if (a) coverage is low AND (b) this comp actually needs it
+  if (frontlineCoverage < 4.5 && weights.needsFrontline >= 0.7) {
+    risks.push(`no frontline (${compIdentity} comp needs it)`);
+  }
+  if (engageCoverage < 4.5 && weights.needsEngage >= 0.7) {
+    risks.push(`no engage (${compIdentity} comp needs it)`);
+  }
+  if (protectionCoverage < 4.5 && weights.needsPeel >= 0.7) {
+    risks.push(`no peel (${compIdentity} comp needs it)`);
+  }
+  if (followUpCoverage < 4.5 && weights.needsFollowUp >= 0.7) {
+    risks.push(`no follow-up (${compIdentity} comp needs it)`);
+  }
 
-  const profile = riskProfiles[compIdentity] ?? riskProfiles.balanced;
+  // ─── Per-champion condition checks ───────────────────────────────────────
+  // If a champion has requiresX condition, check if team has X. Penalty scales
+  // with how much this comp actually needs the attribute.
+  const conditionScores: number[] = [];
 
-  if (frontlineCoverage < 4.5 && profile.needsFrontline >= 0.7) risks.push("no frontline");
-  if (engageCoverage < 4.5 && profile.needsEngage >= 0.7) risks.push("no engage");
-  if (protectionCoverage < 4.5 && profile.needsPeel >= 0.7) risks.push("no peel");
-  if (followUpCoverage < 4.5 && profile.needsFollowUp >= 0.7) risks.push("no follow-up");
+  for (const championProfile of profiles) {
+    let championScore = 8;
+    const cond = championProfile.conditions;
 
-  for (const profile of profiles) {
-    let profileScore = 8;
-
-    if (profile.conditions.requiresPeel && protectionCoverage < 5.5) {
-      profileScore -= 2.2;
-      risks.push(
-        `${profile.role}: low peel coverage for a protection-reliant pick`
-      );
+    if (cond.requiresPeel && protectionCoverage < 5.5) {
+      const penalty = 2.2 * weights.needsPeel;
+      championScore -= penalty;
+      if (weights.needsPeel >= 0.6) {
+        risks.push(`${championProfile.role}: protection-reliant pick underfilled`);
+      }
     }
 
-    if (profile.conditions.requiresFrontline && frontlineCoverage < 5.5) {
-      profileScore -= 2.2;
-      risks.push(`${profile.role}: frontline requirement is underfilled`);
+    if (cond.requiresFrontline && frontlineCoverage < 5.5) {
+      const penalty = 2.2 * weights.needsFrontline;
+      championScore -= penalty;
+      if (weights.needsFrontline >= 0.6) {
+        risks.push(`${championProfile.role}: frontline requirement underfilled`);
+      }
     }
 
-    if (profile.conditions.requiresEngage && engageCoverage < 5.3) {
-      profileScore -= 1.8;
-      risks.push(`${profile.role}: engage requirement is underfilled`);
+    if (cond.requiresEngage && engageCoverage < 5.3) {
+      const penalty = 1.8 * weights.needsEngage;
+      championScore -= penalty;
+      if (weights.needsEngage >= 0.6) {
+        risks.push(`${championProfile.role}: engage requirement underfilled`);
+      }
     }
 
-    if (profile.conditions.requiresFollowUp && followUpCoverage < 5.3) {
-      profileScore -= 1.6;
-      risks.push(`${profile.role}: follow-up requirement is underfilled`);
+    if (cond.requiresFollowUp && followUpCoverage < 5.3) {
+      const penalty = 1.6 * weights.needsFollowUp;
+      championScore -= penalty;
+      if (weights.needsFollowUp >= 0.6) {
+        risks.push(`${championProfile.role}: follow-up requirement underfilled`);
+      }
     }
 
-    conditionScores.push(clamp(profileScore, 0, 10));
+    conditionScores.push(clamp(championScore, 0, 10));
   }
 
   const conditionScore = avg(conditionScores);
 
-  const score = clamp(
-    avg([
-      conditionScore,
-      protectionCoverage,
-      frontlineCoverage,
-      engageCoverage,
-      followUpCoverage,
-      evaluation.accessScore ?? 5,
-      evaluation.threatScore ?? 5,
-      evaluation.roleProfileScore ?? 5,
-    ]),
-    0,
-    10
-  );
+  // ─── Overall score — weight components by comp relevance ─────────────────
+  const relevantScores: number[] = [conditionScore];
+
+  if (weights.needsFrontline >= 0.5) relevantScores.push(frontlineCoverage);
+  if (weights.needsEngage >= 0.5) relevantScores.push(engageCoverage);
+  if (weights.needsPeel >= 0.5) relevantScores.push(protectionCoverage);
+  if (weights.needsFollowUp >= 0.5) relevantScores.push(followUpCoverage);
+
+  // Always include overall profile scores
+  relevantScores.push(evaluation.accessScore ?? 5);
+  relevantScores.push(evaluation.threatScore ?? 5);
+  relevantScores.push(evaluation.roleProfileScore ?? 5);
+
+  const score = clamp(avg(relevantScores), 0, 10);
 
   return {
     score,

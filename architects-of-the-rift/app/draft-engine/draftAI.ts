@@ -43,6 +43,7 @@ import { getDraftPhase, getPhaseBias } from "./draftPhase";
 import { getDraftIntent } from "./draftIntentSystem";
 import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
+import { getTotalBadSynergy } from "./badSynergyData";
 import { getTrapBanReduction, getTrapCounterBonus } from "./trapDraftSystem";
 
 
@@ -297,6 +298,9 @@ function getCompSynergyScore(ownPicks: string[], candidate: Champion) {
     synergy += reverseSynergy * 0.38;
     synergy += mustPair * 0.45;
   }
+
+  // UPGRADE 11: subtract known bad synergies
+  synergy -= getTotalBadSynergy(candidate.id, ownPicks) * 0.55;
 
   return clamp(synergy, 0, 10);
 }
@@ -1077,7 +1081,41 @@ export function chooseAiAction(
 ): DraftCandidateBreakdown | null {
   if (!pool.length) return null;
 
-  const ranked = pool
+  // UPGRADE 11 FIX 3: Pre-filter pool to speed up scoring.
+  // Full scoring is expensive (calls evaluateSimulationReadiness, etc per candidate).
+  // For picks: keep top ~50 by meta priority + any player comfort pick.
+  // For bans: keep top ~30 by meta priority + signature ban candidates.
+  let filteredPool = pool;
+
+  if (step.action === "pick") {
+    // Pre-sort by cheap meta priority, keep top 50
+    const cheapRanked = [...pool]
+      .map((c) => ({
+        champion: c,
+        priority: (c.stats?.prioScore ?? 0) + (c.stats?.presence ?? 0) * 0.5,
+      }))
+      .sort((a, b) => b.priority - a.priority);
+
+    // Top 50 by priority + any champion from user's roster comfort pool
+    filteredPool = cheapRanked.slice(0, 50).map((e) => e.champion);
+
+    // If filtered too aggressively and < 20 candidates, fall back to more
+    if (filteredPool.length < 20) {
+      filteredPool = cheapRanked.slice(0, 80).map((e) => e.champion);
+    }
+  } else {
+    // Bans: only top 30 meta candidates matter
+    const cheapRanked = [...pool]
+      .map((c) => ({
+        champion: c,
+        priority: (c.stats?.prioScore ?? 0) + (c.stats?.bans ?? 0) * 0.5,
+      }))
+      .sort((a, b) => b.priority - a.priority);
+
+    filteredPool = cheapRanked.slice(0, 30).map((e) => e.champion);
+  }
+
+  const ranked = filteredPool
     .map((candidate) => scoreDraftCandidate(candidate, step, game, series, save, config))
     .sort((a, b) => {
       const primary = b.totalScore - a.totalScore;
@@ -1090,18 +1128,12 @@ export function chooseAiAction(
       (entry) => !entry.reasonTags?.includes("invalid-role-map")
     );
 
-    // FIX #5 (vechi Fix #1): eliminat fallback-ul `?? ranked[0]` care facea
-    // AI-ul sa aleaga campioni invalizi (acelasi rol de doua ori).
-    // FIX #1 (nou): folosim chooseFromAdaptiveShortlist pentru variatie reala —
-    // AI-ul nu va mai alege mereu exact acelasi campion in aceeasi situatie.
     const seed = `${series.seriesId}:${series.currentGameNumber}:${game.phaseIndex}:${step.side}`;
     return chooseFromAdaptiveShortlist(valid, seed) ?? null;
   }
 
-  // FIX A: Use shortlist for bans too — but with a narrow window (top 3)
   const banSeed = `${series.seriesId}:${series.currentGameNumber}:${game.phaseIndex}:ban:${step.side}`;
   const banShortlist = ranked.slice(0, 3);
-  // Deterministic pick from top 3 based on seed
   const banHash = banSeed.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return banShortlist[banHash % banShortlist.length] ?? ranked[0] ?? null;
 }

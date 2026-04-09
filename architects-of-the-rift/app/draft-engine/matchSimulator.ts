@@ -468,8 +468,11 @@ function buildPlayerScores(args: {
   lane: ReturnType<typeof evaluateLanePhase>;
   closeness: number;
   seriesId: string;
-  // FIX SCORE BASE: game number adaugat la seed pentru variatie intre jocuri
   gameNumber: number;
+  // UPGRADE 10+11: team totals for win dominance + bad team performance
+  scoreDiff: number;
+  blueTeamTotal: number;
+  redTeamTotal: number;
 }): PlayerGameScore[] {
   const result: PlayerGameScore[] = [];
 
@@ -518,28 +521,42 @@ function buildPlayerScores(args: {
       const champTags = new Set(champProfile?.tags ?? []);
       const personality = getPlayerPersonalityModifiers(entry.playerId, champTags, args.closeness);
 
-      // FIX SCORE BASE: base redus de la 6.1 la 5.0 + modificatori mai mari
-      // → distributie mai larga: perdantii pot face 3-4, castigatorii pot face 9-10
-      // winModifier crescut: +1.4 win / -1.0 loss (vs +1.0 / -0.7 original)
-      const winModifier = entry.side === args.winnerSide ? 1.1 : -0.85;
-      const laneModifier = (entry.laneScore - 5) * 0.22;
-      const draftModifier = (entry.draftScore - 5) * 0.12;
-      const fitModifier = (fit - 5) * 0.18;
-      const executionModifier = (execution - 5) * 0.11;
-      const clutchModifier = (clutch - 5) * 0.09;
-      const laneSkillModifier = (laning - 5) * 0.09;
-      const macroModifier = (macro - 5) * 0.07;
-      const teamfightModifier = (teamfight - 5) * 0.08;
-      const consistencyModifier = (consistency - 5) * 0.06;
-      const archetypeModifier = (archetypeFit - 5) * 0.09;
-      const closeGameModifier = args.closeness * (clutch - 5) * 0.09 * personality.composureClutchScale;
-      const starModifier = (starPower - 5) * 0.14;
+      // ═══ UPGRADE 11: Tight realistic distribution ═══════════════════
+      // Goal: average pro game most players 5.5-7.5
+      //       stars 7.5-8.5, hard carry (rare) 8.5-9.3
+      //       10.0 reserved ONLY for perfect storm (carry event + lucky RNG + dominant win)
 
-      // FIX SCORE BASE: seed include si gameNumber → scoruri diferite intre
-      // jocuri chiar daca acelasi jucator joaca acelasi campion
+      // Per-player variance — each player rolls own day
+      const personalRng = seededNoise(
+        `${args.seriesId}:g${args.gameNumber}:${role}:${entry.side}:${entry.playerId}:personal`,
+        1.3 * personality.volatilityRngScale
+      );
+
+      // Win dominance scaling — close wins ≠ stomps
+      const dominance = clamp(Math.abs(args.scoreDiff) / 3, 0, 1);
+      // REDUCED: 0.8 / -0.7 (was 1.0 / -0.8)
+      const baseWinSwing = entry.side === args.winnerSide ? 0.8 : -0.7;
+      // Close games: 50% swing. Stomps: 115% swing.
+      const winModifier = baseWinSwing * (0.5 + dominance * 0.65);
+
+      // Standard modifiers — further reduced
+      const laneModifier = (entry.laneScore - 5) * 0.16;
+      const draftModifier = (entry.draftScore - 5) * 0.09;
+      const fitModifier = (fit - 5) * 0.12;
+      const executionModifier = (execution - 5) * 0.08;
+      const clutchModifier = (clutch - 5) * 0.06;
+      const laneSkillModifier = (laning - 5) * 0.06;
+      const macroModifier = (macro - 5) * 0.05;
+      const teamfightModifier = (teamfight - 5) * 0.06;
+      const consistencyModifier = (consistency - 5) * 0.04;
+      const archetypeModifier = (archetypeFit - 5) * 0.06;
+      const closeGameModifier = args.closeness * (clutch - 5) * 0.06 * personality.composureClutchScale;
+      const starModifier = (starPower - 5) * 0.10;
+
+      // Champion RNG — small, most variance is in personalRng
       const rng = seededNoise(
         `${args.seriesId}:g${args.gameNumber}:${role}:${entry.side}:${entry.playerId}:${entry.championId}`,
-        0.55 * personality.volatilityRngScale
+        0.30 * personality.volatilityRngScale
       );
 
       const impact = clamp(
@@ -568,7 +585,6 @@ function buildPlayerScores(args: {
         0,
         10
       );
-
       const mistakeRisk = clamp(
         10 -
         (execution * 0.3 + fit * 0.22 + clutch * 0.16 + consistency * 0.2 + macro * 0.12) +
@@ -577,10 +593,33 @@ function buildPlayerScores(args: {
         10
       );
 
-      // FIX SCORE BASE: 5.0 in loc de 6.1
+      // Carry/throw events — reduced magnitudes
+      let carryEventBonus = 0;
+      let throwEventPenalty = 0;
+
+      // Stricter threshold: needs carryFactor >= 8 AND very lucky RNG
+      const isCarryEvent = carryFactor >= 8.0 && personalRng > 0.55;
+      // Stricter threshold: needs mistakeRisk >= 6.5 AND very unlucky RNG
+      const isThrowEvent = mistakeRisk >= 6.5 && personalRng < -0.55;
+
+      if (isCarryEvent) {
+        // Reduced: 0.8 win / 0.4 loss (was 1.2 / 0.6)
+        carryEventBonus = entry.side === args.winnerSide ? 0.8 : 0.4;
+      }
+      if (isThrowEvent) {
+        // Reduced: -0.8 win / -1.3 loss (was -1.0 / -1.6)
+        throwEventPenalty = entry.side === args.winnerSide ? -0.8 : -1.3;
+      }
+
+      // Bad team game modifier — if whole team underperformed, individuals feel it
+      const teamTotal = entry.side === "blue" ? args.blueTeamTotal : args.redTeamTotal;
+      const teamPerformanceMod = clamp((teamTotal - 5.5) * 0.14, -0.55, 0.55);
+
+      // BASE LOWERED: 4.2 (was 4.6)
       const rawScore =
-        5.0 +
+        4.2 +
         winModifier +
+        teamPerformanceMod +
         laneModifier +
         draftModifier +
         fitModifier +
@@ -594,24 +633,44 @@ function buildPlayerScores(args: {
         phaseAlignMod +
         closeGameModifier +
         starModifier +
+        personalRng +
+        carryEventBonus +
+        throwEventPenalty +
         rng;
 
-      let compressedScore = rawScore;
-      if (rawScore > 8.5) {
-        const excess = rawScore - 8.5;
-        compressedScore = 8.5 + Math.log(1 + excess) * 0.9;
+      // ─── CRITICAL FIX: Soft cap above 9.0 ──────────────────────────
+      // Without compression, rawScore values of 10.2, 10.5, 11.0 all become
+      // exactly 10.0 after clamp → that's why everyone scored 10.0.
+      // With compression, rawScore 10.5 becomes ~9.4, 11.5 becomes ~9.6.
+      // 10.0 is now reserved only for truly exceptional games.
+      let finalScore = rawScore;
+      if (rawScore > 9.0 && !isCarryEvent) {
+        // No carry event: heavy compression above 9.0
+        const excess = rawScore - 9.0;
+        finalScore = 9.0 + Math.log(1 + excess) * 0.3;
+      } else if (rawScore > 9.3 && isCarryEvent) {
+        // With carry event: compression above 9.3 (hard carries can still hit 9.5+)
+        const excess = rawScore - 9.3;
+        finalScore = 9.3 + Math.log(1 + excess) * 0.45;
       } else if (rawScore < 2.5) {
+        // Symmetric floor compression
         const deficit = 2.5 - rawScore;
-        compressedScore = 2.5 - Math.log(1 + deficit) * 0.9;
+        finalScore = 2.5 - Math.log(1 + deficit) * 0.6;
       }
 
-      const score = Math.min(Math.max(compressedScore, 1), 10);
+      const score = clamp(finalScore, 1, 10);
 
+      // ─── Note thresholds — calibrated for tight distribution ────────
       let note = "solid game";
-      if (score >= 9.0) note = "hard carry";
-      else if (score >= 8.2) note = "high impact";
-      else if (score >= 7.2) note = "stable performance";
-      else if (score <= 4.9) note = "rough game";
+      if (isCarryEvent && score >= 9.0) note = "hard carry";
+      else if (isThrowEvent && score <= 4.2) note = "threw the game";
+      else if (score >= 9.0) note = "exceptional";
+      else if (score >= 8.0) note = "high impact";
+      else if (score >= 7.0) note = "strong performance";
+      else if (score >= 6.0) note = "stable";
+      else if (score >= 5.0) note = "quiet game";
+      else if (score >= 4.0) note = "struggled";
+      else note = "major liability";
 
       result.push({
         side: entry.side,
@@ -832,7 +891,8 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   // La 0 diferenta: 50/50. La diferenta de 2+: ~92% favorit.
   // Astfel, echipe mai slabe pot castiga meciuri strinse — ca in realitate.
   const scoreDiff = blueScores.total - redScores.total;
-  const winProb = 1 / (1 + Math.exp(-scoreDiff * 1.4));
+  // UPGRADE 11: steeper sigmoid — better teams win more reliably (1.4 → 2.2)
+  const winProb = 1 / (1 + Math.exp(-scoreDiff * 2.2));
   // Seed include numarul jocului si seriesId pentru a nu fi fix
   const winRoll = seededNoise(`${seedRoot}:winner:outcome`, 1) * 0.5 + 0.5;
   const winnerSide: "blue" | "red" = winRoll < winProb ? "blue" : "red";
@@ -861,6 +921,9 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     closeness,
     seriesId: input.series.seriesId,
     gameNumber: input.game.number,
+    scoreDiff: blueScores.total - redScores.total,
+    blueTeamTotal: blueScores.total,
+    redTeamTotal: redScores.total,
   });
 
   const mvp = [...playerScores].sort((a, b) => b.score - a.score)[0] ?? null;
