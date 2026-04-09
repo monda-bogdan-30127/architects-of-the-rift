@@ -51,6 +51,13 @@ import {
 } from "./playerHistoryEvaluator";
 import { updatePlayerHistoryFromResolvedGame } from "./playerHistoryStorage";
 import { recordGames } from "./playerSeasonStorage";
+import {
+  computeLaneSnowball,
+  getChampionPowerSpikeMultiplier,
+  simulateObjectiveFights,
+  rollMacroMistake,
+  getChampionMasteryBonus,
+} from "./simulationEventsSystem";
 
 const teamsBySlug = new Map(teams.map((team) => [team.slug, team]));
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -615,6 +622,20 @@ function buildPlayerScores(args: {
       const teamTotal = entry.side === "blue" ? args.blueTeamTotal : args.redTeamTotal;
       const teamPerformanceMod = clamp((teamTotal - 5.5) * 0.14, -0.55, 0.55);
 
+      // UPGRADE 12: Macro mistake event (12-18% chance per player)
+      const macroMistake = rollMacroMistake({
+        player,
+        playerId: entry.playerId,
+        seriesId: args.seriesId,
+        gameNumber: args.gameNumber,
+        role,
+        side: entry.side,
+      });
+      const macroMistakePenalty = macroMistake.occurred ? -macroMistake.severity : 0;
+
+      // UPGRADE 12: Champion mastery bonus (up to +1.0 for deep signature)
+      const masteryBonus = getChampionMasteryBonus(entry.playerId, entry.championId);
+
       // BASE LOWERED: 4.2 (was 4.6)
       const rawScore =
         4.2 +
@@ -636,6 +657,8 @@ function buildPlayerScores(args: {
         personalRng +
         carryEventBonus +
         throwEventPenalty +
+        macroMistakePenalty +
+        masteryBonus +
         rng;
 
       // ─── CRITICAL FIX: Soft cap above 9.0 ──────────────────────────
@@ -661,8 +684,10 @@ function buildPlayerScores(args: {
       const score = clamp(finalScore, 1, 10);
 
       // ─── Note thresholds — calibrated for tight distribution ────────
-      let note = "solid game";
-      if (isCarryEvent && score >= 9.0) note = "hard carry";
+      let note: string = "solid game";
+      if (macroMistake.occurred && macroMistake.affectsTeam) note = "cost the team";
+      else if (macroMistake.occurred) note = "macro mistake";
+      else if (isCarryEvent && score >= 9.0) note = "hard carry";
       else if (isThrowEvent && score <= 4.2) note = "threw the game";
       else if (score >= 9.0) note = "exceptional";
       else if (score >= 8.0) note = "high impact";
@@ -884,6 +909,46 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     profile: matchProfile,
     phases: redPhases,
   });
+
+  // UPGRADE 12: Lane snowball — early advantage carries into mid/late (capped)
+  const snowball = computeLaneSnowball({
+    blueEarlyScore: bluePhases.early.phaseTotal,
+    redEarlyScore: redPhases.early.phaseTotal,
+    blueMidScore: bluePhases.mid.phaseTotal,
+    redMidScore: redPhases.mid.phaseTotal,
+  });
+
+  // Apply snowball swings to mid/late phase totals
+  bluePhases.mid.phaseTotal += snowball.midSwing.blue;
+  redPhases.mid.phaseTotal += snowball.midSwing.red;
+  bluePhases.late.phaseTotal += snowball.lateSwing.blue;
+  redPhases.late.phaseTotal += snowball.lateSwing.red;
+
+  // Simplified version: team-level average power spike multiplier
+  const applyPowerSpikes = (assignments: Partial<Record<Role, string>>, phase: "early" | "mid" | "late") => {
+    const multipliers = ROLE_ORDER.map((role) => {
+      const champId = assignments[role];
+      return champId ? getChampionPowerSpikeMultiplier(champId, phase) : 1.0;
+    });
+    const avgMult = multipliers.reduce((sum, m) => sum + m, 0) / multipliers.length;
+    return avgMult;
+  };
+
+  const blueEarlyMult = applyPowerSpikes(assignmentsBlue, "early");
+  const blueMidMult = applyPowerSpikes(assignmentsBlue, "mid");
+  const blueLateMult = applyPowerSpikes(assignmentsBlue, "late");
+  const redEarlyMult = applyPowerSpikes(assignmentsRed, "early");
+  const redMidMult = applyPowerSpikes(assignmentsRed, "mid");
+  const redLateMult = applyPowerSpikes(assignmentsRed, "late");
+
+  // Apply multipliers to phase totals (scaled gently so they don't dominate)
+  bluePhases.early.phaseTotal *= (1 + (blueEarlyMult - 1) * 0.4);
+  bluePhases.mid.phaseTotal *= (1 + (blueMidMult - 1) * 0.4);
+  bluePhases.late.phaseTotal *= (1 + (blueLateMult - 1) * 0.4);
+  redPhases.early.phaseTotal *= (1 + (redEarlyMult - 1) * 0.4);
+  redPhases.mid.phaseTotal *= (1 + (redMidMult - 1) * 0.4);
+  redPhases.late.phaseTotal *= (1 + (redLateMult - 1) * 0.4);
+
 
   // ─── FIX WINNER PROBABILISTIC ─────────────────────────────────────────────
   // In loc de "cel mai mare total castiga mereu", transformam diferenta de

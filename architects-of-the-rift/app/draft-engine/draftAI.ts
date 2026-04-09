@@ -45,6 +45,8 @@ import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSer
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
 import { getTotalBadSynergy } from "./badSynergyData";
 import { getTrapBanReduction, getTrapCounterBonus } from "./trapDraftSystem";
+import { chooseDraftPlan, getPlanAlignmentBonus, type DraftPlan } from "./draftPlanSystem";
+import { getSideAwareBonus, getFlexAmbiguityBonus } from "./sideAwareDraftSystem";
 
 
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -52,6 +54,38 @@ const playersById = new Map(players.map((player) => [player.id, player]));
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
+
+const planCache: Map<string, DraftPlan | null> = new Map();
+
+function getCachedPlan(args: {
+  side: Side;
+  game: DraftGameState;
+  series: ActiveDraftSeries;
+  save: DraftSave | null;
+}): DraftPlan | null {
+  const cacheKey = `${args.series.seriesId}:g${args.series.currentGameNumber}:${args.side}`;
+  if (planCache.has(cacheKey)) return planCache.get(cacheKey) ?? null;
+
+  const aiTeamSlug = getTeamSlugForSide(args.series, args.side);
+  const userTeamSlug = getTeamSlugForSide(args.series, args.side === "blue" ? "red" : "blue");
+  const aiRoster = getTeamRosterFromSources({ teamSlug: aiTeamSlug, save: args.save });
+  const userRoster = getTeamRosterFromSources({ teamSlug: userTeamSlug, save: args.save });
+
+  const plan = chooseDraftPlan({
+    side: args.side,
+    game: args.game,
+    series: args.series,
+    aiRoster,
+    userRoster,
+    save: args.save,
+  });
+
+  planCache.set(cacheKey, plan);
+  return plan;
+}
+
+// Call planCache.clear() at the start of each new game if needed.
+// (Not required — cache key includes game number)
 
 function getTeamSlugForSide(series: ActiveDraftSeries, side: Side) {
   return side === "blue" ? series.blueTeamSlug : series.redTeamSlug;
@@ -675,6 +709,31 @@ function scorePickCandidate(
     enemyChampionIds: enemyState.picks,
   });
 
+  // UPGRADE 12: Draft plan alignment
+  const draftPlan = getCachedPlan({ side: step.side, game, series, save });
+  const planAlignment = getPlanAlignmentBonus(
+    candidate,
+    projected.projectedRole,
+    draftPlan,
+    getCurrentPickNumberForSide(game, step.side)
+  );
+
+  // UPGRADE 12: Side-aware drafting
+  const sideAware = getSideAwareBonus({
+    candidate,
+    side: step.side,
+    game,
+    projectedRole: projected.projectedRole,
+    counterValue,
+  });
+
+  // UPGRADE 12: Flex ambiguity bonus for early picks
+  const flexAmbiguity = getFlexAmbiguityBonus({
+    candidate,
+    side: step.side,
+    game,
+  });
+
   const carryNeedEvaluation = {
     protectionScore: 5,
     antiDiveScore: 5,
@@ -732,7 +791,10 @@ function scorePickCandidate(
     proPickTiming +
     adaptivePriority +
     botLaneFitBonus +
-    trapCounter -
+    trapCounter +
+    planAlignment +        // NEW
+    sideAware +            // NEW
+    flexAmbiguity -        // NEW
     weaknessPenalty * adjustedConfig.weaknessWeight -
     blindRiskPenalty -
     comboDependencyPenalty -
