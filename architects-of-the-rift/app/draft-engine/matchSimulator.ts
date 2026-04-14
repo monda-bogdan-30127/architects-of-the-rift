@@ -58,6 +58,11 @@ import {
   rollMacroMistake,
   getChampionMasteryBonus,
 } from "./simulationEventsSystem";
+import {
+  simulateJunglePathing,
+  computeDraftSpikeWindows,
+  checkComebackReversal,
+} from "./advancedDraftReading";
 
 const teamsBySlug = new Map(teams.map((team) => [team.slug, team]));
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -770,6 +775,45 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     assignmentsRed,
   });
 
+  // UPGRADE 13: Jungle pathing events — discrete ganks modify lane scores
+  const jungleEvents = simulateJunglePathing({
+    blueJunglerId: assignmentsBlue.jungle ?? null,
+    redJunglerId: assignmentsRed.jungle ?? null,
+    blueLaneScores: {
+      top: lane.roles.find((r) => r.role === "top")?.blueScore ?? 5,
+      mid: lane.roles.find((r) => r.role === "mid")?.blueScore ?? 5,
+      bot: lane.roles.find((r) => r.role === "adc")?.blueScore ?? 5,
+    },
+    redLaneScores: {
+      top: lane.roles.find((r) => r.role === "top")?.redScore ?? 5,
+      mid: lane.roles.find((r) => r.role === "mid")?.redScore ?? 5,
+      bot: lane.roles.find((r) => r.role === "adc")?.redScore ?? 5,
+    },
+    blueJunglerMacro: playerMacroScore(blueRoster.jungle ?? null),
+    redJunglerMacro: playerMacroScore(redRoster.jungle ?? null),
+    seriesId: input.series.seriesId,
+    gameNumber: input.game.number,
+  });
+
+  // Apply gank swings to lane roles
+  for (const entry of lane.roles) {
+    if (entry.role === "top") {
+      entry.blueScore = clamp(entry.blueScore + jungleEvents.blueTopSwing, 0, 10);
+      entry.redScore = clamp(entry.redScore + jungleEvents.redTopSwing, 0, 10);
+    } else if (entry.role === "mid") {
+      entry.blueScore = clamp(entry.blueScore + jungleEvents.blueMidSwing, 0, 10);
+      entry.redScore = clamp(entry.redScore + jungleEvents.redMidSwing, 0, 10);
+    } else if (entry.role === "adc" || entry.role === "support") {
+      // Bot = adc + support share the swing
+      entry.blueScore = clamp(entry.blueScore + jungleEvents.blueBotSwing * 0.5, 0, 10);
+      entry.redScore = clamp(entry.redScore + jungleEvents.redBotSwing * 0.5, 0, 10);
+    }
+  }
+
+  // Recompute lane totals from updated role scores
+  lane.blueScore = round1((lane.roles.reduce((s, r) => s + r.blueScore, 0)) / lane.roles.length);
+  lane.redScore = round1((lane.roles.reduce((s, r) => s + r.redScore, 0)) / lane.roles.length);
+
   const blueAssignment = teamAssignmentQuality(blueRoster, assignmentsBlue);
   const redAssignment = teamAssignmentQuality(redRoster, assignmentsRed);
 
@@ -934,6 +978,15 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     return avgMult;
   };
 
+  // UPGRADE 13: Draft spike windows — team with bigger spike in phase gains
+  const spikes = computeDraftSpikeWindows(assignmentsBlue, assignmentsRed);
+  bluePhases.early.phaseTotal += spikes.earlySpikeAdvantage.blue;
+  redPhases.early.phaseTotal += spikes.earlySpikeAdvantage.red;
+  bluePhases.mid.phaseTotal += spikes.midSpikeAdvantage.blue;
+  redPhases.mid.phaseTotal += spikes.midSpikeAdvantage.red;
+  bluePhases.late.phaseTotal += spikes.lateSpikeAdvantage.blue;
+  redPhases.late.phaseTotal += spikes.lateSpikeAdvantage.red;
+
   const blueEarlyMult = applyPowerSpikes(assignmentsBlue, "early");
   const blueMidMult = applyPowerSpikes(assignmentsBlue, "mid");
   const blueLateMult = applyPowerSpikes(assignmentsBlue, "late");
@@ -963,6 +1016,34 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   const winnerSide: "blue" | "red" = winRoll < winProb ? "blue" : "red";
   // ──────────────────────────────────────────────────────────────────────────
 
+  // UPGRADE 13: Comeback mechanics — close games can reverse (8-10%)
+  let finalWinnerSide = winnerSide;
+  const blueMacroAvg = (playerMacroScore(blueRoster.top ?? null) +
+    playerMacroScore(blueRoster.jungle ?? null) +
+    playerMacroScore(blueRoster.mid ?? null) +
+    playerMacroScore(blueRoster.adc ?? null) +
+    playerMacroScore(blueRoster.support ?? null)) / 5;
+  const redMacroAvg = (playerMacroScore(redRoster.top ?? null) +
+    playerMacroScore(redRoster.jungle ?? null) +
+    playerMacroScore(redRoster.mid ?? null) +
+    playerMacroScore(redRoster.adc ?? null) +
+    playerMacroScore(redRoster.support ?? null)) / 5;
+
+  const shouldReverse = checkComebackReversal({
+    currentWinner: winnerSide,
+    blueLateScore: bluePhases.late.phaseTotal,
+    redLateScore: redPhases.late.phaseTotal,
+    blueMacroAvg,
+    redMacroAvg,
+    scoreDiff,
+    seriesId: input.series.seriesId,
+    gameNumber: input.game.number,
+  });
+
+  if (shouldReverse) {
+    finalWinnerSide = winnerSide === "blue" ? "red" : "blue";
+  }
+
   const closeness = round1(1 - clamp(Math.abs(blueScores.total - redScores.total) / 3, 0, 1));
   const flow = determineFlow(
     blueScores.total,
@@ -975,7 +1056,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
 
 
   const playerScores = buildPlayerScores({
-    winnerSide,
+    winnerSide: finalWinnerSide,
     blueRoster,
     redRoster,
     assignmentsBlue,
@@ -992,8 +1073,8 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   });
 
   const mvp = [...playerScores].sort((a, b) => b.score - a.score)[0] ?? null;
-  const seriesScore = computeSeriesScoreAfterGame(input, winnerSide);
-  const reason = buildReason({ winnerSide, blueScores, redScores });
+  const seriesScore = computeSeriesScoreAfterGame(input, finalWinnerSide);
+  const reason = buildReason({ winnerSide: finalWinnerSide, blueScores, redScores });
 
   const gameTeamSlugs = getGameTeamSlugsForGameNumber(input.series, input.game.number);
 
@@ -1005,13 +1086,13 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
       role: playerScore.role,
       score: playerScore.score,
       side: playerScore.side,
-      result: playerScore.side === winnerSide ? "win" : "loss",
+      result: playerScore.side === finalWinnerSide ? "win" : "loss",
       bestOf: input.series.bo,
     }))
   );
 
   updatePlayerHistoryFromResolvedGame({
-    winnerSide,
+    winnerSide: finalWinnerSide,
     blueRoster,
     redRoster,
     assignmentsBlue,
@@ -1021,7 +1102,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   });
 
   return {
-    winnerSide,
+    winnerSide: finalWinnerSide,
     blueTeamSlug: input.series.blueTeamSlug,
     redTeamSlug: input.series.redTeamSlug,
     seriesScoreBlue: seriesScore.blueWins,

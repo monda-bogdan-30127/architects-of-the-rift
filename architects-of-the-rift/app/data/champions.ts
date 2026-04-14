@@ -550,8 +550,21 @@ const baseChampions: Champion[] = [
       { championId: "ahri", score: 3 },
       { championId: "syndra", score: 3 }
     ],
-    weakVs: [{ championId: "cassiopeia", score: 3 }, { championId: "swain", score: 3 }, { championId: "akali", score: 4 }, { championId: "anivia", score: 3 }, { championId: "aurora", score: 3 }],
-    synergyWith: [{ championId: "vi", score: 3 }, { championId: "pantheon", score: 4 }, { championId: "naafiri", score: 3 }, { championId: "xin-zhao", score: 4 }],
+    weakVs: [
+      { championId: "cassiopeia", score: 3 },
+      { championId: "swain", score: 3 },
+      { championId: "akali", score: 4 },
+      { championId: "anivia", score: 3 },
+      { championId: "aurora", score: 3 }
+    ],
+
+    synergyWith: [
+      { championId: "vi", score: 3 },
+      { championId: "pantheon", score: 4 },
+      { championId: "naafiri", score: 3 },
+      { championId: "xin-zhao", score: 4 }
+    ],
+
     offers: [
       { type: "waveclear", strength: 4 },
       { type: "sustainedDamage", strength: 4 },
@@ -991,7 +1004,7 @@ const baseChampions: Champion[] = [
     weakVs: [
       { championId: "aphelios", score: 4 }, { championId: "nocturne", score: 4 }, { championId: "vi", score: 4 }
     ],
-    synergyWith: [{ championId: "karma", score: 5 }, { championId: "lux", score: 5 }, { championId: "neeko", score: 4 }, { championId: "morgana", score: 3 }],
+    synergyWith: [{ championId: "karma", score: 5 }, { championId: "lux", score: 5 }, { championId: "neeko", score: 4 }, { championId: "morgana", score: 2 }],
     offers: [
       { type: "siege", strength: 5 },
       { type: "poke", strength: 4 },
@@ -2567,7 +2580,7 @@ const baseChampions: Champion[] = [
       { championId: "taliyah", score: 4 },
       { championId: "cassiopeia", score: 4 },
       { championId: "ryze", score: 5 },
-      { championId: "aurora", score: 2}
+      { championId: "aurora", score: 2 }
     ],
 
     weakVs: [
@@ -2579,10 +2592,10 @@ const baseChampions: Champion[] = [
     ],
 
     synergyWith: [
-      { championId: "poppy", score:4},
-      { championId: "jarvan-iv", score:3},
-      { championId: "vi", score:2},
-      { championId: "nocturne", score:2}
+      { championId: "poppy", score: 4 },
+      { championId: "jarvan-iv", score: 3 },
+      { championId: "vi", score: 2 },
+      { championId: "nocturne", score: 2 }
     ],
 
     offers: [
@@ -4100,7 +4113,7 @@ const baseChampions: Champion[] = [
       { championId: "galio", score: 3 },
       { championId: "viktor", score: 3 },
       { championId: "taliyah", score: 3 },
-      { championId: "azir", score:3}
+      { championId: "azir", score: 3 }
     ],
 
     weakVs: [

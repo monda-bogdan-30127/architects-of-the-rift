@@ -47,6 +47,13 @@ import { getTotalBadSynergy } from "./badSynergyData";
 import { getTrapBanReduction, getTrapCounterBonus } from "./trapDraftSystem";
 import { chooseDraftPlan, getPlanAlignmentBonus, type DraftPlan } from "./draftPlanSystem";
 import { getSideAwareBonus, getFlexAmbiguityBonus } from "./sideAwareDraftSystem";
+import {
+  getPlanAdaptiveBanBonus,
+  getContestedPickUrgency,
+  getUserFavoriteBanBonus,
+  deduceUserPlan,
+  getCounterToUserPlanBonus,
+} from "./advancedDraftReading";
 
 
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -734,6 +741,19 @@ function scorePickCandidate(
     game,
   });
 
+  // UPGRADE 13: Contested pick urgency — bonus for champions user also wants
+  const contestedUrgency = getContestedPickUrgency({
+    candidate,
+    plan: draftPlan,
+    series,
+    userSide: step.side === "blue" ? "red" : "blue",
+    currentPickNumber: getCurrentPickNumberForSide(game, step.side),
+  });
+
+  // UPGRADE 13: Counter user's deduced plan
+  const userDeducedPlan = deduceUserPlan(game, step.side === "blue" ? "red" : "blue");
+  const counterUserPlanBonus = getCounterToUserPlanBonus(candidate, userDeducedPlan);
+
   const carryNeedEvaluation = {
     protectionScore: 5,
     antiDiveScore: 5,
@@ -792,9 +812,11 @@ function scorePickCandidate(
     adaptivePriority +
     botLaneFitBonus +
     trapCounter +
-    planAlignment +        // NEW
-    sideAware +            // NEW
-    flexAmbiguity -        // NEW
+    planAlignment +
+    sideAware +
+    flexAmbiguity +
+    contestedUrgency +         // NEW
+    counterUserPlanBonus -     // NEW
     weaknessPenalty * adjustedConfig.weaknessWeight -
     blindRiskPenalty -
     comboDependencyPenalty -
@@ -1063,21 +1085,31 @@ function scoreBanCandidate(
   const seriesAwareBan = getSeriesAwareBanBonus(candidate.id, step.side, series);
   const comfortRepeatThreat = getSeriesComfortRepeatThreat(candidate.id, step.side, series);
 
+  // UPGRADE 13: Get AI plan to guide ban targeting
+  const aiBanPlan = getCachedPlan({ side: step.side, game, series, save });
+
+  // UPGRADE 13: Ban bonus for champions that counter AI's plan
+  const planAdaptiveBanBonus = getPlanAdaptiveBanBonus(candidate, aiBanPlan);
+
+  // UPGRADE 13: Preemptive ban on user-favorite OP champions
+  const userFavoriteBan = getUserFavoriteBanBonus(candidate, series);
 
   // FIX A: Reduce metaPriority dominance, boost signature bans
   const totalScore =
-    metaPriority * 0.95 +           // Reduced from 1.3 — less meta dominance
-    enemyComfortPressure * 1.1 +    // Slightly boosted — enemy player comfort matters more
+    metaPriority * 0.95 +
+    enemyComfortPressure * 1.1 +
     enemyCounterWindow +
     userBias +
     synergyCompletionBonus +
-    signatureBonus * 1.4 +          // Boosted from 1.0 — signature bans should compete with meta
+    signatureBonus * 1.4 +
     redundantBanPenalty -
     banRepeatPenalty +
     seriesAwareBan +
-    comfortRepeatThreat +              // NEW: penalize repeat bans across series
-    (candidate.roles.length >= 2 ? 0.8 : 0) +
-    trapBanReduction;
+    comfortRepeatThreat +
+    trapBanReduction +
+    planAdaptiveBanBonus +       // NEW
+    userFavoriteBan +            // NEW
+    (candidate.roles.length >= 2 ? 0.8 : 0);
 
 
   return {
@@ -1198,4 +1230,5 @@ export function chooseAiAction(
   const banShortlist = ranked.slice(0, 3);
   const banHash = banSeed.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return banShortlist[banHash % banShortlist.length] ?? ranked[0] ?? null;
+
 }

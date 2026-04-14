@@ -293,4 +293,33 @@ export function getUserPreferredOpenRoleBias(
 
   const firstPickRoleRate = (memory.firstPickRoleCounts[role] ?? 0) / totalRoleSamples;
   return clamp(firstPickRoleRate * 3.6, 0, 2.2);
+  
 }
+
+/**
+ * Returns the total pick counts for the user across all games.
+ * Used by advancedDraftReading for pattern detection and preemptive bans.
+ */
+export function getUserPickCounts(): Record<string, number> {
+  const memory = readMemory();
+  return memory.overallPickCounts ?? {};
+}
+
+/**
+ * Returns the user's recent bans (last ~12).
+ * Used for counter-ban theory deduction.
+ */
+export function getUserRecentBans(): string[] {
+  const memory = readMemory();
+  return memory.recentBans ?? [];
+}
+
+/**
+ * Returns the user's first pick counts.
+ * Used to detect which champions user prioritizes as first pick.
+ */
+export function getUserFirstPickCounts(): Record<string, number> {
+  const memory = readMemory();
+  return memory.firstPickCounts ?? {};
+}
+
