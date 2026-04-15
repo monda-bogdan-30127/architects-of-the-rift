@@ -147,7 +147,13 @@ export type PlayerAdaptationProfile = {
   matchupLearning: number;
 };
 
-
+// ─── PATCH: expanded with 6 new internal style labels ───────────────────────
+// brawler    → skirmish-heavy fighter, not a pure carry or teamfighter
+// tank       → intentional frontliner role
+// assassin   → solo pick/kill oriented, distinct from playmaker (team-focused)
+// farmer     → farm-first, low early pressure, scales into lategame
+// poke_style → poke-oriented laner, different from aggressive/lane_bully
+// hypercarry → late-game scaling carry, distinct from generic scaler
 export type PlayerStyleLabel =
   | "carry"
   | "utility"
@@ -158,12 +164,24 @@ export type PlayerStyleLabel =
   | "aggressive"
   | "setup"
   | "flex"
-  | "weakside";
+  | "weakside"
+  | "brawler"
+  | "tank"
+  | "assassin"
+  | "farmer"
+  | "poke_style"
+  | "hypercarry";
 
 export type PlayerStyleIdentity = {
+  // ── Internal labels (used in logic, simulation, redundancy checks) ─────────
   primary: PlayerStyleLabel;
   secondary: PlayerStyleLabel;
   scores: Record<PlayerStyleLabel, number>;
+  // ── Display values (calculated once at createPlayer, use everywhere in UI
+  //    and gameplay — do NOT recalculate via getPlayerStyleInfo at runtime) ───
+  displayPrimary: string;
+  displaySecondary: string;
+  displayTags: string[];
 };
 
 export type Player = {

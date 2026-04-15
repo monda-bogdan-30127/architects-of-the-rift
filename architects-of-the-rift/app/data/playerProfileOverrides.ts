@@ -1,10 +1,25 @@
 import type { PlayerAdaptationProfile, PlayerArchetypeAffinity, PlayerPhaseProfile, PlayerStyleLabel } from "@/app/types/player";
 
+// ─── PATCH: 3 câmpuri noi față de versiunea anterioară ───────────────────────
+// primaryStyle         → override intern al labelului primary (PlayerStyleLabel)
+//                        afectează logica de secondary și scores
+// primaryDisplayOverride → override DOAR vizual pe card/tooltip (string liber)
+//                          folosit când labelul calculat e corect intern dar
+//                          vrei un display diferit (ex. "Hypercarry" în loc de "Carry")
+// tagOverrides         → control manual asupra tagurilor după auto-derivare
+//                          add:    injectezi taguri specifice jucătorului
+//                          remove: elimini taguri corect calculate dar înșelătoare
 type PlayerProfileOverride = {
   phaseProfile?: PlayerPhaseProfile;
   archetypeAffinity?: Partial<PlayerArchetypeAffinity>;
   adaptationProfile?: Partial<PlayerAdaptationProfile>;
   secondaryStyle?: PlayerStyleLabel;
+  primaryStyle?: PlayerStyleLabel;
+  primaryDisplayOverride?: string;
+  tagOverrides?: {
+    add?: string[];
+    remove?: string[];
+  };
 };
 
 export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
@@ -16,6 +31,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { setup: 9.7, utility: 9.4, carry: 8.9, poke: 8.7, frontToBack: 9.2 },
     adaptationProfile: { draftFlex: 9.5, creativity: 9.0, composure: 9.8, matchupLearning: 9.7 },
+    tagOverrides: { add: ["Systematic", "Late Game"] },
   },
   chovy: {
     phaseProfile: {
@@ -25,6 +41,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { carry: 9.8, poke: 9.2, frontToBack: 9.0, setup: 8.4 },
     adaptationProfile: { draftFlex: 8.8, creativity: 8.2, composure: 9.1, matchupLearning: 9.0 },
+    tagOverrides: { add: ["Priority Lane", "Late Game"] },
   },
   canyon: {
     phaseProfile: {
@@ -34,6 +51,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { engage: 9.0, carry: 8.8, tank: 8.5, dive: 9.3, setup: 9.1 },
     adaptationProfile: { draftFlex: 8.8, creativity: 8.3, composure: 8.8, matchupLearning: 9.1 },
+    tagOverrides: { add: ["Early Game", "Dive"] },
   },
   oner: {
     phaseProfile: {
@@ -43,6 +61,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { engage: 9.1, dive: 9.0, setup: 8.8, tank: 8.0 },
     adaptationProfile: { draftFlex: 8.5, creativity: 8.2, composure: 8.7, matchupLearning: 8.6 },
+    tagOverrides: { add: ["Dive", "Early Game"] },
   },
   keria: {
     phaseProfile: {
@@ -52,6 +71,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { enchanter: 9.5, engage: 9.3, utility: 9.8, setup: 9.6, poke: 8.8 },
     adaptationProfile: { draftFlex: 9.8, creativity: 9.7, composure: 8.9, matchupLearning: 9.4 },
+    tagOverrides: { add: ["Creative", "Lane Pressure"] },
   },
   delight: {
     phaseProfile: {
@@ -61,6 +81,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { engage: 9.0, enchanter: 8.2, utility: 8.8, setup: 8.9, frontToBack: 8.6 },
     adaptationProfile: { draftFlex: 8.2, creativity: 7.9, composure: 8.8, matchupLearning: 8.4 },
+    tagOverrides: { add: ["Systematic"] },
   },
   gumayusi: {
     phaseProfile: {
@@ -70,6 +91,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { carry: 9.5, poke: 8.8, frontToBack: 9.3 },
     adaptationProfile: { draftFlex: 8.4, creativity: 7.9, composure: 9.1, matchupLearning: 8.7 },
+    tagOverrides: { add: ["Teamfight", "Late Game"] },
   },
   ruler: {
     phaseProfile: {
@@ -79,6 +101,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { carry: 9.8, frontToBack: 9.7, poke: 8.5 },
     adaptationProfile: { draftFlex: 8.0, creativity: 7.5, composure: 9.4, matchupLearning: 8.8 },
+    tagOverrides: { add: ["Systematic", "Late Game"] },
   },
   viper: {
     phaseProfile: {
@@ -88,6 +111,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { carry: 9.7, frontToBack: 9.4, poke: 8.8 },
     adaptationProfile: { draftFlex: 8.5, creativity: 8.0, composure: 9.2, matchupLearning: 8.8 },
+    tagOverrides: { add: ["Aggressive", "Late Game"] },
   },
   zeus: {
     phaseProfile: {
@@ -97,6 +121,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { carry: 9.1, dive: 9.0, engage: 8.2, poke: 8.3 },
     adaptationProfile: { draftFlex: 8.7, creativity: 8.8, composure: 8.1, matchupLearning: 8.5 },
+    tagOverrides: { add: ["Early Game", "Snowball"], remove: ["Stable"] },
   },
   kiin: {
     phaseProfile: {
@@ -106,7 +131,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { tank: 9.0, carry: 8.8, frontToBack: 9.1, utility: 8.2 },
     adaptationProfile: { draftFlex: 8.6, creativity: 7.8, composure: 9.0, matchupLearning: 8.7 },
-    secondaryStyle: "carry"
+    secondaryStyle: "carry",
+    tagOverrides: { add: ["Systematic", "Counterpick"] },
   },
   xiaohu: {
     phaseProfile: {
@@ -116,6 +142,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { setup: 9.0, utility: 8.9, carry: 8.4, frontToBack: 8.8 },
     adaptationProfile: { draftFlex: 8.9, creativity: 8.2, composure: 8.9, matchupLearning: 9.0 },
+    tagOverrides: { add: ["Late Game", "Systematic"] },
   },
   meiko: {
     phaseProfile: {
@@ -125,6 +152,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { enchanter: 8.8, engage: 8.7, utility: 9.3, setup: 9.0, frontToBack: 9.1 },
     adaptationProfile: { draftFlex: 8.7, creativity: 8.0, composure: 9.0, matchupLearning: 8.9 },
+    tagOverrides: { add: ["Vision", "Systematic"] },
   },
   tarzan: {
     phaseProfile: {
@@ -134,6 +162,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { engage: 8.8, tank: 8.6, dive: 8.8, setup: 9.0 },
     adaptationProfile: { draftFlex: 8.4, creativity: 7.8, composure: 8.8, matchupLearning: 8.9 },
+    tagOverrides: { add: ["Objective", "Systematic"] },
   },
   bin: {
     phaseProfile: {
@@ -143,7 +172,10 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { carry: 9.6, dive: 9.1, engage: 8.0, poke: 7.5 },
     adaptationProfile: { draftFlex: 8.4, creativity: 8.8, composure: 7.8, matchupLearning: 8.7 },
+    primaryStyle: "brawler",
+    primaryDisplayOverride: "Brawler",
     secondaryStyle: "aggressive",
+    tagOverrides: { add: ["Early Game", "Snowball", "Dive"], remove: ["Stable"] },
   },
   knight: {
     phaseProfile: {
@@ -153,6 +185,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { carry: 9.8, poke: 9.2, frontToBack: 8.8, setup: 8.4 },
     adaptationProfile: { draftFlex: 9.1, creativity: 8.7, composure: 9.0, matchupLearning: 9.2 },
+    tagOverrides: { add: ["Priority Lane", "Late Game"] },
   },
   elk: {
     phaseProfile: {
@@ -162,9 +195,10 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { carry: 9.6, frontToBack: 9.2, poke: 8.5 },
     adaptationProfile: { draftFlex: 8.2, creativity: 8.0, composure: 8.8, matchupLearning: 8.4 },
+    tagOverrides: { add: ["Teamfight", "Late Game"] },
   },
 
-  // optional manual semantic nudges; if omitted, secondaryStyle is derived automatically
+  // ── Secondary style nudges — derivare automată dar cu override semantic ──
   brokenblade: { secondaryStyle: "weakside" },
   carzzy: { secondaryStyle: "weakside" },
   myrwn: { secondaryStyle: "aggressive" },
@@ -173,18 +207,18 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   empyros: { secondaryStyle: "weakside" },
   "naak-nako": { secondaryStyle: "carry" },
   wunder: { secondaryStyle: "weakside" },
-  theshy: { secondaryStyle: "aggressive" },
+  theshy: { secondaryStyle: "aggressive", tagOverrides: { add: ["Early Game", "Snowball"] } },
   kingen: { secondaryStyle: "weakside" },
   pyosik: { secondaryStyle: "aggressive" },
   casting: { secondaryStyle: "weakside" },
-  xun: { secondaryStyle: "carry" },
+  xun: { secondaryStyle: "carry", tagOverrides: { add: ["Early Game"] } },
   zdz: { secondaryStyle: "weakside" },
   breathe: { secondaryStyle: "aggressive" },
   xiaoxu: { secondaryStyle: "aggressive" },
-  hongq: { secondaryStyle: "aggressive" },
-  369: { secondaryStyle: "weakside" },
-  "hans-sama": { secondaryStyle: "aggressive" },
+  hongq: { secondaryStyle: "aggressive", tagOverrides: { add: ["Snowball"] } },
+  369: { secondaryStyle: "weakside", tagOverrides: { add: ["Systematic"] } },
+  "hans-sama": { secondaryStyle: "aggressive", tagOverrides: { add: ["Aggressive"] } },
   caliste: { secondaryStyle: "aggressive" },
-  maynter: { secondaryStyle: "weakside"},
-  jackeylove: { secondaryStyle: "aggressive"}
+  maynter: { secondaryStyle: "weakside" },
+  jackeylove: { secondaryStyle: "aggressive", tagOverrides: { add: ["Volatile"] } },
 };
