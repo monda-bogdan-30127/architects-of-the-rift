@@ -733,14 +733,8 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   const blueRoster = getTeamRoster(input.series.blueTeamSlug, input.save);
   const redRoster = getTeamRoster(input.series.redTeamSlug, input.save);
 
-  const assignmentsBlue =
-    Object.keys(input.game.assignmentsBlue).length > 0
-      ? input.game.assignmentsBlue
-      : resolveRoleAssignments(input.game.picksBlue, blueRoster);
-  const assignmentsRed =
-    Object.keys(input.game.assignmentsRed).length > 0
-      ? input.game.assignmentsRed
-      : resolveRoleAssignments(input.game.picksRed, redRoster);
+  const assignmentsBlue = resolveRoleAssignments(input.game.picksBlue, blueRoster);
+  const assignmentsRed = resolveRoleAssignments(input.game.picksRed, redRoster);
 
   const blueChampionIds = Object.values(assignmentsBlue).filter(Boolean) as string[];
   const redChampionIds = Object.values(assignmentsRed).filter(Boolean) as string[];
