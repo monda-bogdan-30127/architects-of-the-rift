@@ -81,6 +81,18 @@ const adaptationScore = (
 ) => norm10(player.adaptationProfile?.[key] ?? 0) * scale;
 
 // ─── Internal label → display string ─────────────────────────────────────────
+// ─── Valid display secondary labels per role ─────────────────────────────────
+// Prevents an internal override like "assassin" from showing on a support card
+// as secondary — if the converted display label isn't role-appropriate, fall
+// back to the role fallback secondary.
+const ROLE_VALID_DISPLAY_SECONDARIES: Record<Player["role"], Set<string>> = {
+  top:     new Set(["Carry", "Scaler", "Lane Bully", "Aggressive", "Brawler", "Tank", "Weakside", "Flexible", "Poke", "Controller", "Splitpush"]),
+  jungle:  new Set(["Carry", "Playmaker", "Setup", "Roamer", "Aggressive", "Assassin", "Farmer", "Flexible", "Controller", "Tempo"]),
+  mid:     new Set(["Carry", "Scaler", "Playmaker", "Aggressive", "Assassin", "Poke", "Roamer", "Flexible", "Controller"]),
+  adc:     new Set(["Carry", "Scaler", "Hypercarry", "Lane Bully", "Weakside", "Aggressive", "Flexible", "Teamfighter"]),
+  support: new Set(["Utility", "Setup", "Playmaker", "Tank", "Lane Bully", "Roamer", "Flexible", "Facilitator", "Engage", "Enchanter"]),
+};
+
 const toDisplayStyleLabel = (
   style?: Player["playstyleIdentity"]["secondary"],
 ): string | undefined => {
@@ -821,9 +833,16 @@ export function getPlayerStyleInfo(player: Player): StyleInfo {
       : byRoleFallback[role].secondary;
 
   const overriddenSecondary = toDisplayStyleLabel(player.playstyleIdentity?.secondary);
+  // Fix 1: Only use the overridden secondary if it's a valid display label for this role.
+  // Prevents internal labels like "assassin" from bleeding through to support/adc cards.
+  const validDisplaySecondaries = ROLE_VALID_DISPLAY_SECONDARIES[role];
+  const sanitizedSecondary = overriddenSecondary && validDisplaySecondaries.has(overriddenSecondary)
+    ? overriddenSecondary
+    : undefined;
+
   const secondaryStyle =
-    overriddenSecondary && overriddenSecondary !== primaryStyle
-      ? overriddenSecondary
+    sanitizedSecondary && sanitizedSecondary !== primaryStyle
+      ? sanitizedSecondary
       : derivedSecondary;
 
   // ─── Resolve tags ─────────────────────────────────────────────────────────
@@ -918,6 +937,30 @@ export function getPlayerStyleInfo(player: Player): StyleInfo {
     if (prioritySet.has(tag)) continue; // override tags sunt protejate
     const idx = finalTags.indexOf(tag);
     if (idx !== -1) finalTags.splice(idx, 1);
+  }
+
+  // Fix 2: If coherence removal left fewer than 3 tags, fill remaining slots
+  // from a role-specific reserve pool — ordered by relevance, skip anything
+  // already present, excluded by style, or contradicted by coherenceRemovals.
+  if (finalTags.length < 3) {
+    const ROLE_RESERVE_TAGS: Record<Player["role"], string[]> = {
+      top:     ["Stable", "Flexible", "Scaling", "Teamfight", "Counterpick"],
+      jungle:  ["Objective", "Tempo", "Stable", "Pathing", "Scaling"],
+      mid:     ["Stable", "Flexible", "Lane Control", "Scaling", "Roaming"],
+      adc:     ["Teamfight", "Stable", "Scaling", "Self-Sufficient", "Flexible"],
+      support: ["Utility", "Vision", "Stable", "Roaming", "Peel"],
+    };
+
+    const reserve = ROLE_RESERVE_TAGS[role] ?? [];
+    for (const tag of reserve) {
+      if (finalTags.length >= 3) break;
+      if (finalTags.includes(tag)) continue;
+      if (coherenceRemovals.has(tag)) continue; // still contradicted
+      if ([primaryStyle, secondaryStyle].some(
+        (s) => s?.toLowerCase() === tag.toLowerCase()
+      )) continue; // same as a style label
+      uniquePush(finalTags, tag);
+    }
   }
 
   return {

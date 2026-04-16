@@ -73,6 +73,16 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     adaptationProfile: { draftFlex: 9.8, creativity: 9.7, composure: 8.9, matchupLearning: 9.4 },
     tagOverrides: { add: ["Creative", "Lane Pressure"] },
   },
+  kanavi: {
+    phaseProfile: {
+      early: { laneControl: 6.0, skirmish: 9.2, stability: 7.8, mapPlay: 9.2, teamfight: 8.0, clutch: 8.0 },
+      mid: { laneControl: 5.8, skirmish: 9.0, stability: 8.0, mapPlay: 9.3, teamfight: 8.4, clutch: 8.2 },
+      late: { laneControl: 5.5, skirmish: 8.4, stability: 8.2, mapPlay: 9.0, teamfight: 8.8, clutch: 8.4 },
+    },
+    archetypeAffinity: { engage: 9.2, dive: 9.4, carry: 8.7, setup: 8.6 },
+    adaptationProfile: { draftFlex: 8.7, creativity: 8.5, composure: 8.3, matchupLearning: 9.1 },
+    tagOverrides: { add: ["Early Game", "Dive", "Invader"] },
+  },
   delight: {
     phaseProfile: {
       early: { laneControl: 8.1, skirmish: 8.3, stability: 8.7, mapPlay: 8.4, teamfight: 8.5, clutch: 8.0 },
@@ -91,7 +101,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     },
     archetypeAffinity: { carry: 9.5, poke: 8.8, frontToBack: 9.3 },
     adaptationProfile: { draftFlex: 8.4, creativity: 7.9, composure: 9.1, matchupLearning: 8.7 },
-    tagOverrides: { add: ["Teamfight", "Late Game"] },
+    secondaryStyle: "weakside",
+    tagOverrides: { add: ["Teamfight", "Late Game"], remove: [] },
   },
   ruler: {
     phaseProfile: {
@@ -175,7 +186,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     primaryStyle: "brawler",
     primaryDisplayOverride: "Brawler",
     secondaryStyle: "aggressive",
-    tagOverrides: { add: ["Early Game", "Snowball", "Dive"], remove: ["Stable"] },
+    tagOverrides: { add: ["Early Game", "Snowball", "Dive", "Lane Dominant"], remove: ["Stable"] },
   },
   knight: {
     phaseProfile: {
@@ -199,7 +210,13 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   },
 
   // ── Secondary style nudges — derivare automată dar cu override semantic ──
-  brokenblade: { secondaryStyle: "weakside" },
+  brokenblade: { secondaryStyle: "weakside", tagOverrides: { add: ["Snowball", "Teamfight"], remove: [] } },
+  skewmond: { tagOverrides: { add: ["Tempo", "Early Game", "Pathing"] } },
+  labrov: {
+    archetypeAffinity: { enchanter: 8.8, engage: 8.2, utility: 8.9, setup: 8.4, frontToBack: 9.0 },
+    adaptationProfile: { draftFlex: 8.4, creativity: 8.2, composure: 8.6, matchupLearning: 8.5 },
+    tagOverrides: { add: ["Peel", "Systematic"] },
+  },
   carzzy: { secondaryStyle: "weakside" },
   myrwn: { secondaryStyle: "aggressive" },
   elyoya: { secondaryStyle: "carry" },
@@ -211,7 +228,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   kingen: { secondaryStyle: "weakside" },
   pyosik: { secondaryStyle: "aggressive" },
   casting: { secondaryStyle: "weakside" },
-  xun: { secondaryStyle: "carry", tagOverrides: { add: ["Early Game"] } },
+  xun: { secondaryStyle: "carry", tagOverrides: { add: ["Early Game", "Invader", "Tempo"] }, },
   zdz: { secondaryStyle: "weakside" },
   breathe: { secondaryStyle: "aggressive" },
   xiaoxu: { secondaryStyle: "aggressive" },

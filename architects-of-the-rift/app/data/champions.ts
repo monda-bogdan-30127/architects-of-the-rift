@@ -34,18 +34,20 @@ const mergeWeaknesses = (
 const baseChampions: Champion[] = [
   createChampion({
     id: "orianna",
-    weakVs: [
-      { championId: "aurelion-sol", score: 5 },
-      { championId: "sylas", score: 3 },
-      { championId: "akali", score: 4 }
-    ],
     goodVs: [
-      { championId: "viktor", score: 5 },
-      { championId: "syndra", score: 5 },
-      { championId: "taliyah", score: 4 },
-      { championId: "aurora", score: 3 },
-      { championId: "leblanc", score: 2 }
+      { championId: "syndra", score: 4 },
+      { championId: "aurora", score: 4 },
+      { championId: "leblanc", score: 3 },
+      { championId: "viktor", score: 3 },
+      { championId: "galio", score: 3 }
     ],
+
+    weakVs: [
+      { championId: "aurelion-sol", score: 4 },
+      { championId: "akali", score: 3 },
+      { championId: "ahri", score: 2 }
+    ],
+
     synergyWith: [{ championId: "vi", score: 5 }, { championId: "jarvan-iv", score: 4 }, { championId: "wukong", score: 4 }, { championId: "rakan", score: 3 }, { championId: "dr-mundo", score: 3 }],
     // Example of a near-mandatory pairing in coordinated play.
     //mustWith: [{ championId: "jarvan-iv", score: 5 }],
@@ -97,22 +99,30 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 53.4,
     },
   }),
+
+
   createChampion({
     id: "ambessa",
-    weakVs: [
-      { championId: "jarvan-iv", score: 5 },
-      { championId: "volibear", score: 5 },
-      { championId: "jayce", score: 4 },
-      { championId: "renekton", score: 5 },
-      { championId: "gwen", score: 3 }
-    ],
     goodVs: [
-      { championId: "ksante", score: 5 },
-      { championId: "jax", score: 5 },
-      { championId: "sion", score: 3 },
-      { championId: "reksai", score: 4 },
-      { championId: "wukong", score: 4 }
+      { championId: "aurora", score: 5 },
+      { championId: "ksante", score: 4 },
+      { championId: "jax", score: 4 },
+      { championId: "wukong", score: 3 },
+      { championId: "aatrox", score: 3 },
+      { championId: "xin-zhao", score: 3 },
+      { championId: "viego", score: 3 }
     ],
+
+    weakVs: [
+      { championId: "ornn", score: 5 },
+      { championId: "gwen", score: 4 },
+      { championId: "volibear", score: 4 },
+      { championId: "jayce", score: 3 },
+      { championId: "gnar", score: 3 },
+      { championId: "jarvan-iv", score: 3 },
+      { championId: "renekton", score: 2 }
+    ],
+
     synergyWith: [
       { championId: "vi", score: 3 },
       { championId: "galio", score: 5 },
@@ -167,21 +177,23 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56,
     },
   }),
+
+
   createChampion({
     id: "jarvan-iv",
     goodVs: [
       { championId: "sejuani", score: 2 },
-      { championId: "maoki", score: 2 },
-      { championId: "pantheon", score: 4 },
-      { championId: "ambessa", score: 4 },
-      { championId: "malphite", score: 4 }
+      { championId: "maokai", score: 2 },
+      { championId: "ambessa", score: 5 },
+      { championId: "nocturne", score: 3 },
+      { championId: "xin-zhao", score: 2 }
     ],
     weakVs: [
-      { championId: "naafiri", score: 4 },
-      { championId: "qiyana", score: 4 },
-      { championId: "lee-sin", score: 3 },
-      { championId: "aatrox", score: 2 },
-      { championId: "poppy", score: 3 }
+      { championId: "lee-sin", score: 5 },
+      { championId: "wukong", score: 3 },
+      { championId: "vi", score: 3 },
+      { championId: "pantheon", score: 2 },
+      { championId: "poppy", score: 2 }
     ],
     synergyWith: [{ championId: "orianna", score: 5 }, { championId: "rumble", score: 5 }, { championId: "galio", score: 4 }, { championId: "seraphine", score: 3 }],
     offers: [
@@ -232,21 +244,24 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55,
     },
   }),
+
+
   createChampion({
     id: "rumble",
     goodVs: [
       { championId: "kennen", score: 5 },
       { championId: "yorick", score: 5 },
-      { championId: "aatrox", score: 4 },
-      { championId: "ksante", score: 2 }
+      { championId: "sion", score: 4 },
+      { championId: "ksante", score: 3 },
+      { championId: "ornn", score: 3 }
     ],
 
     weakVs: [
       { championId: "gnar", score: 3 },
       { championId: "gwen", score: 3 },
-      { championId: "sion", score: 2 },
+      { championId: "ambessa", score: 3 },
       { championId: "aurora", score: 2 },
-      { championId: "galio", score: 3 }
+      { championId: "galio", score: 2 }
     ],
 
     synergyWith: [{ championId: "jarvan-iv", score: 5 }, { championId: "vi", score: 4 }, { championId: "nautilus", score: 4 }, { championId: "wukong", score: 4 }, { championId: "rakan", score: 2 }],
@@ -299,18 +314,24 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 60,
     },
   }),
+
+
   createChampion({
     id: "vi",
     goodVs: [
-      { championId: "maokai", score: 3 },
+      { championId: "maokai", score: 2 },
       { championId: "sejuani", score: 2 },
+      { championId: "naafiri", score: 5 },
+      { championId: "wukong", score: 3 },
+      { championId: "xin-zhao", score: 3 },
+      { championId: "jarvan-iv", score: 3 }
     ],
 
     weakVs: [
-      { championId: "pantheon", score: 3 },
       { championId: "zaahen", score: 3 },
       { championId: "poppy", score: 3 },
-      { championId: "xin-zhao", score: 2 }
+      { championId: "pantheon", score: 5 },
+      { championId: "nocturne", score: 4 }
     ],
 
     synergyWith: [{ championId: "ahri", score: 5 }, { championId: "orianna", score: 4 }, { championId: "galio", score: 3 }, { championId: "rumble", score: 4 }],
@@ -324,6 +345,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "followUp", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "disengage", severity: 3 },
       { exposedTo: "peel", severity: 2 },
@@ -361,17 +383,35 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55.57,
     },
   }),
+
+
   createChampion({
     id: "neeko",
-    weakVs: [{ championId: "alistar", score: 2 }, { championId: "janna", score: 3 }, { championId: "braum", score: 2 }, { championId: "seraphine", score: 5 }, { championId: "lulu", score: 3 }],
+    weakVs: [
+      { championId: "anivia", score: 5 },
+      { championId: "nami", score: 4 },
+      { championId: "bard", score: 4 },
+      { championId: "rell", score: 3 },
+      { championId: "lulu", score: 2 }
+    ],
+
     goodVs: [
-      { championId: "rakan", score: 5 },
-      { championId: "leona", score: 5 },
+      { championId: "rakan", score: 4 },
+      { championId: "seraphine", score: 4 },
+      { championId: "nautilus", score: 3 },
       { championId: "rell", score: 4 },
       { championId: "thresh", score: 4 },
       { championId: "milio", score: 3 }
     ],
-    synergyWith: [{ championId: "caitlyn", score: 5 }, { championId: "kaisa", score: 5 }, { championId: "seraphine", score: 4 }, { championId: "kalista", score: 3 }],
+
+    synergyWith: [
+      { championId: "caitlyn", score: 3 },
+      { championId: "kaisa", score: 5 },
+      { championId: "jhin", score: 4 },
+      { championId: "kalista", score: 3 },
+      { championId: "yunara", score: 2 }
+    ],
+
     offers: [
       { type: "engage", strength: 4 },
       { type: "reliableCC", strength: 5 },
@@ -419,23 +459,34 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.7,
     },
   }),
+
+
   createChampion({
     id: "nautilus",
     goodVs: [
+      { championId: "bard", score: 3 },
       { championId: "karma", score: 4 },
-      { championId: "nami", score: 4 },
-      { championId: "seraphine", score: 4 },
-      { championId: "lulu", score: 3 },
+      { championId: "lulu", score: 4 },
+      { championId: "milio", score: 4 },
       { championId: "thresh", score: 2 }
     ],
+
     weakVs: [
-      { championId: "leona", score: 4 },
-      { championId: "bard", score: 3 },
+      { championId: "alistar", score: 4 },
+      { championId: "nami", score: 4 },
+      { championId: "rakan", score: 4 },
+      { championId: "neeko", score: 3 },
       { championId: "poppy", score: 3 },
-      { championId: "rakan", score: 2 },
-      { championId: "rell", score: 2 }
+      { championId: "seraphine", score: 2 }
     ],
-    synergyWith: [{ championId: "varus", score: 5 }, { championId: "kalista", score: 3 }, { championId: "kaisa", score: 4 }, { championId: "rumble", score: 4 }],
+
+    synergyWith: [
+      { championId: "varus", score: 5 },
+      { championId: "kalista", score: 3 },
+      { championId: "kaisa", score: 5 },
+      { championId: "rumble", score: 4 }
+    ],
+
     offers: [
       { type: "engage", strength: 5 },
       { type: "pick", strength: 4 },
@@ -452,7 +503,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "frontline", severity: 2 },
       { exposedTo: "peel", severity: 1 },
     ],
-
 
     playerScaling: { mac: 4, tfg: 5, con: 3, iq: 4 },
 
@@ -482,17 +532,31 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56,
     },
   }),
+
   createChampion({
     id: "varus",
     goodVs: [
       { championId: "jhin", score: 4 },
-      { championId: "ashe", score: 3 },
-      { championId: "sivir", score: 2 },
-      { championId: "yunara", score: 2 },
-      { championId: "ezreal", score: 1 }
+      { championId: "corki", score: 4 },
+      { championId: "caitlyn", score: 3 },
+      { championId: "ezreal", score: 3 },
+      { championId: "sivir", score: 3 },
     ],
-    weakVs: [{ championId: "yasuo", score: 3 }, { championId: "braum", score: 3 }, { championId: "nilah", score: 3 }, { championId: "lucian", score: 4 }, { championId: "kaisa", score: 3 }],
-    synergyWith: [{ championId: "nautilus", score: 5 }, { championId: "karma", score: 5 }, { championId: "bard", score: 4 }, { championId: "renata-glasc", score: 4 }],
+    weakVs: [
+      { championId: "yunara", score: 4 },
+      { championId: "lucian", score: 3 },
+      { championId: "ashe", score: 3 },
+      { championId: "kaisa", score: 2 },
+      { championId: "miss-fortune", score: 2 }
+    ],
+
+    synergyWith: [
+      { championId: "nautilus", score: 5 },
+      { championId: "karma", score: 5 },
+      { championId: "bard", score: 4 },
+      { championId: "renata-glasc", score: 4 }
+    ],
+
     offers: [
       { type: "poke", strength: 5 },
       { type: "objectiveControl", strength: 4 },
@@ -511,7 +575,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "engage", severity: 2 },
       { exposedTo: "waveclear", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 4, clt: 3, con: 4 },
 
@@ -541,6 +604,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55,
     },
   }),
+
+
   createChampion({
     id: "ryze",
     goodVs: [
@@ -548,14 +613,15 @@ const baseChampions: Champion[] = [
       { championId: "yone", score: 4 },
       { championId: "viktor", score: 4 },
       { championId: "ahri", score: 3 },
-      { championId: "syndra", score: 3 }
+      { championId: "azir", score: 3 },
     ],
     weakVs: [
-      { championId: "cassiopeia", score: 3 },
-      { championId: "swain", score: 3 },
-      { championId: "akali", score: 4 },
-      { championId: "anivia", score: 3 },
-      { championId: "aurora", score: 3 }
+      { championId: "cassiopeia", score: 2 },
+      { championId: "syndra", score: 3 },
+      { championId: "annie", score: 4 },
+      { championId: "orianna", score: 4 },
+      { championId: "ahri", score: 3 },
+      { championId: "anivia", score: 2 }
     ],
 
     synergyWith: [
@@ -583,7 +649,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "engage", severity: 2 },
       { exposedTo: "earlyPrio", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, mac: 4, con: 4, iq: 5 },
 
@@ -613,22 +678,36 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 52,
     },
   }),
+
   createChampion({
     id: "yunara",
     goodVs: [
-      { championId: "jinx", score: 5 },
-      { championId: "smolder", score: 5 },
-      { championId: "tristana", score: 4 },
-      { championId: "lucian", score: 4 },
-      { championId: "aphelios", score: 3 }
+      { championId: "kaisa", score: 5 },
+      { championId: "varus", score: 3 },
+      { championId: "jhin", score: 3 },
+      { championId: "zeri", score: 3 },
+      { championId: "lucian", score: 3 },
     ],
+
     weakVs: [
-      { championId: "miss-fortune", score: 5 },
-      { championId: "caitlyn", score: 3 },
-      { championId: "varus", score: 2 }
+      { championId: "ashe", score: 4 },
+      { championId: "ezreal", score: 3 },
+      { championId: "aphelios", score: 4 },
+      { championId: "corki", score: 3 },
+      { championId: "caitlyn", score: 2 }
     ],
-    synergyWith: [{ championId: "ornn", score: 5 }, { championId: "ksante", score: 5 }, { championId: "taliyah", score: 4 },],
-    mustWith: [{ championId: "lulu", score: 5 }, { championId: "milio", score: 5 }, { championId: "nami", score: 4 }, { championId: "thresh", score: 3 }],
+
+    synergyWith: [
+      { championId: "karma", score: 5 },
+      { championId: "bard", score: 5 },
+      { championId: "braum", score: 4 },
+    ],
+    mustWith: [
+      { championId: "lulu", score: 5 },
+      { championId: "milio", score: 5 },
+      { championId: "nami", score: 4 },
+      { championId: "thresh", score: 3 }
+    ],
     offers: [
       { type: "sustainedDamage", strength: 5 },
       { type: "scaling", strength: 5 },
@@ -677,23 +756,32 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56,
     },
   }),
+
+
   createChampion({
     id: "azir",
     goodVs: [
       { championId: "viktor", score: 5 },
-      { championId: "ahri", score: 4 },
-      { championId: "akali", score: 3 },
-      { championId: "taliyah", score: 2 }
+      { championId: "taliyah", score: 2 },
+      { championId: "aurora", score: 5 },
+      { championId: "akali", score: 4 }
     ],
 
     weakVs: [
-      { championId: "zoe", score: 3 },
-      { championId: "syndra", score: 3 },
-      { championId: "aurora", score: 2 },
-      { championId: "ziggs", score: 3 },
+      { championId: "leblanc", score: 5 },
+      { championId: "ryze", score: 4 },
+      { championId: "ahri", score: 3 },
+      { championId: "ziggs", score: 2 },
       { championId: "yone", score: 3 }
     ],
-    synergyWith: [{ championId: "maokai", score: 4 }, { championId: "sejuani", score: 4 }, { championId: "braum", score: 3 }, { championId: "ornn", score: 4 }],
+    synergyWith: [
+      { championId: "maokai", score: 3 },
+      { championId: "nocturne", score: 3 },
+      { championId: "vi", score: 4 },
+      { championId: "xin-zhao", score: 2 },
+      { championId: "lee-sin", score: 3 }
+    ],
+
     offers: [
       { type: "zoneControl", strength: 5 },
       { type: "sustainedDamage", strength: 5 },
@@ -743,24 +831,34 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 42.44,
     },
   }),
+
+
   createChampion({
     id: "xin-zhao",
     goodVs: [
       { championId: "trundle", score: 5 },
+      { championId: "wukong", score: 3 },
+      { championId: "zaahen", score: 3 },
       { championId: "sejuani", score: 5 },
-      { championId: "jayce", score: 4 },
       { championId: "naafiri", score: 3 },
-      { championId: "pantheon", score: 2 }
     ],
 
     weakVs: [
-      { championId: "nocturne", score: 5 },
-      { championId: "khazix", score: 4 },
-      { championId: "jax", score: 4 },
-      { championId: "lee-sin", score: 4 },
-      { championId: "ambessa", score: 3 }
+      { championId: "jax", score: 5 },
+      { championId: "aatrox", score: 4 },
+      { championId: "skarner", score: 4 },
+      { championId: "nocturne", score: 3 },
+      { championId: "vi", score: 3 }
     ],
-    synergyWith: [{ championId: "sivir", score: 4 }, { championId: "karma", score: 4 }, { championId: "annie", score: 3 }, { championId: "lulu", score: 3 }],
+
+    synergyWith: [
+      { championId: "sivir", score: 4 },
+      { championId: "karma", score: 4 },
+      { championId: "seraphine", score: 4 },
+      { championId: "annie", score: 3 },
+      { championId: "lulu", score: 3 }
+    ],
+
     offers: [
       { type: "earlyPrio", strength: 4 },
       { type: "dive", strength: 4 },
@@ -808,22 +906,32 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 59.6,
     },
   }),
+
+
   createChampion({
     id: "karma",
     goodVs: [
-      { championId: "rakan", score: 4 },
-      { championId: "bard", score: 3 },
-      { championId: "alistar", score: 2 }
+      { championId: "alistar", score: 4 },
+      { championId: "nami", score: 3 },
+      { championId: "renata-glasc", score: 3 },
+      { championId: "neeko", score: 2 },
     ],
 
     weakVs: [
-      { championId: "nautilus", score: 4 },
-      { championId: "leona", score: 4 },
-      { championId: "seraphine", score: 4 },
-      { championId: "nami", score: 3 },
-      { championId: "lulu", score: 2 }
+      { championId: "nautilus", score: 5 },
+      { championId: "seraphine", score: 3 },
+      { championId: "rakan", score: 3 },
+      { championId: "lulu", score: 3 },
+      { championId: "bard", score: 2 }
     ],
-    synergyWith: [{ championId: "caitlyn", score: 5 }, { championId: "ezreal", score: 5 }, { championId: "varus", score: 5 }, { championId: "sivir", score: 4 }],
+
+    synergyWith: [
+      { championId: "caitlyn", score: 5 },
+      { championId: "ezreal", score: 5 },
+      { championId: "varus", score: 5 },
+      { championId: "sivir", score: 4 }
+    ],
+
     offers: [
       { type: "poke", strength: 4 },
       { type: "peel", strength: 4 },
@@ -870,22 +978,31 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55,
     },
   }),
+
+
   createChampion({
     id: "ezreal",
     goodVs: [
-      { championId: "tristana", score: 5 },
-      { championId: "xayah", score: 4 },
-      { championId: "corki", score: 2 }
+      { championId: "jhin", score: 5 },
+      { championId: "yunara", score: 4 },
+      { championId: "aphelios", score: 4 },
+      { championId: "corki", score: 4 }
     ],
 
     weakVs: [
-      { championId: "sivir", score: 5 },
-      { championId: "miss-fortune", score: 4 },
-      { championId: "ashe", score: 3 },
-      { championId: "caitlyn", score: 3 },
-      { championId: "aphelios", score: 3 }
+      { championId: "caitlyn", score: 4 },
+      { championId: "sivir", score: 3 },
+      { championId: "varus", score: 2 }
     ],
-    synergyWith: [{ championId: "karma", score: 5 }, { championId: "bard", score: 4 }, { championId: "leona", score: 3 }, { championId: "braum", score: 3 }, { championId: "thresh", score: 3 }],
+
+    synergyWith: [
+      { championId: "karma", score: 5 },
+      { championId: "bard", score: 4 },
+      { championId: "leona", score: 3 },
+      { championId: "braum", score: 3 },
+      { championId: "thresh", score: 3 }
+    ],
+
     offers: [
       { type: "poke", strength: 5 },
       { type: "siege", strength: 3 },
@@ -933,16 +1050,33 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 54.8,
     },
   }),
+
+
   createChampion({
     id: "pantheon",
     goodVs: [
-      { championId: "trundle", score: 5 },
-      { championId: "ambessa", score: 4 },
-      { championId: "vi", score: 4 },
-      { championId: "kalista", score: 3 }
+      { championId: "vi", score: 5 },
+      { championId: "naafiri", score: 4 },
+      { championId: "aatrox", score: 4 },
+      { championId: "sejuani", score: 3 },
+      { championId: "xin-zhao", score: 2 }
     ],
-    weakVs: [{ championId: "skarner", score: 2 }, { championId: "poppy", score: 5 }, { championId: "jarvan-iv", score: 3 }, { championId: "taliyah", score: 3 }],
-    synergyWith: [{ championId: "taliyah", score: 4 }, { championId: "ahri", score: 4 }, { championId: "kalista", score: 4 }, { championId: "azir", score: 3 }],
+
+    weakVs: [
+      { championId: "skarner", score: 5 },
+      { championId: "ambessa", score: 4 },
+      { championId: "wukong", score: 4 },
+      { championId: "nocturne", score: 4 },
+      { championId: "poppy", score: 2 }
+    ],
+
+    synergyWith: [
+      { championId: "taliyah", score: 4 },
+      { championId: "ahri", score: 4 },
+      { championId: "kalista", score: 4 },
+      { championId: "azir", score: 3 }
+    ],
+
     offers: [
       { type: "pick", strength: 4 },
       { type: "engage", strength: 4 },
@@ -954,6 +1088,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "followUp", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "disengage", severity: 3 },
       { exposedTo: "zoneControl", severity: 2 },
@@ -961,7 +1096,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "peel", severity: 1 },
       { exposedTo: "scaling", severity: 1 },
     ],
-
 
     playerScaling: { mec: 2, mac: 4, tfg: 3, iq: 4 },
 
@@ -991,20 +1125,31 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55.2,
     },
   }),
+
   createChampion({
     id: "caitlyn",
     goodVs: [
-      { championId: "sivir", score: 4 },
-      { championId: "jinx", score: 4 },
-      { championId: "lucian", score: 4 },
-      { championId: "yunara", score: 3 },
-      { championId: "ezreal", score: 3 }
+      { championId: "ezreal", score: 4 },
+      { championId: "corki", score: 4 },
+      { championId: "jhin", score: 3 },
+      { championId: "yunara", score: 3 }
     ],
 
     weakVs: [
-      { championId: "aphelios", score: 4 }, { championId: "nocturne", score: 4 }, { championId: "vi", score: 4 }
+      { championId: "aphelios", score: 4 },
+      { championId: "ashe", score: 4 },
+      { championId: "jhin", score: 3 },
+      { championId: "sivir", score: 1 },
     ],
-    synergyWith: [{ championId: "karma", score: 5 }, { championId: "lux", score: 5 }, { championId: "neeko", score: 4 }, { championId: "morgana", score: 2 }],
+
+    synergyWith: [
+      { championId: "karma", score: 5 },
+      { championId: "lux", score: 5 },
+      { championId: "neeko", score: 4 },
+      { championId: "milio", score: 2 },
+      { championId: "braum", score: 1 }
+    ],
+
     offers: [
       { type: "siege", strength: 5 },
       { type: "poke", strength: 4 },
@@ -1053,24 +1198,31 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 59.4,
     },
   }),
+
+
   createChampion({
     id: "ahri",
     goodVs: [
-      { championId: "yone", score: 5 },
-      { championId: "akali", score: 5 },
-      { championId: "syndra", score: 4 },
-      { championId: "veigar", score: 4 },
-      { championId: "taliyah", score: 4 }
+      { championId: "sylas", score: 5 },
+      { championId: "annie", score: 5 },
+      { championId: "akali", score: 4 },
+      { championId: "galio", score: 3 },
+      { championId: "taliyah", score: 3 }
     ],
 
     weakVs: [
-      { championId: "viktor", score: 4 },
+      { championId: "viktor", score: 2 },
       { championId: "leblanc", score: 4 },
       { championId: "mel", score: 3 },
       { championId: "cassiopeia", score: 3 },
       { championId: "ryze", score: 2 }
     ],
-    synergyWith: [{ championId: "vi", score: 5 }, { championId: "xin-zhao", score: 4 }, { championId: "wukong", score: 4 }, { championId: "pantheon", score: 4 }],
+    synergyWith: [
+      { championId: "vi", score: 5 },
+      { championId: "xin-zhao", score: 4 },
+      { championId: "wukong", score: 4 },
+      { championId: "pantheon", score: 4 }
+    ],
     offers: [
       { type: "pick", strength: 4 },
       { type: "burstDamage", strength: 4 },
@@ -1086,7 +1238,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "frontline", severity: 2 },
       { exposedTo: "disengage", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, mac: 3, tfg: 3, iq: 4 },
 
@@ -1116,22 +1267,30 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 59,
     },
   }),
+
   createChampion({
     id: "bard",
     goodVs: [
-      { championId: "leona", score: 4 },
-      { championId: "alistar", score: 3 },
-      { championId: "rell", score: 4 },
-      { championId: "pyke", score: 5 },
-      { championId: "nautilus", score: 3 }
+      { championId: "alistar", score: 5 },
+      { championId: "rakan", score: 4 },
+      { championId: "lulu", score: 4 },
+      { championId: "neeko", score: 4 },
+      { championId: "seraphine", score: 3 }
     ],
 
     weakVs: [
-      { championId: "karma", score: 2 },
-      { championId: "neeko", score: 2 }
+      { championId: "nautilus", score: 5 },
+      { championId: "karma", score: 3 },
+      { championId: "ezreal", score: 4 }
     ],
 
-    synergyWith: [{ championId: "ezreal", score: 5 }, { championId: "caitlyn", score: 4 }, { championId: "ashe", score: 4 }, { championId: "taliyah", score: 3 }, { championId: "wukong", score: 3 }, { championId: "azir", score: 3 }],
+    synergyWith: [
+      { championId: "caitlyn", score: 5 },
+      { championId: "jhin", score: 4 },
+      { championId: "ezreal", score: 4 },
+      { championId: "sivir", score: 3 },
+      { championId: "wukong", score: 2 }
+    ],
     offers: [
       { type: "pick", strength: 4 },
       { type: "roamPressure", strength: 5 },
@@ -1178,22 +1337,30 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 58,
     },
   }),
+
   createChampion({
     id: "taliyah",
     goodVs: [
-      { championId: "galio", score: 5 },
+      { championId: "galio", score: 4 },
       { championId: "sylas", score: 4 },
       { championId: "aurora", score: 2 }
     ],
 
     weakVs: [
       { championId: "zoe", score: 5 },
-      { championId: "anivia", score: 5 },
+      { championId: "anivia", score: 3 },
       { championId: "ryze", score: 2 },
       { championId: "leblanc", score: 3 },
-      { championId: "ahri", score: 3 }
+      { championId: "ahri", score: 5 }
     ],
-    synergyWith: [{ championId: "pantheon", score: 5 }, { championId: "bard", score: 3 }, { championId: "nautilus", score: 3 }, { championId: "renekton", score: 3 }, { championId: "vi", score: 4 }, { championId: "nocturne", score: 4 }],
+    synergyWith: [
+      { championId: "vi", score: 5 },
+      { championId: "lee-sin", score: 4 },
+      { championId: "nocturne", score: 3 },
+      { championId: "ambessa", score: 4 },
+      { championId: "xin-zhao", score: 2 }
+    ],
+
     offers: [
       { type: "zoneControl", strength: 5 },
       { type: "pick", strength: 4 },
@@ -1205,6 +1372,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
@@ -1242,24 +1410,31 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 58,
     },
   }),
+
   createChampion({
     id: "sion",
     goodVs: [
       { championId: "aurora", score: 4 },
-      { championId: "rumble", score: 3 },
-      { championId: "ambessa", score: 3 },
       { championId: "gnar", score: 2 },
-      { championId: "ksante", score: 2 }
+      { championId: "ambessa", score: 3 },
+      { championId: "jayce", score: 2 }
     ],
 
     weakVs: [
-      { championId: "reksai", score: 4 },
-      { championId: "aatrox", score: 3 },
-      { championId: "sett", score: 2 },
-      { championId: "zaahen", score: 2 },
-      { championId: "camille", score: 3 }
+      { championId: "renekton", score: 5 },
+      { championId: "rumble", score: 5 },
+      { championId: "zaahen", score: 5 },
+      { championId: "gwen", score: 4 },
+      { championId: "aatrox", score: 4 }
     ],
-    synergyWith: [{ championId: "varus", score: 4 }, { championId: "ashe", score: 4 }, { championId: "senna", score: 4 }, { championId: "orianna", score: 3 }],
+
+    synergyWith: [
+      { championId: "naafiri", score: 3 },
+      { championId: "lee-sin", score: 4 },
+      { championId: "xin-zhao", score: 4 },
+      { championId: "viego", score: 3 }
+    ],
+
     offers: [
       { type: "frontline", strength: 5 },
       { type: "engage", strength: 4 },
@@ -1306,24 +1481,32 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 51,
     },
   }),
+
+
   createChampion({
     id: "ksante",
     goodVs: [
       { championId: "aatrox", score: 4 },
       { championId: "jayce", score: 2 },
-      { championId: "renekton", score: 2 },
-      { championId: "rumble", score: 2 },
-      { championId: "gnar", score: 2 }
+      { championId: "aurora", score: 2 }
     ],
 
     weakVs: [
-      { championId: "gwen", score: 4 },
-      { championId: "zaahen", score: 4 },
-      { championId: "ambessa", score: 4 },
-      { championId: "poppy", score: 3 },
-      { championId: "yorick", score: 3 }
+      { championId: "gnar", score: 4 },
+      { championId: "ambessa", score: 5 },
+      { championId: "vayne", score: 4 },
+      { championId: "aatrox", score: 2 },
+      { championId: "renekton", score: 3 }
     ],
-    synergyWith: [{ championId: "azir", score: 4 }, { championId: "yunara", score: 3 }, { championId: "lulu", score: 3 }, { championId: "ahri", score: 3 }],
+
+    synergyWith: [
+      { championId: "nocturne", score: 5 },
+      { championId: "xin-zhao", score: 4 },
+      { championId: "naafiri", score: 4 },
+      { championId: "vi", score: 4 },
+      { championId: "ambessa", score: 3 }
+    ],
+
     offers: [
       { type: "frontline", strength: 5 },
       { type: "peel", strength: 3 },
@@ -1368,6 +1551,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 51,
     },
   }),
+
+
   createChampion({
     id: "dr-mundo",
     goodVs: [
@@ -1380,12 +1565,21 @@ const baseChampions: Champion[] = [
 
     weakVs: [
       { championId: "naafiri", score: 5 },
-      { championId: "renekton", score: 5 },
+      { championId: "vi", score: 3 },
       { championId: "nocturne", score: 4 },
       { championId: "aatrox", score: 3 },
       { championId: "jarvan-iv", score: 3 }
     ],
-    synergyWith: [{ championId: "azir", score: 5 }, { championId: "orianna", score: 5 }, { championId: "lulu", score: 3 }, { championId: "karma", score: 3 }, { championId: "sivir", score: 4 }],
+    synergyWith: [
+      { championId: "hwei", score: 3 },
+      { championId: "orianna", score: 5 },
+      { championId: "bard", score: 4 },
+      { championId: "karma", score: 4 },
+      { championId: "seraphine", score: 5 },
+      { championId: "nami", score: 3 },
+      { championId: "sivir", score: 4 }
+    ],
+
     offers: [
       { type: "frontline", strength: 5 },
       { type: "sideLanePressure", strength: 3 },
@@ -1432,19 +1626,21 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 53,
     },
   }),
+
+
   createChampion({
     id: "zaahen",
     goodVs: [
-      { championId: "gwen", score: 5 },
-      { championId: "ksante", score: 5 },
-      { championId: "reksai", score: 4 },
-      { championId: "pantheon", score: 4 },
-      { championId: "wukong", score: 4 }
+      { championId: "gwen", score: 4 },
+      { championId: "ksante", score: 4 },
+      { championId: "reksai", score: 3 },
+      { championId: "pantheon", score: 2 },
+      { championId: "wukong", score: 2 }
     ],
 
     weakVs: [
-      { championId: "dr-mundo", score: 4 },
-      { championId: "ornn", score: 3 },
+      { championId: "dr-mundo", score: 2 },
+      { championId: "ornn", score: 2 },
       { championId: "gnar", score: 2 },
       { championId: "ambessa", score: 2 },
       { championId: "jax", score: 1 }
@@ -1495,23 +1691,32 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.4,
     },
   }),
+
   createChampion({
     id: "ashe",
     goodVs: [
-      { championId: "kaisa", score: 5 },
-      { championId: "zeri", score: 5 },
-      { championId: "lucian", score: 4 },
-      { championId: "ezreal", score: 3 },
-      { championId: "aphelios", score: 2 }
+      { championId: "ziggs", score: 5 },
+      { championId: "corki", score: 4 },
+      { championId: "miss-fortune", score: 4 },
+      { championId: "yunara", score: 4 },
+      { championId: "jhin", score: 3 }
     ],
 
     weakVs: [
-      { championId: "varus", score: 3 },
-      { championId: "yunara", score: 2 },
-      { championId: "corki", score: 2 }
+      { championId: "varus", score: 2 },
+      { championId: "jinx", score: 3 }
     ],
-    synergyWith: [{ championId: "braum", score: 3 }, { championId: "karma", score: 2 }, { championId: "bard", score: 4 }],
-    mustWith: [{ championId: "seraphine", score: 5 }],
+
+    synergyWith: [
+      { championId: "braum", score: 3 },
+      { championId: "karma", score: 2 },
+      { championId: "bard", score: 2 }
+    ],
+
+    mustWith: [
+      { championId: "seraphine", score: 5 }
+    ],
+
     offers: [
       { type: "pick", strength: 4 },
       { type: "poke", strength: 3 },
@@ -1560,24 +1765,31 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 58.82,
     },
   }),
+
+
   createChampion({
     id: "corki",
     goodVs: [
-      { championId: "jhin", score: 4 },
-      { championId: "aphelios", score: 2 },
-      { championId: "lucian", score: 2 },
-      { championId: "ashe", score: 2 },
-      { championId: "sivir", score: 2 }
+      { championId: "jhin", score: 5 },
+      { championId: "aphelios", score: 4 },
+      { championId: "sivir", score: 3 },
+      { championId: "yunara", score: 3 }
     ],
 
     weakVs: [
-      { championId: "xayah", score: 3 },
-      { championId: "kaisa", score: 3 },
-      { championId: "ezreal", score: 2 },
-      { championId: "miss-fortune", score: 2 },
-      { championId: "yunara", score: 1 }
+      { championId: "ashe", score: 5 },
+      { championId: "ezreal", score: 4 },
+      { championId: "varus", score: 4 },
+      { championId: "caitlyn", score: 4 }
     ],
-    synergyWith: [{ championId: "nami", score: 5 }, { championId: "braum", score: 3 }, { championId: "bard", score: 3 }, { championId: "renata-glasc", score: 2 }],
+    synergyWith: [
+      { championId: "nami", score: 5 },
+      { championId: "braum", score: 3 },
+      { championId: "bard", score: 3 },
+      { championId: "nautilus", score: 3 },
+      { championId: "thresh", score: 2 }
+    ],
+
     offers: [
       { type: "poke", strength: 4 },
       { type: "scaling", strength: 4 },
@@ -1626,25 +1838,35 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 57.57,
     },
   }),
+
   createChampion({
     id: "aurora",
     goodVs: [
-      { championId: "azir", score: 4 },
-      { championId: "ryze", score: 4 },
-      { championId: "ksante", score: 4 },
-      { championId: "leblanc", score: 4 },
-      { championId: "galio", score: 3 }
+      { championId: "ryze", score: 2 },
+      { championId: "galio", score: 3 },
+      { championId: "viktor", score: 3 },
+      { championId: "leblanc", score: 3 },
+      { championId: "ksante", score: 3 },
+      { championId: "rumble", score: 2 }
     ],
 
     weakVs: [
-      { championId: "cassiopeia", score: 5 },
+      { championId: "azir", score: 5 },
+      { championId: "annie", score: 5 },
+      { championId: "mel", score: 4 },
+      { championId: "sion", score: 5 },
       { championId: "gnar", score: 4 },
-      { championId: "sion", score: 4 },
-      { championId: "viktor", score: 3 },
-      { championId: "orianna", score: 3 }
+      { championId: "ahri", score: 3 }
     ],
 
-    synergyWith: [{ championId: "nautilus", score: 5 }, { championId: "rell", score: 5 }, { championId: "wukong", score: 4 }, { championId: "jarvan-iv", score: 5 }],
+    synergyWith: [
+      { championId: "lee-sin", score: 5 },
+      { championId: "jarvan-iv", score: 3 },
+      { championId: "xin-zhao", score: 4 },
+      { championId: "ambessa", score: 2 },
+      { championId: "vi", score: 3 }
+    ],
+
     offers: [
       { type: "burstDamage", strength: 4 },
       { type: "backlineAccess", strength: 3 },
@@ -1691,6 +1913,7 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 53.81,
     },
   }),
+
   createChampion({
     id: "gwen",
     goodVs: [
@@ -1698,15 +1921,23 @@ const baseChampions: Champion[] = [
       { championId: "ornn", score: 4 },
       { championId: "renekton", score: 4 },
       { championId: "kennen", score: 4 },
+      { championId: "sion", score: 4 },
       { championId: "aatrox", score: 4 }
     ],
 
     weakVs: [
       { championId: "zaahen", score: 5 },
       { championId: "jax", score: 4 },
-      { championId: "gnar", score: 3 }
+      { championId: "gnar", score: 5 }
     ],
-    synergyWith: [{ championId: "sejuani", score: 3 }, { championId: "maokai", score: 3 }, { championId: "seraphine", score: 3 }, { championId: "renata-glasc", score: 3 }],
+
+    synergyWith: [
+      { championId: "vi", score: 5 },
+      { championId: "lee-sin", score: 4 },
+      { championId: "xin-zhao", score: 2 },
+      { championId: "jarvan-iv", score: 2 }
+    ],
+
     offers: [
       { type: "splitpush", strength: 4 },
       { type: "sideLanePressure", strength: 4 },
@@ -1716,6 +1947,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "engage", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "pick", severity: 2 },
       { exposedTo: "engage", severity: 2 },
@@ -1723,7 +1955,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "waveclear", severity: 1 },
       { exposedTo: "siege", severity: 1 },
     ],
-
 
     playerScaling: { mec: 5, tfg: 4, clt: 3, con: 3 },
 
@@ -1753,24 +1984,30 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 54.82,
     },
   }),
+
+
   createChampion({
     id: "renekton",
     goodVs: [
-      { championId: "olaf", score: 5 },
-      { championId: "aatrox", score: 5 },
-      { championId: "dr-mundo", score: 4 },
+      { championId: "sion", score: 5 },
+      { championId: "kennen", score: 5 },
+      { championId: "zaahen", score: 4 },
       { championId: "ornn", score: 3 },
-      { championId: "yone", score: 4 }
+      { championId: "ambessa", score: 2 }
     ],
 
     weakVs: [
       { championId: "gwen", score: 4 },
-      { championId: "ambessa", score: 4 },
-      { championId: "kennen", score: 3 },
-      { championId: "rumble", score: 3 },
-      { championId: "reksai", score: 2 }
+      { championId: "gnar", score: 2 },
+      { championId: "kennen", score: 3 }
     ],
-    synergyWith: [{ championId: "nidalee", score: 5 }, { championId: "taliyah", score: 3 }, { championId: "sejuani", score: 4 }, { championId: "lissandra", score: 3 }],
+    synergyWith: [
+      { championId: "nocturne", score: 5 },
+      { championId: "xin-zhao", score: 4 },
+      { championId: "vi", score: 4 },
+      { championId: "lee-sin", score: 3 },
+      { championId: "nidalee", score: 2 }
+    ],
     offers: [
       { type: "earlyPrio", strength: 5 },
       { type: "engage", strength: 3 },
@@ -1788,7 +2025,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "engage", severity: 1 },
       { exposedTo: "scaling", severity: 1 },
     ],
-
 
     playerScaling: { mec: 3, tfg: 3, con: 4, iq: 2 },
 
@@ -1818,25 +2054,33 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 59.18,
     },
   }),
+
+
   createChampion({
     id: "lulu",
     goodVs: [
-      { championId: "alistar", score: 5 },
-      { championId: "rell", score: 5 },
-      { championId: "braum", score: 4 },
-      { championId: "leona", score: 4 },
-      { championId: "pyke", score: 4 }
+      { championId: "karma", score: 3 },
+      { championId: "neeko", score: 3 },
+      { championId: "alistar", score: 4 },
+      { championId: "braum", score: 4 }
     ],
 
     weakVs: [
-      { championId: "seraphine", score: 4 },
-      { championId: "nami", score: 3 },
-      { championId: "nautilus", score: 3 },
-      { championId: "bard", score: 3 },
-      { championId: "thresh", score: 2 }
+      { championId: "thresh", score: 5 },
+      { championId: "bard", score: 5 },
+      { championId: "nautilus", score: 4 },
+      { championId: "seraphine", score: 3 },
+      { championId: "nami", score: 3 }
     ],
-    synergyWith: [{ championId: "aphelios", score: 5 }, { championId: "jinx", score: 5 }, { championId: "zeri", score: 5 }, { championId: "kogmaw", score: 5 }, { championId: "yunara", score: 3 }],
-    // Example: enchanter + hypercarry pairs are often strong synergy, not always true must-picks.
+
+    synergyWith: [
+      { championId: "aphelios", score: 5 },
+      { championId: "jinx", score: 5 },
+      { championId: "zeri", score: 5 },
+      { championId: "kogmaw", score: 5 },
+      { championId: "yunara", score: 5 }
+    ],
+
     offers: [
       { type: "peel", strength: 5 },
       { type: "antiDive", strength: 5 },
@@ -1881,21 +2125,33 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 51.7,
     },
   }),
+
   createChampion({
     id: "wukong",
     goodVs: [
       { championId: "maokai", score: 4 },
-      { championId: "dr-mundo", score: 3 },
+      { championId: "trundle", score: 4 },
+      { championId: "sejuani", score: 4 },
       { championId: "pantheon", score: 3 },
-      { championId: "nocturne", score: 3 }
+      { championId: "jarvan-iv", score: 3 }
     ],
 
     weakVs: [
-      { championId: "trundle", score: 2 },
-      { championId: "poppy", score: 4 },
-      { championId: "lee-sin", score: 3 },
-      { championId: "zaahen", score: 3 }
+      { championId: "poppy", score: 3 },
+      { championId: "dr-mundo", score: 4 },
+      { championId: "xin-zhao", score: 4 },
+      { championId: "vi", score: 3 },
+      { championId: "nocturne", score: 3 }
     ],
+
+    synergyWith: [
+      { championId: "ahri", score: 4 },
+      { championId: "orianna", score: 3 },
+      { championId: "sylas", score: 2 },
+      { championId: "viktor", score: 3 },
+      { championId: "akali", score: 4 }
+    ],
+
     offers: [
       { type: "engage", strength: 4 },
       { type: "dive", strength: 4 },
@@ -1913,7 +2169,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "zoneControl", severity: 2 },
       { exposedTo: "frontline", severity: 1 },
     ],
-
 
     playerScaling: { mec: 3, mac: 4, tfg: 5, iq: 4 },
 
@@ -1943,23 +2198,33 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 57.39,
     },
   }),
+
+
   createChampion({
     id: "gnar",
     goodVs: [
-      { championId: "ornn", score: 5 },
-      { championId: "aurora", score: 4 },
-      { championId: "rumble", score: 4 },
-      { championId: "jax", score: 4 },
+      { championId: "ksante", score: 5 },
+      { championId: "gwen", score: 5 },
+      { championId: "yorick", score: 4 },
+      { championId: "ambessa", score: 4 },
       { championId: "renekton", score: 4 }
     ],
 
     weakVs: [
       { championId: "kennen", score: 5 },
-      { championId: "ambessa", score: 3 },
       { championId: "sion", score: 2 },
-      { championId: "yorick", score: 2 },
-      { championId: "ksante", score: 2 }
+      { championId: "vayne", score: 2 },
+      { championId: "yorick", score: 2 }
     ],
+
+    synergyWith: [
+      { championId: "lee-sin", score: 3 },
+      { championId: "jarvan-iv", score: 4 },
+      { championId: "ambessa", score: 2 },
+      { championId: "xin-zhao", score: 2 },
+      { championId: "nocturne", score: 4 }
+    ],
+
     offers: [
       { type: "sideLanePressure", strength: 2 }
     ],
@@ -1971,7 +2236,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "poke", severity: 2 },
       { exposedTo: "siege", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 4, con: 3, iq: 2 },
 
@@ -2001,11 +2265,14 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.48,
     },
   }),
+
   createChampion({
     id: "aatrox",
     goodVs: [
       { championId: "jarvan-iv", score: 4 },
       { championId: "sion", score: 4 },
+      { championId: "jayce", score: 4 },
+      { championId: "yorick", score: 4 },
       { championId: "nocturne", score: 3 },
       { championId: "wukong", score: 3 },
       { championId: "dr-mundo", score: 3 }
@@ -2018,6 +2285,15 @@ const baseChampions: Champion[] = [
       { championId: "ksante", score: 3 },
       { championId: "gwen", score: 3 }
     ],
+
+    synergyWith: [
+      { championId: "renekton", score: 5 },
+      { championId: "jax", score: 4 },
+      { championId: "ahri", score: 5 },
+      { championId: "viktor", score: 3 },
+      { championId: "akali", score: 2 }
+    ],
+
     offers: [
       { type: "earlyPrio", strength: 3 },
       { type: "objectiveControl", strength: 3 },
@@ -2029,13 +2305,13 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "followUp", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "pick", severity: 2 },
       { exposedTo: "disengage", severity: 2 },
       { exposedTo: "zoneControl", severity: 1 },
       { exposedTo: "engage", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, mac: 4, tfg: 4, iq: 4 },
 
@@ -2065,21 +2341,25 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 57.14,
     },
   }),
+
+
   createChampion({
     id: "akali",
     goodVs: [
-      { championId: "ryze", score: 5 },
+      { championId: "ryze", score: 32 },
       { championId: "viktor", score: 4 },
       { championId: "aurora", score: 3 },
-      { championId: "galio", score: 3 },
+      { championId: "orianna", score: 4 },
       { championId: "syndra", score: 3 }
     ],
 
     weakVs: [
       { championId: "ahri", score: 5 },
       { championId: "azir", score: 3 },
-      { championId: "orianna", score: 3 }
+      { championId: "taliyah", score: 3 },
+      { championId: "annie", score: 3 }
     ],
+
     offers: [
       { type: "backlineAccess", strength: 4 },
       { type: "burstDamage", strength: 4 },
@@ -2096,7 +2376,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "frontline", severity: 2 },
       { exposedTo: "engage", severity: 1 },
     ],
-
 
     playerScaling: { mec: 5, tfg: 3, clt: 3, iq: 4 },
 
@@ -2126,23 +2405,32 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 49.5,
     },
   }),
+
   createChampion({
     id: "nocturne",
     goodVs: [
-      { championId: "xin-zhao", score: 5 },
       { championId: "dr-mundo", score: 4 },
-      { championId: "pantheon", score: 4 },
-      { championId: "galio", score: 3 }
+      { championId: "pantheon", score: 3 },
+      { championId: "vi", score: 3 },
+      { championId: "xin-zhao", score: 3 },
+      { championId: "wukong", score: 3 }
     ],
 
     weakVs: [
+      { championId: "jarvan-iv", score: 2 },
       { championId: "tahm-kench", score: 4 },
       { championId: "naafiri", score: 4 },
-      { championId: "jarvan-iv", score: 3 },
-      { championId: "aatrox", score: 3 },
-      { championId: "maokai", score: 3 }
+      { championId: "aatrox", score: 3 }
     ],
-    synergyWith: [{ championId: "orianna", score: 5 }, { championId: "twisted-fate", score: 5 }, { championId: "camille", score: 5 }, { championId: "taliyah", score: 5 }],
+
+    synergyWith: [
+      { championId: "orianna", score: 5 },
+      { championId: "ahri", score: 5 },
+      { championId: "akali", score: 3 },
+      { championId: "shen", score: 5 },
+      { championId: "ornn", score: 5 }
+    ],
+
     offers: [
       { type: "backlineAccess", strength: 5 },
       { type: "dive", strength: 5 },
@@ -2160,7 +2448,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "frontline", severity: 2 },
       { exposedTo: "zoneControl", severity: 1 },
     ],
-
 
     playerScaling: { mac: 4, tfg: 3, clt: 3, iq: 4 },
 
@@ -2190,22 +2477,29 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 59.69,
     },
   }),
+
   createChampion({
     id: "nami",
     goodVs: [
-      { championId: "karma", score: 4 },
-      { championId: "maokai", score: 4 },
-      { championId: "lulu", score: 3 }
+      { championId: "neeko", score: 4 },
+      { championId: "nautilus", score: 4 },
+      { championId: "lulu", score: 3 },
+      { championId: "milio", score: 3 }
     ],
 
     weakVs: [
-      { championId: "milio", score: 4 },
-      { championId: "leona", score: 3 },
-      { championId: "seraphine", score: 3 },
-      { championId: "nautilus", score: 3 },
-      { championId: "renata-glasc", score: 2 }
+      { championId: "seraphine", score: 4 },
+      { championId: "bard", score: 3 },
+      { championId: "karma", score: 3 }
     ],
-    mustWith: [{ championId: "lucian", score: 5 }, { championId: "corki", score: 5 }, { championId: "jhin", score: 5 }, { championId: "caitlyn", score: 4 }, { championId: "zeri", score: 3 }],
+
+    mustWith: [
+      { championId: "lucian", score: 5 },
+      { championId: "corki", score: 5 },
+      { championId: "jhin", score: 5 },
+      { championId: "caitlyn", score: 4 }
+    ],
+
     offers: [
       { type: "peel", strength: 5 },
       { type: "antiDive", strength: 4 },
@@ -2216,13 +2510,13 @@ const baseChampions: Champion[] = [
       { type: "engage", priority: 2 },
       { type: "frontline", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "poke", severity: 3 },
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
       { exposedTo: "siege", severity: 2 },
     ],
-
 
     playerScaling: { mec: 3, mac: 4, con: 4, iq: 4 },
 
@@ -2252,21 +2546,22 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.07,
     },
   }),
+
   createChampion({
     id: "alistar",
     goodVs: [
-      { championId: "renata-glasc", score: 5 },
-      { championId: "leona", score: 4 },
-      { championId: "braum", score: 3 },
+      { championId: "rell", score: 5 },
+      { championId: "nautilus", score: 4 },
       { championId: "rakan", score: 3 },
-      { championId: "wukong", score: 3 }
+      { championId: "braum", score: 3 },
+      { championId: "rakan", score: 3 }
     ],
 
     weakVs: [
-      { championId: "lulu", score: 5 },
-      { championId: "seraphine", score: 4 },
-      { championId: "bard", score: 3 },
-      { championId: "karma", score: 2 },
+      { championId: "lulu", score: 3 },
+      { championId: "seraphine", score: 2 },
+      { championId: "bard", score: 5 },
+      { championId: "karma", score: 4 },
       { championId: "poppy", score: 2 }
     ],
     synergyWith: [{ championId: "kalista", score: 4 }, { championId: "kaisa", score: 4 }],
@@ -2287,7 +2582,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "peel", severity: 1 },
       { exposedTo: "sideLanePressure", severity: 1 },
     ],
-
 
     playerScaling: { mac: 4, tfg: 5, clt: 3, iq: 4 },
 
@@ -2317,25 +2611,36 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.97,
     },
   }),
+
+
   createChampion({
     id: "kaisa",
     goodVs: [
       { championId: "miss-fortune", score: 5 },
       { championId: "tristana", score: 5 },
-      { championId: "smolder", score: 4 },
+      { championId: "sivir", score: 5 },
       { championId: "jhin", score: 4 },
       { championId: "jinx", score: 4 }
     ],
 
     weakVs: [
-      { championId: "ashe", score: 5 },
-      { championId: "sivir", score: 4 },
+      { championId: "ashe", score: 4 },
+      { championId: "yunara", score: 4 },
       { championId: "poppy", score: 4 },
-      { championId: "caitlyn", score: 4 },
-      { championId: "xayah", score: 3 }
+      { championId: "caitlyn", score: 4 }
     ],
-    synergyWith: [{ championId: "rakan", score: 4 }, { championId: "rell", score: 4 }],
-    mustWith: [{ championId: "nautilus", score: 5 }, { championId: "alistar", score: 5 }, { championId: "leona", score: 5 }],
+
+    synergyWith: [
+      { championId: "rakan", score: 4 },
+      { championId: "rell", score: 4 }
+    ],
+
+    mustWith: [
+      { championId: "nautilus", score: 5 },
+      { championId: "alistar", score: 5 },
+      { championId: "leona", score: 5 }
+    ],
+
     offers: [
       { type: "dive", strength: 4 },
       { type: "backlineAccess", strength: 4 },
@@ -2354,7 +2659,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "pick", severity: 2 },
       { exposedTo: "peel", severity: 2 },
     ],
-
 
     playerScaling: { mec: 5, tfg: 4, clt: 3, con: 4 },
 
@@ -2384,23 +2688,31 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 52.99,
     },
   }),
+
+
   createChampion({
     id: "galio",
     goodVs: [
-      { championId: "syndra", score: 5 },
+      { championId: "syndra", score: 3 },
       { championId: "rumble", score: 3 },
-      { championId: "leblanc", score: 4 },
-      { championId: "ahri", score: 3 }
+      { championId: "leblanc", score: 4 }
     ],
 
     weakVs: [
-      { championId: "taliyah", score: 5 },
-      { championId: "smolder", score: 3 },
-      { championId: "viktor", score: 4 },
-      { championId: "yone", score: 4 },
-      { championId: "aurora", score: 4 }
+      { championId: "ahri", score: 5 },
+      { championId: "orianna", score: 5 },
+      { championId: "annie", score: 4 },
+      { championId: "yone", score: 4 }
     ],
-    synergyWith: [{ championId: "jarvan-iv", score: 5 }, { championId: "nocturne", score: 5 }, { championId: "camille", score: 5 }, { championId: "rakan", score: 4 }, { championId: "kindred", score: 4 }],
+
+    synergyWith: [
+      { championId: "jarvan-iv", score: 5 },
+      { championId: "nocturne", score: 5 },
+      { championId: "camille", score: 5 },
+      { championId: "rakan", score: 4 },
+      { championId: "kindred", score: 4 }
+    ],
+
     offers: [
       { type: "engage", strength: 4 },
       { type: "followUp", strength: 4 },
@@ -2412,13 +2724,13 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "sustainedDamage", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "disengage", severity: 2 },
       { exposedTo: "zoneControl", severity: 2 },
       { exposedTo: "sustainedDamage", severity: 2 },
       { exposedTo: "sideLanePressure", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, mac: 4, tfg: 4, con: 4 },
 
@@ -2448,24 +2760,32 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55.99,
     },
   }),
+
   createChampion({
     id: "sivir",
     goodVs: [
       { championId: "jhin", score: 5 },
       { championId: "xayah", score: 5 },
       { championId: "miss-fortune", score: 4 },
-      { championId: "kaisa", score: 4 },
       { championId: "ezreal", score: 3 }
     ],
 
     weakVs: [
-      { championId: "zeri", score: 5 },
-      { championId: "caitlyn", score: 4 },
-      { championId: "lucian", score: 3 },
+      { championId: "zeri", score: 4 },
+      { championId: "caitlyn", score: 3 },
       { championId: "yunara", score: 3 },
-      { championId: "varus", score: 3 }
+      { championId: "varus", score: 2 }
     ],
-    synergyWith: [{ championId: "xin-zhao", score: 3 }, { championId: "lulu", score: 5 }, { championId: "braum", score: 5 }, { championId: "karma", score: 4 }],
+
+    synergyWith: [
+      { championId: "xin-zhao", score: 3 },
+      { championId: "lulu", score: 4 },
+      { championId: "nautilus", score: 4 },
+      { championId: "karma", score: 5 },
+      { championId: "bard", score: 4 },
+      { championId: "nami", score: 3 },
+    ],
+
     offers: [
       { type: "waveclear", strength: 5 },
       { type: "siege", strength: 4 },
@@ -2483,7 +2803,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "pick", severity: 2 },
       { exposedTo: "engage", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 4, con: 4, iq: 3 },
 
@@ -2513,22 +2832,26 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 54.26,
     },
   }),
+
+
   createChampion({
     id: "seraphine",
     goodVs: [
-      { championId: "neeko", score: 5 },
-      { championId: "yuumi", score: 4 },
-      { championId: "rakan", score: 4 },
+      { championId: "rell", score: 5 },
+      { championId: "karma", score: 4 },
+      { championId: "lulu", score: 4 },
       { championId: "nami", score: 3 },
-      { championId: "lulu", score: 3 }
+      { championId: "nautilus", score: 3 }
     ],
 
     weakVs: [
-      { championId: "nautilus", score: 4 },
-      { championId: "rell", score: 3 }
+      { championId: "neeko", score: 4 },
+      { championId: "bard", score: 3 },
+      { championId: "anivia", score: 3 }
     ],
-    synergyWith: [{ championId: "miss-fortune", score: 2 }, { championId: "jhin", score: 2 }, { championId: "dr-mundo", score: 3 }, { championId: "jarvan-iv", score: 3 }, { championId: "xin-zhao", score: 3 }],
+
     mustWith: [{ championId: "ashe", score: 5 }],
+
     offers: [
       { type: "waveclear", strength: 4 },
       { type: "disengage", strength: 4 },
@@ -2553,33 +2876,37 @@ const baseChampions: Champion[] = [
     roles: ["support"],
     damageProfile: ["AP"],
     stats: {
-      picks: 35,
-      bans: 11,
-      presence: 46.0,
-      prioScore: 16.0,
-      wins: 23,
-      losses: 12,
-      proWinRate: 66.0,
-      kda: 5.2,
-      avgBanTurn: 6.3,
-      avgPickRound: 1.77,
-      blindPickRate: 57.1,
-      averageGameTime: "30:10",
-      csPerMinute: 1.6,
-      damagePerMinute: 305,
-      goldPerMinute: 296,
-      csDiffAt15: 2.1,
-      goldDiffAt15: 217,
-      xpDiffAt15: 226,
+      picks: 138,
+      bans: 140,
+      presence: 178.0,
+      prioScore: 40.0,
+      wins: 75,
+      losses: 63,
+      proWinRate: 54.0,
+      kda: 4.0,
+      avgBanTurn: 4.8,
+      avgPickRound: 1.42,
+      blindPickRate: 67.5,
+      averageGameTime: "30:40",
+      csPerMinute: 1.2,
+      damagePerMinute: 273,
+      goldPerMinute: 277,
+      csDiffAt15: 1.4,
+      goldDiffAt15: 94,
+      xpDiffAt15: 211,
       soloqKrChallengerWinRate: 55.53,
     },
   }),
+
+
   createChampion({
     id: "anivia",
     goodVs: [
       { championId: "taliyah", score: 4 },
-      { championId: "cassiopeia", score: 4 },
-      { championId: "ryze", score: 5 },
+      { championId: "cassiopeia", score: 2 },
+      { championId: "neeko", score: 4 },
+      { championId: "seraphine", score: 3 },
+      { championId: "ryze", score: 3 },
       { championId: "aurora", score: 2 }
     ],
 
@@ -2588,14 +2915,17 @@ const baseChampions: Champion[] = [
       { championId: "orianna", score: 5 },
       { championId: "azir", score: 4 },
       { championId: "akali", score: 3 },
-      { championId: "ryze", score: 5 }
+      { championId: "bard", score: 3 }
     ],
 
     synergyWith: [
       { championId: "poppy", score: 4 },
       { championId: "jarvan-iv", score: 3 },
       { championId: "vi", score: 2 },
-      { championId: "nocturne", score: 2 }
+      { championId: "nocturne", score: 2 },
+      { championId: "ezreal", score: 2 },
+      { championId: "jhin", score: 2 },
+      { championId: "caitlyn", score: 3 }
     ],
 
     offers: [
@@ -2615,12 +2945,11 @@ const baseChampions: Champion[] = [
       { exposedTo: "objectiveControl", severity: 1 },
     ],
 
-
     playerScaling: { mec: 4, tfg: 3, con: 3, iq: 4 },
 
     name: "Anivia",
     image: "/champions/anivia.png",
-    roles: ["mid"],
+    roles: ["mid", "support"],
     damageProfile: ["AP"],
     stats: {
       picks: 22,
@@ -2644,25 +2973,38 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 62.77,
     },
   }),
+
+
   createChampion({
     id: "rakan",
     goodVs: [
       { championId: "renata-glasc", score: 5 },
       { championId: "yuumi", score: 5 },
       { championId: "braum", score: 4 },
-      { championId: "leona", score: 3 },
-      { championId: "nautilus", score: 3 }
+      { championId: "nautilus", score: 4 },
+      { championId: "karma", score: 4 }
     ],
 
     weakVs: [
-      { championId: "neeko", score: 3 },
-      { championId: "seraphine", score: 4 },
-      { championId: "bard", score: 3 },
-      { championId: "poppy", score: 4 },
-      { championId: "alistar", score: 2 }
+      { championId: "bard", score: 5 },
+      { championId: "neeko", score: 4 },
+      { championId: "alistar", score: 3 },
+      { championId: "seraphine", score: 1 },
+      { championId: "poppy", score: 4 }
     ],
-    synergyWith: [{ championId: "yasuo", score: 4 }, { championId: "orianna", score: 3 }, { championId: "ahri", score: 3 }],
-    mustWith: [{ championId: "xayah", score: 5 }],
+
+    synergyWith: [
+      { championId: "kaisa", score: 3 },
+      { championId: "ezreal", score: 3 },
+      { championId: "jhin", score: 4 },
+      { championId: "jinx", score: 5 },
+      { championId: "caitlyn", score: 2 }
+    ],
+
+    mustWith: [
+      { championId: "xayah", score: 5 }
+    ],
+
     offers: [
       { type: "engage", strength: 5 },
       { type: "followUp", strength: 4 },
@@ -2678,7 +3020,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "zoneControl", severity: 2 },
       { exposedTo: "peel", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, mac: 4, tfg: 5, iq: 4 },
 
@@ -2708,22 +3049,33 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.49,
     },
   }),
+
+
   createChampion({
     id: "syndra",
     goodVs: [
       { championId: "viktor", score: 4 },
-      { championId: "azir", score: 4 },
+      { championId: "azir", score: 2 },
       { championId: "aurora", score: 3 },
-      { championId: "taliyah", score: 3 }
+      { championId: "taliyah", score: 3 },
+      { championId: "ryze", score: 3 },
     ],
 
     weakVs: [
-      { championId: "galio", score: 5 },
+      { championId: "galio", score: 3 },
       { championId: "orianna", score: 4 },
       { championId: "ahri", score: 4 },
-      { championId: "ryze", score: 3 },
       { championId: "akali", score: 3 }
     ],
+
+    synergyWith: [
+      { championId: "lee-sin", score: 3 },
+      { championId: "viego", score: 4 },
+      { championId: "jarvan-iv", score: 3 },
+      { championId: "nocturne", score: 4 },
+      { championId: "naafiri", score: 2 }
+    ],
+
     offers: [
       { type: "burstDamage", strength: 5 },
       { type: "pick", strength: 3 },
@@ -2734,6 +3086,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
@@ -2741,7 +3094,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "peel", severity: 2 },
       { exposedTo: "frontline", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 3, con: 4, iq: 4 },
 
@@ -2771,6 +3123,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 54.74,
     },
   }),
+
+
   createChampion({
     id: "leona",
     goodVs: [
@@ -2787,7 +3141,15 @@ const baseChampions: Champion[] = [
       { championId: "lulu", score: 3 },
       { championId: "rakan", score: 3 }
     ],
-    synergyWith: [{ championId: "varus", score: 4 }, { championId: "miss-fortune", score: 4 }, { championId: "kaisa", score: 4 }, { championId: "samira", score: 4 }],
+
+    synergyWith: [
+      { championId: "kaisa", score: 3 },
+      { championId: "ezreal", score: 4 },
+      { championId: "jhin", score: 3 },
+      { championId: "caitlyn", score: 2 },
+      { championId: "miss-fortune", score: 4 }
+    ],
+
     offers: [
       { type: "engage", strength: 5 },
       { type: "pick", strength: 4 },
@@ -2804,7 +3166,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "frontline", severity: 2 },
       { exposedTo: "peel", severity: 1 },
     ],
-
 
     playerScaling: { mac: 4, tfg: 5, clt: 3, iq: 4 },
 
@@ -2834,23 +3195,24 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 57.33,
     },
   }),
+
+
   createChampion({
     id: "mel",
     goodVs: [
-      { championId: "yone", score: 5 },
-      { championId: "corki", score: 4 },
+      { championId: "annie", score: 5 },
+      { championId: "aurora", score: 4 },
       { championId: "galio", score: 4 },
-      { championId: "ezreal", score: 3 },
-      { championId: "jayce", score: 3 }
+      { championId: "ahri", score: 2 },
     ],
 
     weakVs: [
-      { championId: "varus", score: 5 },
       { championId: "ahri", score: 4 },
       { championId: "azir", score: 4 },
       { championId: "hwei", score: 4 },
       { championId: "viktor", score: 3 }
     ],
+
     offers: [
       { type: "burstDamage", strength: 4 },
       { type: "poke", strength: 3 },
@@ -2861,6 +3223,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 3 },
       { exposedTo: "backlineAccess", severity: 3 },
@@ -2868,7 +3231,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "frontline", severity: 2 },
       { exposedTo: "peel", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 3, con: 3, iq: 4 },
 
@@ -2898,6 +3260,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 50.98,
     },
   }),
+
+
   createChampion({
     id: "ornn",
     goodVs: [
@@ -2912,6 +3276,7 @@ const baseChampions: Champion[] = [
       { championId: "renekton", score: 4 },
       { championId: "rumble", score: 3 }
     ],
+
     offers: [
       { type: "frontline", strength: 5 },
       { type: "engage", strength: 4 },
@@ -2927,7 +3292,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "sustainedDamage", severity: 2 },
       { exposedTo: "sideLanePressure", severity: 1 },
     ],
-
 
     playerScaling: { mec: 3, tfg: 4, con: 5, iq: 4 },
 
@@ -2957,22 +3321,33 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 59.4,
     },
   }),
+
+
   createChampion({
     id: "braum",
     goodVs: [
-      { championId: "seraphine", score: 5 },
       { championId: "maokai", score: 4 },
-      { championId: "thresh", score: 4 },
       { championId: "milio", score: 3 },
-      { championId: "lulu", score: 3 }
+      { championId: "rell", score: 2 },
+      { championId: "nautilus", score: 2 }
     ],
 
     weakVs: [
-      { championId: "karma", score: 4 },
-      { championId: "rakan", score: 3 },
-      { championId: "alistar", score: 3 }
+      { championId: "rakan", score: 5 },
+      { championId: "lulu", score: 5 },
+      { championId: "bard", score: 4 },
+      { championId: "alistar", score: 3 },
+      { championId: "thresh", score: 3 }
     ],
-    synergyWith: [{ championId: "ashe", score: 5 }, { championId: "lucian", score: 5 }, { championId: "aphelios", score: 4 }, { championId: "jinx", score: 4 }],
+
+    synergyWith: [
+      { championId: "lucian", score: 4 },
+      { championId: "ezreal", score: 3 },
+      { championId: "jinx", score: 4 },
+      { championId: "kaisa", score: 4 },
+      { championId: "yunara", score: 4 }
+    ],
+
     offers: [
       { type: "peel", strength: 5 },
       { type: "antiDive", strength: 5 },
@@ -2986,7 +3361,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "poke", severity: 3 },
       { exposedTo: "siege", severity: 2 },
     ],
-
 
     playerScaling: { mac: 4, tfg: 4, con: 5, iq: 4 },
 
@@ -3016,6 +3390,7 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 54.78,
     },
   }),
+
   createChampion({
     id: "jhin",
     goodVs: [
@@ -3027,10 +3402,17 @@ const baseChampions: Champion[] = [
     weakVs: [
       { championId: "caitlyn", score: 4 },
       { championId: "jinx", score: 4 },
-      { championId: "ziggs", score: 4 },
-      { championId: "senna", score: 3 },
       { championId: "xayah", score: 3 }
     ],
+
+    synergyWith: [
+      { championId: "karma", score: 3 },
+      { championId: "thresh", score: 3 },
+      { championId: "bard", score: 4 },
+      { championId: "nautilus", score: 2 },
+      { championId: "nami", score: 3 }
+    ],
+
     offers: [
       { type: "pick", strength: 3 },
       { type: "burstDamage", strength: 3 },
@@ -3042,12 +3424,12 @@ const baseChampions: Champion[] = [
       { type: "frontline", priority: 2 },
       { type: "peel", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 3 },
       { exposedTo: "backlineAccess", severity: 3 },
       { exposedTo: "pick", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 4, con: 4, iq: 4 },
 
@@ -3077,10 +3459,11 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 53.43,
     },
   }),
+
   createChampion({
     id: "aphelios",
     goodVs: [
-      { championId: "ziggs", score: 4 },
+      { championId: "yunara", score: 3 },
       { championId: "caitlyn", score: 4 },
       { championId: "jhin", score: 3 },
       { championId: "kalista", score: 3 },
@@ -3090,10 +3473,10 @@ const baseChampions: Champion[] = [
     weakVs: [
       { championId: "xayah", score: 5 },
       { championId: "kaisa", score: 4 },
-      { championId: "yunara", score: 3 },
       { championId: "lucian", score: 3 },
       { championId: "jinx", score: 3 }
     ],
+
     offers: [
       { type: "sustainedDamage", strength: 5 },
       { type: "scaling", strength: 5 },
@@ -3104,6 +3487,7 @@ const baseChampions: Champion[] = [
       { type: "frontline", priority: 3 },
       { type: "peel", priority: 3 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 3 },
       { exposedTo: "backlineAccess", severity: 3 },
@@ -3111,7 +3495,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "engage", severity: 2 },
       { exposedTo: "earlyPrio", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 5, clt: 3, con: 4 },
 
@@ -3141,6 +3524,7 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 53.17,
     },
   }),
+
   createChampion({
     id: "xayah",
     goodVs: [
@@ -3155,8 +3539,15 @@ const baseChampions: Champion[] = [
       { championId: "caitlyn", score: 4 },
       { championId: "ezreal", score: 3 }
     ],
-    synergyWith: [{ championId: "rakan", score: 5 }, { championId: "alistar", score: 3 }, { championId: "nautilus", score: 3 }, { championId: "rell", score: 3 }],
+
+    synergyWith: [
+      { championId: "alistar", score: 3 },
+      { championId: "nautilus", score: 3 },
+      { championId: "rell", score: 3 }
+    ],
+
     mustWith: [{ championId: "rakan", score: 5 }],
+
     offers: [
       { type: "sustainedDamage", strength: 4 },
       { type: "antiDive", strength: 4 },
@@ -3167,12 +3558,12 @@ const baseChampions: Champion[] = [
       { type: "frontline", priority: 2 },
       { type: "peel", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 3 },
       { exposedTo: "backlineAccess", severity: 3 },
       { exposedTo: "pick", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 5, clt: 3, con: 4 },
 
@@ -3202,11 +3593,14 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 58.35,
     },
   }),
+
+
   createChampion({
     id: "jax",
     goodVs: [
       { championId: "gwen", score: 4 },
       { championId: "xin-zhao", score: 4 },
+      { championId: "sion", score: 3 },
       { championId: "zaahen", score: 3 }
     ],
 
@@ -3215,6 +3609,7 @@ const baseChampions: Champion[] = [
       { championId: "ambessa", score: 4 },
       { championId: "gnar", score: 3 }
     ],
+
     offers: [
       { type: "splitpush", strength: 5 },
       { type: "sideLanePressure", strength: 5 },
@@ -3232,7 +3627,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "engage", severity: 2 },
       { exposedTo: "poke", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 3, clt: 3, con: 3 },
 
@@ -3262,21 +3656,22 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.29,
     },
   }),
+
+
   createChampion({
     id: "jayce",
     goodVs: [
-      { championId: "wukong", score: 5 },
-      { championId: "ambessa", score: 5 },
-      { championId: "kennen", score: 3 },
-      { championId: "jax", score: 3 },
-      { championId: "taliyah", score: 4 }
+      { championId: "ambessa", score: 4 },
+      { championId: "ksante", score: 3 },
+      { championId: "yorick", score: 3 }
     ],
 
     weakVs: [
-      { championId: "dr-mundo", score: 4 },
-      { championId: "malphite", score: 3 },
-      { championId: "sion", score: 2 }
+      { championId: "sion", score: 2 },
+      { championId: "ornn", score: 2 },
+      { championId: "gnar", score: 2 }
     ],
+
     offers: [
       { type: "poke", strength: 5 },
       { type: "siege", strength: 4 },
@@ -3287,6 +3682,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "pick", severity: 2 },
@@ -3294,7 +3690,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "waveclear", severity: 1 },
       { exposedTo: "scaling", severity: 1 },
     ],
-
 
     playerScaling: { mec: 5, tfg: 3, con: 3, iq: 3 },
 
@@ -3324,24 +3719,31 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.92,
     },
   }),
+
   createChampion({
     id: "rell",
     goodVs: [
       { championId: "renata-glasc", score: 4 },
-      { championId: "thresh", score: 4 },
-      { championId: "seraphine", score: 3 },
-      { championId: "nami", score: 3 },
-      { championId: "nautilus", score: 3 }
+      { championId: "thresh", score: 3 },
+      { championId: "nami", score: 2 },
+      { championId: "neeko", score: 3 }
     ],
 
     weakVs: [
+      { championId: "seraphine", score: 5 },
+      { championId: "alistar", score: 5 },
+      { championId: "nautilus", score: 2 },
       { championId: "poppy", score: 5 },
-      { championId: "lulu", score: 5 },
-      { championId: "bard", score: 4 },
-      { championId: "neeko", score: 4 },
-      { championId: "rakan", score: 3 }
     ],
-    synergyWith: [{ championId: "xayah", score: 3 }, { championId: "kalista", score: 4 }, { championId: "yasuo", score: 4 }, { championId: "kaisa", score: 4 }],
+
+    synergyWith: [
+      { championId: "kaisa", score: 3 },
+      { championId: "miss-fortune", score: 4 },
+      { championId: "ezreal", score: 4 },
+      { championId: "jhin", score: 3 },
+      { championId: "jinx", score: 4 }
+    ],
+
     offers: [
       { type: "engage", strength: 5 },
       { type: "followUp", strength: 4 },
@@ -3387,6 +3789,7 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 59.93,
     },
   }),
+
   createChampion({
     id: "poppy",
     goodVs: [
@@ -3394,13 +3797,22 @@ const baseChampions: Champion[] = [
       { championId: "pantheon", score: 5 },
       { championId: "ksante", score: 4 },
       { championId: "wukong", score: 4 },
-      { championId: "leona", score: 3 }
+      { championId: "leona", score: 3 },
+      { championId: "rakan", score: 3 },
+      { championId: "nautilus", score: 3 },
+      { championId: "vi", score: 2 }
     ],
 
     weakVs: [
-      { championId: "rakan", score: 3 },
-      { championId: "trundle", score: 4 }
+      { championId: "alistar", score: 4 },
+      { championId: "braum", score: 4 },
+      { championId: "seraphine", score: 4 },
+      { championId: "trundle", score: 4 },
+      { championId: "karma", score: 3 },
+      { championId: "dr-mundo", score: 3 },
+      { championId: "ambessa", score: 3 }
     ],
+
     offers: [
       { type: "antiDive", strength: 5 },
       { type: "pick", strength: 3 },
@@ -3411,13 +3823,13 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "followUp", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "disengage", severity: 2 },
       { exposedTo: "sustainedDamage", severity: 2 },
       { exposedTo: "zoneControl", severity: 1 },
       { exposedTo: "sideLanePressure", severity: 1 },
     ],
-
 
     playerScaling: { mac: 4, tfg: 3, con: 4, iq: 4 },
 
@@ -3447,22 +3859,22 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 59.93,
     },
   }),
+
+
   createChampion({
     id: "viktor",
     goodVs: [
-      { championId: "ahri", score: 5 },
+      { championId: "ahri", score: 2 },
       { championId: "galio", score: 4 },
-      { championId: "mel", score: 3 },
-      { championId: "aurora", score: 3 },
-      { championId: "zoe", score: 3 }
+      { championId: "azir", score: 2 },
+      { championId: "mel", score: 3 }
     ],
 
     weakVs: [
-      { championId: "orianna", score: 5 },
-      { championId: "azir", score: 5 },
-      { championId: "syndra", score: 4 },
-      { championId: "akali", score: 4 },
-      { championId: "ryze", score: 3 }
+      { championId: "orianna", score: 3 },
+      { championId: "ryze", score: 5 },
+      { championId: "aurora", score: 4 },
+      { championId: "sylas", score: 3 }
     ],
     offers: [
       { type: "waveclear", strength: 5 },
@@ -3474,6 +3886,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
@@ -3481,7 +3894,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "earlyPrio", severity: 2 },
       { exposedTo: "objectiveControl", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 4, con: 5, iq: 4 },
 
@@ -3511,20 +3923,11 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55.57,
     },
   }),
+
+
   createChampion({
     id: "malphite",
-    goodVs: [
-      { championId: "pantheon", score: 4 },
-      { championId: "trundle", score: 3 },
-      { championId: "gnar", score: 3 },
-      { championId: "wukong", score: 3 }
-    ],
 
-    weakVs: [
-      { championId: "jarvan-iv", score: 4 },
-      { championId: "zaahen", score: 3 },
-      { championId: "dr-mundo", score: 3 }
-    ],
     offers: [
       { type: "frontline", strength: 5 },
       { type: "engage", strength: 4 },
@@ -3572,22 +3975,31 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.47,
     },
   }),
+
+
   createChampion({
     id: "annie",
     goodVs: [
       { championId: "hwei", score: 4 },
-      { championId: "viktor", score: 4 },
       { championId: "aurora", score: 4 },
-      { championId: "sylas", score: 4 }
+      { championId: "ryze", score: 3 },
+      { championId: "galio", score: 3 }
     ],
 
     weakVs: [
       { championId: "ryze", score: 3 },
-      { championId: "syndra", score: 3 },
-      { championId: "orianna", score: 3 },
-      { championId: "ahri", score: 3 }
+      { championId: "ahri", score: 5 },
+      { championId: "mel", score: 4 }
     ],
-    synergyWith: [{ championId: "vi", score: 5 }, { championId: "jarvan-iv", score: 4 }, { championId: "wukong", score: 4 }],
+
+    synergyWith: [
+      { championId: "nocturne", score: 4 },
+      { championId: "xin-zhao", score: 3 },
+      { championId: "lee-sin", score: 3 },
+      { championId: "ambessa", score: 3 },
+      { championId: "jarvan-iv", score: 2 }
+    ],
+
     offers: [
       { type: "burstDamage", strength: 4 },
       { type: "pick", strength: 4 },
@@ -3598,12 +4010,12 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "peel", severity: 2 },
       { exposedTo: "frontline", severity: 2 },
       { exposedTo: "disengage", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 3, con: 3, iq: 4 },
 
@@ -3633,19 +4045,30 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 63.99,
     },
   }),
+
   createChampion({
     id: "naafiri",
     goodVs: [
       { championId: "dr-mundo", score: 5 },
       { championId: "nocturne", score: 4 },
-      { championId: "jarvan-iv", score: 4 },
-      { championId: "wukong", score: 3 }
+      { championId: "jarvan-iv", score: 4 }
     ],
 
     weakVs: [
       { championId: "vi", score: 4 },
+      { championId: "pantheon", score: 4 },
       { championId: "xin-zhao", score: 3 }
     ],
+
+    synergyWith: [
+      { championId: "lissandra", score: 4 },
+      { championId: "akali", score: 3 },
+      { championId: "sylas", score: 3 },
+      { championId: "ahri", score: 3 },
+      { championId: "viktor", score: 2 },
+      { championId: "orianna", score: 2 }
+    ],
+
     offers: [
       { type: "burstDamage", strength: 4 },
       { type: "dive", strength: 4 },
@@ -3657,13 +4080,13 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "peel", severity: 2 },
       { exposedTo: "antiDive", severity: 2 },
       { exposedTo: "disengage", severity: 2 },
       { exposedTo: "frontline", severity: 2 },
     ],
-
 
     playerScaling: { mec: 2, mac: 4, tfg: 3, iq: 4 },
 
@@ -3693,18 +4116,27 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 53.9,
     },
   }),
+
   createChampion({
     id: "leblanc",
     goodVs: [
       { championId: "taliyah", score: 4 },
       { championId: "ahri", score: 4 },
-      { championId: "azir", score: 3 }
+      { championId: "azir", score: 2 }
     ],
 
     weakVs: [
       { championId: "galio", score: 4 },
       { championId: "aurora", score: 4 }
     ],
+
+    synergyWith: [
+      { championId: "nocturne", score: 4 },
+      { championId: "xin-zhao", score: 4 },
+      { championId: "lee-sin", score: 3 },
+      { championId: "jarvan-iv", score: 3 }
+    ],
+
     offers: [
       { type: "pick", strength: 5 },
       { type: "burstDamage", strength: 5 },
@@ -3714,12 +4146,12 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "peel", severity: 2 },
       { exposedTo: "frontline", severity: 2 },
       { exposedTo: "disengage", severity: 1 },
     ],
-
 
     playerScaling: { mec: 5, tfg: 3, clt: 3, iq: 4 },
 
@@ -3749,6 +4181,7 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 53.23,
     },
   }),
+
   createChampion({
     id: "qiyana",
     goodVs: [
@@ -3764,6 +4197,7 @@ const baseChampions: Champion[] = [
       { championId: "nocturne", score: 3 },
       { championId: "xin-zhao", score: 3 }
     ],
+
     offers: [
       { type: "burstDamage", strength: 5 },
       { type: "pick", strength: 4 },
@@ -3780,7 +4214,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "disengage", severity: 2 },
       { exposedTo: "frontline", severity: 2 },
     ],
-
 
     playerScaling: { mec: 5, mac: 4, tfg: 3, iq: 4 },
 
@@ -3810,21 +4243,21 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 58.1,
     },
   }),
+
+
   createChampion({
     id: "sylas",
     goodVs: [
-      { championId: "orianna", score: 4 },
-      { championId: "ashe", score: 3 },
-      { championId: "maokai", score: 4 },
-      { championId: "kennen", score: 5 },
-      { championId: "ahri", score: 3 }
+      { championId: "akali", score: 2 },
+      { championId: "viktor", score: 4 }
     ],
 
     weakVs: [
       { championId: "taliyah", score: 4 },
       { championId: "galio", score: 2 },
-      { championId: "ryze", score: 3 }
+      { championId: "ahri", score: 5 }
     ],
+
     offers: [
       { type: "earlyPrio", strength: 3 },
       { type: "objectiveControl", strength: 3 },
@@ -3834,10 +4267,12 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
-
+      { exposedTo: "antiDive", severity: 2 },
+      { exposedTo: "zoneControl", severity: 3 },
+      { exposedTo: "poke", severity: 3 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 4, clt: 3, iq: 4 },
 
@@ -3867,21 +4302,22 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 54.38,
     },
   }),
+
+
   createChampion({
     id: "cassiopeia",
     goodVs: [
-      { championId: "azir", score: 5 },
-      { championId: "yone", score: 4 },
-      { championId: "viktor", score: 3 },
-      { championId: "sylas", score: 3 },
+      { championId: "yone", score: 3 },
+      { championId: "aurora", score: 3 },
+      { championId: "ahri", score: 3 },
       { championId: "ryze", score: 3 }
     ],
 
     weakVs: [
       { championId: "galio", score: 5 },
-      { championId: "anivia", score: 5 },
-      { championId: "ahri", score: 4 }
+      { championId: "anivia", score: 5 }
     ],
+
     offers: [
       { type: "sustainedDamage", strength: 5 },
       { type: "zoneControl", strength: 4 },
@@ -3892,6 +4328,7 @@ const baseChampions: Champion[] = [
       { type: "frontline", priority: 2 },
       { type: "peel", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
@@ -3899,7 +4336,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "earlyPrio", severity: 2 },
       { exposedTo: "objectiveControl", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 3, con: 3, iq: 4 },
 
@@ -3929,9 +4365,20 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 57.03,
     },
   }),
+
+
   createChampion({
     id: "trundle",
+
     goodVs: [
+      { championId: "poppy", score: 5 },
+      { championId: "xin-zhao", score: 3 },
+      { championId: "pantheon", score: 3 },
+      { championId: "vi", score: 2 },
+      { championId: "jarvan-iv", score: 2 }
+    ],
+
+    weakVs: [
       { championId: "ivern", score: 4 },
       { championId: "skarner", score: 4 },
       { championId: "sejuani", score: 4 },
@@ -3939,13 +4386,6 @@ const baseChampions: Champion[] = [
       { championId: "lee-sin", score: 3 }
     ],
 
-    weakVs: [
-      { championId: "poppy", score: 5 },
-      { championId: "xin-zhao", score: 5 },
-      { championId: "pantheon", score: 4 },
-      { championId: "vi", score: 3 },
-      { championId: "jarvan-iv", score: 3 }
-    ],
     offers: [
       { type: "frontline", strength: 3 },
       { type: "objectiveControl", strength: 4 },
@@ -3956,12 +4396,12 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "engage", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "poke", severity: 2 },
       { exposedTo: "siege", severity: 1 },
       { exposedTo: "earlyPrio", severity: 1 },
     ],
-
 
     playerScaling: { mec: 2, mac: 4, tfg: 3, iq: 4 },
 
@@ -3991,23 +4431,25 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: null,
     },
   }),
+
+
   createChampion({
     id: "lee-sin",
     goodVs: [
-      { championId: "maokai", score: 5 },
-      { championId: "nocturne", score: 4 },
+      { championId: "nocturne", score: 3 },
       { championId: "qiyana", score: 3 },
-      { championId: "naafiri", score: 3 },
-      { championId: "jarvan-iv", score: 3 }
+      { championId: "naafiri", score: 2 },
+      { championId: "jarvan-iv", score: 5 }
     ],
 
     weakVs: [
-      { championId: "lillia", score: 5 },
+      { championId: "xin-zhao", score: 3 },
       { championId: "pantheon", score: 4 },
       { championId: "poppy", score: 3 },
       { championId: "trundle", score: 3 },
-      { championId: "vi", score: 3 }
+      { championId: "vi", score: 2 }
     ],
+
     offers: [
       { type: "earlyPrio", strength: 5 },
       { type: "pick", strength: 4 },
@@ -4018,13 +4460,13 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "followUp", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "disengage", severity: 2 },
       { exposedTo: "frontline", severity: 2 },
       { exposedTo: "zoneControl", severity: 1 },
       { exposedTo: "scaling", severity: 1 },
     ],
-
 
     playerScaling: { mec: 5, mac: 4, tfg: 3, iq: 4 },
 
@@ -4054,18 +4496,19 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 57.05,
     },
   }),
+
   createChampion({
     id: "kennen",
     goodVs: [
       { championId: "jax", score: 5 },
-      { championId: "gnar", score: 4 },
-      { championId: "renekton", score: 4 }
+      { championId: "gnar", score: 4 }
     ],
 
     weakVs: [
       { championId: "rumble", score: 5 },
       { championId: "gwen", score: 4 }
     ],
+
     offers: [
       { type: "sideLanePressure", strength: 2 }
     ],
@@ -4073,6 +4516,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "engage", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "poke", severity: 2 },
       { exposedTo: "siege", severity: 1 },
@@ -4107,6 +4551,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55.84,
     },
   }),
+
+
   createChampion({
     id: "yone",
     goodVs: [
@@ -4120,16 +4566,23 @@ const baseChampions: Champion[] = [
       { championId: "ahri", score: 5 },
       { championId: "ryze", score: 4 }
     ],
+
     offers: [
+      { type: "splitpush", strength: 4 },
+      { type: "sideLanePressure", strength: 4 },
+      { type: "sustainedDamage", strength: 4 }
     ],
 
     needs: [
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
-
+      { exposedTo: "engage", severity: 2 },
+      { exposedTo: "poke", severity: 2 },
+      { exposedTo: "waveclear", severity: 1 },
+      { exposedTo: "siege", severity: 1 }
     ],
-
 
     playerScaling: { mec: 5, tfg: 4, clt: 3, iq: 4 },
 
@@ -4159,18 +4612,20 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 54.63,
     },
   }),
+
+
   createChampion({
     id: "zoe",
     goodVs: [
       { championId: "azir", score: 5 },
       { championId: "taliyah", score: 5 },
-      { championId: "aurora", score: 3 },
-      { championId: "ryze", score: 3 }
+      { championId: "syndra", score: 3 }
     ],
 
     weakVs: [
       { championId: "viktor", score: 4 }
     ],
+
     offers: [
       { type: "pick", strength: 5 },
       { type: "burstDamage", strength: 5 },
@@ -4180,12 +4635,12 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "peel", severity: 2 },
       { exposedTo: "frontline", severity: 2 },
       { exposedTo: "disengage", severity: 1 },
     ],
-
 
     playerScaling: { mec: 5, tfg: 3, clt: 3, iq: 4 },
 
@@ -4215,22 +4670,31 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.32,
     },
   }),
+
+
   createChampion({
     id: "lux",
     goodVs: [
       { championId: "lulu", score: 5 },
       { championId: "yuumi", score: 4 },
       { championId: "heimerdinger", score: 3 },
-      { championId: "leona", score: 3 },
+      { championId: "karma", score: 3 },
       { championId: "nami", score: 3 }
     ],
 
     weakVs: [
       { championId: "rakan", score: 4 },
-      { championId: "annie", score: 3 },
+      { championId: "alistar", score: 3 },
       { championId: "nautilus", score: 3 }
     ],
-    synergyWith: [{ championId: "caitlyn", score: 5 }, { championId: "ezreal", score: 3 }, { championId: "jhin", score: 3 }],
+
+    synergyWith: [
+      { championId: "caitlyn", score: 5 },
+      { championId: "ezreal", score: 2 },
+      { championId: "varus", score: 3 },
+      { championId: "jhin", score: 3 }
+    ],
+
     offers: [
       { type: "poke", strength: 4 },
       { type: "burstDamage", strength: 4 },
@@ -4248,7 +4712,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "peel", severity: 1 },
       { exposedTo: "waveclear", severity: 1 },
     ],
-
 
     playerScaling: { mac: 4, tfg: 3, con: 3, iq: 4 },
 
@@ -4278,10 +4741,29 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55.59,
     },
   }),
+
+
   createChampion({
     id: "yasuo",
-    weakVs: [{ championId: "renekton", score: 3 }, { championId: "malphite", score: 3 }, { championId: "annie", score: 3 }],
-    synergyWith: [{ championId: "rakan", score: 4 }, { championId: "rell", score: 4 }, { championId: "alistar", score: 4 }, { championId: "sejuani", score: 4 }],
+
+    goodVs: [
+      { championId: "gnar", score: 3 },
+      { championId: "twisted-fate", score: 3 },
+    ],
+
+    weakVs: [
+      { championId: "renekton", score: 3 },
+      { championId: "malphite", score: 3 },
+      { championId: "annie", score: 3 }
+    ],
+
+    synergyWith: [
+      { championId: "jarvan-iv", score: 4 },
+      { championId: "lee-sin", score: 3 },
+      { championId: "vi", score: 3 },
+      { championId: "sejuani", score: 4 }
+    ],
+
     offers: [
       { type: "followUp", strength: 4 },
       { type: "dive", strength: 3 },
@@ -4292,11 +4774,11 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "engage", priority: 3 }
     ],
+
     weaknesses: [
       { exposedTo: "poke", severity: 3 },
       { exposedTo: "siege", severity: 2 },
     ],
-
 
     playerScaling: { mec: 5, tfg: 4, clt: 3, iq: 4 },
 
@@ -4326,9 +4808,13 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55.14,
     },
   }),
+
   createChampion({
     id: "rengar",
-    synergyWith: [{ championId: "orianna", score: 5 }],
+    synergyWith: [
+      { championId: "orianna", score: 5 }
+    ],
+
     offers: [
       { type: "pick", strength: 5 },
       { type: "burstDamage", strength: 5 },
@@ -4375,6 +4861,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 59.66,
     },
   }),
+
+
   createChampion({
     id: "aurelion-sol",
     goodVs: [
@@ -4390,6 +4878,7 @@ const baseChampions: Champion[] = [
       { championId: "kassadin", score: 3 },
       { championId: "yone", score: 4 }
     ],
+
     offers: [
       { type: "scaling", strength: 5 },
       { type: "waveclear", strength: 4 },
@@ -4400,6 +4889,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
@@ -4407,7 +4897,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "earlyPrio", severity: 2 },
       { exposedTo: "objectiveControl", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 3, con: 3, iq: 4 },
 
@@ -4437,6 +4926,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55.48,
     },
   }),
+
+
   createChampion({
     id: "olaf",
     goodVs: [
@@ -4446,6 +4937,7 @@ const baseChampions: Champion[] = [
     weakVs: [
       { championId: "renekton", score: 4 }
     ],
+
     offers: [
       { type: "earlyPrio", strength: 4 },
       { type: "sustainedDamage", strength: 4 },
@@ -4455,12 +4947,12 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "engage", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "poke", severity: 2 },
       { exposedTo: "siege", severity: 1 },
       { exposedTo: "scaling", severity: 1 },
     ],
-
 
     playerScaling: { mec: 3, tfg: 3, con: 3, iq: 2 },
 
@@ -4490,24 +4982,30 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 61.9,
     },
   }),
+
+
   createChampion({
     id: "maokai",
     goodVs: [
       { championId: "ivern", score: 4 },
-      { championId: "gwen", score: 4 },
-      { championId: "vi", score: 3 },
       { championId: "lillia", score: 3 },
       { championId: "viego", score: 3 }
     ],
 
     weakVs: [
       { championId: "lee-sin", score: 5 },
-      { championId: "nidalee", score: 4 },
       { championId: "naafiri", score: 3 },
       { championId: "braum", score: 3 },
       { championId: "kindred", score: 3 }
     ],
-    synergyWith: [{ championId: "azir", score: 4 }, { championId: "corki", score: 4 }, { championId: "jinx", score: 3 }, { championId: "miss-fortune", score: 3 }],
+
+    synergyWith: [
+      { championId: "jayce", score: 4 },
+      { championId: "corki", score: 4 },
+      { championId: "varus", score: 3 },
+      { championId: "miss-fortune", score: 3 }
+    ],
+
     offers: [
       { type: "frontline", strength: 4 },
       { type: "engage", strength: 4 },
@@ -4518,6 +5016,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "followUp", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "disengage", severity: 3 },
       { exposedTo: "dive", severity: 2 },
@@ -4525,7 +5024,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "zoneControl", severity: 2 },
       { exposedTo: "sustainedDamage", severity: 2 },
     ],
-
 
     playerScaling: { mac: 4, tfg: 3, con: 4, iq: 4 },
 
@@ -4555,10 +5053,11 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.69,
     },
   }),
+
+
   createChampion({
     id: "nidalee",
     goodVs: [
-      { championId: "zyra", score: 4 },
       { championId: "gwen", score: 4 },
       { championId: "vi", score: 3 },
       { championId: "lillia", score: 3 },
@@ -4567,12 +5066,17 @@ const baseChampions: Champion[] = [
 
     weakVs: [
       { championId: "lee-sin", score: 5 },
-      { championId: "nidalee", score: 4 },
       { championId: "naafiri", score: 3 },
       { championId: "poppy", score: 3 },
       { championId: "kindred", score: 3 }
     ],
-    mustWith: [{ championId: "renekton", score: 5 }, { championId: "twisted-fate", score: 4 }, { championId: "camille", score: 3 }],
+
+    mustWith: [
+      { championId: "renekton", score: 5 },
+      { championId: "twisted-fate", score: 4 },
+      { championId: "camille", score: 3 }
+    ],
+
     offers: [
       { type: "poke", strength: 4 },
       { type: "earlyPrio", strength: 5 },
@@ -4584,6 +5088,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
@@ -4591,7 +5096,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "waveclear", severity: 1 },
       { exposedTo: "scaling", severity: 1 },
     ],
-
 
     playerScaling: { mec: 5, mac: 4, tfg: 3, iq: 4 },
 
@@ -4621,24 +5125,33 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 58.11,
     },
   }),
+
   createChampion({
     id: "lucian",
     goodVs: [
-      { championId: "varus", score: 3 },
-      { championId: "sivir", score: 3 },
-      { championId: "aphelios", score: 3 },
-      { championId: "ezreal", score: 2 }
+      { championId: "aphelios", score: 4 },
+      { championId: "ezreal", score: 3 },
+      { championId: "sivir", score: 3 }
     ],
 
     weakVs: [
-      { championId: "ashe", score: 4 },
-      { championId: "xayah", score: 3 },
-      { championId: "kalista", score: 3 },
-      { championId: "caitlyn", score: 3 },
-      { championId: "corki", score: 3 }
+      { championId: "corki", score: 4 },
+      { championId: "caitlyn", score: 4 },
+      { championId: "xayah", score: 4 },
+      { championId: "ashe", score: 3 },
+      { championId: "miss-fortune", score: 3 }
     ],
-    synergyWith: [{ championId: "lulu", score: 3 }],
-    mustWith: [{ championId: "braum", score: 4 }, { championId: "nami", score: 5 }, { championId: "milio", score: 5 }],
+
+    synergyWith: [
+      { championId: "lulu", score: 3 }
+    ],
+
+    mustWith: [
+      { championId: "braum", score: 4 },
+      { championId: "nami", score: 5 },
+      { championId: "milio", score: 5 }
+    ],
+
     offers: [
       { type: "earlyPrio", strength: 4 },
       { type: "burstDamage", strength: 4 },
@@ -4649,6 +5162,7 @@ const baseChampions: Champion[] = [
       { type: "peel", priority: 2 },
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 3 },
       { exposedTo: "backlineAccess", severity: 3 },
@@ -4656,7 +5170,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "peel", severity: 2 },
       { exposedTo: "frontline", severity: 2 },
     ],
-
 
     playerScaling: { mec: 5, tfg: 4, clt: 3, con: 4 },
 
@@ -4686,6 +5199,7 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 57.47,
     },
   }),
+
   createChampion({
     id: "irelia",
     offers: [
@@ -4706,7 +5220,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "engage", severity: 2 },
       { exposedTo: "poke", severity: 2 },
     ],
-
 
     playerScaling: { mec: 5, tfg: 3, con: 3, iq: 2 },
 
@@ -4736,6 +5249,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 53.01,
     },
   }),
+
+
   createChampion({
     id: "jinx",
     goodVs: [
@@ -4748,8 +5263,17 @@ const baseChampions: Champion[] = [
       { championId: "yunara", score: 3 },
       { championId: "caitlyn", score: 3 }
     ],
-    synergyWith: [{ championId: "nami", score: 4 }, { championId: "thresh", score: 4 }],
-    mustWith: [{ championId: "lulu", score: 5 }, { championId: "renata-glasc", score: 3 }, { championId: "milio", score: 5 }],
+
+    synergyWith: [
+      { championId: "nami", score: 4 },
+      { championId: "thresh", score: 4 }
+    ],
+
+    mustWith: [{ championId: "lulu", score: 5 },
+    { championId: "braum", score: 2 },
+    { championId: "milio", score: 5 }
+    ],
+
     offers: [
       { type: "sustainedDamage", strength: 5 },
       { type: "scaling", strength: 5 },
@@ -4761,6 +5285,7 @@ const baseChampions: Champion[] = [
       { type: "peel", priority: 3 },
       { type: "engage", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 3 },
       { exposedTo: "backlineAccess", severity: 3 },
@@ -4768,7 +5293,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "poke", severity: 3 },
       { exposedTo: "engage", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 5, clt: 3, con: 4 },
 
@@ -4798,15 +5322,27 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.21,
     },
   }),
+
   createChampion({
     id: "sejuani",
     goodVs: [
       { championId: "jarvan-iv", score: 3 }
     ],
-    weakVs: [{ championId: "trundle", score: 4 }, { championId: "vi", score: 4 },
-    { championId: "xin-zhao", score: 4 },
-    { championId: "dr-mundo", score: 3 }],
-    synergyWith: [{ championId: "yasuo", score: 4 }, { championId: "azir", score: 4 }, { championId: "renekton", score: 4 }, { championId: "gwen", score: 3 }],
+
+    weakVs: [
+      { championId: "trundle", score: 4 },
+      { championId: "vi", score: 4 },
+      { championId: "xin-zhao", score: 4 },
+      { championId: "dr-mundo", score: 3 }
+    ],
+
+    synergyWith: [
+      { championId: "yasuo", score: 4 },
+      { championId: "azir", score: 4 },
+      { championId: "renekton", score: 4 },
+      { championId: "gwen", score: 3 }
+    ],
+
     offers: [
       { type: "frontline", strength: 4 },
       { type: "engage", strength: 4 },
@@ -4817,13 +5353,13 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "sustainedDamage", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "disengage", severity: 2 },
       { exposedTo: "zoneControl", severity: 2 },
       { exposedTo: "sustainedDamage", severity: 2 },
       { exposedTo: "sideLanePressure", severity: 1 },
     ],
-
 
     playerScaling: { mac: 4, tfg: 3, con: 4, iq: 4 },
 
@@ -4853,13 +5389,21 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 50,
     },
   }),
+
+
   createChampion({
     id: "pyke",
-    weakVs: [
-      { championId: "bard", score: 3 },
-      { championId: "lulu", score: 3 },
-      { championId: "seraphine", score: 3 }
+    goodVs: [
+      { championId: "karma", score: 3 },
+      { championId: "rakan", score: 2 }
     ],
+
+    weakVs: [
+      { championId: "bard", score: 5 },
+      { championId: "lulu", score: 4 },
+      { championId: "seraphine", score: 4 }
+    ],
+
     offers: [
       { type: "pick", strength: 5 },
       { type: "roamPressure", strength: 5 },
@@ -4869,6 +5413,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
@@ -4876,7 +5421,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "zoneControl", severity: 2 },
       { exposedTo: "frontline", severity: 2 },
     ],
-
 
     playerScaling: { mec: 5, mac: 4, clt: 4, iq: 4 },
 
@@ -4906,10 +5450,23 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55.06,
     },
   }),
+
+
   createChampion({
     id: "kogmaw",
-    synergyWith: [{ championId: "nami", score: 5 }, { championId: "tahm-kench", score: 3 }, { championId: "janna", score: 4 }],
-    mustWith: [{ championId: "lulu", score: 5 }, { championId: "braum", score: 4 }, { championId: "milio", score: 4 }],
+
+    synergyWith: [
+      { championId: "nami", score: 5 },
+      { championId: "tahm-kench", score: 3 },
+      { championId: "janna", score: 4 }
+    ],
+
+    mustWith: [
+      { championId: "lulu", score: 5 },
+      { championId: "braum", score: 4 },
+      { championId: "milio", score: 4 }
+    ],
+
     offers: [
       { type: "sustainedDamage", strength: 5 },
       { type: "scaling", strength: 5 },
@@ -4920,6 +5477,7 @@ const baseChampions: Champion[] = [
       { type: "peel", priority: 3 },
       { type: "frontline", priority: 3 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 3 },
       { exposedTo: "backlineAccess", severity: 3 },
@@ -4927,7 +5485,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "engage", severity: 2 },
       { exposedTo: "earlyPrio", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 4, clt: 4, con: 4 },
 
@@ -4957,17 +5514,21 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.98,
     },
   }),
+
+
   createChampion({
     id: "yorick",
     goodVs: [
-      { championId: "ksante", score: 4 },
-      { championId: "gnar", score: 3 }
+      { championId: "ksante", score: 3 },
+      { championId: "gnar", score: 3 },
+      { championId: "ambessa", score: 2 }
     ],
 
     weakVs: [
       { championId: "rumble", score: 4 },
-      { championId: "ambessa", score: 3 }
+      { championId: "jayce", score: 3 }
     ],
+
     offers: [
       { type: "splitpush", strength: 5 },
       { type: "sideLanePressure", strength: 5 },
@@ -4977,6 +5538,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "engage", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "poke", severity: 3 },
       { exposedTo: "pick", severity: 2 },
@@ -4984,7 +5546,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "siege", severity: 2 },
       { exposedTo: "waveclear", severity: 1 },
     ],
-
 
     playerScaling: { mec: 3, tfg: 3, con: 3, iq: 2 },
 
@@ -5014,6 +5575,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 50.0,
     },
   }),
+
+
   createChampion({
     id: "thresh",
     goodVs: [
@@ -5028,6 +5591,7 @@ const baseChampions: Champion[] = [
       { championId: "nautilus", score: 3 },
       { championId: "bard", score: 3 }
     ],
+
     offers: [
       { type: "pick", strength: 5 },
       { type: "peel", strength: 3 },
@@ -5038,13 +5602,13 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "followUp", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "disengage", severity: 2 },
       { exposedTo: "zoneControl", severity: 2 },
       { exposedTo: "frontline", severity: 2 },
       { exposedTo: "peel", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, mac: 4, tfg: 3, iq: 4 },
 
@@ -5074,6 +5638,7 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 58.57,
     },
   }),
+
   createChampion({
     id: "nunu",
     offers: [
@@ -5086,6 +5651,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "followUp", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "disengage", severity: 3 },
       { exposedTo: "zoneControl", severity: 1 },
@@ -5121,23 +5687,24 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 54.9,
     },
   }),
+
+
   createChampion({
     id: "camille",
     goodVs: [
       { championId: "yorick", score: 5 },
       { championId: "rumble", score: 5 },
-      { championId: "volibear", score: 3 },
-      { championId: "ambessa", score: 3 },
-      { championId: "gragas", score: 3 }
+      { championId: "ksante", score: 3 },
+      { championId: "ambessa", score: 2 }
     ],
 
     weakVs: [
       { championId: "jayce", score: 4 },
       { championId: "aatrox", score: 4 },
       { championId: "jax", score: 4 },
-      { championId: "shen", score: 3 },
       { championId: "ornn", score: 3 }
     ],
+
     offers: [
       { type: "backlineAccess", strength: 5 },
       { type: "dive", strength: 5 },
@@ -5149,6 +5716,7 @@ const baseChampions: Champion[] = [
       { type: "engage", priority: 2 },
       { type: "followUp", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "disengage", severity: 3 },
       { exposedTo: "poke", severity: 3 },
@@ -5156,7 +5724,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "peel", severity: 2 },
       { exposedTo: "antiDive", severity: 2 },
     ],
-
 
     playerScaling: { mec: 5, tfg: 3, clt: 3, con: 3 },
 
@@ -5186,11 +5753,20 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55.22,
     },
   }),
+
+
   createChampion({
     id: "twisted-fate",
     goodVs: [
-      { championId: "twisted-fate", score: 4 }
+      { championId: "aurora", score: 5 },
+      { championId: "akali", score: 3 }
     ],
+
+    weakVs: [
+      { championId: "ahri", score: 4 },
+      { championId: "galio", score: 4 }
+    ],
+
     offers: [
       { type: "pick", strength: 4 },
       { type: "roamPressure", strength: 5 },
@@ -5201,6 +5777,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
@@ -5208,7 +5785,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "frontline", severity: 2 },
       { exposedTo: "disengage", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, mac: 4, con: 4, iq: 4 },
 
@@ -5238,6 +5814,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55.97,
     },
   }),
+
+
   createChampion({
     id: "kindred",
     goodVs: [
@@ -5253,6 +5831,7 @@ const baseChampions: Champion[] = [
       { championId: "pantheon", score: 4 },
       { championId: "vi", score: 3 }
     ],
+
     offers: [
       { type: "sustainedDamage", strength: 4 },
       { type: "objectiveControl", strength: 4 },
@@ -5268,7 +5847,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "backlineAccess", severity: 2 },
       { exposedTo: "earlyPrio", severity: 1 },
     ],
-
 
     playerScaling: { mec: 5, mac: 4, tfg: 3, iq: 4 },
 
@@ -5298,11 +5876,13 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 57.09,
     },
   }),
+
   createChampion({
     id: "vayne",
     goodVs: [
       { championId: "kaisa", score: 3 },
-      { championId: "ksante", score: 3 }
+      { championId: "ksante", score: 3 },
+      { championId: "gnar", score: 3 }
     ],
 
     weakVs: [
@@ -5327,7 +5907,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "earlyPrio", severity: 2 },
       { exposedTo: "engage", severity: 1 },
     ],
-
 
     playerScaling: { mec: 5, tfg: 4, clt: 2, con: 4 },
 
@@ -5357,13 +5936,14 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 57.79,
     },
   }),
+
+
   createChampion({
     id: "viego",
     goodVs: [
       { championId: "skarner", score: 4 },
       { championId: "ivern", score: 4 },
-      { championId: "wukong", score: 3 },
-      { championId: "zyra", score: 3 }
+      { championId: "wukong", score: 3 }
     ],
 
     weakVs: [
@@ -5373,6 +5953,7 @@ const baseChampions: Champion[] = [
       { championId: "kindred", score: 3 },
       { championId: "nocturne", score: 3 }
     ],
+
     offers: [
       { type: "sustainedDamage", strength: 4 },
       { type: "dive", strength: 3 },
@@ -5382,11 +5963,11 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, mac: 4, tfg: 3, iq: 4 },
 
@@ -5416,6 +5997,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55.74,
     },
   }),
+
+
   createChampion({
     id: "renata-glasc",
     goodVs: [
@@ -5431,7 +6014,13 @@ const baseChampions: Champion[] = [
       { championId: "rell", score: 3 },
       { championId: "leona", score: 3 }
     ],
-    synergyWith: [{ championId: "kalista", score: 5 }, { championId: "varus", score: 4 }, { championId: "corki", score: 3 }, { championId: "gwen", score: 3 }],
+    synergyWith: [
+      { championId: "kalista", score: 5 },
+      { championId: "varus", score: 4 },
+      { championId: "corki", score: 3 },
+      { championId: "jhin", score: 3 }
+    ],
+
     offers: [
       { type: "peel", strength: 4 },
       { type: "disengage", strength: 4 },
@@ -5446,7 +6035,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
     ],
-
 
     playerScaling: { mac: 4, tfg: 4, clt: 4, iq: 5 },
 
@@ -5476,23 +6064,22 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 62.26,
     },
   }),
+
+
   createChampion({
     id: "tristana",
     goodVs: [
       { championId: "sivir", score: 5 },
-      { championId: "smolder", score: 5 },
-      { championId: "syndra", score: 4 },
-      { championId: "ahri", score: 4 },
-      { championId: "draven", score: 4 }
+      { championId: "yunara", score: 3 },
+      { championId: "draven", score: 2 }
     ],
 
     weakVs: [
-      { championId: "lucian", score: 5 },
-      { championId: "ashe", score: 4 },
-      { championId: "ryze", score: 4 },
-      { championId: "miss-fortune", score: 4 },
-      { championId: "varus", score: 4 }
+      { championId: "kaisa", score: 5 },
+      { championId: "varus", score: 4 },
+      { championId: "ezreal", score: 4 }
     ],
+
     offers: [
       { type: "siege", strength: 4 },
       { type: "burstDamage", strength: 3 },
@@ -5503,13 +6090,13 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 3 },
       { exposedTo: "backlineAccess", severity: 3 },
       { exposedTo: "pick", severity: 2 },
       { exposedTo: "engage", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 4, clt: 2, con: 4 },
 
@@ -5572,7 +6159,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "frontline", severity: 2 },
       { exposedTo: "peel", severity: 1 },
     ],
-
 
     playerScaling: { mec: 5, mac: 4, tfg: 3, iq: 4 },
 
@@ -5720,6 +6306,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 57.86,
     },
   }),
+
+
   createChampion({
     id: "miss-fortune",
     goodVs: [
@@ -5735,7 +6323,13 @@ const baseChampions: Champion[] = [
       { championId: "sivir", score: 4 },
       { championId: "aphelios", score: 4 }
     ],
-    synergyWith: [{ championId: "neeko", score: 5 }, { championId: "leona", score: 4 }, { championId: "amumu", score: 4 }, { championId: "maokai", score: 3 }],
+
+    synergyWith: [
+      { championId: "neeko", score: 5 },
+      { championId: "leona", score: 4 },
+      { championId: "nautilus", score: 4 },
+      { championId: "braum", score: 3 }],
+
     offers: [
       { type: "scaling", strength: 4 },
       { type: "sustainedDamage", strength: 4 },
@@ -5747,6 +6341,7 @@ const baseChampions: Champion[] = [
       { type: "frontline", priority: 2 },
       { type: "peel", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 3 },
       { exposedTo: "backlineAccess", severity: 3 },
@@ -5754,7 +6349,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "earlyPrio", severity: 2 },
       { exposedTo: "objectiveControl", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 4, clt: 2, con: 4 },
 
@@ -5784,22 +6378,21 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55.26,
     },
   }),
+
+
   createChampion({
     id: "hwei",
     goodVs: [
-      { championId: "jayce", score: 5 },
-      { championId: "akali", score: 5 },
-      { championId: "sylas", score: 4 },
-      { championId: "mel", score: 4 },
-      { championId: "azir", score: 4 }
+      { championId: "annie", score: 5 },
+      { championId: "mel", score: 3 },
+      { championId: "ahri", score: 3 }
     ],
 
     weakVs: [
-      { championId: "smolder", score: 5 },
-      { championId: "annie", score: 4 },
-      { championId: "ahri", score: 4 },
-      { championId: "yone", score: 4 }
+      { championId: "viktor", score: 3 },
+      { championId: "taliyah", score: 3 }
     ],
+
     offers: [
       { type: "waveclear", strength: 5 },
       { type: "poke", strength: 4 },
@@ -5810,6 +6403,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
@@ -5817,7 +6411,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "engage", severity: 2 },
       { exposedTo: "earlyPrio", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 3, con: 3, iq: 4 },
 
@@ -5847,20 +6440,22 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 52.85,
     },
   }),
+
+
   createChampion({
     id: "volibear",
     goodVs: [
       { championId: "skarner", score: 5 },
-      { championId: "xin-zhao", score: 5 },
+      { championId: "renekton", score: 5 },
       { championId: "ambessa", score: 4 }
     ],
 
     weakVs: [
       { championId: "vi", score: 5 },
       { championId: "wukong", score: 4 },
-      { championId: "jarvan-iv", score: 4 },
-      { championId: "camille", score: 4 }
+      { championId: "jarvan-iv", score: 4 }
     ],
+
     offers: [
       { type: "dive", strength: 4 },
       { type: "engage", strength: 4 },
@@ -5872,6 +6467,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "followUp", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "disengage", severity: 3 },
       { exposedTo: "peel", severity: 2 },
@@ -5879,7 +6475,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "zoneControl", severity: 2 },
       { exposedTo: "frontline", severity: 2 },
     ],
-
 
     playerScaling: { mec: 2, mac: 4, tfg: 3, iq: 4 },
 
@@ -5909,15 +6504,20 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 57.75,
     },
   }),
+
+
   createChampion({
     id: "yuumi",
     goodVs: [
-      { championId: "lulu", score: 5 }
+      { championId: "karma", score: 3 }
     ],
 
     weakVs: [
-      { championId: "rakan", score: 5 },
-      { championId: "seraphine", score: 4 }
+      { championId: "thresh", score: 4 },
+      { championId: "bard", score: 3 },
+      { championId: "seraphine", score: 3 },
+      { championId: "nautilus", score: 3 },
+      { championId: "alistar", score: 3 }
     ],
 
     synergyWith: [
@@ -5938,13 +6538,13 @@ const baseChampions: Champion[] = [
       { type: "engage", priority: 2 },
       { type: "frontline", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "poke", severity: 3 },
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
       { exposedTo: "siege", severity: 2 },
     ],
-
 
     playerScaling: { mac: 4, tfg: 3, con: 3, iq: 4 },
 
@@ -5974,6 +6574,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 44.85,
     },
   }),
+
+
   createChampion({
     id: "graves",
     goodVs: [
@@ -5988,6 +6590,7 @@ const baseChampions: Champion[] = [
       { championId: "maokai", score: 4 },
       { championId: "lee-sin", score: 4 }
     ],
+
     offers: [
       { type: "earlyPrio", strength: 4 },
       { type: "objectiveControl", strength: 3 },
@@ -6030,23 +6633,27 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 58.55,
     },
   }),
+
+
   createChampion({
     id: "zeri",
     goodVs: [
-      { championId: "ziggs", score: 5 },
-      { championId: "jinx", score: 5 },
-      { championId: "lucian", score: 4 },
-      { championId: "jhin", score: 4 }
+      { championId: "sivir", score: 4 },
+      { championId: "corki", score: 3 },
+      { championId: "ashe", score: 3 }
     ],
 
     weakVs: [
       { championId: "caitlyn", score: 5 },
       { championId: "ashe", score: 4 },
-      { championId: "yunara", score: 4 },
-      { championId: "senna", score: 4 },
-      { championId: "smolder", score: 4 }
+      { championId: "yunara", score: 5 }
     ],
-    mustWith: [{ championId: "lulu", score: 5 }, { championId: "yuumi", score: 5 }],
+
+    mustWith: [
+      { championId: "lulu", score: 5 },
+      { championId: "yuumi", score: 5 }
+    ],
+
     offers: [
       { type: "sustainedDamage", strength: 5 },
       { type: "scaling", strength: 5 },
@@ -6057,6 +6664,7 @@ const baseChampions: Champion[] = [
       { type: "frontline", priority: 3 },
       { type: "peel", priority: 3 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 3 },
       { exposedTo: "backlineAccess", severity: 3 },
@@ -6064,7 +6672,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "earlyPrio", severity: 2 },
       { exposedTo: "objectiveControl", severity: 1 },
     ],
-
 
     playerScaling: { mec: 5, tfg: 4, clt: 2, con: 4 },
 
@@ -6094,21 +6701,24 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 61.17,
     },
   }),
+
+
   createChampion({
     id: "milio",
     goodVs: [
-      { championId: "alistar", score: 5 },
-      { championId: "karma", score: 4 },
-      { championId: "rakan", score: 4 }
+      { championId: "nami", score: 3 },
+      { championId: "rakan", score: 4 },
+      { championId: "karma", score: 2 }
     ],
 
     weakVs: [
       { championId: "nautilus", score: 5 },
       { championId: "bard", score: 4 },
-      { championId: "neeko", score: 4 },
-      { championId: "rell", score: 4 },
-      { championId: "braum", score: 4 }
+      { championId: "seraphine", score: 4 },
+      { championId: "lulu", score: 3 },
+      { championId: "neeko", score: 2 }
     ],
+
     offers: [
       { type: "peel", strength: 5 },
       { type: "antiDive", strength: 4 },
@@ -6119,11 +6729,11 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
     ],
-
 
     playerScaling: { mac: 4, tfg: 3, con: 4, iq: 4 },
 
@@ -6153,6 +6763,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 53.13,
     },
   }),
+
+
   createChampion({
     id: "gragas",
     goodVs: [
@@ -6170,6 +6782,7 @@ const baseChampions: Champion[] = [
       { championId: "olaf", score: 4 },
       { championId: "jayce", score: 4 }
     ],
+
     offers: [
       { type: "disengage", strength: 5 },
       { type: "engage", strength: 3 },
@@ -6217,16 +6830,15 @@ const baseChampions: Champion[] = [
   createChampion({
     id: "reksai",
     goodVs: [
-      { championId: "udyr", score: 5 },
-      { championId: "ksante", score: 5 },
-      { championId: "rumble", score: 4 }
+      { championId: "ksante", score: 3 },
+      { championId: "sion", score: 3 }
     ],
 
     weakVs: [
-      { championId: "zac", score: 5 },
-      { championId: "aatrox", score: 4 },
-      { championId: "renekton", score: 4 }
+      { championId: "zaahen", score: 3 },
+      { championId: "ambessa", score: 2 }
     ],
+
     offers: [
       { type: "earlyPrio", strength: 4 },
       { type: "pick", strength: 4 },
@@ -6243,7 +6855,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "zoneControl", severity: 1 },
       { exposedTo: "engage", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, mac: 4, tfg: 3, clt: 3 },
 
@@ -6273,6 +6884,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 63.21,
     },
   }),
+
+
   createChampion({
     id: "draven",
     goodVs: [
@@ -6286,6 +6899,7 @@ const baseChampions: Champion[] = [
       { championId: "varus", score: 4 },
       { championId: "kaisa", score: 4 }
     ],
+
     offers: [
       { type: "earlyPrio", strength: 5 },
       { type: "burstDamage", strength: 4 },
@@ -6302,7 +6916,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "peel", severity: 2 },
       { exposedTo: "frontline", severity: 2 },
     ],
-
 
     playerScaling: { mec: 5, tfg: 4, clt: 2, con: 4 },
 
@@ -6332,6 +6945,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55.06,
     },
   }),
+
+
   createChampion({
     id: "smolder",
     goodVs: [
@@ -6349,7 +6964,13 @@ const baseChampions: Champion[] = [
       { championId: "azir", score: 4 },
       { championId: "yone", score: 4 }
     ],
-    synergyWith: [{ championId: "braum", score: 3 }, { championId: "lulu", score: 3 }, { championId: "tahm-kench", score: 3 }],
+
+    synergyWith: [
+      { championId: "braum", score: 3 },
+      { championId: "lulu", score: 3 },
+      { championId: "tahm-kench", score: 3 }
+    ],
+
     offers: [
       { type: "scaling", strength: 5 },
       { type: "poke", strength: 3 },
@@ -6361,6 +6982,7 @@ const baseChampions: Champion[] = [
       { type: "frontline", priority: 2 },
       { type: "peel", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 3 },
       { exposedTo: "backlineAccess", severity: 3 },
@@ -6368,7 +6990,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "earlyPrio", severity: 2 },
       { exposedTo: "objectiveControl", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 4, con: 4, iq: 4 },
 
@@ -6401,21 +7022,24 @@ const baseChampions: Champion[] = [
   createChampion({
     id: "kalista",
     goodVs: [
-      { championId: "lucian", score: 5 },
-      { championId: "senna", score: 4 },
-      { championId: "jhin", score: 4 },
-      { championId: "varus", score: 4 },
-      { championId: "ziggs", score: 4 }
+      { championId: "varus", score: 3 },
+      { championId: "corki", score: 3 },
+      { championId: "lucian", score: 3 }
     ],
 
     weakVs: [
-      { championId: "aphelios", score: 5 },
-      { championId: "ezreal", score: 4 },
-      { championId: "draven", score: 4 },
-      { championId: "kaisa", score: 4 },
-      { championId: "xayah", score: 4 }
+      { championId: "miss-fortune", score: 3 },
+      { championId: "aphelios", score: 3 }
     ],
-    synergyWith: [{ championId: "renata-glasc", score: 5 }, { championId: "alistar", score: 4 }, { championId: "rell", score: 4 }, { championId: "neeko", score: 3 }],
+
+    synergyWith: [
+      { championId: "renata-glasc", score: 5 },
+      { championId: "alistar", score: 4 },
+      { championId: "nautilus", score: 4 },
+      { championId: "rell", score: 4 },
+      { championId: "neeko", score: 3 }
+    ],
+
     offers: [
       { type: "earlyPrio", strength: 5 },
       { type: "objectiveControl", strength: 4 },
@@ -6426,13 +7050,13 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 3 },
       { exposedTo: "backlineAccess", severity: 3 },
       { exposedTo: "pick", severity: 2 },
       { exposedTo: "scaling", severity: 1 },
     ],
-
 
     playerScaling: { mec: 5, tfg: 4, clt: 3, con: 4 },
 
@@ -6479,6 +7103,7 @@ const baseChampions: Champion[] = [
       { championId: "rell", score: 4 },
       { championId: "braum", score: 4 }
     ],
+
     offers: [
       { type: "pick", strength: 5 },
       { type: "reliableCC", strength: 4 },
@@ -6488,6 +7113,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "followUp", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "disengage", severity: 3 },
       { exposedTo: "zoneControl", severity: 2 },
@@ -6524,6 +7150,7 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 57.25,
     },
   }),
+
   createChampion({
     id: "diana",
     offers: [
@@ -6543,7 +7170,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "zoneControl", severity: 2 },
       { exposedTo: "frontline", severity: 2 },
     ],
-
 
     playerScaling: { mec: 2, mac: 4, tfg: 3, iq: 4 },
 
@@ -6573,6 +7199,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 52.38,
     },
   }),
+
+
   createChampion({
     id: "veigar",
     goodVs: [
@@ -6580,9 +7208,9 @@ const baseChampions: Champion[] = [
     ],
 
     weakVs: [
-      { championId: "taliyah", score: 5 },
       { championId: "ahri", score: 4 }
     ],
+
     offers: [
       { type: "burstDamage", strength: 5 },
       { type: "zoneControl", strength: 4 },
@@ -6592,6 +7220,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
@@ -6599,7 +7228,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "peel", severity: 2 },
       { exposedTo: "frontline", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 3, con: 3, iq: 4 },
 
@@ -6629,6 +7257,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 49.46,
     },
   }),
+
+
   createChampion({
     id: "kled",
     goodVs: [
@@ -6638,6 +7268,7 @@ const baseChampions: Champion[] = [
     weakVs: [
       { championId: "rumble", score: 5 }
     ],
+
     offers: [
       { type: "engage", strength: 4 },
       { type: "sideLanePressure", strength: 4 },
@@ -6654,7 +7285,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "engage", severity: 2 },
       { exposedTo: "waveclear", severity: 1 },
     ],
-
 
     playerScaling: { mec: 3, tfg: 3, con: 3, iq: 2 },
 
@@ -6684,12 +7314,15 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 57.02,
     },
   }),
+
+
   createChampion({
     id: "sett",
     goodVs: [
       { championId: "sion", score: 5 },
       { championId: "chogath", score: 4 }
     ],
+
     offers: [
       { type: "frontline", strength: 3 },
       { type: "engage", strength: 3 },
@@ -6703,7 +7336,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "disengage", severity: 2 },
       { exposedTo: "zoneControl", severity: 1 },
     ],
-
 
     playerScaling: { mec: 3, tfg: 3, con: 3, iq: 2 },
 
@@ -6733,12 +7365,15 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 51.18,
     },
   }),
+
+
   createChampion({
     id: "vex",
     goodVs: [
       { championId: "leblanc", score: 3 },
       { championId: "ahri", score: 2 }
     ],
+
     offers: [
       { type: "burstDamage", strength: 4 },
       { type: "antiDive", strength: 3 },
@@ -6752,7 +7387,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "peel", severity: 2 },
       { exposedTo: "frontline", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 3, con: 3, iq: 4 },
 
@@ -6782,13 +7416,13 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 63.5,
     },
   }),
+
+
   createChampion({
     id: "shen",
     goodVs: [
-      { championId: "gwen", score: 5 },
-      { championId: "rell", score: 5 },
-      { championId: "ornn", score: 4 },
-      { championId: "rumble", score: 4 },
+      { championId: "ksante", score: 5 },
+      { championId: "sion", score: 5 },
       { championId: "camille", score: 4 }
     ],
 
@@ -6798,6 +7432,7 @@ const baseChampions: Champion[] = [
       { championId: "renekton", score: 4 },
       { championId: "yorick", score: 4 }
     ],
+
     offers: [
       { type: "frontline", strength: 4 },
       { type: "antiDive", strength: 4 },
@@ -6806,14 +7441,15 @@ const baseChampions: Champion[] = [
     ],
 
     needs: [
+      { type: "followUp", priority: 3 }
     ],
+
     weaknesses: [
       { exposedTo: "pick", severity: 2 },
       { exposedTo: "sustainedDamage", severity: 2 },
       { exposedTo: "engage", severity: 1 },
       { exposedTo: "sideLanePressure", severity: 1 },
     ],
-
 
     playerScaling: { mac: 4, tfg: 3, con: 3, iq: 4 },
 
@@ -6843,11 +7479,14 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 54.06,
     },
   }),
+
+
   createChampion({
     id: "darius",
     goodVs: [
       { championId: "ambessa", score: 5 }
     ],
+
     offers: [
       { type: "sideLanePressure", strength: 4 },
       { type: "sustainedDamage", strength: 4 },
@@ -6857,6 +7496,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "engage", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "poke", severity: 3 },
       { exposedTo: "pick", severity: 2 },
@@ -6864,7 +7504,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "siege", severity: 2 },
       { exposedTo: "waveclear", severity: 1 },
     ],
-
 
     playerScaling: { mec: 3, tfg: 3, con: 3, iq: 2 },
 
@@ -6894,6 +7533,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 59.86,
     },
   }),
+
+
   createChampion({
     id: "kayle",
     offers: [
@@ -6943,15 +7584,20 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 62.87,
     },
   }),
+
+
   createChampion({
     id: "khazix",
     goodVs: [
       { championId: "xin-zhao", score: 5 },
       { championId: "rengar", score: 4 }
     ],
-    synergyWith: [{ championId: "orianna", score: 5 }, {
-      championId: "shen", score: 4
-    }],
+
+    synergyWith: [
+      { championId: "orianna", score: 5 },
+      { championId: "shen", score: 4 }
+    ],
+
     offers: [
       { type: "pick", strength: 5 },
       { type: "burstDamage", strength: 5 },
@@ -6961,6 +7607,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
@@ -6968,7 +7615,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "antiDive", severity: 2 },
       { exposedTo: "disengage", severity: 2 },
     ],
-
 
     playerScaling: { mec: 2, mac: 4, tfg: 3, iq: 4 },
 
@@ -6998,6 +7644,7 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 54.55,
     },
   }),
+
   createChampion({
     id: "mordekaiser",
     goodVs: [
@@ -7007,8 +7654,10 @@ const baseChampions: Champion[] = [
 
     weakVs: [
       { championId: "ornn", score: 5 },
+      { championId: "gnar", score: 5 },
       { championId: "ksante", score: 4 }
     ],
+
     offers: [
       { type: "sideLanePressure", strength: 4 },
       { type: "sustainedDamage", strength: 4 },
@@ -7018,6 +7667,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "engage", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "pick", severity: 2 },
       { exposedTo: "engage", severity: 2 },
@@ -7025,7 +7675,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "waveclear", severity: 1 },
       { exposedTo: "siege", severity: 1 },
     ],
-
 
     playerScaling: { mec: 3, tfg: 3, con: 3, iq: 2 },
 
@@ -7074,7 +7723,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "siege", severity: 2 },
     ],
 
-
     playerScaling: { mac: 4, tfg: 3, con: 3, iq: 4 },
 
     name: "Zilean",
@@ -7103,13 +7751,19 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 60.66,
     },
   }),
+
   createChampion({
     id: "morgana",
     goodVs: [
       { championId: "vi", score: 5 },
       { championId: "leona", score: 3 }
     ],
-    synergyWith: [{ championId: "caitlyn", score: 4 }, { championId: "miss-fortune", score: 3 }, { championId: "varus", score: 3 }],
+
+    synergyWith: [
+      { championId: "caitlyn", score: 4 },
+      { championId: "varus", score: 3 }
+    ],
+
     offers: [
       { type: "pick", strength: 4 },
       { type: "antiDive", strength: 4 },
@@ -7125,7 +7779,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "frontline", severity: 2 },
       { exposedTo: "peel", severity: 1 },
     ],
-
 
     playerScaling: { mac: 4, tfg: 3, con: 3, iq: 4 },
 
@@ -7155,6 +7808,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 51.7,
     },
   }),
+
+
   createChampion({
     id: "fiora",
     offers: [
@@ -7192,6 +7847,7 @@ const baseChampions: Champion[] = [
       { championId: "jax", score: 4 },
       { championId: "aatrox", score: 4 }
     ],
+
     image: "/champions/fiora.png",
     roles: ["top"],
     damageProfile: ["AD", "TRUE"],
@@ -7217,6 +7873,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 58.22,
     },
   }),
+
+
   createChampion({
     id: "kassadin",
     goodVs: [
@@ -7232,6 +7890,7 @@ const baseChampions: Champion[] = [
       { championId: "orianna", score: 4 },
       { championId: "yone", score: 4 }
     ],
+
     offers: [
       { type: "scaling", strength: 5 },
       { type: "backlineAccess", strength: 4 },
@@ -7279,6 +7938,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 54.52,
     },
   }),
+
+
   createChampion({
     id: "riven",
     offers: [
@@ -7327,6 +7988,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.31,
     },
   }),
+
+
   createChampion({
     id: "singed",
     offers: [
@@ -7370,6 +8033,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 58.2,
     },
   }),
+
+
   createChampion({
     id: "soraka",
     offers: [
@@ -7382,13 +8047,13 @@ const baseChampions: Champion[] = [
       { type: "engage", priority: 2 },
       { type: "frontline", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "poke", severity: 3 },
       { exposedTo: "dive", severity: 2 },
       { exposedTo: "backlineAccess", severity: 2 },
       { exposedTo: "siege", severity: 2 },
     ],
-
 
     playerScaling: { mac: 4, tfg: 3, con: 3, iq: 4 },
 
@@ -7418,6 +8083,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 59.45,
     },
   }),
+
+
   createChampion({
     id: "swain",
     goodVs: [
@@ -7439,7 +8106,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "backlineAccess", severity: 2 },
       { exposedTo: "pick", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 4, con: 3, iq: 4 },
 
@@ -7469,6 +8135,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 60.61,
     },
   }),
+
+
   createChampion({
     id: "warwick",
     offers: [
@@ -7515,11 +8183,14 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 51.7,
     },
   }),
+
+
   createChampion({
     id: "zyra",
     goodVs: [
       { championId: "wukong", score: 5 }
     ],
+
     offers: [
       { type: "zoneControl", strength: 5 },
       { type: "objectiveControl", strength: 4 },
@@ -7564,6 +8235,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 58.29,
     },
   }),
+
+
   createChampion({
     id: "senna",
     offers: [
@@ -7613,6 +8286,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.57,
     },
   }),
+
+
   createChampion({
     id: "lillia",
     offers: [
@@ -7658,23 +8333,20 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 48.02,
     },
   }),
+
+
   createChampion({
     id: "skarner",
     goodVs: [
-      { championId: "zed", score: 5 },
-      { championId: "nocturne", score: 4 },
-      { championId: "sejuani", score: 4 },
-      { championId: "vi", score: 4 },
-      { championId: "wukong", score: 4 }
+      { championId: "pantheon", score: 4 },
+      { championId: "xin-zhao", score: 4 },
+      { championId: "vi", score: 3 }
     ],
 
     weakVs: [
-      { championId: "kayn", score: 5 },
-      { championId: "volibear", score: 4 },
-      { championId: "dr-mundo", score: 4 },
-      { championId: "viego", score: 4 },
-      { championId: "trundle", score: 4 }
+      { championId: "dr-mundo", score: 4 }
     ],
+
     offers: [
       { type: "frontline", strength: 4 },
       { type: "pick", strength: 5 },
@@ -7685,6 +8357,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "followUp", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "disengage", severity: 3 },
       { exposedTo: "frontline", severity: 2 },
@@ -7701,27 +8374,29 @@ const baseChampions: Champion[] = [
     roles: ["jungle"],
     damageProfile: ["AD", "AP"],
     stats: {
-      picks: 3,
-      bans: 0,
-      presence: 3.0,
-      prioScore: 0.0,
-      wins: 3,
-      losses: 0,
-      proWinRate: 100.0,
-      kda: 7.1,
-      avgBanTurn: null,
-      avgPickRound: 3.0,
-      blindPickRate: 66.7,
-      averageGameTime: "36:26",
-      csPerMinute: 6.2,
-      damagePerMinute: 545,
-      goldPerMinute: 381,
-      csDiffAt15: 10,
-      goldDiffAt15: 220,
-      xpDiffAt15: 57,
+      picks: 46,
+      bans: 24,
+      presence: 70,
+      prioScore: 9,
+      wins: 26,
+      losses: 20,
+      proWinRate: 57.4,
+      kda: 3.7,
+      avgBanTurn: 8.3,
+      avgPickRound: 1.76,
+      blindPickRate: 22.0,
+      averageGameTime: "32:26",
+      csPerMinute: 6.4,
+      damagePerMinute: 461,
+      goldPerMinute: 368,
+      csDiffAt15: -4.1,
+      goldDiffAt15: -182,
+      xpDiffAt15: -250,
       soloqKrChallengerWinRate: 50.2,
     },
   }),
+
+
   createChampion({
     id: "ziggs",
     goodVs: [
@@ -7739,6 +8414,7 @@ const baseChampions: Champion[] = [
       { championId: "jinx", score: 4 },
       { championId: "kaisa", score: 4 }
     ],
+
     offers: [
       { type: "poke", strength: 4 },
       { type: "scaling", strength: 4 },
@@ -7751,6 +8427,7 @@ const baseChampions: Champion[] = [
       { type: "frontline", priority: 2 },
       { type: "peel", priority: 2 }
     ],
+
     weaknesses: [
       { exposedTo: "dive", severity: 3 },
       { exposedTo: "backlineAccess", severity: 3 },
@@ -7788,6 +8465,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 59.75,
     },
   }),
+
+
   createChampion({
     id: "illaoi",
     offers: [
@@ -7836,6 +8515,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 51.2,
     },
   }),
+
+
   createChampion({
     id: "lissandra",
     offers: [
@@ -7855,7 +8536,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "frontline", severity: 2 },
       { exposedTo: "disengage", severity: 1 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 3, con: 3, iq: 4 },
 
@@ -7885,6 +8565,7 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 55.49,
     },
   }),
+
   createChampion({
     id: "tryndamere",
     offers: [
@@ -7903,7 +8584,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "siege", severity: 2 },
       { exposedTo: "waveclear", severity: 1 },
     ],
-
 
     playerScaling: { mec: 3, tfg: 3, con: 3, iq: 2 },
 
@@ -7933,6 +8613,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 50.8,
     },
   }),
+
+
   createChampion({
     id: "xerath",
     offers: [
@@ -7981,9 +8663,16 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 57.04,
     },
   }),
+
+
   createChampion({
     id: "samira",
-    synergyWith: [{ championId: "alistar", score: 4 }, { championId: "leona", score: 4 }, { championId: "rell", score: 4 }],
+    synergyWith: [
+      { championId: "alistar", score: 4 },
+      { championId: "leona", score: 4 },
+      { championId: "rell", score: 4 }
+    ],
+
     offers: [
       { type: "dive", strength: 4 },
       { type: "followUp", strength: 4 },
@@ -8002,7 +8691,6 @@ const baseChampions: Champion[] = [
       { exposedTo: "pick", severity: 2 },
       { exposedTo: "peel", severity: 2 },
     ],
-
 
     playerScaling: { mec: 4, tfg: 4, clt: 2, con: 4 },
 
@@ -8032,6 +8720,8 @@ const baseChampions: Champion[] = [
       soloqKrChallengerWinRate: 56.83,
     },
   }),
+
+
   createChampion({
     id: "gangplank",
     offers: [
