@@ -151,8 +151,8 @@ function getPlayerChampionPerf(
 function pickBestPerformance(perfs: ChampionPerf[]) {
   return [...perfs]
     .sort((a, b) => {
-      if (b.winRate !== a.winRate) return b.winRate - a.winRate;
-      return b.games - a.games;
+      if (b.games !== a.games) return b.games - a.games;
+      return b.winRate - a.winRate;
     })
     .slice(0, PERF_LIST_SIZE);
 }
@@ -160,8 +160,8 @@ function pickBestPerformance(perfs: ChampionPerf[]) {
 function pickWorstPerformance(perfs: ChampionPerf[]) {
   return [...perfs]
     .sort((a, b) => {
-      if (a.winRate !== b.winRate) return a.winRate - b.winRate;
-      return b.games - a.games;
+      if (b.games !== a.games) return b.games - a.games;
+      return a.winRate - b.winRate;
     })
     .slice(0, PERF_LIST_SIZE);
 }
@@ -251,7 +251,8 @@ function PerformanceList({
               style={{ fontSize: 13, lineHeight: "20px", fontWeight: 500 }}
             >
               {index + 1}. {item.championName.toUpperCase()} -{" "}
-              {Math.round(item.winRate * 100)}%
+              {Math.round(item.winRate * 100)}% - {item.games}{" "}
+              {item.games === 1 ? "GAME" : "GAMES"}
             </li>
           ))}
         </ol>
