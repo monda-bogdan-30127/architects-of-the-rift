@@ -191,9 +191,53 @@ export function resolveRoleAssignments(
   if (cleanIds.length === 0) return {};
 
   const result = getBestAssignment(cleanIds, roster);
+
+  // Perfect assignment — every champion mapped to a valid role
   if (result.assignedCount === cleanIds.length) {
     return result.assignment;
   }
 
-  return mapPicksToRoleOrder(cleanIds);
+  // Partial assignment — some champions couldn't fit their declared roles.
+  // Use the partial DFS result (valid assignments) and greedily fill
+  // remaining champions into remaining open slots, preferring roles the
+  // champion actually declares even if the DFS couldn't find a global fit.
+  const assignment: Partial<Record<Role, string>> = { ...result.assignment };
+  const assignedChampionIds = new Set(Object.values(assignment).filter(Boolean));
+  const usedRoles = new Set(Object.keys(assignment) as Role[]);
+
+  const unassigned = cleanIds.filter((id) => !assignedChampionIds.has(id));
+  const openRoles = ROLE_ORDER.filter((role) => !usedRoles.has(role));
+
+  for (const championId of unassigned) {
+    if (openRoles.length === 0) break;
+
+    const champion = getChampionById(championId);
+
+    // Try to find an open role that the champion actually supports
+    let bestIdx = -1;
+    let bestScore = -Infinity;
+
+    for (let i = 0; i < openRoles.length; i++) {
+      const role = openRoles[i];
+      const isNative = champion?.roles.includes(role) ?? false;
+      // Native role gets a large bonus; fallback roles get a small one
+      // based on roster player fit so the least-bad option wins
+      const score = isNative
+        ? 1000 + getRoleAssignmentScore(role, championId, roster)
+        : getRoleAssignmentScore(role, championId, roster);
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestIdx = i;
+      }
+    }
+
+    // If no native role available, just take first open slot (last resort)
+    const chosenIdx = bestIdx >= 0 ? bestIdx : 0;
+    const chosenRole = openRoles[chosenIdx];
+    assignment[chosenRole] = championId;
+    openRoles.splice(chosenIdx, 1);
+  }
+
+  return assignment;
 }

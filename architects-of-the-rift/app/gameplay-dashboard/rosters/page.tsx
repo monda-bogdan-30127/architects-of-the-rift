@@ -151,8 +151,9 @@ function getPlayerChampionPerf(
 function pickBestPerformance(perfs: ChampionPerf[]) {
   return [...perfs]
     .sort((a, b) => {
-      if (b.games !== a.games) return b.games - a.games;
-      return b.winRate - a.winRate;
+      const wrDiff = Math.round(b.winRate * 100) - Math.round(a.winRate * 100);
+      if (wrDiff !== 0) return wrDiff;
+      return b.games - a.games;
     })
     .slice(0, PERF_LIST_SIZE);
 }
@@ -160,8 +161,9 @@ function pickBestPerformance(perfs: ChampionPerf[]) {
 function pickWorstPerformance(perfs: ChampionPerf[]) {
   return [...perfs]
     .sort((a, b) => {
-      if (b.games !== a.games) return b.games - a.games;
-      return a.winRate - b.winRate;
+      const wrDiff = Math.round(a.winRate * 100) - Math.round(b.winRate * 100);
+      if (wrDiff !== 0) return wrDiff;
+      return b.games - a.games;
     })
     .slice(0, PERF_LIST_SIZE);
 }
