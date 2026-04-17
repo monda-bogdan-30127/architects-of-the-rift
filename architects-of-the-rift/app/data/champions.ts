@@ -615,6 +615,7 @@ const baseChampions: Champion[] = [
       { championId: "ahri", score: 3 },
       { championId: "azir", score: 3 },
     ],
+    
     weakVs: [
       { championId: "cassiopeia", score: 2 },
       { championId: "syndra", score: 3 },
@@ -7420,8 +7421,8 @@ const baseChampions: Champion[] = [
   createChampion({
     id: "shen",
     goodVs: [
-      { championId: "ksante", score: 5 },
-      { championId: "sion", score: 5 },
+      { championId: "ksante", score: 2 },
+      { championId: "sion", score: 2 },
       { championId: "camille", score: 4 }
     ],
 

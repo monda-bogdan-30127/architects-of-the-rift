@@ -876,14 +876,51 @@ function scorePickCandidate(
 }
 
 // ─── FIX #2: ban inutil daca rolul e deja acoperit de inamic ─────────────────
+// BUG FIX: accepts roster so flex picks (Anivia mid/support) resolve correctly
+// when another champion (Nautilus) already fills one of the flex roles.
 function isRoleAlreadyCoveredByEnemy(
   candidate: Champion,
-  enemyPicks: string[]
+  enemyPicks: string[],
+  enemyRoster: Partial<Record<Role, string>>
 ): boolean {
   if (!enemyPicks.length) return false;
-  const enemyAssignments = resolveRoleAssignments(enemyPicks, {});
+  const enemyAssignments = resolveRoleAssignments(enemyPicks, enemyRoster);
   const coveredRoles = new Set(Object.keys(enemyAssignments) as Role[]);
   return candidate.roles.every((role) => coveredRoles.has(role));
+}
+
+// ─── BUG FIX: Don't ban champions that enemy already counters ───────────────
+// If user has Anivia and Ryze is weakVs Anivia, banning Ryze helps the user.
+// AI should WANT enemies to pick champions that its own picks counter.
+function getCounterProductiveBanPenalty(
+  candidate: Champion,
+  enemyPicks: string[]
+): number {
+  if (enemyPicks.length === 0) return 0;
+
+  let totalCounterStrength = 0;
+
+  for (const enemyPickId of enemyPicks) {
+    const enemyChamp = getChampionById(enemyPickId);
+    if (!enemyChamp) continue;
+
+    // Check if the ban candidate is weak against any enemy pick
+    const candidateWeakVsEnemy = candidate.weakVs?.find(
+      (rel) => rel.championId === enemyPickId
+    )?.score ?? 0;
+
+    // Check if enemy champion is strong against the ban candidate
+    const enemyGoodVsCandidate = enemyChamp.goodVs?.find(
+      (rel) => rel.championId === candidate.id
+    )?.score ?? 0;
+
+    totalCounterStrength += candidateWeakVsEnemy * 0.6 + enemyGoodVsCandidate * 0.5;
+  }
+
+  if (totalCounterStrength <= 0) return 0;
+
+  // Negative = penalty to ban score (don't ban what enemy counters)
+  return -clamp(totalCounterStrength * 0.75, 0, 5);
 }
 
 // ─── FIX #3: ban pe campioni care completeaza sinergia inamicului (faza 2) ───
@@ -1064,9 +1101,16 @@ function scoreBanCandidate(
   const userBias = getUserBanTargetBias(candidate, step.side, series);
 
   // FIX #2: penalitate daca rolul candidatului e deja umplut de inamic
-  const redundantBanPenalty = isRoleAlreadyCoveredByEnemy(candidate, enemyState.picks)
+  // BUG FIX: pass enemy roster so flex picks resolve correctly
+  // (e.g. Anivia mid/support resolves to mid when Nautilus is support)
+  const enemyRoster = getTeamRosterFromSources({ teamSlug: enemyTeamSlug, save });
+  const redundantBanPenalty = isRoleAlreadyCoveredByEnemy(candidate, enemyState.picks, enemyRoster)
     ? -7
     : 0;
+
+  // BUG FIX: Don't ban champions that enemy picks already counter
+  // e.g. don't ban Ryze when user has Anivia (Ryze weakVs Anivia)
+  const counterProductiveBanPenalty = getCounterProductiveBanPenalty(candidate, enemyState.picks);
 
   // FIX #3: bonus pentru ban-uri in faza 2 care distrug sinergia inamicului
   // Activat dupa prima tura de pick-uri (phaseIndex >= 12)
@@ -1102,7 +1146,8 @@ function scoreBanCandidate(
     userBias +
     synergyCompletionBonus +
     signatureBonus * 1.4 +
-    redundantBanPenalty -
+    redundantBanPenalty +
+    counterProductiveBanPenalty -
     banRepeatPenalty +
     seriesAwareBan +
     comfortRepeatThreat +
