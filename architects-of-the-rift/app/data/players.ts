@@ -1180,7 +1180,7 @@ const derivePlaystyleIdentity = (
       teamId: "g2",
       role: "mid",
       image: "/players/lec/g2/caps.webp",
-      seed: { execution: 8.6, mapSense: 8.3, combat: 8.3, resilience: 8.0, stability: 8.0, gameRead: 8.2 },
+      seed: { execution: 8.6, mapSense: 8.3, combat: 8.6, resilience: 8.2, stability: 8.1, gameRead: 8.2 },
       bestChampions: ["orianna", "azir", "leblanc", "sylas", "ryze"],
       sortOrder: 74,
     }),

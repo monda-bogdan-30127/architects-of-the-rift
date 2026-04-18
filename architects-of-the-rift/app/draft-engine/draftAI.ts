@@ -54,6 +54,8 @@ import {
   deduceUserPlan,
   getCounterToUserPlanBonus,
 } from "./advancedDraftReading";
+import { evaluateRuleSynergy } from "./profileRuleEvaluator";
+import { getPlayerChampionMatchupDraftBias } from "./playerHistoryEvaluator";
 
 
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -250,6 +252,17 @@ function getRoleCoverageUrgency(
     if (!lastPickHeld && candidate.roles.length === 1) {
       value += 0.9;
     }
+  }
+
+  // DRAFT FINAL FIX 4: At picks 4-5, filling the LAST open role is critical
+  // If only 1-2 roles remain open, champion that fills one = big bonus
+  if (ownPickNumber >= 4 && openRolesAfter.length < openRolesBefore.length) {
+    // Each role filled at pick 4+ is worth extra
+    value += (openRolesBefore.length - openRolesAfter.length) * 3.5;
+  }
+  // If at pick 5 and role is still open, massive urgency
+  if (ownPickNumber === 5 && openRolesBefore.includes(projectedRole)) {
+    value += 5.0;
   }
 
   return value;
@@ -754,6 +767,32 @@ function scorePickCandidate(
   const userDeducedPlan = deduceUserPlan(game, step.side === "blue" ? "red" : "blue");
   const counterUserPlanBonus = getCounterToUserPlanBonus(candidate, userDeducedPlan);
 
+  // DRAFT FINAL FIX 1: evaluateRuleSynergy — rich synergy rules
+  // "Sejuani + 2 melee = bonus", "Zeri without protection = don't pick"
+  // Computed with current picks + candidate vs enemy picks
+  let ruleSynergyBonus = 0;
+  if (ownState.picks.length >= 1) {
+    const allyChamps = [...ownState.picks, candidate.id]
+      .map((id) => getChampionById(id))
+      .filter(Boolean) as Champion[];
+    const enemyChamps = enemyState.picks
+      .map((id) => getChampionById(id))
+      .filter(Boolean) as Champion[];
+    // evaluateRuleSynergy returns 0-10, centered at 5
+    const ruleScore = evaluateRuleSynergy(allyChamps, enemyChamps);
+    ruleSynergyBonus = clamp((ruleScore - 5) * 0.55, -2.5, 2.5);
+  }
+
+  // DRAFT FINAL FIX 2: matchup history memory
+  // If Faker on Azir has beaten Orianna 3 times, bonus when picking Azir into Orianna
+  let matchupHistoryBias = 0;
+  if (projectedPlayerId && enemyState.picks.length > 0) {
+    matchupHistoryBias = clamp(
+      getPlayerChampionMatchupDraftBias(projectedPlayerId, candidate.id, enemyState.picks) * 1.8,
+      -1.5, 1.5
+    );
+  }
+
   const carryNeedEvaluation = {
     protectionScore: 5,
     antiDiveScore: 5,
@@ -780,6 +819,14 @@ function scorePickCandidate(
 
     botLaneFitBonus = clamp((fitResult - 5) * 0.5, -2, 2);
   }
+
+  // DRAFT FINAL FIX 5: Comp completeness gate at picks 4-5
+  const compGate = getCompCompletenessGate(
+    ownState.picks,
+    candidate,
+    projected.projectedRole,
+    getCurrentPickNumberForSide(game, step.side)
+  );
 
   const userBias = getUserPickPreferenceBias(
     candidate,
@@ -815,8 +862,11 @@ function scorePickCandidate(
     planAlignment +
     sideAware +
     flexAmbiguity +
-    contestedUrgency +         // NEW
-    counterUserPlanBonus -     // NEW
+    contestedUrgency +
+    counterUserPlanBonus +
+    ruleSynergyBonus +             // DRAFT FINAL FIX 1
+    matchupHistoryBias +           // DRAFT FINAL FIX 2
+    compGate -                     // DRAFT FINAL FIX 5
     weaknessPenalty * adjustedConfig.weaknessWeight -
     blindRiskPenalty -
     comboDependencyPenalty -
@@ -921,6 +971,68 @@ function getCounterProductiveBanPenalty(
 
   // Negative = penalty to ban score (don't ban what enemy counters)
   return -clamp(totalCounterStrength * 0.75, 0, 5);
+}
+
+// ─── DRAFT FINAL FIX 5: Comp completeness gate ─────────────────────────────
+// At pick 4-5, if the team is missing a structural role (frontline, engage,
+// or ADC damage), champions that fill the gap get a big bonus and champions
+// that DON'T fill it get a penalty. This prevents "all carries no tank" comps.
+function getCompCompletenessGate(
+  ownPicks: string[],
+  candidate: Champion,
+  projectedRole: Role | null,
+  pickNumber: number
+): number {
+  // Only active at picks 4-5 (when comp must be completed)
+  if (pickNumber < 4) return 0;
+  if (ownPicks.length < 3) return 0;
+
+  // Analyze what the team already has
+  let hasFrontline = false;
+  let hasEngage = false;
+  let hasAdc = false;
+  let hasDamage = false;
+
+  for (const pickId of ownPicks) {
+    const champ = getChampionById(pickId);
+    if (!champ) continue;
+    const profile = getChampionRoleProfile(champ);
+    if (!profile) continue;
+    const tags = new Set(profile.tags ?? []);
+
+    if (tags.has("frontline") || tags.has("tank")) hasFrontline = true;
+    if (tags.has("engage")) hasEngage = true;
+    if (tags.has("dps") || tags.has("burst")) hasDamage = true;
+    if (champ.roles.includes("adc")) hasAdc = true;
+  }
+
+  // Check what the candidate brings
+  const candidateProfile = getChampionRoleProfile(candidate, projectedRole);
+  const candidateTags = new Set(candidateProfile?.tags ?? []);
+  const isAdc = projectedRole === "adc" || candidate.roles.includes("adc");
+
+  let bonus = 0;
+
+  // Missing frontline at pick 4-5 → frontline champion gets big bonus
+  if (!hasFrontline && (candidateTags.has("frontline") || candidateTags.has("tank"))) {
+    bonus += pickNumber === 5 ? 4.0 : 2.5;
+  }
+  // Missing frontline and candidate doesn't fill it at pick 5 → penalty
+  if (!hasFrontline && pickNumber === 5 && !candidateTags.has("frontline") && !candidateTags.has("tank")) {
+    bonus -= 2.0;
+  }
+
+  // Missing ADC at pick 4-5 → ADC gets bonus
+  if (!hasAdc && isAdc) {
+    bonus += pickNumber === 5 ? 3.5 : 2.0;
+  }
+
+  // Missing any damage at pick 5 → damage champion bonus
+  if (!hasDamage && (candidateTags.has("dps") || candidateTags.has("burst"))) {
+    bonus += 2.0;
+  }
+
+  return clamp(bonus, -3, 5);
 }
 
 // ─── FIX #3: ban pe campioni care completeaza sinergia inamicului (faza 2) ───
@@ -1138,6 +1250,30 @@ function scoreBanCandidate(
   // UPGRADE 13: Preemptive ban on user-favorite OP champions
   const userFavoriteBan = getUserFavoriteBanBonus(candidate, series);
 
+  // DRAFT FINAL FIX 3: Phase 2 bans — protect own comp
+  // In phase 2 (after 6 picks), AI has 3 picks visible. Ban champions that
+  // hard-counter what AI itself has picked.
+  let protectOwnCompBonus = 0;
+  if (game.phaseIndex >= 12 && ownState.picks.length >= 2) {
+    for (const ownPickId of ownState.picks) {
+      const ownChamp = getChampionById(ownPickId);
+      if (!ownChamp) continue;
+
+      // Does the ban candidate counter our pick?
+      const candidateCountersUs = candidate.goodVs?.find(
+        (rel) => rel.championId === ownPickId
+      )?.score ?? 0;
+
+      // Are we weak against this candidate?
+      const weAreWeakVs = ownChamp.weakVs?.find(
+        (rel) => rel.championId === candidate.id
+      )?.score ?? 0;
+
+      protectOwnCompBonus += candidateCountersUs * 0.45 + weAreWeakVs * 0.35;
+    }
+    protectOwnCompBonus = clamp(protectOwnCompBonus, 0, 4);
+  }
+
   // FIX A: Reduce metaPriority dominance, boost signature bans
   const totalScore =
     metaPriority * 0.95 +
@@ -1152,8 +1288,9 @@ function scoreBanCandidate(
     seriesAwareBan +
     comfortRepeatThreat +
     trapBanReduction +
-    planAdaptiveBanBonus +       // NEW
-    userFavoriteBan +            // NEW
+    planAdaptiveBanBonus +
+    userFavoriteBan +
+    protectOwnCompBonus +          // DRAFT FINAL FIX 3
     (candidate.roles.length >= 2 ? 0.8 : 0);
 
 

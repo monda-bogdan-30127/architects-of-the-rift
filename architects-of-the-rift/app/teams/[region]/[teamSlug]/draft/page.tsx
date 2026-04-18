@@ -2,8 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import PageContainer from "@/components/ui/PageContainer";
-import PlayerCard from "@/components/ui/PlayerCard";
 import PlayerSelectionBar from "@/components/ui/PlayerSelectionBar";
 import Dialog from "@/components/ui/Dialog";
 import { teams } from "@/app/data/teams";
@@ -11,6 +9,8 @@ import { players } from "@/app/data/players";
 import type { Player } from "@/app/types/player";
 import type { Role } from "@/app/types/champion";
 import useBackRedirect from "@/app/hooks/useBrowserBackRedirect";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type SelectedPlayers = Partial<Record<Role, Player>>;
 
@@ -25,7 +25,20 @@ type DraftSave = {
   freeAgentPlayerIds: string[];
 };
 
+type SortKey = "rosterPoints" | "rating" | "mec" | "mac" | "tfg" | "clt" | "con" | "iq";
+type SortDir = "asc" | "desc";
+
+type EnrichedPlayer = Player & {
+  effectiveRp:  number;
+  rating:       number;
+  playerRegion: string;
+  isCrossGroup: boolean;
+};
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
 const roleOrder: Role[] = ["top", "jungle", "mid", "adc", "support"];
+
 const REGION_BUDGET: Record<string, number> = {
   lck: 39,
   lpl: 39,
@@ -33,143 +46,226 @@ const REGION_BUDGET: Record<string, number> = {
 };
 const DEFAULT_BUDGET = 39;
 
+/**
+ * Group A: LCK + LPL   |   Group B: LEC + LCS
+ * Picking a player from a different group costs +1 RP.
+ */
+const REGION_GROUPS: Record<string, string> = {
+  lck: "A",
+  lpl: "A",
+  lec: "B",
+  lcs: "B",
+};
+
+const REGION_FILTER_OPTIONS = ["ALL", "LCK", "LPL", "LEC", "FREE AGENTS"] as const;
+type RegionFilter = (typeof REGION_FILTER_OPTIONS)[number];
+
+const ROLE_LABELS: Record<Role, string> = {
+  top:     "TOP",
+  jungle:  "JGL",
+  mid:     "MID",
+  adc:     "ADC",
+  support: "SUP",
+};
+
+const TABLE_COLUMNS: { key: SortKey; label: string }[] = [
+  { key: "rosterPoints", label: "ROSTER POINTS" },
+  { key: "rating",       label: "RATING"        },
+  { key: "mec",          label: "MECHANICS"     },
+  { key: "mac",          label: "MACRO"         },
+  { key: "tfg",          label: "TEAMFIGHTING"  },
+  { key: "clt",          label: "CLUTCH"        },
+  { key: "con",          label: "CONSISTENCY"   },
+  { key: "iq",           label: "IQ"            },
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getPlayerRegion(player: Player): string {
+  if (player.teamId === "free-agent") return "free-agent";
+  const team = teams.find((t) => t.id === player.teamId);
+  return team?.region ?? "";
+}
+
+function checkCrossGroup(playerRegion: string, myRegion: string): boolean {
+  if (playerRegion === "free-agent") return false;
+  const myGroup     = REGION_GROUPS[myRegion];
+  const playerGroup = REGION_GROUPS[playerRegion];
+  return !!myGroup && !!playerGroup && myGroup !== playerGroup;
+}
+
+function getEffectiveRp(player: Player, myRegion: string): number {
+  return player.rosterPoints + (checkCrossGroup(getPlayerRegion(player), myRegion) ? 1 : 0);
+}
+
+function calcRating(player: Player): number {
+  const { mec, mac, tfg, clt, con, iq } = player.stats;
+  return Math.round((mec + mac + tfg + clt + con + iq) / 6);
+}
+
+function getStatValue(player: EnrichedPlayer, key: SortKey): number {
+  switch (key) {
+    case "rosterPoints": return player.effectiveRp;
+    case "rating":       return player.rating;
+    case "mec":          return player.stats.mec;
+    case "mac":          return player.stats.mac;
+    case "tfg":          return player.stats.tfg;
+    case "clt":          return player.stats.clt;
+    case "con":          return player.stats.con;
+    case "iq":           return player.stats.iq;
+  }
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function DraftPage() {
   const router = useRouter();
   const params = useParams<{ region: string; teamSlug: string }>();
 
   useBackRedirect("/");
 
-  const region = (params.region ?? "").toLowerCase();
-  const teamSlug = params.teamSlug ?? "";
+  const region    = (params.region ?? "").toLowerCase();
+  const teamSlug  = params.teamSlug ?? "";
   const maxBudget = REGION_BUDGET[region] ?? DEFAULT_BUDGET;
 
-  const [selectedPlayers, setSelectedPlayers] = useState<SelectedPlayers>({});
-  const [isReadyDialogOpen, setIsReadyDialogOpen] = useState(false);
+  // ── State ──────────────────────────────────────────────────────────────────
 
-  const selectedTeam = useMemo(() => {
-    return teams.find((team) => team.slug === teamSlug) ?? null;
-  }, [teamSlug]);
+  const [selectedPlayers,    setSelectedPlayers]    = useState<SelectedPlayers>({});
+  const [isReadyDialogOpen,  setIsReadyDialogOpen]  = useState(false);
+  const [hoveredPlayer,      setHoveredPlayer]      = useState<EnrichedPlayer | null>(null);
+  const [activeRoleFilters,  setActiveRoleFilters]  = useState<Set<Role>>(new Set());
+  const [activeRegionFilter, setActiveRegionFilter] = useState<RegionFilter>("ALL");
+  const [sortKey,            setSortKey]            = useState<SortKey>("rosterPoints");
+  const [sortDir,            setSortDir]            = useState<SortDir>("desc");
 
-  const regionTeams = useMemo(() => {
-    return teams.filter((team) => team.region.toLowerCase() === region);
+  // ── Derived ────────────────────────────────────────────────────────────────
+
+  const selectedTeam = useMemo(
+    () => teams.find((t) => t.slug === teamSlug) ?? null,
+    [teamSlug],
+  );
+
+  const enrichedPlayers = useMemo<EnrichedPlayer[]>(() => {
+    return players.map((p) => {
+      const playerRegion = getPlayerRegion(p);
+      return {
+        ...p,
+        effectiveRp:  getEffectiveRp(p, region),
+        rating:       calcRating(p),
+        playerRegion,
+        isCrossGroup: checkCrossGroup(playerRegion, region),
+      };
+    });
   }, [region]);
 
-  const regionTeamIds = useMemo(() => {
-    return regionTeams.map((team) => team.id);
-  }, [regionTeams]);
+  const displayPlayers = useMemo<EnrichedPlayer[]>(() => {
+    let list = enrichedPlayers;
 
-  const groupedTeamPlayers = useMemo(() => {
-    return regionTeams.map((team) => ({
-      team,
-      players: players
-        .filter((player) => player.teamId === team.id)
-        .sort((a, b) => a.sortOrder - b.sortOrder),
-    }));
-  }, [regionTeams]);
+    if (activeRoleFilters.size > 0) {
+      list = list.filter((p) => activeRoleFilters.has(p.role));
+    }
 
-  const freeAgentPlayers = useMemo(() => {
-    return players
-      .filter((player) => player.teamId === "free-agent")
-      .sort((a, b) => a.sortOrder - b.sortOrder);
-  }, []);
+    if (activeRegionFilter !== "ALL") {
+      if (activeRegionFilter === "FREE AGENTS") {
+        list = list.filter((p) => p.teamId === "free-agent");
+      } else {
+        const regionKey     = activeRegionFilter.toLowerCase();
+        const regionTeamIds = teams
+          .filter((t) => t.region === regionKey)
+          .map((t) => t.id);
+        list = list.filter((p) => regionTeamIds.includes(p.teamId));
+      }
+    }
 
-  const selectedRoleSet = useMemo(() => {
-    return new Set(
-      roleOrder.filter((role) => selectedPlayers[role]).map((role) => role)
-    );
-  }, [selectedPlayers]);
+    return [...list].sort((a, b) => {
+      const diff = getStatValue(b, sortKey) - getStatValue(a, sortKey);
+      return sortDir === "desc" ? diff : -diff;
+    });
+  }, [enrichedPlayers, activeRoleFilters, activeRegionFilter, sortKey, sortDir]);
+
+  const selectedRoleSet = useMemo(
+    () => new Set(roleOrder.filter((r) => selectedPlayers[r])),
+    [selectedPlayers],
+  );
 
   const usedBudget = useMemo(() => {
-    return Object.values(selectedPlayers).reduce((total, player) => {
-      return total + (player?.rosterPoints ?? 0);
+    return Object.values(selectedPlayers).reduce((sum, p) => {
+      return sum + (p ? getEffectiveRp(p, region) : 0);
     }, 0);
-  }, [selectedPlayers]);
+  }, [selectedPlayers, region]);
 
-  const remainingRpRaw = useMemo(() => {
-    return maxBudget - usedBudget;
-  }, [maxBudget, usedBudget]);
+  const leftRp          = maxBudget - usedBudget;
+  const allRolesFilled  = roleOrder.every((r) => selectedPlayers[r]);
+  const isReadyDisabled = !allRolesFilled || leftRp < 0;
 
-  const leftRp = useMemo(() => {
-    return maxBudget - usedBudget;
-  }, [maxBudget, usedBudget]);
+  // ── Preview data ───────────────────────────────────────────────────────────
 
-  const allRolesFilled = useMemo(() => {
-    return roleOrder.every((role) => selectedPlayers[role]);
-  }, [selectedPlayers]);
+  const previewTeam = hoveredPlayer
+    ? teams.find((t) => t.id === hoveredPlayer.teamId) ?? null
+    : null;
 
-  const isReadyDisabled = !allRolesFilled || remainingRpRaw < 0;
+  // ── Handlers ───────────────────────────────────────────────────────────────
 
-  const handleSelectPlayer = (player: Player) => {
-    if (selectedPlayers[player.role]) return;
-
-    setSelectedPlayers((current) => ({
-      ...current,
-      [player.role]: player,
-    }));
+  const handleSelectPlayer = (player: EnrichedPlayer) => {
+    const { role } = player;
+    if (selectedPlayers[role]?.id === player.id) {
+      setSelectedPlayers((cur) => { const n = { ...cur }; delete n[role]; return n; });
+      return;
+    }
+    setSelectedPlayers((cur) => ({ ...cur, [role]: player }));
   };
 
   const handleRemovePlayer = (role: Role) => {
-    setSelectedPlayers((current) => {
-      const next = { ...current };
-      delete next[role];
+    setSelectedPlayers((cur) => { const n = { ...cur }; delete n[role]; return n; });
+  };
+
+  const handleToggleRoleFilter = (role: Role) => {
+    setActiveRoleFilters((cur) => {
+      const next = new Set(cur);
+      if (next.has(role)) next.delete(role); else next.add(role);
       return next;
     });
   };
 
-  const handleOpenReadyDialog = () => {
-    if (isReadyDisabled) return;
-    setIsReadyDialogOpen(true);
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    else { setSortKey(key); setSortDir("desc"); }
   };
 
-  const handleCloseReadyDialog = () => {
-    setIsReadyDialogOpen(false);
-  };
+  const handleOpenReadyDialog  = () => { if (!isReadyDisabled) setIsReadyDialogOpen(true); };
+  const handleCloseReadyDialog = () => setIsReadyDialogOpen(false);
 
   const handleConfirmReady = () => {
     if (!selectedTeam) return;
 
-    const regionPlayersList = players.filter((player) =>
-      regionTeamIds.includes(player.teamId)
-    );
-
-    const originalTeamRosters: Record<string, Partial<Record<Role, Player>>> =
-      {};
-
-    for (const team of regionTeams) {
-      originalTeamRosters[team.id] = {};
+    // Build original rosters for ALL teams globally
+    const originalTeamRosters: Record<string, Partial<Record<Role, Player>>> = {};
+    for (const team of teams) originalTeamRosters[team.id] = {};
+    for (const p of players) {
+      if (p.teamId === "free-agent") continue;
+      originalTeamRosters[p.teamId] = { ...originalTeamRosters[p.teamId], [p.role]: p };
     }
 
-    for (const player of regionPlayersList) {
-      originalTeamRosters[player.teamId] = {
-        ...originalTeamRosters[player.teamId],
-        [player.role]: player,
-      };
-    }
-
+    // Start with copies of originals for ALL teams
     const updatedTeamRosters: Record<string, Record<Role, string>> = {};
-
-    for (const team of regionTeams) {
-      const originalRoster = originalTeamRosters[team.id];
-
+    for (const team of teams) {
+      const orig = originalTeamRosters[team.id];
       updatedTeamRosters[team.id] = {
-        top: originalRoster.top?.id ?? "",
-        jungle: originalRoster.jungle?.id ?? "",
-        mid: originalRoster.mid?.id ?? "",
-        adc: originalRoster.adc?.id ?? "",
-        support: originalRoster.support?.id ?? "",
+        top:     orig.top?.id     ?? "",
+        jungle:  orig.jungle?.id  ?? "",
+        mid:     orig.mid?.id     ?? "",
+        adc:     orig.adc?.id     ?? "",
+        support: orig.support?.id ?? "",
       };
     }
 
     const freeAgentIds = new Set(
-      players
-        .filter((player) => player.teamId === "free-agent")
-        .map((player) => player.id)
+      players.filter((p) => p.teamId === "free-agent").map((p) => p.id),
     );
 
     for (const role of roleOrder) {
-      const chosenPlayer = selectedPlayers[role];
+      const chosenPlayer   = selectedPlayers[role];
       if (!chosenPlayer) continue;
-
       const outgoingPlayer = originalTeamRosters[selectedTeam.id]?.[role];
       if (!outgoingPlayer) continue;
 
@@ -178,40 +274,30 @@ export default function DraftPage() {
       if (chosenPlayer.teamId === "free-agent") {
         freeAgentIds.delete(chosenPlayer.id);
         freeAgentIds.add(outgoingPlayer.id);
-        continue;
-      }
-
-      if (chosenPlayer.teamId !== selectedTeam.id) {
+      } else if (chosenPlayer.teamId !== selectedTeam.id) {
         updatedTeamRosters[chosenPlayer.teamId][role] = outgoingPlayer.id;
       }
     }
 
     const playerTeamAssignments: Record<string, string> = {};
-
-    for (const team of regionTeams) {
-      const roster = updatedTeamRosters[team.id];
-
+    for (const team of teams) {
       for (const role of roleOrder) {
-        const playerId = roster[role];
-        if (!playerId) continue;
-        playerTeamAssignments[playerId] = team.id;
+        const pid = updatedTeamRosters[team.id][role];
+        if (pid) playerTeamAssignments[pid] = team.id;
       }
     }
-
-    for (const freeAgentId of freeAgentIds) {
-      playerTeamAssignments[freeAgentId] = "free-agent";
-    }
+    for (const faId of freeAgentIds) playerTeamAssignments[faId] = "free-agent";
 
     const savePayload: DraftSave = {
       region,
       controlledTeamSlug: selectedTeam.slug,
-      budget: usedBudget,
+      budget:             usedBudget,
       leftRp,
       roster: {
-        top: selectedPlayers.top?.id ?? "",
-        jungle: selectedPlayers.jungle?.id ?? "",
-        mid: selectedPlayers.mid?.id ?? "",
-        adc: selectedPlayers.adc?.id ?? "",
+        top:     selectedPlayers.top?.id     ?? "",
+        jungle:  selectedPlayers.jungle?.id  ?? "",
+        mid:     selectedPlayers.mid?.id     ?? "",
+        adc:     selectedPlayers.adc?.id     ?? "",
         support: selectedPlayers.support?.id ?? "",
       },
       updatedTeamRosters,
@@ -224,95 +310,405 @@ export default function DraftPage() {
   };
 
   const readyDescription = roleOrder
-    .map((role) => {
-      const player = selectedPlayers[role];
-      return `${role.toUpperCase()}: ${player?.name ?? "-"}`;
-    })
+    .map((r) => `${r.toUpperCase()}: ${selectedPlayers[r]?.name ?? "-"}`)
     .join("\n");
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <>
-      <PageContainer className="pt-[80px] pb-[140px]">
-        <div className="flex flex-col items-center gap-[32px]">
-          <div className="flex flex-col items-center gap-[4px]">
-            <p className="h3 text-center text-[var(--text-primary)]">
-              {region.toUpperCase()} Region - {" "}
-              {selectedTeam?.name ?? "<Chosen Team Name>"}
-            </p>
+      {/* Hide scrollbar globally for this page */}
+      <style>{`
+        .draft-scroll::-webkit-scrollbar { display: none; }
+        .draft-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+      `}</style>
 
-            <h1 className="h1 w-[600px] text-center text-[var(--text-primary)]">
+      <div
+        style={{
+          display:       "flex",
+          flexDirection: "column",
+          height:        "100dvh",
+          paddingTop:    80,   // navbar height
+          paddingBottom: 140,  // selection bar height
+          overflow:      "hidden",
+          background:    "var(--bg-primary)",
+        }}
+      >
+        {/* ── Title + Preview + Filters — fixed top section, never scrolls ── */}
+        <div style={{ flexShrink: 0 }}>
+          {/* Title */}
+          <div style={{ padding: "24px 40px 16px" }}>
+            <p className="h3" style={{ color: "var(--text-secondary)", marginBottom: 4 }}>
+              {region.toUpperCase()} Region — {selectedTeam?.name ?? "<Chosen Team Name>"}
+            </p>
+            <h1 className="h1" style={{ color: "var(--text-primary)", marginBottom: 8 }}>
               Choose Your Team
             </h1>
+            <p className="body" style={{ color: "var(--text-secondary)", maxWidth: 680 }}>
+              Pick one player for each role. Selecting a player from another team will swap them
+              with the player currently occupying that role.
+              <br />
+              All other players will remain on their original teams.
+            </p>
           </div>
 
-          <p className="h3 w-[720px] text-center text-[var(--text-highlight)]">
-            You have a {maxBudget} Roster Points budget.
-          </p>
+          {/* ── Preview + Filters — part of fixed top section ──────────── */}
+          <div
+            style={{
+              background:   "var(--bg-primary)",
+              borderBottom: "1px solid rgba(255,255,255,0.07)",
+            }}
+          >
+            {/* Player preview */}
+            <div
+              style={{
+                display:      "flex",
+                alignItems:   "center",
+                gap:          32,
+                padding:      "16px 40px",
+                borderBottom: "1px solid rgba(255,255,255,0.05)",
+                minHeight:    100,
+              }}
+            >
+              {/* Team logo + name */}
+              <div
+                style={{
+                  display:       "flex",
+                  flexDirection: "column",
+                  alignItems:    "center",
+                  gap:           6,
+                  width:         100,
+                  flexShrink:    0,
+                }}
+              >
+                {previewTeam?.logo ? (
+                  <img
+                    src={previewTeam.logo}
+                    alt={previewTeam.name}
+                    style={{ width: 44, height: 44, objectFit: "contain" }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width:        44,
+                      height:       44,
+                      borderRadius: "50%",
+                      background:   "rgba(255,255,255,0.08)",
+                    }}
+                  />
+                )}
+                <span
+                  style={{
+                    fontSize:   11,
+                    color:      "var(--text-secondary)",
+                    textAlign:  "center",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {hoveredPlayer
+                    ? hoveredPlayer.teamId === "free-agent"
+                      ? "Free Agent"
+                      : (previewTeam?.name ?? "—")
+                    : "—"}
+                </span>
+              </div>
 
-          <p className="body w-[720px] text-center text-[var(--text-secondary)]">
-            Pick one player for each role.
-            <br />
-            Selecting a player from another team will swap them with the player
-            currently occupying that role.
-            <br />
-            Selecting a Free Agent will add them to your team, and your current
-            player in that role will become a Free Agent.
-          </p>
+              {/* Player photo */}
+              <div
+                style={{
+                  width:        100,
+                  height:       100,
+                  flexShrink:   0,
+                  overflow:     "hidden",
+                  borderRadius: 6,
+                  background:   "rgba(255,255,255,0.04)",
+                }}
+              >
+                {hoveredPlayer?.image && (
+                  <img
+                    src={hoveredPlayer.image}
+                    alt={hoveredPlayer.name}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                )}
+              </div>
 
-          <div className="flex w-full flex-col gap-[40px]">
-            {groupedTeamPlayers.map((group) => (
-              <section key={group.team.id} className="flex flex-col gap-[16px]">
-                <h2 className="h3 text-[var(--text-primary)]">
-                  {group.team.name}
-                </h2>
+              {/* Player details */}
+              {hoveredPlayer ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                  <span
+                    style={{
+                      fontSize:   22,
+                      fontWeight: 700,
+                      color:      "var(--text-primary)",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {hoveredPlayer.name}
+                  </span>
 
-                <div className="grid grid-cols-4 gap-[24px] self-stretch justify-items-center">
-                  {group.players.map((player) => {
-                    const isSelected =
-                      selectedPlayers[player.role]?.id === player.id;
-                    const isDisabled =
-                      !isSelected && selectedRoleSet.has(player.role);
+                  <span
+                    style={{
+                      fontSize:      11,
+                      fontWeight:    700,
+                      letterSpacing: "0.1em",
+                      color:         "var(--text-highlight)",
+                      display:       "flex",
+                      alignItems:    "center",
+                      gap:           8,
+                    }}
+                  >
+                    {hoveredPlayer.role.toUpperCase()}
+                    {hoveredPlayer.isCrossGroup && (
+                      <span
+                        style={{
+                          padding:      "1px 6px",
+                          borderRadius: 3,
+                          background:   "rgba(180,140,60,0.2)",
+                          fontSize:     10,
+                          fontWeight:   700,
+                        }}
+                      >
+                        +1 RP (cross-region)
+                      </span>
+                    )}
+                  </span>
 
-                    return (
-                      <PlayerCard
-                        key={player.id}
-                        player={player}
-                        selected={isSelected}
-                        disabled={isDisabled}
-                        onClick={() => handleSelectPlayer(player)}
-                      />
-                    );
-                  })}
+                  <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                    {hoveredPlayer.playstyleIdentity.displayPrimary}
+                    {hoveredPlayer.playstyleIdentity.displaySecondary
+                      ? ` · ${hoveredPlayer.playstyleIdentity.displaySecondary}`
+                      : ""}
+                  </span>
+
+                  {hoveredPlayer.playstyleIdentity.displayTags.length > 0 && (
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>
+                      {hoveredPlayer.playstyleIdentity.displayTags.join(", ")}
+                    </span>
+                  )}
                 </div>
-              </section>
-            ))}
+              ) : (
+                <span
+                  style={{
+                    fontSize:   13,
+                    color:      "rgba(255,255,255,0.25)",
+                    fontStyle:  "italic",
+                  }}
+                >
+                  Hover over a player to preview
+                </span>
+              )}
+            </div>
 
-            <section className="flex flex-col gap-[16px]">
-              <h2 className="h3 text-[var(--text-primary)]">Free Agents</h2>
-
-              <div className="grid grid-cols-4 gap-[24px] self-stretch justify-items-center">
-                {freeAgentPlayers.map((player) => {
-                  const isSelected =
-                    selectedPlayers[player.role]?.id === player.id;
-                  const isDisabled =
-                    !isSelected && selectedRoleSet.has(player.role);
-
+            {/* Filters row */}
+            <div
+              style={{
+                display:        "flex",
+                alignItems:     "center",
+                justifyContent: "space-between",
+                padding:        "10px 40px",
+                gap:            16,
+              }}
+            >
+              {/* Role filters — multi-select; click active role to deselect */}
+              <div style={{ display: "flex", gap: 6 }}>
+                {roleOrder.map((role) => {
+                  const active = activeRoleFilters.has(role);
                   return (
-                    <PlayerCard
-                      key={player.id}
-                      player={player}
-                      selected={isSelected}
-                      disabled={isDisabled}
-                      onClick={() => handleSelectPlayer(player)}
-                    />
+                    <button
+                      key={role}
+                      onClick={() => handleToggleRoleFilter(role)}
+                      style={{
+                        padding:       "5px 12px",
+                        borderRadius:  4,
+                        border:        `1px solid ${active ? "var(--text-highlight)" : "rgba(255,255,255,0.18)"}`,
+                        background:    active ? "rgba(180,140,60,0.12)" : "transparent",
+                        color:         active ? "var(--text-highlight)" : "var(--text-secondary)",
+                        cursor:        "pointer",
+                        fontSize:      11,
+                        fontWeight:    700,
+                        letterSpacing: "0.07em",
+                        transition:    "all 0.12s",
+                      }}
+                    >
+                      {ROLE_LABELS[role]}
+                    </button>
                   );
                 })}
               </div>
-            </section>
-          </div>
-        </div>
-      </PageContainer>
 
+              {/* Region filters — single select */}
+              <div style={{ display: "flex", gap: 6 }}>
+                {REGION_FILTER_OPTIONS.map((r) => {
+                  const active = activeRegionFilter === r;
+                  return (
+                    <button
+                      key={r}
+                      onClick={() => setActiveRegionFilter(r)}
+                      style={{
+                        padding:       "5px 14px",
+                        borderRadius:  4,
+                        border:        `1px solid ${active ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.18)"}`,
+                        background:    active ? "rgba(255,255,255,0.1)" : "transparent",
+                        color:         active ? "var(--text-primary)" : "var(--text-secondary)",
+                        cursor:        "pointer",
+                        fontSize:      11,
+                        fontWeight:    700,
+                        letterSpacing: "0.07em",
+                        transition:    "all 0.12s",
+                      }}
+                    >
+                      {r}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>{/* end preview+filters */}
+
+          {/* ── Table header — lives in fixed section, never scrolls ──────── */}
+          <table
+            style={{
+              width:          "100%",
+              borderCollapse: "collapse",
+              tableLayout:    "fixed",
+              borderBottom:   "1px solid rgba(255,255,255,0.09)",
+            }}
+          >
+            <colgroup>
+              <col style={{ width: "15%" }} />
+              <col style={{ width: "8%"  }} />
+              {TABLE_COLUMNS.map((c) => (
+                <col key={c.key} style={{ width: `${77 / TABLE_COLUMNS.length}%` }} />
+              ))}
+            </colgroup>
+            <thead>
+              <tr>
+                <th style={thStyle}>NAME</th>
+                <th style={thStyle}>POSITION</th>
+                {TABLE_COLUMNS.map(({ key, label }) => {
+                  const isActive = sortKey === key;
+                  return (
+                    <th
+                      key={key}
+                      onClick={() => handleSort(key)}
+                      style={{
+                        ...thStyle,
+                        cursor:     "pointer",
+                        color:      isActive
+                          ? "var(--text-highlight)"
+                          : "var(--text-tertiary, rgba(255,255,255,0.35))",
+                        userSelect: "none",
+                      }}
+                    >
+                      {label}
+                      <span style={{ marginLeft: 4, opacity: isActive ? 1 : 0 }}>
+                        {sortDir === "desc" ? "↓" : "↑"}
+                      </span>
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+          </table>
+
+        </div>{/* end fixed top section */}
+
+        {/* ── Scroll container — only tbody scrolls ─────────────────────── */}
+        <div
+          className="draft-scroll"
+          style={{ flex: 1, overflowY: "auto" }}
+        >
+          <table
+            style={{
+              width:          "100%",
+              borderCollapse: "collapse",
+              tableLayout:    "fixed",
+            }}
+          >
+            <colgroup>
+              <col style={{ width: "15%" }} />
+              <col style={{ width: "8%"  }} />
+              {TABLE_COLUMNS.map((c) => (
+                <col key={c.key} style={{ width: `${77 / TABLE_COLUMNS.length}%` }} />
+              ))}
+            </colgroup>
+
+            <tbody>
+              {displayPlayers.map((player) => {
+                const isSelected     = selectedPlayers[player.role]?.id === player.id;
+                const isRoleOccupied = !isSelected && selectedRoleSet.has(player.role);
+                const isHovered      = hoveredPlayer?.id === player.id;
+
+                const rowBg = isSelected
+                  ? "rgba(180,140,60,0.13)"
+                  : isHovered
+                    ? "rgba(255,255,255,0.05)"
+                    : "transparent";
+
+                return (
+                  <tr
+                    key={player.id}
+                    onClick={() => !isRoleOccupied && handleSelectPlayer(player)}
+                    onMouseEnter={() => setHoveredPlayer(player)}
+                    onMouseLeave={() => setHoveredPlayer(null)}
+                    style={{
+                      cursor:       isRoleOccupied ? "not-allowed" : "pointer",
+                      background:   rowBg,
+                      opacity:      isRoleOccupied ? 0.35 : 1,
+                      borderBottom: "1px solid rgba(255,255,255,0.04)",
+                      transition:   "background 0.08s, opacity 0.08s",
+                    }}
+                  >
+                    <td style={{ ...tdStyle, fontWeight: 600 }}>{player.name}</td>
+
+                    <td
+                      style={{
+                        ...tdStyle,
+                        color:         "var(--text-highlight)",
+                        fontWeight:    700,
+                        fontSize:      11,
+                        letterSpacing: "0.07em",
+                      }}
+                    >
+                      {player.role.toUpperCase()}
+                    </td>
+
+                    {/* Effective RP — +1 badge shown when cross-group */}
+                    <td style={tdStyle}>
+                      {player.effectiveRp}
+                      {player.isCrossGroup && (
+                        <span
+                          style={{
+                            marginLeft: 4,
+                            fontSize:   9,
+                            color:      "var(--text-highlight)",
+                            fontWeight: 700,
+                            opacity:    0.75,
+                          }}
+                        >
+                          +1
+                        </span>
+                      )}
+                    </td>
+
+                    <td style={tdStyle}>{player.rating}</td>
+                    <td style={tdStyle}>{player.stats.mec}</td>
+                    <td style={tdStyle}>{player.stats.mac}</td>
+                    <td style={tdStyle}>{player.stats.tfg}</td>
+                    <td style={tdStyle}>{player.stats.clt}</td>
+                    <td style={tdStyle}>{player.stats.con}</td>
+                    <td style={tdStyle}>{player.stats.iq}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+
+      {/* ── Sticky bottom: Player selection bar ───────────────────────────── */}
       <PlayerSelectionBar
         selectedPlayers={selectedPlayers}
         leftRp={leftRp}
@@ -334,3 +730,22 @@ export default function DraftPage() {
     </>
   );
 }
+
+// ─── Style helpers ────────────────────────────────────────────────────────────
+
+const thStyle: React.CSSProperties = {
+  padding:       "8px 16px",
+  textAlign:     "left",
+  fontSize:      10,
+  fontWeight:    700,
+  letterSpacing: "0.09em",
+  color:         "var(--text-tertiary, rgba(255,255,255,0.35))",
+  whiteSpace:    "nowrap",
+  background:    "var(--bg-primary)",
+};
+
+const tdStyle: React.CSSProperties = {
+  padding:  "8px 16px",
+  fontSize: 13,
+  color:    "var(--text-primary)",
+};

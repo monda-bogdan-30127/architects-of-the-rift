@@ -274,7 +274,7 @@ const baseChampions: Champion[] = [
 
     needs: [
       { type: "reliableCC", priority: 1 },
-      { type: "frontline", priority: 2 },
+      { type: "frontline", priority: 1 },
       { type: "engage", priority: 2 }
     ],
     weaknesses: [
@@ -399,7 +399,6 @@ const baseChampions: Champion[] = [
       { championId: "rakan", score: 4 },
       { championId: "seraphine", score: 4 },
       { championId: "nautilus", score: 3 },
-      { championId: "rell", score: 4 },
       { championId: "thresh", score: 4 },
       { championId: "milio", score: 3 }
     ],
@@ -476,7 +475,6 @@ const baseChampions: Champion[] = [
       { championId: "nami", score: 4 },
       { championId: "rakan", score: 4 },
       { championId: "neeko", score: 3 },
-      { championId: "poppy", score: 3 },
       { championId: "seraphine", score: 2 }
     ],
 
@@ -618,9 +616,9 @@ const baseChampions: Champion[] = [
     
     weakVs: [
       { championId: "cassiopeia", score: 2 },
-      { championId: "syndra", score: 3 },
-      { championId: "annie", score: 4 },
-      { championId: "orianna", score: 4 },
+      { championId: "syndra", score: 2 },
+      { championId: "annie", score: 1 },
+      { championId: "orianna", score: 3 },
       { championId: "anivia", score: 2 }
     ],
 
@@ -761,18 +759,18 @@ const baseChampions: Champion[] = [
   createChampion({
     id: "azir",
     goodVs: [
-      { championId: "viktor", score: 5 },
+      { championId: "viktor", score: 4 },
       { championId: "taliyah", score: 2 },
-      { championId: "aurora", score: 5 },
-      { championId: "akali", score: 4 }
+      { championId: "aurora", score: 4 },
+      { championId: "akali", score: 3 }
     ],
 
     weakVs: [
-      { championId: "leblanc", score: 5 },
-      { championId: "ryze", score: 4 },
+      { championId: "leblanc", score: 3 },
+      { championId: "ryze", score: 2 },
       { championId: "ahri", score: 3 },
       { championId: "ziggs", score: 2 },
-      { championId: "yone", score: 3 }
+      { championId: "yone", score: 4 }
     ],
     synergyWith: [
       { championId: "maokai", score: 3 },
@@ -918,7 +916,7 @@ const baseChampions: Champion[] = [
     ],
 
     weakVs: [
-      { championId: "nautilus", score: 5 },
+      { championId: "nautilus", score: 3 },
       { championId: "seraphine", score: 3 },
       { championId: "rakan", score: 3 },
       { championId: "lulu", score: 3 },
@@ -1131,7 +1129,6 @@ const baseChampions: Champion[] = [
     goodVs: [
       { championId: "ezreal", score: 4 },
       { championId: "corki", score: 4 },
-      { championId: "jhin", score: 3 },
       { championId: "yunara", score: 3 }
     ],
 
@@ -1493,9 +1490,8 @@ const baseChampions: Champion[] = [
 
     weakVs: [
       { championId: "gnar", score: 4 },
-      { championId: "ambessa", score: 5 },
+      { championId: "ambessa", score: 4 },
       { championId: "vayne", score: 4 },
-      { championId: "aatrox", score: 2 },
       { championId: "renekton", score: 3 }
     ],
 
@@ -2381,7 +2377,7 @@ const baseChampions: Champion[] = [
 
     name: "Akali",
     image: "/champions/akali.png",
-    roles: ["mid", "top"],
+    roles: ["mid"],
     damageProfile: ["AP"],
     stats: {
       picks: 23,
@@ -3799,7 +3795,6 @@ const baseChampions: Champion[] = [
       { championId: "wukong", score: 4 },
       { championId: "leona", score: 3 },
       { championId: "rakan", score: 3 },
-      { championId: "nautilus", score: 3 },
       { championId: "vi", score: 2 }
     ],
 
@@ -3982,12 +3977,11 @@ const baseChampions: Champion[] = [
     goodVs: [
       { championId: "hwei", score: 4 },
       { championId: "aurora", score: 4 },
-      { championId: "ryze", score: 3 },
+      { championId: "ryze", score: 1 },
       { championId: "galio", score: 3 }
     ],
 
     weakVs: [
-      { championId: "ryze", score: 3 },
       { championId: "ahri", score: 5 },
       { championId: "mel", score: 4 }
     ],
@@ -7423,7 +7417,7 @@ const baseChampions: Champion[] = [
     goodVs: [
       { championId: "ksante", score: 2 },
       { championId: "sion", score: 2 },
-      { championId: "camille", score: 4 }
+      { championId: "camille", score: 3 }
     ],
 
     weakVs: [
