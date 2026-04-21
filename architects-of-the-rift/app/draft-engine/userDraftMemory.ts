@@ -261,8 +261,8 @@ export function getUserPickPreferenceBias(
     targetRole == null
       ? 0
       : ((memory.rolePickCounts[buildRoleKey(targetRole, candidate.id)] ?? 0) +
-          (currentSeriesCounts.rolePickCounts[buildRoleKey(targetRole, candidate.id)] ?? 0) * 1.1) /
-        totalGames;
+        (currentSeriesCounts.rolePickCounts[buildRoleKey(targetRole, candidate.id)] ?? 0) * 1.1) /
+      totalGames;
 
   const recentHit = memory.recentRoleAssignments.includes(
     buildRoleKey((targetRole ?? candidate.roles[0]) as Role, candidate.id)
@@ -293,7 +293,7 @@ export function getUserPreferredOpenRoleBias(
 
   const firstPickRoleRate = (memory.firstPickRoleCounts[role] ?? 0) / totalRoleSamples;
   return clamp(firstPickRoleRate * 3.6, 0, 2.2);
-  
+
 }
 
 /**

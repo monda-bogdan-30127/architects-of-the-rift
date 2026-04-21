@@ -61,6 +61,10 @@ export type PlayerGameScore = {
   carryFactor: number;
   mistakeRisk: number;
   note: string;
+  kills: number;
+  deaths: number;
+  assists: number;
+  kda: number;
 };
 
 export type MatchFlowLabel =
@@ -94,4 +98,5 @@ export type FullMatchSimulationResult = {
   lane: LanePhaseResult;
   playerScores: PlayerGameScore[];
   mvpPlayerId: string | null;
+  gameLength: string;
 };

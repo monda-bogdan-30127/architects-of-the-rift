@@ -2201,7 +2201,6 @@ const baseChampions: Champion[] = [
     goodVs: [
       { championId: "ksante", score: 5 },
       { championId: "gwen", score: 5 },
-      { championId: "yorick", score: 4 },
       { championId: "ambessa", score: 4 },
       { championId: "renekton", score: 4 }
     ],

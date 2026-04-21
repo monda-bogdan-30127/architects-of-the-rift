@@ -63,6 +63,8 @@ import {
   computeDraftSpikeWindows,
   checkComebackReversal,
 } from "./advancedDraftReading";
+import { generatePlayerKDAs, generateGameLength } from "./kdaGenerator";
+import { recordGameKdas } from "./kdaStorage";
 
 const teamsBySlug = new Map(teams.map((team) => [team.slug, team]));
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -539,10 +541,9 @@ function buildPlayerScores(args: {
       //       10.0 reserved ONLY for perfect storm (carry event + lucky RNG + dominant win)
 
       // Per-player variance — each player rolls own day
-      // SCORE FIX: reduced from 1.3 to 0.8 — RNG shouldn't overpower win/loss
       const personalRng = seededNoise(
         `${args.seriesId}:g${args.gameNumber}:${role}:${entry.side}:${entry.playerId}:personal`,
-        0.8 * personality.volatilityRngScale
+        1.3 * personality.volatilityRngScale
       );
 
       // Win dominance scaling — close wins ≠ stomps
@@ -640,9 +641,7 @@ function buildPlayerScores(args: {
       const macroMistakePenalty = macroMistake.occurred ? -macroMistake.severity : 0;
 
       // UPGRADE 12: Champion mastery bonus (up to +1.0 for deep signature)
-      // SCORE FIX: halved on losing side — mastery doesn't save a lost game
-      const rawMastery = getChampionMasteryBonus(entry.playerId, entry.championId);
-      const masteryBonus = entry.side === args.winnerSide ? rawMastery : rawMastery * 0.4;
+      const masteryBonus = getChampionMasteryBonus(entry.playerId, entry.championId);
 
       // BASE LOWERED: 4.2 (was 4.6)
       const rawScore =
@@ -669,36 +668,22 @@ function buildPlayerScores(args: {
         masteryBonus +
         rng;
 
-      // ─── SCORE FIX: Separate compression for winners and losers ──────
-      // Winners: compress above 8.5 (normal) or 9.0 (carry event)
-      // Losers: compress above 7.5 — a 9.0 on losing team should be very rare
-      const isWinner = entry.side === args.winnerSide;
+      // ─── CRITICAL FIX: Soft cap above 9.0 ──────────────────────────
+      // Without compression, rawScore values of 10.2, 10.5, 11.0 all become
+      // exactly 10.0 after clamp → that's why everyone scored 10.0.
+      // With compression, rawScore 10.5 becomes ~9.4, 11.5 becomes ~9.6.
+      // 10.0 is now reserved only for truly exceptional games.
       let finalScore = rawScore;
-
-      if (isWinner) {
-        // Winners: same as before but starting at 8.5 instead of 9.0
-        if (rawScore > 8.5 && !isCarryEvent) {
-          const excess = rawScore - 8.5;
-          finalScore = 8.5 + Math.log(1 + excess) * 0.35;
-        } else if (rawScore > 9.0 && isCarryEvent) {
-          const excess = rawScore - 9.0;
-          finalScore = 9.0 + Math.log(1 + excess) * 0.4;
-        }
-      } else {
-        // Losers: aggressive compression above 7.5
-        // An elite player on losing team can hit 8.0-8.5, but 9.0 is almost impossible
-        if (rawScore > 7.5 && !isCarryEvent) {
-          const excess = rawScore - 7.5;
-          finalScore = 7.5 + Math.log(1 + excess) * 0.45;
-        } else if (rawScore > 8.0 && isCarryEvent) {
-          // Rare: carry event on losing team — "the bright spot" — cap at ~8.5
-          const excess = rawScore - 8.0;
-          finalScore = 8.0 + Math.log(1 + excess) * 0.35;
-        }
-      }
-
-      // Floor compression (same for both)
-      if (rawScore < 2.5) {
+      if (rawScore > 9.0 && !isCarryEvent) {
+        // No carry event: heavy compression above 9.0
+        const excess = rawScore - 9.0;
+        finalScore = 9.0 + Math.log(1 + excess) * 0.3;
+      } else if (rawScore > 9.3 && isCarryEvent) {
+        // With carry event: compression above 9.3 (hard carries can still hit 9.5+)
+        const excess = rawScore - 9.3;
+        finalScore = 9.3 + Math.log(1 + excess) * 0.45;
+      } else if (rawScore < 2.5) {
+        // Symmetric floor compression
         const deficit = 2.5 - rawScore;
         finalScore = 2.5 - Math.log(1 + deficit) * 0.6;
       }
@@ -735,6 +720,10 @@ function buildPlayerScores(args: {
         carryFactor: round1(carryFactor),
         mistakeRisk: round1(mistakeRisk),
         note,
+        kills: 0,
+        deaths: 0,
+        assists: 0,
+        kda: 0,
       });
     }
   }
@@ -1084,6 +1073,26 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   });
 
   const mvp = [...playerScores].sort((a, b) => b.score - a.score)[0] ?? null;
+
+  // Generate realistic KDAs for each player
+  generatePlayerKDAs({
+    playerScores,
+    winnerSide: finalWinnerSide,
+    matchProfile,
+    closeness,
+    scoreDiff: blueScores.total - redScores.total,
+    seriesId: input.series.seriesId,
+    gameNumber: input.game.number,
+  });
+
+  // Generate game length
+  const gameLength = generateGameLength({
+    matchProfile,
+    closeness,
+    seriesId: input.series.seriesId,
+    gameNumber: input.game.number,
+  });
+
   const seriesScore = computeSeriesScoreAfterGame(input, finalWinnerSide);
   const reason = buildReason({ winnerSide: finalWinnerSide, blueScores, redScores });
 
@@ -1112,6 +1121,16 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     gameNumber: input.game.number,
   });
 
+  // Record KDAs to localStorage for roster page display
+  recordGameKdas(
+    playerScores.map((entry) => ({
+      playerId: entry.playerId,
+      kills: entry.kills,
+      deaths: entry.deaths,
+      assists: entry.assists,
+    }))
+  );
+
   return {
     winnerSide: finalWinnerSide,
     blueTeamSlug: input.series.blueTeamSlug,
@@ -1134,5 +1153,6 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     lane,
     playerScores,
     mvpPlayerId: mvp?.playerId ?? null,
+    gameLength,
   };
 }
