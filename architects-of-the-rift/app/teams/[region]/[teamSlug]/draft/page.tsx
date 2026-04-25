@@ -43,6 +43,7 @@ const REGION_BUDGET: Record<string, number> = {
   lck: 39,
   lpl: 39,
   lec: 37,
+  lcs: 37,
 };
 const DEFAULT_BUDGET = 39;
 
@@ -57,7 +58,7 @@ const REGION_GROUPS: Record<string, string> = {
   lcs: "B",
 };
 
-const REGION_FILTER_OPTIONS = ["ALL", "LCK", "LPL", "LEC", "FREE AGENTS"] as const;
+const REGION_FILTER_OPTIONS = ["ALL", "LCK", "LPL", "LEC", "LCS", "FREE AGENTS"] as const;
 type RegionFilter = (typeof REGION_FILTER_OPTIONS)[number];
 
 const ROLE_LABELS: Record<Role, string> = {

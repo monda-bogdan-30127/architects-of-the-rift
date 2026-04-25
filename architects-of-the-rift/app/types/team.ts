@@ -16,7 +16,7 @@ export type Team = {
   slug: string;
   name: string;
   abbreviation: string;
-  region: "lck" | "lec" | "lpl";
+  region: "lck" | "lec" | "lpl" | "lcs";
   logo: string;
   sortOrder: number;
   identity?: TeamIdentity;

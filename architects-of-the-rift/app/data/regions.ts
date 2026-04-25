@@ -23,5 +23,13 @@ export const regions: Region[] = [
     server: "China Server",
     teams: 14,
     logo: "/region-logos/League_of_legends_pro_league_logo.svg"
-  }
+  },
+
+  {
+    id: "lcs",
+    name: "League Championship Series",
+    server: "NA Server",
+    teams: 8,
+    logo: "/region-logos/League_championship_series_logo.svg"
+  },
 ]

@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
-import Button from "@/components/ui/Button";
 import { champions } from "@/app/data/champions";
 import { useDraftEngine } from "@/app/hooks/useDraftEngine";
 import { resolveFinishedDraftAssignments } from "@/app/draft-engine/draftEngine";
@@ -12,11 +11,10 @@ import MatchResultsDialog from "@/components/ui/MatchResultsDialog";
 import type { DraftGameState, DraftSave, DraftSimulationResult, DraftStep, Side } from "@/app/draft-engine/draftTypes";
 import type { Champion, Role } from "@/app/types/champion";
 
-const CHAMPION_CARD_SIZE = 102;
-const CHAMPION_CARD_GAP = 8;
-const CHAMPION_GRID_COLUMNS = 5;
-const MINI_SLOT_SIZE = 36;
-const ROLE_CARD_SIZE = 88;
+const CHAMPION_CARD_SIZE = 86;
+const CHAMPION_CARD_GAP = 5;
+const CHAMPION_GRID_COLUMNS = 6;
+const MINI_SLOT_SIZE = 34;
 
 const ROLE_ORDER: Role[] = ["top", "jungle", "mid", "adc", "support"];
 const FILTERS: Array<{ key: Role | "all"; label: string; icon: string }> = [
@@ -28,20 +26,22 @@ const FILTERS: Array<{ key: Role | "all"; label: string; icon: string }> = [
   { key: "support", label: "SUP", icon: "/pictures/filter-tag-4.png" },
 ];
 
-function getChampionById(championId: string) {
-  return champions.find((champion) => champion.id === championId) ?? null;
-}
+const ROLE_ICONS: Record<Role, string> = {
+  top: "/pictures/filter-tag.png",
+  jungle: "/pictures/filter-tag-1.png",
+  mid: "/pictures/filter-tag-2.png",
+  adc: "/pictures/filter-tag-3.png",
+  support: "/pictures/filter-tag-4.png",
+};
 
+function getChampionById(id: string) {
+  return champions.find((c) => c.id === id) ?? null;
+}
 function championMatchesSearch(champion: Champion, query: string) {
   if (!query.trim()) return true;
   const q = query.trim().toLowerCase();
-
-  return (
-    champion.name.toLowerCase().includes(q) ||
-    champion.id.toLowerCase().includes(q)
-  );
+  return champion.name.toLowerCase().includes(q) || champion.id.toLowerCase().includes(q);
 }
-
 function getRoleLabel(role: Role) {
   if (role === "top") return "TOP";
   if (role === "jungle") return "JUNGLE";
@@ -49,7 +49,6 @@ function getRoleLabel(role: Role) {
   if (role === "adc") return "ADC";
   return "SUPPORT";
 }
-
 function getSwapLabel(role: Role) {
   if (role === "top") return "SWAP TOP";
   if (role === "jungle") return "SWAP JUNGLE";
@@ -58,128 +57,149 @@ function getSwapLabel(role: Role) {
   return "SWAP SUPP";
 }
 
-function getTeamRosterFromSources({
-  team,
-  save,
-}: {
-  team: unknown;
-  save: DraftSave | null;
-}): Partial<Record<Role, string>> {
+function getTeamRosterFromSources({ team, save }: { team: unknown; save: DraftSave | null }): Partial<Record<Role, string>> {
   if (!team || typeof team !== "object") return {};
-
-  const typedTeam = team as {
-    slug?: string;
-    roster?: Partial<Record<Role, string>>;
-  };
-
+  const typedTeam = team as { slug?: string; roster?: Partial<Record<Role, string>> };
   const teamSlug = typedTeam.slug ?? "";
-  const baseRoster =
-    typedTeam.roster && typeof typedTeam.roster === "object"
-      ? typedTeam.roster
-      : {};
-
-  if (!save) {
-    return baseRoster;
-  }
-
-  const updatedRoster = teamSlug
-    ? save.updatedTeamRosters?.[teamSlug]
-    : undefined;
-
-  if (updatedRoster && typeof updatedRoster === "object") {
-    return updatedRoster;
-  }
-
-  if (teamSlug && save.controlledTeamSlug === teamSlug && save.roster) {
-    return save.roster;
-  }
-
+  const baseRoster = typedTeam.roster && typeof typedTeam.roster === "object" ? typedTeam.roster : {};
+  if (!save) return baseRoster;
+  const updatedRoster = teamSlug ? save.updatedTeamRosters?.[teamSlug] : undefined;
+  if (updatedRoster && typeof updatedRoster === "object") return updatedRoster;
+  if (teamSlug && save.controlledTeamSlug === teamSlug && save.roster) return save.roster;
   return baseRoster;
 }
 
-function assignChampionToRoleMap(
-  assignments: Partial<Record<Role, string>>,
-  championId: string
-) {
+function assignChampionToRoleMap(assignments: Partial<Record<Role, string>>, championId: string) {
   const next = { ...assignments };
   const firstOpenRole = ROLE_ORDER.find((role) => !next[role]);
-
-  if (firstOpenRole) {
-    next[firstOpenRole] = championId;
-  }
-
+  if (firstOpenRole) next[firstOpenRole] = championId;
   return next;
 }
 
 function buildAssignmentsFromPicks(picks: string[]) {
   let assignments: Partial<Record<Role, string>> = {};
-  for (const championId of picks) {
-    assignments = assignChampionToRoleMap(assignments, championId);
-  }
+  for (const championId of picks) assignments = assignChampionToRoleMap(assignments, championId);
   return assignments;
 }
 
-function getDisplayAssignments(
-  savedAssignments: Partial<Record<Role, string>>,
-  picks: string[]
-) {
+function getDisplayAssignments(savedAssignments: Partial<Record<Role, string>>, picks: string[]) {
   if (Object.keys(savedAssignments).length > 0) return savedAssignments;
   return buildAssignmentsFromPicks(picks);
 }
 
-function getPreviewBans(
-  game: DraftGameState,
-  currentStep: DraftStep | null,
-  selectedChampionId: string | null,
-  userSide: Side,
-  isUserTurn: boolean
-) {
+function getPreviewBans(game: DraftGameState, currentStep: DraftStep | null, selectedChampionId: string | null, userSide: Side, isUserTurn: boolean) {
   let bansBlue = [...game.bansBlue];
   let bansRed = [...game.bansRed];
-
-  if (
-    currentStep &&
-    selectedChampionId &&
-    isUserTurn &&
-    currentStep.action === "ban"
-  ) {
+  if (currentStep && selectedChampionId && isUserTurn && currentStep.action === "ban") {
     if (userSide === "blue") bansBlue = [...bansBlue, selectedChampionId];
     if (userSide === "red") bansRed = [...bansRed, selectedChampionId];
   }
-
   return { bansBlue, bansRed };
 }
 
-function buildChampionGridItems(filtered: Champion[]) {
-  return filtered;
-}
+// ─── Draft-specific scoped styles ─────────────────────────────────────────────
+// Only styles that can't be expressed with existing globals.css classes.
+const DRAFT_STYLES = `
+  .draft-pick-slot {
+    position: relative;
+    overflow: hidden;
+    clip-path: polygon(0 0, 94% 0, 100% 6%, 100% 100%, 0 100%);
+    transition: box-shadow 0.2s ease;
+  }
+  .draft-pick-slot-right {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 6% 100%, 0 94%);
+  }
+  .draft-pick-slot-active {
+    box-shadow: 0 0 0 1px var(--primary), 0 0 14px rgba(16,228,249,0.25);
+  }
+  .draft-champ-btn {
+    transition: transform 0.12s ease, filter 0.12s ease;
+  }
+  .draft-champ-btn:not(:disabled):hover .draft-champ-img {
+    filter: brightness(1.18);
+    transform: scale(1.03);
+  }
+  .draft-champ-btn:disabled {
+    cursor: not-allowed;
+  }
+  .draft-champ-img {
+    transition: filter 0.12s ease, transform 0.12s ease;
+  }
+  .draft-ban-active {
+    box-shadow: 0 0 0 1px var(--danger), 0 0 8px rgba(239,68,68,0.3);
+  }
+  .draft-lock-btn {
+    background: var(--primary);
+    color: var(--bg-main);
+    font-family: "Spiegel", sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    border: none;
+    padding: 11px 44px;
+    clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+    cursor: pointer;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+  }
+  .draft-lock-btn:hover:not(:disabled) {
+    background: var(--primary-hover);
+    box-shadow: 0 0 20px rgba(16,228,249,0.35);
+  }
+  .draft-lock-btn:disabled {
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+  .draft-ready-btn {
+    background: transparent;
+    color: var(--primary);
+    font-family: "Spiegel", sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    border: 1px solid var(--primary);
+    padding: 11px 36px;
+    clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+    cursor: pointer;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+  }
+  .draft-ready-btn:hover:not(:disabled) {
+    background: rgba(16,228,249,0.08);
+    box-shadow: 0 0 14px rgba(16,228,249,0.2);
+  }
+  .draft-ready-btn:disabled {
+    border-color: var(--border-default);
+    color: var(--text-muted);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+  .draft-scroll::-webkit-scrollbar { width: 3px; }
+  .draft-scroll::-webkit-scrollbar-track { background: transparent; }
+  .draft-scroll::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 2px; }
+  .draft-filter-btn { transition: opacity 0.15s ease, filter 0.15s ease; }
+  .draft-filter-btn:hover { opacity: 0.85 !important; }
+  @keyframes draft-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .draft-picking-pulse { animation: draft-pulse 1.4s ease-in-out infinite; }
+`;
 
+// ─── Main page ────────────────────────────────────────────────────────────────
 export default function DraftPage() {
   const params = useParams<{ seriesId: string }>();
   const router = useRouter();
   const seriesId = params?.seriesId ?? "";
 
   const {
-    draftSave,
-    series,
-    setSeries,
-    currentGame,
-    currentStep,
-    userSide,
-    blueTeam,
-    redTeam,
-    unavailableChampionIds,
-    blueLockedChampionIds,
-    redLockedChampionIds,
-    blueWins,
-    redWins,
-    isUserTurn,
-    allPicksCompleted,
-    canSwapRoles,
-    readyDisabled,
-    commitAction,
-    swapRoles,
-    finishCurrentGame,
+    draftSave, series, setSeries, currentGame, currentStep,
+    userSide, blueTeam, redTeam, unavailableChampionIds,
+    blueLockedChampionIds, redLockedChampionIds,
+    blueWins, redWins, isUserTurn, allPicksCompleted,
+    canSwapRoles, readyDisabled, commitAction, swapRoles, finishCurrentGame,
   } = useDraftEngine(seriesId);
 
   const [search, setSearch] = useState("");
@@ -192,72 +212,37 @@ export default function DraftPage() {
   const [resultsSeriesFinished, setResultsSeriesFinished] = useState(false);
 
   useEffect(() => {
-    if (!series || !currentGame || currentStep) return;
-    if (!allPicksCompleted) return;
-    if (
-      Object.keys(currentGame.assignmentsBlue).length > 0 &&
-      Object.keys(currentGame.assignmentsRed).length > 0
-    ) {
-      return;
-    }
-
+    if (!series || !currentGame || currentStep || !allPicksCompleted) return;
+    if (Object.keys(currentGame.assignmentsBlue).length > 0 && Object.keys(currentGame.assignmentsRed).length > 0) return;
     setSeries((prev) => {
       if (!prev) return prev;
-      return {
-        ...prev,
-        games: prev.games.map((game) =>
-          game.number === currentGame.number
-            ? resolveFinishedDraftAssignments(game, prev, draftSave)
-            : game
-        ),
-      };
+      return { ...prev, games: prev.games.map((g) => g.number === currentGame.number ? resolveFinishedDraftAssignments(g, prev, draftSave) : g) };
     });
   }, [series, currentGame, currentStep, allPicksCompleted, setSeries, draftSave]);
 
   useEffect(() => {
     if (!series || resultsGameNumber === null) return;
-
-    const completedGame = series.games.find((game) => game.number === resultsGameNumber) ?? null;
+    const completedGame = series.games.find((g) => g.number === resultsGameNumber) ?? null;
     if (!completedGame?.completed || !completedGame.simulation) return;
-
     setResultsSimulation(completedGame.simulation);
     setResultsGameNumber(null);
   }, [series, resultsGameNumber]);
 
-  function handleResultsPrimaryAction() {
-    setResultsSimulation(null);
-
-    if (resultsSeriesFinished) {
-      router.push("/gameplay-dashboard");
-      return;
-    }
-  }
-
-  const filteredChampions = useMemo(() => {
-    return [...champions]
+  const filteredChampions = useMemo(() =>
+    [...champions]
       .sort((a, b) => a.name.localeCompare(b.name))
-      .filter((champion) => championMatchesSearch(champion, search))
-      .filter((champion) => {
-        if (roleFilter === "all") return true;
-        return champion.roles.includes(roleFilter);
-      });
-  }, [roleFilter, search]);
-
-  const championGridItems = useMemo(
-    () => buildChampionGridItems(filteredChampions),
-    [filteredChampions]
+      .filter((c) => championMatchesSearch(c, search))
+      .filter((c) => roleFilter === "all" ? true : c.roles.includes(roleFilter)),
+    [roleFilter, search]
   );
 
   function handleChampionClick(championId: string) {
-    if (!isUserTurn || !currentStep) return;
-    if (unavailableChampionIds.has(championId)) return;
+    if (!isUserTurn || !currentStep || unavailableChampionIds.has(championId)) return;
     setSelectedChampionId((prev) => (prev === championId ? null : championId));
   }
 
   function handleLockIn() {
-    if (!isUserTurn || !currentStep || !selectedChampionId) return;
-    if (unavailableChampionIds.has(selectedChampionId)) return;
-
+    if (!isUserTurn || !currentStep || !selectedChampionId || unavailableChampionIds.has(selectedChampionId)) return;
     commitAction(selectedChampionId, currentStep.side, currentStep.action);
     setSelectedChampionId(null);
     setOpenSwapRole(null);
@@ -265,24 +250,15 @@ export default function DraftPage() {
 
   function handleReady() {
     if (!currentGame || !series) return;
-
     const completedGameNumber = currentGame.number;
     const resolvedGame = resolveFinishedDraftAssignments(currentGame, series, draftSave);
-
     flushSync(() => {
       setSeries((prev) => {
         if (!prev) return prev;
-        return {
-          ...prev,
-          games: prev.games.map((game) =>
-            game.number === resolvedGame.number ? resolvedGame : game
-          ),
-        };
+        return { ...prev, games: prev.games.map((g) => g.number === resolvedGame.number ? resolvedGame : g) };
       });
     });
-
     const result = finishCurrentGame();
-
     setSelectedChampionId(null);
     setOpenSwapRole(null);
     setResultsSeriesFinished(result === "series-finished");
@@ -290,110 +266,137 @@ export default function DraftPage() {
   }
 
   function handleExitDraft() {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("rift-active-series-draft");
-    }
+    if (typeof window !== "undefined") window.localStorage.removeItem("rift-active-series-draft");
     router.push("/gameplay-dashboard");
   }
 
   function handleFilterToggle(nextFilter: Role | "all") {
-    setRoleFilter((prev) => {
-      if (nextFilter === "all") return "all";
-      return prev === nextFilter ? "all" : nextFilter;
-    });
+    setRoleFilter((prev) => nextFilter === "all" ? "all" : prev === nextFilter ? "all" : nextFilter);
   }
 
   function handleSwapMenuToggle(role: Role) {
     if (!currentGame || !canSwapRoles) return;
-
-    const userAssignments =
-      userSide === "blue"
-        ? getDisplayAssignments(currentGame.assignmentsBlue, currentGame.picksBlue)
-        : getDisplayAssignments(currentGame.assignmentsRed, currentGame.picksRed);
-
-    if (!userAssignments[role]) return;
+    const ua = userSide === "blue"
+      ? getDisplayAssignments(currentGame.assignmentsBlue, currentGame.picksBlue)
+      : getDisplayAssignments(currentGame.assignmentsRed, currentGame.picksRed);
+    if (!ua[role]) return;
     setOpenSwapRole((prev) => (prev === role ? null : role));
   }
 
   function handleRoleSwap(sourceRole: Role, targetRole: Role) {
-    if (!canSwapRoles) return;
-    if (sourceRole === targetRole) return;
+    if (!canSwapRoles || sourceRole === targetRole) return;
     swapRoles(userSide, sourceRole, targetRole);
     setOpenSwapRole(null);
   }
 
   useEffect(() => {
     if (!openSwapRole) return;
-
-    function handlePointerDown(event: MouseEvent) {
+    function handlePointerDown(e: MouseEvent) {
       const container = swapMenuContainerRef.current;
-      if (!container) return;
-      if (container.contains(event.target as Node)) return;
+      if (!container || container.contains(e.target as Node)) return;
       setOpenSwapRole(null);
     }
-
     window.addEventListener("mousedown", handlePointerDown);
-    return () => {
-      window.removeEventListener("mousedown", handlePointerDown);
-    };
+    return () => window.removeEventListener("mousedown", handlePointerDown);
   }, [openSwapRole]);
 
   if (!series || !currentGame || !blueTeam || !redTeam) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[var(--bg-main)]">
-        <p className="body text-[var(--text-secondary)]">Loading draft...</p>
+      <main style={{ minHeight: "100vh", background: "var(--bg-main)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <style>{DRAFT_STYLES}</style>
+        <p className="label" style={{ color: "var(--text-muted)" }}>LOADING DRAFT...</p>
       </main>
     );
   }
 
-  const currentAssignmentsBlue = getDisplayAssignments(
-    currentGame.assignmentsBlue,
-    currentGame.picksBlue
-  );
-  const currentAssignmentsRed = getDisplayAssignments(
-    currentGame.assignmentsRed,
-    currentGame.picksRed
-  );
+  const currentAssignmentsBlue = getDisplayAssignments(currentGame.assignmentsBlue, currentGame.picksBlue);
+  const currentAssignmentsRed = getDisplayAssignments(currentGame.assignmentsRed, currentGame.picksRed);
 
-  const previewAssignmentsBlue =
-    selectedChampionId &&
-    isUserTurn &&
-    currentStep?.action === "pick" &&
-    currentStep.side === "blue"
-      ? assignChampionToRoleMap(currentAssignmentsBlue, selectedChampionId)
-      : currentAssignmentsBlue;
+  const previewAssignmentsBlue = selectedChampionId && isUserTurn && currentStep?.action === "pick" && currentStep.side === "blue"
+    ? assignChampionToRoleMap(currentAssignmentsBlue, selectedChampionId)
+    : currentAssignmentsBlue;
 
-  const previewAssignmentsRed =
-    selectedChampionId &&
-    isUserTurn &&
-    currentStep?.action === "pick" &&
-    currentStep.side === "red"
-      ? assignChampionToRoleMap(currentAssignmentsRed, selectedChampionId)
-      : currentAssignmentsRed;
+  const previewAssignmentsRed = selectedChampionId && isUserTurn && currentStep?.action === "pick" && currentStep.side === "red"
+    ? assignChampionToRoleMap(currentAssignmentsRed, selectedChampionId)
+    : currentAssignmentsRed;
 
-  const previewBans = getPreviewBans(
-    currentGame,
-    currentStep,
-    selectedChampionId,
-    userSide,
-    isUserTurn
-  );
+  const previewBans = getPreviewBans(currentGame, currentStep, selectedChampionId, userSide, isUserTurn);
 
-  const activeTeamAbbr =
-    currentStep?.side === "blue" ? blueTeam.abbreviation : redTeam.abbreviation;
-
+  const activeTeamAbbr = currentStep?.side === "blue" ? blueTeam.abbreviation : redTeam.abbreviation;
   const title = currentStep
     ? `${activeTeamAbbr}'s ${currentStep.action === "ban" ? "Ban" : "Pick"} ${currentStep.label.replace(/[BR]/g, "")}`
     : "Draft Complete";
 
   return (
-    <main className="min-h-screen bg-[var(--bg-main)] py-[20px] text-[var(--text-primary)]">
-      <div className="mx-auto flex max-w-[1440px] items-start">
+    <main style={{ minHeight: "100vh", height: "100vh", background: "var(--bg-main)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <style>{DRAFT_STYLES}</style>
+
+      {/* ── TOP HEADER — bans + title ── */}
+      <header style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "10px 16px 8px",
+        background: "var(--bg-surface)",
+        borderBottom: "1px solid var(--divider)",
+        flexShrink: 0,
+        gap: "12px",
+      }}>
+        {/* Blue bans */}
+        <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+          {Array.from({ length: 5 }).map((_, i) => {
+            const chamId = previewBans.bansBlue[i];
+            const cham = chamId ? getChampionById(chamId) : null;
+            const isActive = isUserTurn && currentStep?.action === "ban" && currentStep.side === "blue" && i === previewBans.bansBlue.length;
+            return <BanSlot key={`bb-${i}`} champion={cham} isActive={isActive} size={MINI_SLOT_SIZE} />;
+          })}
+        </div>
+
+        {/* Center title */}
+        <div style={{ textAlign: "center", flex: 1 }}>
+          <h3 className="h3" style={{ color: "var(--text-primary)", marginBottom: "2px" }}>{title}</h3>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px" }}>
+            <span className="body-small" style={{ color: "var(--text-muted)" }}>Bo{series.bo}</span>
+            <button
+              type="button"
+              onClick={handleExitDraft}
+              className="button"
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--text-muted)",
+                fontFamily: "inherit",
+                transition: "color 0.15s",
+                padding: "2px 6px",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
+            >
+              EXIT DRAFT
+            </button>
+          </div>
+        </div>
+
+        {/* Red bans */}
+        <div style={{ display: "flex", gap: "4px", alignItems: "center", flexDirection: "row-reverse" }}>
+          {Array.from({ length: 5 }).map((_, i) => {
+            const chamId = previewBans.bansRed[i];
+            const cham = chamId ? getChampionById(chamId) : null;
+            const isActive = isUserTurn && currentStep?.action === "ban" && currentStep.side === "red" && i === previewBans.bansRed.length;
+            return <BanSlot key={`br-${i}`} champion={cham} isActive={isActive} size={MINI_SLOT_SIZE} />;
+          })}
+        </div>
+      </header>
+
+      {/* ── MAIN ROW — sidebars + grid ── */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+
+        {/* Blue sidebar */}
         <SidebarPanel
           side="blue"
           team={blueTeam}
           score={blueWins}
-          bans={previewBans.bansBlue}
           assignments={previewAssignmentsBlue}
           showSwap={canSwapRoles && userSide === "blue"}
           openSwapRole={userSide === "blue" ? openSwapRole : null}
@@ -402,121 +405,133 @@ export default function DraftPage() {
           swapMenuContainerRef={userSide === "blue" ? swapMenuContainerRef : null}
           lockedChampionIds={blueLockedChampionIds}
           roster={getTeamRosterFromSources({ team: blueTeam, save: draftSave })}
+          currentStep={currentStep}
+          isUserTurn={isUserTurn}
         />
 
-        <section className="min-w-0 flex-1">
-          <div className="flex min-h-[calc(100vh-40px)] flex-col">
-            <div
-              className="sticky top-0 z-40"
-              style={{
-                background: "var(--bg-main) ",
-              }}
-            >
-              <div className="flex items-center justify-between px-[18px] py-[10px]">
-                <Button variant="text" onClick={handleExitDraft}>
-                  EXIT DRAFT
-                </Button>
+        <div style={{ width: "1px", background: "var(--divider)", flexShrink: 0 }} />
 
-                <h3 className="h3 flex-1 px-[16px] text-center text-[var(--text-primary)]">
-                  {title}
-                </h3>
+        {/* Center section */}
+        <section style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
-                <div className="body-small w-[68px] text-right text-[var(--text-secondary)]">
-                  Bo{series.bo}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between px-[18px] pt-[6px] pb-[24px]">
-                <div className="flex items-center gap-[14px]">
-                  {FILTERS.map((filterItem) => {
-                    const isActive =
-                      (filterItem.key === "all" && roleFilter === "all") ||
-                      roleFilter === filterItem.key;
-
-                    return (
-                      <button
-                        key={filterItem.key}
-                        type="button"
-                        onClick={() => handleFilterToggle(filterItem.key)}
-                        className="flex h-[32px] w-[32px] shrink-0 items-center justify-center transition-opacity duration-200"
-                        style={{ opacity: isActive ? 1 : 0.35 }}
-                        aria-label={filterItem.label}
-                      >
-                        <Image
-                          src={filterItem.icon}
-                          alt={filterItem.label}
-                          width={32}
-                          height={32}
-                          className="block h-[32px] w-[32px] object-contain"
-                        />
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div
-                  className="flex w-[204px] items-center gap-[8px] rounded-[4px] border px-[12px] py-[8px]"
-                  style={{ borderColor: "var(--border-default)" }}
-                >
-                  <Image
-                    src="/svg/search.svg"
-                    alt="search"
-                    width={16}
-                    height={16}
-                    className="block h-[16px] w-[16px] shrink-0 object-contain"
-                  />
-
-                  <input
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="SEARCH"
-                    className="body-small w-full bg-transparent text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
-                  />
-                </div>
-              </div>
+          {/* Filters */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "8px 14px 6px",
+            borderBottom: "1px solid var(--divider)",
+            flexShrink: 0,
+          }}>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              {FILTERS.map((f) => {
+                const isActive = (f.key === "all" && roleFilter === "all") || roleFilter === f.key;
+                return (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => handleFilterToggle(f.key)}
+                    className="draft-filter-btn"
+                    style={{
+                      width: "26px",
+                      height: "26px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      opacity: isActive ? 1 : 0.3,
+                      filter: isActive ? "drop-shadow(0 0 5px rgba(16,228,249,0.45))" : "none",
+                      padding: 0,
+                      transition: "opacity 0.15s ease, filter 0.15s ease",
+                    }}
+                    aria-label={f.label}
+                  >
+                    <Image src={f.icon} alt={f.label} width={22} height={22} style={{ objectFit: "contain" }} />
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="flex-1 px-[18px] pb-[120px]">
-              <ChampionGrid
-                champions={championGridItems}
-                selectedChampionId={selectedChampionId}
-                unavailableChampionIds={unavailableChampionIds}
-                isUserTurn={isUserTurn}
-                onChampionClick={handleChampionClick}
+            {/* Search */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "7px",
+              background: "var(--bg-elevated)",
+              border: "1px solid var(--border-default)",
+              padding: "5px 10px",
+              width: "172px",
+            }}>
+              <Image src="/svg/search.svg" alt="search" width={13} height={13} style={{ opacity: 0.45, flexShrink: 0 }} />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="SEARCH"
+                className="body-small"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  width: "100%",
+                  color: "var(--text-primary)",
+                  fontFamily: '"Spiegel", sans-serif',
+                }}
               />
             </div>
+          </div>
 
-            <div className="sticky bottom-0 z-20 px-[18px] pt-[8px]">
-              <div
-                className="flex justify-center border-t px-[8px] pt-[16px] pb-[16px] backdrop-blur-[10px]"
-                style={{
-                  borderColor: "var(--border-divider)",
-                  background: "var(--bg-main)",
-                }}
+          {/* Champion grid */}
+          <div className="draft-scroll" style={{ flex: 1, overflowY: "auto", padding: "10px 14px 14px" }}>
+            <ChampionGrid
+              champions={filteredChampions}
+              selectedChampionId={selectedChampionId}
+              unavailableChampionIds={unavailableChampionIds}
+              isUserTurn={isUserTurn}
+              onChampionClick={handleChampionClick}
+            />
+          </div>
+
+          {/* Action bar */}
+          <div style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "10px 14px 12px",
+            background: "var(--bg-surface)",
+            borderTop: "1px solid var(--divider)",
+            flexShrink: 0,
+          }}>
+            {currentStep ? (
+              <button
+                type="button"
+                className="draft-lock-btn"
+                onClick={handleLockIn}
+                disabled={!isUserTurn || !selectedChampionId || (!!selectedChampionId && unavailableChampionIds.has(selectedChampionId))}
               >
-                <Button
-                  onClick={currentStep ? handleLockIn : handleReady}
-                  disabled={
-                    currentStep
-                      ? !isUserTurn ||
-                        !selectedChampionId ||
-                        unavailableChampionIds.has(selectedChampionId)
-                      : readyDisabled
-                  }
-                  className="min-w-[126px] !rounded-[14px] !px-[24px] !py-[12px]"
-                >
-                  {currentStep ? "LOCK IN" : "DRAFT READY"}
-                </Button>
-              </div>
-            </div>
+                LOCK IN
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="draft-ready-btn"
+                onClick={handleReady}
+                disabled={readyDisabled}
+              >
+                DRAFT READY
+              </button>
+            )}
           </div>
         </section>
 
+        <div style={{ width: "1px", background: "var(--divider)", flexShrink: 0 }} />
+
+        {/* Red sidebar */}
         <SidebarPanel
           side="red"
           team={redTeam}
           score={redWins}
-          bans={previewBans.bansRed}
           assignments={previewAssignmentsRed}
           showSwap={canSwapRoles && userSide === "red"}
           openSwapRole={userSide === "red" ? openSwapRole : null}
@@ -525,6 +540,8 @@ export default function DraftPage() {
           swapMenuContainerRef={userSide === "red" ? swapMenuContainerRef : null}
           lockedChampionIds={redLockedChampionIds}
           roster={getTeamRosterFromSources({ team: redTeam, save: draftSave })}
+          currentStep={currentStep}
+          isUserTurn={isUserTurn}
           alignRight
         />
       </div>
@@ -532,38 +549,59 @@ export default function DraftPage() {
       <MatchResultsDialog
         open={Boolean(resultsSimulation)}
         simulation={resultsSimulation}
-        onPrimaryAction={handleResultsPrimaryAction}
+        onPrimaryAction={() => { setResultsSimulation(null); if (resultsSeriesFinished) router.push("/gameplay-dashboard"); }}
         primaryLabel={resultsSeriesFinished ? "BACK TO DASHBOARD" : "GO NEXT GAME"}
       />
     </main>
   );
 }
 
+// ─── Ban slot ──────────────────────────────────────────────────────────────────
+function BanSlot({ champion, isActive, size }: { champion: Champion | null; isActive: boolean; size: number }) {
+  return (
+    <div
+      className={isActive ? "draft-ban-active" : ""}
+      style={{
+        width: size,
+        height: size,
+        background: champion ? "transparent" : "var(--bg-elevated)",
+        border: champion ? "none" : "1px solid var(--border-default)",
+        position: "relative",
+        overflow: "hidden",
+        flexShrink: 0,
+      }}
+    >
+      {champion && (
+        <>
+          <Image src={champion.image || "/pictures/champion-thumbnail-placeholder.png"} alt={champion.name} fill sizes={`${size}px`} style={{ objectFit: "cover", filter: "grayscale(0.5) brightness(0.55)" }} />
+          <div style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(239,68,68,0.35)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}>
+            <svg width={size * 0.38} height={size * 0.38} viewBox="0 0 14 14" fill="none">
+              <line x1="2" y1="2" x2="12" y2="12" stroke="rgba(239,68,68,0.95)" strokeWidth="2" strokeLinecap="round" />
+              <line x1="12" y1="2" x2="2" y2="12" stroke="rgba(239,68,68,0.95)" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Sidebar Panel ─────────────────────────────────────────────────────────────
 function SidebarPanel({
-  side,
-  team,
-  score,
-  bans,
-  assignments,
-  showSwap,
-  openSwapRole,
-  onSwapToggle,
-  onSwapSelect,
-  swapMenuContainerRef,
-  lockedChampionIds,
-  roster,
-  alignRight = false,
+  side, team, score, assignments, showSwap, openSwapRole,
+  onSwapToggle, onSwapSelect, swapMenuContainerRef,
+  lockedChampionIds, roster, currentStep, isUserTurn, alignRight = false,
 }: {
   side: Side;
-  team: {
-    name: string;
-    abbreviation: string;
-    logo: string;
-    slug?: string;
-    roster?: Partial<Record<Role, string>>;
-  };
+  team: { name: string; abbreviation: string; logo: string; slug?: string };
   score: number;
-  bans: string[];
   assignments: Partial<Record<Role, string>>;
   showSwap: boolean;
   openSwapRole: Role | null;
@@ -572,237 +610,353 @@ function SidebarPanel({
   swapMenuContainerRef?: { current: HTMLDivElement | null } | null;
   lockedChampionIds: string[];
   roster?: Partial<Record<Role, string>>;
+  currentStep?: DraftStep | null;
+  isUserTurn?: boolean;
   alignRight?: boolean;
 }) {
-  const orderedBans = alignRight ? [...bans].reverse() : bans;
-  const visibleLockedRows = Math.ceil(lockedChampionIds.length / 5);
-  const visibleLockedSlots = visibleLockedRows * 5;
-  const lockedSlots = Array.from({ length: visibleLockedSlots }).map(
-    (_, index) => lockedChampionIds[index] ?? null
-  );
   const swapButtonRefs = useRef<Partial<Record<Role, HTMLButtonElement | null>>>({});
-  const [swapMenuPosition, setSwapMenuPosition] = useState<{
-    top: number;
-    left?: number;
-    right?: number;
-  } | null>(null);
+  const [swapMenuPosition, setSwapMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
 
   useEffect(() => {
-    if (!openSwapRole) {
-      setSwapMenuPosition(null);
-      return;
-    }
-
-    const updateSwapMenuPosition = () => {
-      const button = swapButtonRefs.current[openSwapRole];
-      if (!button) return;
-
-      const rect = button.getBoundingClientRect();
-      const gap = 8;
-      const menuWidth = 160;
-
+    if (!openSwapRole) { setSwapMenuPosition(null); return; }
+    const update = () => {
+      const btn = swapButtonRefs.current[openSwapRole];
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
       setSwapMenuPosition({
         top: rect.top,
-        ...(alignRight
-          ? { right: Math.max(window.innerWidth - rect.left + gap, gap) }
-          : { left: rect.right + gap }),
+        ...(alignRight ? { right: Math.max(window.innerWidth - rect.left + 8, 8) } : { left: rect.right + 8 }),
       });
     };
-
-    updateSwapMenuPosition();
-
-    window.addEventListener("resize", updateSwapMenuPosition);
-    window.addEventListener("scroll", updateSwapMenuPosition, true);
-
-    return () => {
-      window.removeEventListener("resize", updateSwapMenuPosition);
-      window.removeEventListener("scroll", updateSwapMenuPosition, true);
-    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => { window.removeEventListener("resize", update); window.removeEventListener("scroll", update, true); };
   }, [alignRight, openSwapRole]);
 
+  // Which role slot is currently being filled
+  const currentPickRole = (() => {
+    if (!currentStep || currentStep.action !== "pick" || currentStep.side !== side) return null;
+    return ROLE_ORDER.find((role) => !assignments[role]) ?? null;
+  })();
+
+  const isActiveTeam = currentStep?.side === side;
+
   return (
-    <aside
-      className="sticky top-0 z-30 h-screen w-[250px] shrink-0 self-start overflow-hidden pt-[2px]"
-      style={{
-        background:
-          "linear-gradient(180deg, rgba(5,10,20,0.98) 0%, rgba(5,10,20,0.96) 86%, rgba(5,10,20,0.82) 100%)",
-      }}
-    >
-      <div className="flex h-full flex-col overflow-y-auto overflow-x-visible pb-[10px]">
-        <div className={`flex items-center gap-[16px] ${alignRight ? "justify-end" : ""}`}>
-          {!alignRight && (
-            <div className="label text-[var(--text-primary)]">{team.abbreviation}</div>
-          )}
-          <div className="body-large text-[var(--text-primary)]">{score}</div>
-          {alignRight && (
-            <div className="label text-[var(--text-primary)]">{team.abbreviation}</div>
-          )}
+    <aside style={{
+      width: 240,
+      flexShrink: 0,
+      display: "flex",
+      flexDirection: "column",
+      height: "100%",
+      background: "var(--bg-surface)",
+      borderRight: !alignRight ? "none" : undefined,
+      padding: "12px 10px 10px",
+      overflow: "hidden",
+    }}>
+
+      {/* Team header */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        flexDirection: alignRight ? "row-reverse" : "row",
+        marginBottom: "8px",
+        padding: "0 2px",
+      }}>
+        {team.logo && (
+          <Image src={team.logo} alt={team.name} width={26} height={26} style={{ objectFit: "contain", flexShrink: 0 }} />
+        )}
+        <div style={{ flex: 1 }}>
+          <div
+            className="label"
+            style={{
+              color: isActiveTeam ? "var(--primary)" : "var(--text-highlight)",
+              textAlign: alignRight ? "right" : "left",
+              transition: "color 0.2s",
+            }}
+          >
+            {team.abbreviation}
+          </div>
+          <div
+            className="body-small"
+            style={{ color: "var(--text-muted)", textAlign: alignRight ? "right" : "left", fontSize: "12px" }}
+          >
+            {score} WIN{score !== 1 ? "S" : ""}
+          </div>
         </div>
+      </div>
 
-        <div className="mt-[14px] border-t" style={{ borderColor: "var(--border-divider)" }} />
+      {/* Thin accent line */}
+      <div style={{
+        height: "1px",
+        background: isActiveTeam
+          ? "linear-gradient(" + (alignRight ? "270deg" : "90deg") + ", var(--primary), transparent)"
+          : "var(--divider)",
+        marginBottom: "10px",
+        transition: "background 0.3s",
+      }} />
 
-        <div className={`mt-[10px] grid grid-cols-5 gap-[4px] ${alignRight ? "justify-items-end" : ""}`}>
-          {Array.from({ length: 5 }).map((_, index) => {
-            const champion = orderedBans[index] ? getChampionById(orderedBans[index]) : null;
-            return <MiniSquare key={`${side}-ban-${index}`} champion={champion} size={MINI_SLOT_SIZE} />;
-          })}
-        </div>
+      {/* Pick rows */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "5px", flex: 1, overflow: "hidden" }}>
+        {ROLE_ORDER.map((role) => {
+          const championId = assignments[role];
+          const champion = championId ? getChampionById(championId) : null;
+          const isCurrentSlot = currentPickRole === role;
+          const isSwapOpen = openSwapRole === role;
 
-        <div className="mt-[12px]">
-          <div className="flex flex-col gap-[12px] pb-[10px]">
-            {ROLE_ORDER.map((role) => {
-              const championId = assignments[role];
-              const champion = championId ? getChampionById(championId) : null;
-              const isSwapMenuOpen = openSwapRole === role;
-              const swapTargets = ROLE_ORDER.filter((targetRole) => targetRole !== role);
-
-              return (
-                <div
-                  key={`${side}-${role}`}
-                  className={`relative flex items-start gap-[12px] ${alignRight ? "flex-row-reverse" : ""}`}
-                  ref={isSwapMenuOpen ? swapMenuContainerRef ?? null : null}
+          return (
+            <div
+              key={`${side}-${role}`}
+              ref={isSwapOpen ? (swapMenuContainerRef as React.RefObject<HTMLDivElement> | null) ?? null : null}
+              style={{
+                display: "flex",
+                alignItems: "stretch",
+                flexDirection: alignRight ? "row-reverse" : "row",
+                gap: "5px",
+              }}
+            >
+              {/* Swap button */}
+              {showSwap && champion ? (
+                <button
+                  ref={(node) => { swapButtonRefs.current[role] = node; }}
+                  type="button"
+                  onClick={() => onSwapToggle(role)}
+                  style={{
+                    width: "18px",
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    opacity: isSwapOpen ? 1 : 0.45,
+                    transition: "opacity 0.15s",
+                    padding: 0,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = isSwapOpen ? "1" : "0.45")}
                 >
-                  {showSwap && champion ? (
-                    <div className={`relative shrink-0 ${alignRight ? "order-3" : "order-1"}`}>
-                      <button
-                        ref={(node) => {
-                          swapButtonRefs.current[role] = node;
-                        }}
-                        type="button"
-                        onClick={() => onSwapToggle(role)}
-                        className="flex h-[24px] w-[24px] items-center justify-center"
-                        aria-label={`Open swap menu for ${getRoleLabel(role)}`}
-                      >
-                        <Image
-                          src="/svg/swap.svg"
-                          alt="swap"
-                          width={24}
-                          height={24}
-                          className="block h-[24px] w-[24px] object-contain"
-                        />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="h-[24px] w-[24px] shrink-0" />
-                  )}
+                  <Image src="/svg/swap.svg" alt="swap" width={13} height={13} style={{ objectFit: "contain" }} />
+                </button>
+              ) : (
+                <div style={{ width: "18px", flexShrink: 0 }} />
+              )}
 
-                  <div
-                    className="relative shrink-0 overflow-hidden"
-                    style={{
-                      width: ROLE_CARD_SIZE,
-                      height: ROLE_CARD_SIZE,
-                      background: "rgba(255,255,255,0.2)",
-                      outline: isSwapMenuOpen ? "1px solid var(--primary)" : "none",
-                      outlineOffset: isSwapMenuOpen ? "2px" : "0px",
-                    }}
-                  >
+              {/* Pick card */}
+              <div
+                className={`draft-pick-slot ${alignRight ? "draft-pick-slot-right" : ""} ${isCurrentSlot ? "draft-pick-slot-active" : ""}`}
+                style={{
+                  flex: 1,
+                  height: "64px",
+                  display: "flex",
+                  flexDirection: alignRight ? "row-reverse" : "row",
+                  alignItems: "center",
+                  gap: "8px",
+                  background: "var(--bg-elevated)",
+                  border: `1px solid ${isCurrentSlot ? "var(--primary)" : "var(--divider)"}`,
+                  opacity: champion || isCurrentSlot ? 1 : 0.7,
+                  padding: "0 8px",
+                  overflow: "hidden",
+                }}
+              >
+                {/* Square champion image */}
+                <div style={{
+                  width: "52px",
+                  height: "52px",
+                  flexShrink: 0,
+                  position: "relative",
+                  overflow: "hidden",
+                  borderRadius: "3px",
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-default)",
+                }}>
+                  {champion ? (
                     <Image
-                      src={champion?.image || "/pictures/champion-thumbnail-placeholder.png"}
-                      alt={champion?.name ?? "placeholder"}
+                      src={champion.image || "/pictures/champion-thumbnail-placeholder.png"}
+                      alt={champion.name}
                       fill
-                      sizes={`${ROLE_CARD_SIZE}px`}
-                      className="object-cover"
+                      sizes="52px"
+                      style={{ objectFit: "cover", objectPosition: "50% 15%" }}
                     />
+                  ) : (
+                    <div style={{
+                      width: "100%",
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}>
+                      <Image
+                        src={ROLE_ICONS[role]}
+                        alt={getRoleLabel(role)}
+                        width={18}
+                        height={18}
+                        style={{ objectFit: "contain", opacity: isCurrentSlot ? 0.8 : 0.2 }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Role + name text */}
+                <div style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "2px",
+                  overflow: "hidden",
+                  textAlign: alignRight ? "right" : "left",
+                }}>
+                  {/* Role label */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "4px", flexDirection: alignRight ? "row-reverse" : "row" }}>
+                    <Image src={ROLE_ICONS[role]} alt={getRoleLabel(role)} width={10} height={10} style={{ objectFit: "contain", opacity: 0.5, flexShrink: 0 }} />
+                    <span style={{
+                      fontSize: "8px",
+                      fontFamily: '"Spiegel", sans-serif',
+                      fontWeight: 700,
+                      letterSpacing: "0.12em",
+                      color: "var(--text-muted)",
+                      textTransform: "uppercase",
+                    }}>
+                      {isCurrentSlot && !champion ? "Picking Next" : getRoleLabel(role)}
+                    </span>
                   </div>
 
-                  <div className={`min-w-0 flex-1 ${alignRight ? "items-end text-right" : "items-start text-left"}`}>
-                    <div className={`flex flex-col ${alignRight ? "items-end" : "items-start"}`}>
-                      <div className="label text-[13px] text-[var(--text-primary)]">{getRoleLabel(role)}</div>
-                      <div className="body-small mt-[4px] text-[var(--text-primary)]">
-                        {roster?.[role] ?? "—"}
-                      </div>
-                    </div>
-                  </div>
+                  {/* Player name */}
+                  <span style={{
+                    fontSize: "11px",
+                    fontFamily: '"Spiegel", sans-serif',
+                    fontWeight: 700,
+                    letterSpacing: "0.04em",
+                    color: champion ? "var(--text-primary)" : roster?.[role] ? "var(--text-secondary)" : isCurrentSlot ? "var(--primary)" : "var(--text-muted)",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    textTransform: "uppercase",
+                  }}
+                    className={isCurrentSlot && !champion && !roster?.[role] ? "draft-picking-pulse" : ""}
+                  >
+                    {roster?.[role]
+                      ? roster[role]
+                      : isCurrentSlot
+                        ? "..."
+                        : "—"}
+                  </span>
+
+                  {/* Champion name — shown only after pick */}
+                  {champion && (
+                    <span style={{
+                      fontSize: "9px",
+                      fontFamily: '"Spiegel", sans-serif',
+                      fontWeight: 500,
+                      letterSpacing: "0.03em",
+                      color: "var(--text-muted)",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      textTransform: "uppercase",
+                    }}>
+                      {champion.name}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Locked champions */}
+      {lockedChampionIds.length > 0 && (
+        <div style={{ marginTop: "10px", borderTop: "1px solid var(--divider)", paddingTop: "8px" }}>
+          <div className="label" style={{ color: "var(--text-muted)", fontSize: "9px", marginBottom: "5px", textAlign: alignRight ? "right" : "left" }}>
+            LOCKED
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", justifyContent: alignRight ? "flex-end" : "flex-start" }}>
+            {lockedChampionIds.map((chamId, i) => {
+              const cham = chamId ? getChampionById(chamId) : null;
+              return (
+                <div key={i} style={{
+                  width: MINI_SLOT_SIZE,
+                  height: MINI_SLOT_SIZE,
+                  position: "relative",
+                  overflow: "hidden",
+                  opacity: 0.45,
+                  background: "var(--bg-elevated)",
+                  border: "1px solid var(--border-default)",
+                }}>
+                  {cham && <Image src={cham.image} alt={cham.name} fill sizes={`${MINI_SLOT_SIZE}px`} style={{ objectFit: "cover" }} />}
                 </div>
               );
             })}
           </div>
-
-          {lockedSlots.length > 0 && (
-            <div
-              className="mt-[18px] border-t pt-[10px]"
-              style={{ borderColor: "var(--border-divider)" }}
-            >
-              <div className={`label text-[var(--text-primary)] ${alignRight ? "text-right" : ""}`}>
-                LOCKED CHAMPIONS
-              </div>
-
-              <div className={`mt-[10px] grid grid-cols-5 gap-[4px] ${alignRight ? "justify-items-end" : ""}`}>
-                {lockedSlots.map((championId, index) => {
-                  const champion = championId ? getChampionById(championId) : null;
-                  return (
-                    <MiniSquare
-                      key={`${side}-locked-${index}`}
-                      champion={champion}
-                      size={MINI_SLOT_SIZE}
-                      opacity={champion ? 0.55 : 1}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
-      </div>
+      )}
 
-      {openSwapRole &&
-        swapMenuPosition &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <div
-            ref={swapMenuContainerRef ?? null}
-            className="fixed z-[120] flex w-[160px] flex-col whitespace-nowrap border bg-[var(--bg-elevated)] p-[10px]"
-            style={{
-              top: swapMenuPosition.top,
-              left: swapMenuPosition.left,
-              right: swapMenuPosition.right,
-              borderColor: "var(--primary)",
-              boxShadow: "0 6px 18px rgba(0,0,0,0.45)",
-            }}
-          >
-            {ROLE_ORDER.filter((targetRole) => targetRole !== openSwapRole).map((targetRole) => (
-              <button
-                key={`${side}-${openSwapRole}-${targetRole}`}
-                type="button"
-                onClick={() => onSwapSelect(openSwapRole, targetRole)}
-                className="label flex min-h-[40px] items-center whitespace-nowrap px-[10px] text-left text-[13px] text-[var(--text-primary)] hover:text-[var(--primary)]"
-              >
-                {getSwapLabel(targetRole)}
-              </button>
-            ))}
-          </div>,
-          document.body
-        )}
+      {/* Swap portal */}
+      {openSwapRole && swapMenuPosition && typeof document !== "undefined" && createPortal(
+        <div
+          ref={swapMenuContainerRef ?? null}
+          style={{
+            position: "fixed",
+            zIndex: 120,
+            top: swapMenuPosition.top,
+            left: swapMenuPosition.left,
+            right: swapMenuPosition.right,
+            width: "152px",
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--primary)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.55)",
+            padding: "6px",
+          }}
+        >
+          {ROLE_ORDER.filter((r) => r !== openSwapRole).map((targetRole) => (
+            <button
+              key={`${side}-${openSwapRole}-${targetRole}`}
+              type="button"
+              onClick={() => onSwapSelect(openSwapRole, targetRole)}
+              className="button"
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                textAlign: "left",
+                color: "var(--text-secondary)",
+                fontFamily: '"Spiegel", sans-serif',
+                transition: "color 0.1s, background 0.1s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "var(--primary)"; e.currentTarget.style.background = "var(--bg-hover)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "none"; }}
+            >
+              {getSwapLabel(targetRole)}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
     </aside>
   );
 }
 
+// ─── Champion Grid ─────────────────────────────────────────────────────────────
 function ChampionGrid({
-  champions,
-  selectedChampionId,
-  unavailableChampionIds,
-  isUserTurn,
-  onChampionClick,
+  champions, selectedChampionId, unavailableChampionIds, isUserTurn, onChampionClick,
 }: {
   champions: Champion[];
   selectedChampionId: string | null;
   unavailableChampionIds: Set<string>;
   isUserTurn: boolean;
-  onChampionClick: (championId: string) => void;
+  onChampionClick: (id: string) => void;
 }) {
-  const gridWidth =
-    CHAMPION_GRID_COLUMNS * CHAMPION_CARD_SIZE +
-    (CHAMPION_GRID_COLUMNS - 1) * CHAMPION_CARD_GAP;
-
   return (
-    <div
-      className="grid items-start content-start justify-start"
-      style={{
-        width: gridWidth,
-        gridTemplateColumns: `repeat(${CHAMPION_GRID_COLUMNS}, ${CHAMPION_CARD_SIZE}px)`,
-        gap: CHAMPION_CARD_GAP,
-      }}
-    >
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: `repeat(${CHAMPION_GRID_COLUMNS}, ${CHAMPION_CARD_SIZE}px)`,
+      gap: CHAMPION_CARD_GAP,
+    }}>
       {champions.map((champion) => {
         const isUnavailable = unavailableChampionIds.has(champion.id);
         const isSelected = selectedChampionId === champion.id;
@@ -813,68 +967,71 @@ function ChampionGrid({
             type="button"
             onClick={() => onChampionClick(champion.id)}
             disabled={!isUserTurn || isUnavailable}
-            className="flex flex-col items-center gap-[4px] text-center disabled:cursor-not-allowed"
+            className="draft-champ-btn"
             style={{
               width: CHAMPION_CARD_SIZE,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "3px",
+              background: "none",
+              border: "none",
+              padding: 0,
               filter: isUnavailable ? "grayscale(1)" : "none",
-              opacity: isUnavailable ? 0.45 : 1,
+              opacity: isUnavailable ? 0.3 : 1,
             }}
           >
-            <div
-              className="relative overflow-hidden"
-              style={{
-                width: CHAMPION_CARD_SIZE,
-                height: CHAMPION_CARD_SIZE,
-                outline: isSelected ? "1px solid var(--primary)" : "none",
-                outlineOffset: isSelected ? "2px" : "0px",
-                background: "rgba(255,255,255,0.2)",
-              }}
-            >
+            <div style={{
+              width: CHAMPION_CARD_SIZE,
+              height: CHAMPION_CARD_SIZE,
+              position: "relative",
+              overflow: "hidden",
+              background: "var(--bg-elevated)",
+              outline: isSelected ? "2px solid var(--primary)" : "1px solid var(--border-default)",
+              outlineOffset: isSelected ? "-1px" : "0px",
+              boxShadow: isSelected ? "0 0 12px rgba(16,228,249,0.3)" : "none",
+              transition: "outline 0.12s, box-shadow 0.12s",
+            }}>
               <Image
                 src={champion.image || "/pictures/champion-thumbnail-placeholder.png"}
                 alt={champion.name}
                 fill
                 sizes={`${CHAMPION_CARD_SIZE}px`}
-                className="object-cover"
+                className="draft-champ-img"
+                style={{ objectFit: "cover" }}
               />
+              {isSelected && (
+                <div style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "rgba(16,228,249,0.1)",
+                  pointerEvents: "none",
+                }} />
+              )}
             </div>
-
-            <div className="label w-full text-center leading-[1.05] text-[var(--text-primary)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
-              {champion.name.toUpperCase()}
+            <div
+              className="tooltip"
+              style={{
+                width: CHAMPION_CARD_SIZE,
+                textAlign: "center",
+                color: isSelected ? "var(--primary)" : "var(--text-secondary)",
+                fontSize: "9px",
+                letterSpacing: "0.06em",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                padding: "0 2px",
+                transition: "color 0.12s",
+                fontFamily: '"Spiegel", sans-serif',
+                textTransform: "uppercase",
+                fontWeight: isSelected ? 600 : 400,
+              }}
+            >
+              {champion.name}
             </div>
           </button>
         );
       })}
-    </div>
-  );
-}
-
-function MiniSquare({
-  champion,
-  opacity = 1,
-  size = 40,
-}: {
-  champion: Champion | null;
-  opacity?: number;
-  size?: number;
-}) {
-  return (
-    <div
-      className="relative overflow-hidden"
-      style={{
-        width: size,
-        height: size,
-        opacity,
-        background: "rgba(255,255,255,0.2)",
-      }}
-    >
-      <Image
-        src={champion?.image || "/pictures/champion-thumbnail-placeholder.png"}
-        alt={champion?.name ?? "placeholder"}
-        fill
-        sizes={`${size}px`}
-        className="object-cover"
-      />
     </div>
   );
 }

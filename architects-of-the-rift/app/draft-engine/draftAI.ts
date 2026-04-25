@@ -926,17 +926,48 @@ function scorePickCandidate(
 }
 
 // ─── FIX #2: ban inutil daca rolul e deja acoperit de inamic ─────────────────
-// BUG FIX: accepts roster so flex picks (Anivia mid/support) resolve correctly
-// when another champion (Nautilus) already fills one of the flex roles.
-function isRoleAlreadyCoveredByEnemy(
+// If user already picked a jungler, banning another jungler is COMPLETELY
+// pointless — user won't pick a second jungler. Penalty must be crushing
+// enough to override any metaPriority/comfort bonuses.
+function getRoleCoveredBanPenalty(
   candidate: Champion,
-  enemyPicks: string[],
-  enemyRoster: Partial<Record<Role, string>>
-): boolean {
-  if (!enemyPicks.length) return false;
-  const enemyAssignments = resolveRoleAssignments(enemyPicks, enemyRoster);
+  enemyPicks: string[]
+): number {
+  if (!enemyPicks.length) return 0;
+
+  const enemyAssignments = resolveRoleAssignments(enemyPicks, {});
   const coveredRoles = new Set(Object.keys(enemyAssignments) as Role[]);
-  return candidate.roles.every((role) => coveredRoles.has(role));
+
+  const candidateRoles = candidate.roles;
+  if (candidateRoles.length === 0) return 0;
+
+  let penalty = 0;
+
+  // Part A: Role coverage check
+  const coveredCount = candidateRoles.filter((role) => coveredRoles.has(role)).length;
+  if (coveredCount === candidateRoles.length) {
+    // ALL roles covered → ban is 100% useless, user can't pick this champion
+    penalty = -20;
+  } else if (coveredCount > 0) {
+    // Partial coverage → graduated penalty
+    const coverageRatio = coveredCount / candidateRoles.length;
+    penalty = -coverageRatio * 12;
+  }
+
+  // Part B: Primary role overlap — if ban candidate's main role matches
+  // any enemy pick's main role, user almost certainly won't pick this.
+  // e.g. ban Jarvan (jungle) when user already has Vi (jungle)
+  const candidatePrimaryRole = candidateRoles[0];
+  for (const pickId of enemyPicks) {
+    const pickChamp = getChampionById(pickId);
+    if (!pickChamp || pickChamp.roles.length === 0) continue;
+    if (pickChamp.roles[0] === candidatePrimaryRole) {
+      penalty = Math.min(penalty, -15);
+      break;
+    }
+  }
+
+  return penalty;
 }
 
 // ─── BUG FIX: Don't ban champions that enemy already counters ───────────────
@@ -1213,12 +1244,8 @@ function scoreBanCandidate(
   const userBias = getUserBanTargetBias(candidate, step.side, series);
 
   // FIX #2: penalitate daca rolul candidatului e deja umplut de inamic
-  // BUG FIX: pass enemy roster so flex picks resolve correctly
-  // (e.g. Anivia mid/support resolves to mid when Nautilus is support)
-  const enemyRoster = getTeamRosterFromSources({ teamSlug: enemyTeamSlug, save });
-  const redundantBanPenalty = isRoleAlreadyCoveredByEnemy(candidate, enemyState.picks, enemyRoster)
-    ? -7
-    : 0;
+  // Graduated: all roles covered = -7, partial = proportional, primary role match = -4
+  const redundantBanPenalty = getRoleCoveredBanPenalty(candidate, enemyState.picks);
 
   // BUG FIX: Don't ban champions that enemy picks already counter
   // e.g. don't ban Ryze when user has Anivia (Ryze weakVs Anivia)
