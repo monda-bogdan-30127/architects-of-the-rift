@@ -179,7 +179,10 @@ export type DraftAiConfig = {
   shortlistWindow?: number;
 };
 
-export type DraftSimulationResult = FullMatchSimulationResult;
+export type DraftSimulationResult = FullMatchSimulationResult & {
+  seriesMvpPlayerId: string | null;
+  isSeriesComplete: boolean;
+};
 
 export const ROLE_ORDER: Role[] = ["top", "jungle", "mid", "adc", "support"];
 

@@ -103,7 +103,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   "willer": {
     primaryStyle: "setup",
     primaryDisplayOverride: "Setup",
-    secondaryStyle: "roamer",
+    secondaryStyle: "playmaker",
     tagOverrides: { add: ["Objective", "Systematic", "Pathing"] },
   },
   "ucal": {
@@ -223,7 +223,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   "gideon": {
     primaryStyle: "setup",
     primaryDisplayOverride: "Setup",
-    secondaryStyle: "roamer",
+    secondaryStyle: "playmaker",
     tagOverrides: { add: ["Objective", "Pathing"] },
   },
   "roamer": {
@@ -423,6 +423,12 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     secondaryStyle: "aggressive",
     tagOverrides: { add: ["Lane Dominant", "High Risk", "Volatile"] },
   },
+  "baus": {
+    primaryStyle: "aggressive",
+    primaryDisplayOverride: "Aggressive",
+    secondaryStyle: "playmaker",
+    tagOverrides: { add: ["Volatile", "Selfless", "Coinflip"] }
+  },
   "peanut": {
     primaryStyle: "playmaker",
     primaryDisplayOverride: "Playmaker",
@@ -432,7 +438,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   "clid": {
     primaryStyle: "setup",
     primaryDisplayOverride: "Setup",
-    secondaryStyle: "roamer",
+    secondaryStyle: "playmaker",
     tagOverrides: { add: ["Objective", "Stable"] },
   },
   "doinb": {
@@ -440,6 +446,30 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     primaryDisplayOverride: "Flex",
     secondaryStyle: "playmaker",
     tagOverrides: { add: ["Creative", "Flexible", "Roaming"] },
+  },
+  "rookie": {
+    primaryStyle: "playmaker",
+    primaryDisplayOverride: "Playmaker",
+    secondaryStyle: "carry",
+    tagOverrides: {
+      add: ["Scaling", "Control", "Teamfight"]
+    },
+  },
+  "perkz": {
+    primaryStyle: "playmaker",
+    primaryDisplayOverride: "Playmaker",
+    secondaryStyle: "aggressive",
+    tagOverrides: {
+      add: ["Flexible", "Clutch", "High Variance"]
+    },
+  },
+  "crownie": {
+    primaryStyle: "carry",
+    primaryDisplayOverride: "Carry",
+    secondaryStyle: "scaler",
+    tagOverrides: {
+      add: ["Scaling", "Teamfight", "Stable"]
+    },
   },
   "deft": {
     primaryStyle: "carry",
@@ -452,6 +482,13 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     primaryDisplayOverride: "Utility",
     secondaryStyle: "lane_bully",
     tagOverrides: { add: ["Vision", "Roaming", "Flexible"] },
+  },
+  "rekkles": {
+    primaryStyle: "utility",
+    primaryDisplayOverride: "Utility",
+    tagOverrides: {
+      add: ["Stable", "Vision", "Teamfight"]
+    },
   },
   "ghost": {
     primaryStyle: "utility",
@@ -689,7 +726,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   "boukada": {
     primaryStyle: "setup",
     primaryDisplayOverride: "Setup",
-    secondaryStyle: "roamer",
+    secondaryStyle: "playmaker",
     tagOverrides: { add: ["Objective", "Pathing"] },
   },
   "nuc": {
@@ -1030,7 +1067,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   "heng": {
     primaryStyle: "setup",
     primaryDisplayOverride: "Setup",
-    secondaryStyle: "roamer",
+    secondaryStyle: "playmaker",
     tagOverrides: { add: ["Objective", "Pathing"] },
   },
   "tangyuan": {
@@ -1134,7 +1171,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   "re0": {
     primaryStyle: "setup",
     primaryDisplayOverride: "Setup",
-    secondaryStyle: "roamer",
+    secondaryStyle: "playmaker",
     tagOverrides: { add: ["Objective", "Pathing"] },
   },
   "haichao": {
@@ -1205,7 +1242,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   "junhao": {
     primaryStyle: "setup",
     primaryDisplayOverride: "Setup",
-    secondaryStyle: "roamer",
+    secondaryStyle: "playmaker",
     tagOverrides: { add: ["Objective", "Pathing"] },
   },
   "heru": {
@@ -1239,7 +1276,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   "climber": {
     primaryStyle: "setup",
     primaryDisplayOverride: "Setup",
-    secondaryStyle: "roamer",
+    secondaryStyle: "utility",
     tagOverrides: { add: ["Pathing"] },
   },
   "saber": {
@@ -1453,7 +1490,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   "hambak": {
     primaryStyle: "setup",
     primaryDisplayOverride: "Setup",
-    secondaryStyle: "roamer",
+    secondaryStyle: "playmaker",
     tagOverrides: { add: ["Pathing", "Objective"] },
   },
   "darkwings": {
@@ -1592,7 +1629,7 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   "exyu": {
     primaryStyle: "setup",
     primaryDisplayOverride: "Setup",
-    secondaryStyle: "roamer",
+    secondaryStyle: "playmaker",
     tagOverrides: { add: ["Pathing"] },
   },
   "palafox": {

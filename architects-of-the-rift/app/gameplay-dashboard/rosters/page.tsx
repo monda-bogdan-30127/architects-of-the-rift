@@ -17,6 +17,8 @@ import {
 import {
   readPlayerHistoryStore,
 } from "@/app/draft-engine/playerHistoryStorage";
+import { getPlayerAverageKda } from "@/app/draft-engine/kdaStorage";
+import { getPlayerMvpStats } from "@/app/draft-engine/mvpStorage";
 import type {
   PlayerHistoryStore,
   PlayerHistoryStatLine,
@@ -124,6 +126,27 @@ function buildPlayerWinRateMap(store: PlayerSeasonStore) {
   return map;
 }
 
+function buildPlayerKDAMap(playerIds: string[]) {
+  const map = new Map<string, number>();
+  for (const id of playerIds) {
+    const kda = getPlayerAverageKda(id);
+    if (typeof kda === "number") map.set(id, kda);
+  }
+  return map;
+}
+
+type MvpEntry = { gameMvps: number; seriesMvps: number };
+
+function buildPlayerMVPCountMap(playerIds: string[]) {
+  const map = new Map<string, MvpEntry>();
+  for (const id of playerIds) {
+    const stats = getPlayerMvpStats(id);
+    if (stats.gameMvps > 0 || stats.seriesMvps > 0) map.set(id, stats);
+  }
+  return map;
+}
+
+
 function getPlayerChampionPerf(
   history: PlayerHistoryStore,
   playerId: string
@@ -146,6 +169,12 @@ function getPlayerChampionPerf(
     });
   }
   return list;
+}
+
+function pickMostPlayed(perfs: ChampionPerf[], limit = 6) {
+  return [...perfs]
+    .sort((a, b) => b.games - a.games)
+    .slice(0, limit);
 }
 
 function pickBestPerformance(perfs: ChampionPerf[]) {
@@ -313,12 +342,16 @@ function PlayerCard({
   role,
   seasonAverageMap,
   winRateMap,
+  kdaMap,
+  mvpMap,
   history,
 }: {
   player: Player | null;
   role: Role;
   seasonAverageMap: Map<string, number>;
   winRateMap: Map<string, { wins: number; games: number; winRate: number }>;
+  kdaMap: Map<string, number>;
+  mvpMap: Map<string, MvpEntry>;
   history: PlayerHistoryStore;
 }) {
   const perfs = useMemo(
@@ -328,11 +361,19 @@ function PlayerCard({
 
   const bestPerf = useMemo(() => pickBestPerformance(perfs), [perfs]);
   const worstPerf = useMemo(() => pickWorstPerformance(perfs), [perfs]);
+  const mostPlayed = useMemo(() => pickMostPlayed(perfs, 6), [perfs]);
 
   const winRateEntry = player ? winRateMap.get(player.id) : undefined;
   const winRateText = winRateEntry && winRateEntry.games > 0
     ? `${Math.round(winRateEntry.winRate * 100)}%`
     : "—";
+
+  const kdaRaw = player ? kdaMap.get(player.id) : undefined;
+  const kdaText = typeof kdaRaw === "number" ? kdaRaw.toFixed(1) : "—";
+
+  const mvpEntry      = player ? mvpMap.get(player.id) : undefined;
+  const gameMvpCount   = mvpEntry?.gameMvps   ?? 0;
+  const seriesMvpCount = mvpEntry?.seriesMvps ?? 0;
 
   const playstylePrimary = player?.playstyleIdentity?.displayPrimary?.toUpperCase() ?? "";
   const playstyleSecondary = player?.playstyleIdentity?.displaySecondary?.toUpperCase() ?? "";
@@ -444,7 +485,19 @@ function PlayerCard({
               marginTop: 4,
             }}
           >
-            AVG. : {getAverageStat(player, seasonAverageMap)}
+            Score : {getAverageStat(player, seasonAverageMap)}{"   "}
+            KDA : {kdaText}
+          </p>
+
+          <p
+            className="text-[var(--text-secondary)]"
+            style={{
+              fontSize: 14,
+              lineHeight: "20px",
+              fontWeight: 500,
+            }}
+          >
+            Game MVPs : {gameMvpCount}{"   "}
           </p>
         </div>
 
@@ -500,14 +553,43 @@ function PlayerCard({
             <PerformanceList title="WORST PERFORMANCE CHAMPIONS" items={worstPerf} />
           </div>
 
+          {/* Most played champions — 2 columns of 3 */}
+          <div className="flex flex-col gap-[6px]">
+            <p
+              className="uppercase text-[var(--text-primary)]"
+              style={{ fontSize: 13, lineHeight: "16px", fontWeight: 600, letterSpacing: "0.04em" }}
+            >
+              MOST PLAYED CHAMPIONS
+            </p>
+            {mostPlayed.length === 0 ? (
+              <p className="text-[var(--text-secondary)]" style={{ fontSize: 13, lineHeight: "20px" }}>—</p>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gridTemplateRows: `repeat(${Math.ceil(mostPlayed.length / 2)}, auto)`,
+                  gridAutoFlow: "column",
+                  gap: "2px 32px",
+                }}
+              >
+                {mostPlayed.map((item, index) => (
+                  <p
+                    key={item.championId}
+                    className="text-[var(--text-secondary)]"
+                    style={{ fontSize: 13, lineHeight: "20px", fontWeight: 500 }}
+                  >
+                    {index + 1}. {item.championName.toUpperCase()} - {Math.round(item.winRate * 100)}% - {item.games}{" "}
+                    {item.games === 1 ? "GAME" : "GAMES"}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+
           <p
             className="uppercase text-[var(--text-secondary)]"
-            style={{
-              fontSize: 13,
-              lineHeight: "20px",
-              fontWeight: 600,
-              letterSpacing: "0.04em",
-            }}
+            style={{ fontSize: 13, lineHeight: "20px", fontWeight: 600, letterSpacing: "0.04em" }}
           >
             WIN RATE: {winRateText}
           </p>
@@ -616,6 +698,17 @@ export default function RostersPage() {
   const winRateMap = useMemo(
     () => buildPlayerWinRateMap(seasonStore),
     [seasonStore]
+  );
+  const kdaMap = useMemo(
+    () => buildPlayerKDAMap(players.map((p) => p.id)),
+    // re-read on save change so newly simulated games show up
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [save]
+  );
+  const mvpMap = useMemo(
+    () => buildPlayerMVPCountMap(players.map((p) => p.id)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [save]
   );
 
   const groupedTeamPlayers = useMemo<TeamRosterGroup[]>(() => {
@@ -774,6 +867,8 @@ export default function RostersPage() {
                     role={selectedRole}
                     seasonAverageMap={seasonAverageMap}
                     winRateMap={winRateMap}
+                    kdaMap={kdaMap}
+                    mvpMap={mvpMap}
                     history={historyStore}
                   />
 

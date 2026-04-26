@@ -8,6 +8,8 @@ type NavItem = {
   icon: string;
 };
 
+const clickableClass = "cursor-pointer";
+
 const navItems: NavItem[] = [
   {
     label: "HOME",
@@ -57,13 +59,19 @@ export default function DashboardSidebar() {
       style={{ borderColor: "var(--border-strong)" }}
     >
       <div className="flex h-full flex-col items-start gap-[64px] p-[12px]">
-        <div className="flex h-[64px] w-[64px] items-center justify-center">
+        <button
+          type="button"
+          onClick={() => router.push("/")}
+          className={`flex h-[64px] w-[64px] items-center justify-center ${clickableClass}`}
+          style={{ cursor: "pointer" }}
+          aria-label="Go to start page"
+        >
           <img
             src="/svg/lol-esport-logo.svg"
             alt="Dashboard logo"
             className="h-[64px] w-[64px] object-contain"
           />
-        </div>
+        </button>
 
         <nav className="flex w-full flex-col items-start gap-[8px]">
           {navItems.map((item) => {
@@ -74,13 +82,14 @@ export default function DashboardSidebar() {
                 key={item.href}
                 type="button"
                 onClick={() => router.push(item.href)}
-                className="
+                className={`
                   flex h-[64px] w-[64px] flex-col items-center justify-center gap-[4px]
-                  rounded-[8px] border transition-colors duration-150
-                "
+                  rounded-[8px] border transition-colors duration-150 ${clickableClass}
+                `}
                 style={{
                   backgroundColor: active ? "var(--bg-elevated)" : "transparent",
                   borderColor: active ? "var(--text-highlight)" : "transparent",
+                  cursor: "pointer",
                 }}
                 onMouseEnter={(e) => {
                   if (!active) {

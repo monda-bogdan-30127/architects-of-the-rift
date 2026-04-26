@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
 import { champions } from "@/app/data/champions";
+import { players } from "@/app/data/players";
 import { useDraftEngine } from "@/app/hooks/useDraftEngine";
 import { resolveFinishedDraftAssignments } from "@/app/draft-engine/draftEngine";
 import MatchResultsDialog from "@/components/ui/MatchResultsDialog";
@@ -36,6 +37,10 @@ const ROLE_ICONS: Record<Role, string> = {
 
 function getChampionById(id: string) {
   return champions.find((c) => c.id === id) ?? null;
+}
+function getPlayerNameById(id: string | null | undefined): string | undefined {
+  if (!id) return undefined;
+  return players.find((p) => p.id === id)?.name;
 }
 function championMatchesSearch(champion: Champion, query: string) {
   if (!query.trim()) return true;
@@ -186,6 +191,14 @@ const DRAFT_STYLES = `
     50% { opacity: 0.4; }
   }
   .draft-picking-pulse { animation: draft-pulse 1.4s ease-in-out infinite; }
+
+  @keyframes draft-side-glow {
+    0%, 100% { box-shadow: inset 0 0 20px rgba(16,228,249,0.04); }
+    50%      { box-shadow: inset 0 0 30px rgba(16,228,249,0.10); }
+  }
+  .draft-active-side {
+    animation: draft-side-glow 2.4s ease-in-out infinite;
+  }
 `;
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -302,7 +315,7 @@ export default function DraftPage() {
 
   if (!series || !currentGame || !blueTeam || !redTeam) {
     return (
-      <main style={{ minHeight: "100vh", background: "var(--bg-main)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <main style={{ minHeight: "100dvh", background: "var(--bg-main)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <style>{DRAFT_STYLES}</style>
         <p className="label" style={{ color: "var(--text-muted)" }}>LOADING DRAFT...</p>
       </main>
@@ -328,7 +341,7 @@ export default function DraftPage() {
     : "Draft Complete";
 
   return (
-    <main style={{ minHeight: "100vh", height: "100vh", background: "var(--bg-main)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <main style={{ minHeight: "100dvh", height: "100dvh", background: "var(--bg-main)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <style>{DRAFT_STYLES}</style>
 
       {/* ── TOP HEADER — bans + title ── */}
@@ -551,6 +564,15 @@ export default function DraftPage() {
         simulation={resultsSimulation}
         onPrimaryAction={() => { setResultsSimulation(null); if (resultsSeriesFinished) router.push("/gameplay-dashboard"); }}
         primaryLabel={resultsSeriesFinished ? "BACK TO DASHBOARD" : "GO NEXT GAME"}
+        isSeriesComplete={resultsSeriesFinished}
+        seriesMvpName={
+          resultsSeriesFinished
+            ? getPlayerNameById(
+                (resultsSimulation as DraftSimulationResult & { seriesMvpPlayerId?: string | null })
+                  ?.seriesMvpPlayerId ?? null
+              )
+            : undefined
+        }
       />
     </main>
   );
@@ -643,7 +665,9 @@ function SidebarPanel({
   const isActiveTeam = currentStep?.side === side;
 
   return (
-    <aside style={{
+    <aside
+      className={isActiveTeam ? "draft-active-side" : ""}
+      style={{
       width: 240,
       flexShrink: 0,
       display: "flex",
@@ -653,6 +677,7 @@ function SidebarPanel({
       borderRight: !alignRight ? "none" : undefined,
       padding: "12px 10px 10px",
       overflow: "hidden",
+      transition: "box-shadow 0.4s ease",
     }}>
 
       {/* Team header */}
@@ -746,7 +771,7 @@ function SidebarPanel({
 
               {/* Pick card */}
               <div
-                className={`draft-pick-slot ${alignRight ? "draft-pick-slot-right" : ""} ${isCurrentSlot ? "draft-pick-slot-active" : ""}`}
+                className={`draft-pick-slot ${alignRight ? "draft-pick-slot-right" : ""}`}
                 style={{
                   flex: 1,
                   height: "64px",
@@ -755,8 +780,8 @@ function SidebarPanel({
                   alignItems: "center",
                   gap: "8px",
                   background: "var(--bg-elevated)",
-                  border: `1px solid ${isCurrentSlot ? "var(--primary)" : "var(--divider)"}`,
-                  opacity: champion || isCurrentSlot ? 1 : 0.7,
+                  border: `1px solid ${champion ? "var(--border-default)" : "var(--divider)"}`,
+                  opacity: champion ? 1 : 0.7,
                   padding: "0 8px",
                   overflow: "hidden",
                 }}
@@ -793,7 +818,7 @@ function SidebarPanel({
                         alt={getRoleLabel(role)}
                         width={18}
                         height={18}
-                        style={{ objectFit: "contain", opacity: isCurrentSlot ? 0.8 : 0.2 }}
+                        style={{ objectFit: "contain", opacity: 0.2 }}
                       />
                     </div>
                   )}
@@ -819,7 +844,7 @@ function SidebarPanel({
                       color: "var(--text-muted)",
                       textTransform: "uppercase",
                     }}>
-                      {isCurrentSlot && !champion ? "Picking Next" : getRoleLabel(role)}
+                      {getRoleLabel(role)}
                     </span>
                   </div>
 
@@ -829,19 +854,13 @@ function SidebarPanel({
                     fontFamily: '"Spiegel", sans-serif',
                     fontWeight: 700,
                     letterSpacing: "0.04em",
-                    color: champion ? "var(--text-primary)" : roster?.[role] ? "var(--text-secondary)" : isCurrentSlot ? "var(--primary)" : "var(--text-muted)",
+                    color: champion ? "var(--text-primary)" : roster?.[role] ? "var(--text-secondary)" : "var(--text-muted)",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     textTransform: "uppercase",
-                  }}
-                    className={isCurrentSlot && !champion && !roster?.[role] ? "draft-picking-pulse" : ""}
-                  >
-                    {roster?.[role]
-                      ? roster[role]
-                      : isCurrentSlot
-                        ? "..."
-                        : "—"}
+                  }}>
+                    {roster?.[role] ? roster[role] : "—"}
                   </span>
 
                   {/* Champion name — shown only after pick */}

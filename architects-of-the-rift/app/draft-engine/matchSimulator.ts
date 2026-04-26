@@ -65,6 +65,7 @@ import {
 } from "./advancedDraftReading";
 import { generatePlayerKDAs, generateGameLength } from "./kdaGenerator";
 import { recordGameKdas } from "./kdaStorage";
+import { recordPlayerGameMvp, trackSeriesGame } from "./mvpStorage";
 
 const teamsBySlug = new Map(teams.map((team) => [team.slug, team]));
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -541,9 +542,10 @@ function buildPlayerScores(args: {
       //       10.0 reserved ONLY for perfect storm (carry event + lucky RNG + dominant win)
 
       // Per-player variance — each player rolls own day
+      // SCORE FIX: reduced from 1.3 to 0.8 — RNG shouldn't overpower win/loss
       const personalRng = seededNoise(
         `${args.seriesId}:g${args.gameNumber}:${role}:${entry.side}:${entry.playerId}:personal`,
-        1.3 * personality.volatilityRngScale
+        0.8 * personality.volatilityRngScale
       );
 
       // Win dominance scaling — close wins ≠ stomps
@@ -641,7 +643,9 @@ function buildPlayerScores(args: {
       const macroMistakePenalty = macroMistake.occurred ? -macroMistake.severity : 0;
 
       // UPGRADE 12: Champion mastery bonus (up to +1.0 for deep signature)
-      const masteryBonus = getChampionMasteryBonus(entry.playerId, entry.championId);
+      // SCORE FIX: halved on losing side — mastery doesn't save a lost game
+      const rawMastery = getChampionMasteryBonus(entry.playerId, entry.championId);
+      const masteryBonus = entry.side === args.winnerSide ? rawMastery : rawMastery * 0.4;
 
       // BASE LOWERED: 4.2 (was 4.6)
       const rawScore =
@@ -668,22 +672,33 @@ function buildPlayerScores(args: {
         masteryBonus +
         rng;
 
-      // ─── CRITICAL FIX: Soft cap above 9.0 ──────────────────────────
-      // Without compression, rawScore values of 10.2, 10.5, 11.0 all become
-      // exactly 10.0 after clamp → that's why everyone scored 10.0.
-      // With compression, rawScore 10.5 becomes ~9.4, 11.5 becomes ~9.6.
-      // 10.0 is now reserved only for truly exceptional games.
+      // ─── SCORE FIX: Separate compression for winners and losers ──────
+      // Winners: compress above 8.5 (normal) or 9.0 (carry event)
+      // Losers: compress above 7.5 — a 9.0 on losing team should be very rare
+      const isWinner = entry.side === args.winnerSide;
       let finalScore = rawScore;
-      if (rawScore > 9.0 && !isCarryEvent) {
-        // No carry event: heavy compression above 9.0
-        const excess = rawScore - 9.0;
-        finalScore = 9.0 + Math.log(1 + excess) * 0.3;
-      } else if (rawScore > 9.3 && isCarryEvent) {
-        // With carry event: compression above 9.3 (hard carries can still hit 9.5+)
-        const excess = rawScore - 9.3;
-        finalScore = 9.3 + Math.log(1 + excess) * 0.45;
-      } else if (rawScore < 2.5) {
-        // Symmetric floor compression
+
+      if (isWinner) {
+        if (rawScore > 8.5 && !isCarryEvent) {
+          const excess = rawScore - 8.5;
+          finalScore = 8.5 + Math.log(1 + excess) * 0.50;
+        } else if (rawScore > 9.0 && isCarryEvent) {
+          const excess = rawScore - 9.0;
+          finalScore = 9.0 + Math.log(1 + excess) * 0.4;
+        }
+      } else {
+        // Losers: aggressive compression above 7.5
+        if (rawScore > 7.5 && !isCarryEvent) {
+          const excess = rawScore - 7.5;
+          finalScore = 7.5 + Math.log(1 + excess) * 0.45;
+        } else if (rawScore > 8.0 && isCarryEvent) {
+          const excess = rawScore - 8.0;
+          finalScore = 8.0 + Math.log(1 + excess) * 0.35;
+        }
+      }
+
+      // Floor compression (same for both)
+      if (rawScore < 2.5) {
         const deficit = 2.5 - rawScore;
         finalScore = 2.5 - Math.log(1 + deficit) * 0.6;
       }
@@ -1131,6 +1146,27 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     }))
   );
 
+  // ── MVP tracking ──────────────────────────────────────────────────────────
+  // Game MVP — increment for the top-scoring player of this game.
+  if (mvp?.playerId) {
+    recordPlayerGameMvp(mvp.playerId);
+  }
+
+  // Series MVP — accumulate this game's summary; if the series is now decided,
+  // the tracker will compute + record the Series MVP and clear progress.
+  const winsToClinch = Math.ceil(input.series.bo / 2);
+  const seriesComplete =
+    seriesScore.blueWins >= winsToClinch || seriesScore.redWins >= winsToClinch;
+
+  const seriesMvpPlayerId = trackSeriesGame(
+    input.series.seriesId,
+    {
+      mvpPlayerId: mvp?.playerId ?? null,
+      playerScores: playerScores.map((p) => ({ playerId: p.playerId, score: p.score })),
+    },
+    seriesComplete,
+  );
+
   return {
     winnerSide: finalWinnerSide,
     blueTeamSlug: input.series.blueTeamSlug,
@@ -1153,6 +1189,8 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     lane,
     playerScores,
     mvpPlayerId: mvp?.playerId ?? null,
+    seriesMvpPlayerId,
+    isSeriesComplete: seriesComplete,
     gameLength,
   };
 }

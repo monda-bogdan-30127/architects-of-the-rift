@@ -21,13 +21,12 @@ export const BAD_SYNERGIES: BadSynergyEntry[] = [
   // Ezreal + Lulu: both defensive, no engage, no win condition in teamfights
   { championIds: ["ezreal", "lulu"], score: 3.5 },
   // Ezreal + Soraka: same problem, too passive, no lane presence
-  { championIds: ["ezreal", "soraka"], score: 3.0 },
   // Ezreal + Yuumi: double disengage, zero lane pressure
-  { championIds: ["ezreal", "yuumi"], score: 4.0 },
   { championIds: ["seraphine", "yunara"], score: 3.0 },
 
   // Jhin + Braum: Jhin kites with slows, Braum wants melee range — conflicting ranges
   { championIds: ["jhin", "braum"], score: 2.5 },
+  { championIds: ["ziggs", "lulu"], score: 3.0 },
   // Jhin + Lulu: Jhin is a carry, Lulu scales with carries — but Jhin doesn't want shields at range
   { championIds: ["jhin", "lulu"], score: 2.0 },
 

@@ -1358,7 +1358,7 @@ const baseChampions: Champion[] = [
       { championId: "ezreal", score: 4 },
       { championId: "caitlyn", score: 3 },
       { championId: "skarner", score: 3 },
-      { championId: "tristana", score: 3 },
+      { championId: "sivir", score: 3 },
       { championId: "patheon", score: 3 },
       { championId: "wukong", score: 3 },
       { championId: "taliyah", score: 3 },
@@ -2182,7 +2182,7 @@ const baseChampions: Champion[] = [
       { championId: "soraka", score: 3 },
       { championId: "braum", score: 3 },
       { championId: "rell", score: 3 },
-      { championId: "neeko", score: 3 },
+      { championId: "neeko", score: 2 },
     ],
 
     weakVs: [
@@ -10154,7 +10154,7 @@ const baseChampions: Champion[] = [
     },
   }),
 
-  
+
   createChampion({
     id: "fiddlesticks",
     offers: [
