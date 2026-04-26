@@ -1,10 +1,12 @@
 import { readPlayerSeasonStore } from "./playerSeasonStorage";
 import { players } from "@/app/data/players";
+import { getPlayerGameMvpCount } from "./mvpStorage";
+import { getPlayerAverageKda } from "./kdaStorage";
 
-type AwardEntry = {
+export type AwardEntry = {
   playerId: string;
   name: string;
-  team: string;
+  team: string;       // team slug (kept for backwards compat with page.tsx)
   role: string;
   avgScore: number;
   last5: number;
@@ -12,9 +14,22 @@ type AwardEntry = {
   games: number;
   record: string;
   awardScore: number;
+  // ── NEW fields exposed for the awards UI ────────────────────────────────
+  gameMvps: number;
+  kda: number;
 };
 
 const MIN_GAMES = 4;
+
+// ── Weights for the new award score ────────────────────────────────────────
+//   30% team win rate
+//   30% avg score
+//   20% Game MVPs
+//   20% KDA ratio
+const W_WINRATE = 0.30;
+const W_SCORE   = 0.30;
+const W_MVPS    = 0.20;
+const W_KDA     = 0.20;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -23,6 +38,16 @@ function clamp(value: number, min: number, max: number) {
 function average(values: number[]) {
   if (values.length === 0) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+/**
+ * Normalize an array of values to 0..1 by dividing by the pool max.
+ * If max is 0 (no data), every entry maps to 0.
+ */
+function normalizeAgainstMax(values: number[]): number[] {
+  const max = values.reduce((m, v) => (v > m ? v : m), 0);
+  if (max <= 0) return values.map(() => 0);
+  return values.map((v) => clamp(v / max, 0, 1));
 }
 
 function buildEntries(role?: string): AwardEntry[] {
@@ -38,7 +63,23 @@ function buildEntries(role?: string): AwardEntry[] {
     grouped.set(log.playerId, list);
   }
 
-  const entries: AwardEntry[] = [];
+  // ── First pass: collect raw per-player metrics ────────────────────────────
+  type RawEntry = {
+    playerId: string;
+    name: string;
+    team: string;
+    role: string;
+    avgScore: number;
+    last5: number;
+    winRate: number;       // 0..1
+    games: number;
+    wins: number;
+    losses: number;
+    gameMvps: number;
+    kda: number;
+  };
+
+  const raw: RawEntry[] = [];
 
   for (const [playerId, playerLogs] of grouped.entries()) {
     if (playerLogs.length < MIN_GAMES) continue;
@@ -46,46 +87,76 @@ function buildEntries(role?: string): AwardEntry[] {
     const player = players.find((p) => p.id === playerId);
     if (!player) continue;
 
-    const team = playerLogs[playerLogs.length - 1]?.teamSlug ?? player.teamId;
-    const roleValue = playerLogs[playerLogs.length - 1]?.role ?? player.role;
-    const wins = playerLogs.filter((log) => log.result === "win").length;
-    const losses = playerLogs.length - wins;
-    const scores = playerLogs.map((log) => log.score);
-    const recentScores = playerLogs.slice(-5).map((log) => log.score);
+    const team       = playerLogs[playerLogs.length - 1]?.teamSlug ?? player.teamId;
+    const roleValue  = playerLogs[playerLogs.length - 1]?.role     ?? player.role;
+    const wins       = playerLogs.filter((log) => log.result === "win").length;
+    const losses     = playerLogs.length - wins;
+    const scores     = playerLogs.map((log) => log.score);
+    const recent     = playerLogs.slice(-5).map((log) => log.score);
 
-    const avgScore = average(scores);
-    const last5 = average(recentScores);
-    const winRate = wins / Math.max(1, playerLogs.length);
+    const avgScore   = average(scores);
+    const last5      = average(recent);
+    const winRate    = wins / Math.max(1, playerLogs.length);
+    const gameMvps   = getPlayerGameMvpCount(playerId);
+    const kda        = getPlayerAverageKda(playerId) ?? 0;
 
-    const recencyBonus = clamp((last5 - avgScore) * 0.35, -0.35, 0.45);
-    const sampleBonus = clamp(Math.log2(playerLogs.length + 1) * 0.15, 0, 0.8);
-    const awardScore =
-      avgScore * 0.64 +
-      last5 * 0.18 +
-      winRate * 10 * 0.18 +
-      recencyBonus +
-      sampleBonus;
-
-    entries.push({
+    raw.push({
       playerId,
       name: player.name,
       team,
       role: roleValue,
-      avgScore: Number(avgScore.toFixed(2)),
-      last5: Number(last5.toFixed(2)),
-      winRate: Number((winRate * 100).toFixed(1)),
+      avgScore,
+      last5,
+      winRate,
       games: playerLogs.length,
-      record: `${wins}-${losses}`,
-      awardScore: Number(awardScore.toFixed(3)),
+      wins,
+      losses,
+      gameMvps,
+      kda,
     });
   }
+
+  if (raw.length === 0) return [];
+
+  // ── Second pass: normalize each metric against the pool max ──────────────
+  const winRates = normalizeAgainstMax(raw.map((e) => e.winRate));
+  const scores   = normalizeAgainstMax(raw.map((e) => e.avgScore));
+  const mvps     = normalizeAgainstMax(raw.map((e) => e.gameMvps));
+  const kdas     = normalizeAgainstMax(raw.map((e) => e.kda));
+
+  // ── Third pass: produce final entries with composite award score ─────────
+  const entries: AwardEntry[] = raw.map((e, i) => {
+    const composite =
+      W_WINRATE * winRates[i] +
+      W_SCORE   * scores[i] +
+      W_MVPS    * mvps[i] +
+      W_KDA     * kdas[i];
+
+    // Tiny sample bonus to reward sustained presence (max +0.05)
+    const sampleBonus = clamp(Math.log2(e.games + 1) * 0.012, 0, 0.05);
+
+    return {
+      playerId:   e.playerId,
+      name:       e.name,
+      team:       e.team,
+      role:       e.role,
+      avgScore:   Number(e.avgScore.toFixed(2)),
+      last5:      Number(e.last5.toFixed(2)),
+      winRate:    Number((e.winRate * 100).toFixed(1)),
+      games:      e.games,
+      record:     `${e.wins}-${e.losses}`,
+      gameMvps:   e.gameMvps,
+      kda:        Number(e.kda.toFixed(2)),
+      awardScore: Number((composite + sampleBonus).toFixed(4)),
+    };
+  });
 
   return entries.sort((a, b) => b.awardScore - a.awardScore);
 }
 
-export const getMvpRace = () => buildEntries().slice(0, 3);
-export const getBestTop = () => buildEntries("top").slice(0, 3);
-export const getBestJungle = () => buildEntries("jungle").slice(0, 3);
-export const getBestMid = () => buildEntries("mid").slice(0, 3);
-export const getBestAdc = () => buildEntries("adc").slice(0, 3);
+export const getMvpRace     = () => buildEntries().slice(0, 3);
+export const getBestTop     = () => buildEntries("top").slice(0, 3);
+export const getBestJungle  = () => buildEntries("jungle").slice(0, 3);
+export const getBestMid     = () => buildEntries("mid").slice(0, 3);
+export const getBestAdc     = () => buildEntries("adc").slice(0, 3);
 export const getBestSupport = () => buildEntries("support").slice(0, 3);
