@@ -35,6 +35,7 @@ export const BAD_SYNERGIES: BadSynergyEntry[] = [
 
   // Zeri + Rell: no shielding, Zeri wants enchanter shell
   { championIds: ["zeri", "rell"], score: 2.5 },
+  { championIds: ["kalista", "nami"], score: 2.5 },
 
   // Vayne + Pyke: Pyke roams, Vayne needs lane farm
   { championIds: ["vayne", "pyke"], score: 3.5 },
