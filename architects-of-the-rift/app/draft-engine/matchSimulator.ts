@@ -385,8 +385,8 @@ function buildTeamPhaseScores(args: {
   );
 
   const categoryTotal = clamp(
-    args.draft * 0.19 +
-    args.playerPower * 0.12 +
+    args.draft * 0.22 +              // REBALANCE: was 0.19 — comp matters more
+    args.playerPower * 0.14 +        // REBALANCE: was 0.12 — talent matters more
     args.assignment * 0.08 +
     args.lane * 0.10 * weights.lane +
     args.objectives * 0.08 * weights.objectives +
@@ -530,7 +530,7 @@ function buildPlayerScores(args: {
       const earlyAlign = getPhaseIdentityAlignment(entry.playerId, entry.championId, role, "early");
       const midAlign = getPhaseIdentityAlignment(entry.playerId, entry.championId, role, "mid");
       const lateAlign = getPhaseIdentityAlignment(entry.playerId, entry.championId, role, "late");
-      const phaseAlignMod = (earlyAlign * 0.3 + midAlign * 0.35 + lateAlign * 0.35) * 0.12;
+      const phaseAlignMod = (earlyAlign * 0.3 + midAlign * 0.35 + lateAlign * 0.35) * 0.15;
       const starPower = computeStarPower(entry.playerId);
       const champProfile = getChampionRoleProfile(getChampionById(entry.championId), role);
       const champTags = new Set(champProfile?.tags ?? []);
@@ -542,10 +542,10 @@ function buildPlayerScores(args: {
       //       10.0 reserved ONLY for perfect storm (carry event + lucky RNG + dominant win)
 
       // Per-player variance — each player rolls own day
-      // SCORE FIX: reduced from 1.3 to 0.8 — RNG shouldn't overpower win/loss
+      // REBALANCE: reduced from 0.8 to 0.55 for 25% RNG target
       const personalRng = seededNoise(
         `${args.seriesId}:g${args.gameNumber}:${role}:${entry.side}:${entry.playerId}:personal`,
-        0.8 * personality.volatilityRngScale
+        0.55 * personality.volatilityRngScale
       );
 
       // Win dominance scaling — close wins ≠ stomps
@@ -555,24 +555,26 @@ function buildPlayerScores(args: {
       // Close games: 50% swing. Stomps: 115% swing.
       const winModifier = baseWinSwing * (0.5 + dominance * 0.65);
 
-      // Standard modifiers — further reduced
-      const laneModifier = (entry.laneScore - 5) * 0.16;
-      const draftModifier = (entry.draftScore - 5) * 0.09;
-      const fitModifier = (fit - 5) * 0.12;
-      const executionModifier = (execution - 5) * 0.08;
-      const clutchModifier = (clutch - 5) * 0.06;
-      const laneSkillModifier = (laning - 5) * 0.06;
-      const macroModifier = (macro - 5) * 0.05;
-      const teamfightModifier = (teamfight - 5) * 0.06;
-      const consistencyModifier = (consistency - 5) * 0.04;
-      const archetypeModifier = (archetypeFit - 5) * 0.06;
+      // REBALANCE: 30% comp / 45% talent / 25% RNG
+      // Standard modifiers — comp/draft boosted, talent boosted, RNG reduced
+      const laneModifier = (entry.laneScore - 5) * 0.18;          // mix of talent+draft (was 0.16)
+      const draftModifier = (entry.draftScore - 5) * 0.13;        // pure comp (was 0.09)
+      const fitModifier = (fit - 5) * 0.16;                       // comp×talent (was 0.12)
+      const executionModifier = (execution - 5) * 0.10;           // talent (was 0.08)
+      const clutchModifier = (clutch - 5) * 0.07;                 // talent (was 0.06)
+      const laneSkillModifier = (laning - 5) * 0.08;              // talent (was 0.06)
+      const macroModifier = (macro - 5) * 0.07;                   // talent (was 0.05)
+      const teamfightModifier = (teamfight - 5) * 0.08;           // talent (was 0.06)
+      const consistencyModifier = (consistency - 5) * 0.06;       // talent (was 0.04)
+      const archetypeModifier = (archetypeFit - 5) * 0.07;        // comp×talent (was 0.06)
       const closeGameModifier = args.closeness * (clutch - 5) * 0.06 * personality.composureClutchScale;
-      const starModifier = (starPower - 5) * 0.10;
+      const starModifier = (starPower - 5) * 0.12;                // talent (was 0.10)
 
       // Champion RNG — small, most variance is in personalRng
+      // REBALANCE: reduced from 0.30 to 0.18
       const rng = seededNoise(
         `${args.seriesId}:g${args.gameNumber}:${role}:${entry.side}:${entry.playerId}:${entry.championId}`,
-        0.30 * personality.volatilityRngScale
+        0.18 * personality.volatilityRngScale
       );
 
       const impact = clamp(
@@ -619,12 +621,12 @@ function buildPlayerScores(args: {
       const isThrowEvent = mistakeRisk >= 6.5 && personalRng < -0.55;
 
       if (isCarryEvent) {
-        // Reduced: 0.8 win / 0.4 loss (was 1.2 / 0.6)
-        carryEventBonus = entry.side === args.winnerSide ? 0.8 : 0.4;
+        // REBALANCE: reduced from 0.8/0.4 to 0.55/0.30
+        carryEventBonus = entry.side === args.winnerSide ? 0.55 : 0.30;
       }
       if (isThrowEvent) {
-        // Reduced: -0.8 win / -1.3 loss (was -1.0 / -1.6)
-        throwEventPenalty = entry.side === args.winnerSide ? -0.8 : -1.3;
+        // REBALANCE: reduced from -0.8/-1.3 to -0.55/-0.90
+        throwEventPenalty = entry.side === args.winnerSide ? -0.55 : -0.90;
       }
 
       // Bad team game modifier — if whole team underperformed, individuals feel it
@@ -869,8 +871,8 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   const volatility = round1(
     clamp(lane.volatility * 0.55 + Math.abs(blueExecution - redExecution) * 0.45, 1, 10)
   );
-  const blueRng = seededNoise(`${seedRoot}:blue`, 0.42 + volatility * 0.022);
-  const redRng = seededNoise(`${seedRoot}:red`, 0.42 + volatility * 0.022);
+  const blueRng = seededNoise(`${seedRoot}:blue`, 0.30 + volatility * 0.018);
+  const redRng = seededNoise(`${seedRoot}:red`, 0.30 + volatility * 0.018);
   const matchProfile = determineMatchProfile({
     blueAssignments: assignmentsBlue,
     redAssignments: assignmentsRed,
@@ -1147,13 +1149,10 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   );
 
   // ── MVP tracking ──────────────────────────────────────────────────────────
-  // Game MVP — increment for the top-scoring player of this game.
   if (mvp?.playerId) {
     recordPlayerGameMvp(mvp.playerId);
   }
 
-  // Series MVP — accumulate this game's summary; if the series is now decided,
-  // the tracker will compute + record the Series MVP and clear progress.
   const winsToClinch = Math.ceil(input.series.bo / 2);
   const seriesComplete =
     seriesScore.blueWins >= winsToClinch || seriesScore.redWins >= winsToClinch;
