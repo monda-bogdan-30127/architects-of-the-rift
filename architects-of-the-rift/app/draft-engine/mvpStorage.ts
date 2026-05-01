@@ -109,11 +109,15 @@ export type SeriesGameSummary = {
   /** mvpPlayerId returned by simulateMatch for that game (may be null). */
   mvpPlayerId: string | null;
   /** Per-player scores returned by simulateMatch for that game. */
-  playerScores: Array<{ playerId: string; score: number }>;
+  playerScores: Array<{ playerId: string; score: number; side: "blue" | "red" }>;
+  /** Which side won this game. */
+  winnerSide: "blue" | "red";
 };
 
 /**
  * Compute who should be Series MVP given the games of a series.
+ *
+ * Only players from the series-winning team are eligible.
  *
  * Rules (in order):
  *   1. Player with most Game MVPs across the series wins.
@@ -123,20 +127,42 @@ export type SeriesGameSummary = {
 export function computeSeriesMvp(games: SeriesGameSummary[]): string | null {
   if (!games || games.length === 0) return null;
 
+  // Determine which side won the series (most game wins)
+  let blueWins = 0;
+  let redWins = 0;
+  for (const game of games) {
+    if (game.winnerSide === "blue") blueWins++;
+    else redWins++;
+  }
+  const seriesWinningSide: "blue" | "red" = blueWins >= redWins ? "blue" : "red";
+
+  // Collect IDs of players on the winning side across all games of the series
+  const winningPlayerIds = new Set<string>();
+  for (const game of games) {
+    for (const entry of game.playerScores ?? []) {
+      if (entry.side === seriesWinningSide) {
+        winningPlayerIds.add(entry.playerId);
+      }
+    }
+  }
+
   const gameMvpCount = new Map<string, number>();
   const totalScore   = new Map<string, number>();
 
   for (const game of games) {
-    if (game.mvpPlayerId) {
+    // Only count Game MVPs from the winning team
+    if (game.mvpPlayerId && winningPlayerIds.has(game.mvpPlayerId)) {
       gameMvpCount.set(game.mvpPlayerId, (gameMvpCount.get(game.mvpPlayerId) ?? 0) + 1);
     }
     for (const entry of game.playerScores ?? []) {
       if (!entry?.playerId || typeof entry.score !== "number") continue;
+      // Only track scores for winning-team players
+      if (!winningPlayerIds.has(entry.playerId)) continue;
       totalScore.set(entry.playerId, (totalScore.get(entry.playerId) ?? 0) + entry.score);
     }
   }
 
-  // Pool: anyone with at least one game MVP; fallback to all scoring players
+  // Pool: anyone on winning team with at least one game MVP; fallback to all winning-team players
   const candidates = gameMvpCount.size > 0
     ? [...gameMvpCount.keys()]
     : [...totalScore.keys()];

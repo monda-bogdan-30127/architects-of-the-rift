@@ -742,14 +742,14 @@ const baseChampions: Champion[] = [
       { championId: "alistar", score: 3 },
       { championId: "renata-glasc", score: 3 },
       { championId: "karma", score: 3 },
+      { championId: "thresh", score: 3 },
       { championId: "jarvan-iv", score: 3 }
     ],
 
     mustWith: [
       { championId: "lulu", score: 5 },
       { championId: "milio", score: 5 },
-      { championId: "nami", score: 4 },
-      { championId: "thresh", score: 3 }
+      { championId: "nami", score: 4 }
     ],
 
     offers: [
@@ -2806,13 +2806,13 @@ const baseChampions: Champion[] = [
       { championId: "rell", score: 4 },
       { championId: "jarvan-iv", score: 3 },
       { championId: "wukong", score: 3 },
-      { championId: "neeko", score: 3 },
+      { championId: "leona", score: 3 },
     ],
 
     mustWith: [
       { championId: "nautilus", score: 5 },
-      { championId: "alistar", score: 5 },
-      { championId: "leona", score: 5 }
+      { championId: "neeko", score: 5 },
+      { championId: "alistar", score: 5 }
     ],
 
     offers: [
@@ -3032,7 +3032,7 @@ const baseChampions: Champion[] = [
       { championId: "thresh", score: 3 },
       { championId: "braum", score: 2 },
       { championId: "bard", score: 3 },
-      { championId: "blitzcrank", score: 2 },
+      { championId: "nautilus", score: 2 },
     ],
 
     synergyWith: [
@@ -3962,7 +3962,7 @@ const baseChampions: Champion[] = [
 
     name: "Jayce",
     image: "/champions/jayce.png",
-    roles: ["top", "mid"],
+    roles: ["top"],
     damageProfile: ["AD"],
     stats: {
       picks: 44,

@@ -852,17 +852,53 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     Object.values(redRoster).filter(Boolean) as string[]
   );
 
+  // ─── MUSTWITH COHESION BONUS ──────────────────────────────────────────────
+  // Teams with completed mustWith pairs get a small simulation bonus (+0.4 max)
+  // representing improved team coordination.
+  function getMustWithCohesionBonus(championIds: string[]): number {
+    const seen = new Set<string>();
+    let bonus = 0;
+    for (let i = 0; i < championIds.length; i++) {
+      for (let j = i + 1; j < championIds.length; j++) {
+        const aId = championIds[i];
+        const bId = championIds[j];
+        if (!aId || !bId) continue;
+        const pairKey = [aId, bId].sort().join(":");
+        if (seen.has(pairKey)) continue;
+        seen.add(pairKey);
+
+        const a = championMap.get(aId);
+        const b = championMap.get(bId);
+        if (!a || !b) continue;
+
+        const aMustB = a.mustWith?.find((e) => e.championId === bId)?.score ?? 0;
+        const bMustA = b.mustWith?.find((e) => e.championId === aId)?.score ?? 0;
+        const score = Math.max(aMustB, bMustA);
+        if (score >= 4) {
+          // 4 → +0.20, 5 → +0.40
+          bonus += 0.20 + (score - 4) * 0.20;
+        }
+      }
+    }
+    return clamp(bonus, 0, 0.4);
+  }
+
+  const blueMustWithBonus = getMustWithCohesionBonus(blueChampionIds);
+  const redMustWithBonus = getMustWithCohesionBonus(redChampionIds);
+
   const blueDraftComposite = clamp(
     blueDraftEval.draftPower * 0.68 +
     computeMetaAverage(assignmentsBlue) * 0.22 +
-    bluePlayerPower * 0.1,
+    bluePlayerPower * 0.1 +
+    blueMustWithBonus,
     0,
     10
   );
   const redDraftComposite = clamp(
     redDraftEval.draftPower * 0.68 +
     computeMetaAverage(assignmentsRed) * 0.22 +
-    redPlayerPower * 0.1,
+    redPlayerPower * 0.1 +
+    redMustWithBonus,
     0,
     10
   );
@@ -1161,7 +1197,8 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     input.series.seriesId,
     {
       mvpPlayerId: mvp?.playerId ?? null,
-      playerScores: playerScores.map((p) => ({ playerId: p.playerId, score: p.score })),
+      playerScores: playerScores.map((p) => ({ playerId: p.playerId, score: p.score, side: p.side })),
+      winnerSide: finalWinnerSide,
     },
     seriesComplete,
   );

@@ -359,6 +359,66 @@ function getCompSynergyScore(ownPicks: string[], candidate: Champion) {
   return clamp(synergy, 0, 10);
 }
 
+// ─── MUSTWITH BUFFS ──────────────────────────────────────────────────────────
+// Returns +2.5 boost if candidate completes a mustWith pair with own picks.
+// Symmetric: works whether candidate is the "anchor" or the "follow-up".
+// Only activates for HIGH score mustWith (≥4) so it remains contextual.
+function getMustWithCompletionBonus(ownPicks: string[], candidate: Champion): number {
+  if (ownPicks.length === 0) return 0;
+
+  let maxBonus = 0;
+  for (const pickedId of ownPicks) {
+    const picked = getChampionById(pickedId);
+    if (!picked) continue;
+
+    // Candidate's mustWith → picked
+    const candidateMustPicked =
+      candidate.mustWith?.find((e) => e.championId === picked.id)?.score ?? 0;
+    // Picked's mustWith → candidate
+    const pickedMustCandidate =
+      picked.mustWith?.find((e) => e.championId === candidate.id)?.score ?? 0;
+
+    const bestScore = Math.max(candidateMustPicked, pickedMustCandidate);
+    if (bestScore >= 4) {
+      // Scale 4-5 score → 2.0-2.5 boost
+      const bonus = 2.0 + (bestScore - 4) * 0.5;
+      if (bonus > maxBonus) maxBonus = bonus;
+    }
+  }
+  return clamp(maxBonus, 0, 2.5);
+}
+
+// Returns +1.5 to pick / used externally for +2.0 ban when candidate
+// disrupts an enemy mustWith pair. Only activates if enemy has the "anchor"
+// and candidate is the missing partner (or vice versa).
+function getMustWithDenyBonus(
+  enemyPicks: string[],
+  candidate: Champion,
+  forBan: boolean
+): number {
+  if (enemyPicks.length === 0) return 0;
+
+  let maxBonus = 0;
+  for (const enemyId of enemyPicks) {
+    const enemy = getChampionById(enemyId);
+    if (!enemy) continue;
+
+    const candidateMustEnemy =
+      candidate.mustWith?.find((e) => e.championId === enemy.id)?.score ?? 0;
+    const enemyMustCandidate =
+      enemy.mustWith?.find((e) => e.championId === candidate.id)?.score ?? 0;
+
+    const bestScore = Math.max(candidateMustEnemy, enemyMustCandidate);
+    if (bestScore >= 4) {
+      // Ban gets stronger bonus than pick (ban is safer disruption)
+      const baseBonus = forBan ? 1.5 : 1.0;
+      const bonus = baseBonus + (bestScore - 4) * 0.5; // 4-5 → +1.5/+2.0 ban, +1.0/+1.5 pick
+      if (bonus > maxBonus) maxBonus = bonus;
+    }
+  }
+  return clamp(maxBonus, 0, forBan ? 2.0 : 1.5);
+}
+
 function getCounterValueScore(enemyPicks: string[], candidate: Champion) {
   let counter = 0;
   for (const enemyId of enemyPicks) {
@@ -828,6 +888,23 @@ function scorePickCandidate(
     getCurrentPickNumberForSide(game, step.side)
   );
 
+  // ─── MUSTWITH BUFFS (with comp-safety) ────────────────────────────────────
+  // Only apply if the pick wouldn't break the comp:
+  //   - Role must be fillable (canFit)
+  //   - Comp gate isn't strongly negative (would mean we're missing critical role)
+  //   - Off-meta penalty isn't too high (avoid forcing bad picks)
+  const compSafe = canFit && compGate > -2.0 && offMetaPenalty < 8;
+
+  // Own team mustWith completion (e.g. AI has Ashe → Seraphine gets +2.5)
+  const mustWithCompletion = compSafe
+    ? getMustWithCompletionBonus(ownState.picks, candidate)
+    : 0;
+
+  // Enemy mustWith disruption (e.g. enemy has Rakan → Xayah pick gets +1.5)
+  const mustWithDeny = compSafe
+    ? getMustWithDenyBonus(enemyState.picks, candidate, false)
+    : 0;
+
   const userBias = getUserPickPreferenceBias(
     candidate,
     projected.projectedRole,
@@ -866,7 +943,9 @@ function scorePickCandidate(
     counterUserPlanBonus +
     ruleSynergyBonus +             // DRAFT FINAL FIX 1
     matchupHistoryBias +           // DRAFT FINAL FIX 2
-    compGate -                     // DRAFT FINAL FIX 5
+    compGate +
+    mustWithCompletion +           // MUSTWITH: own team pair completion
+    mustWithDeny -                 // MUSTWITH: enemy pair disruption
     weaknessPenalty * adjustedConfig.weaknessWeight -
     blindRiskPenalty -
     comboDependencyPenalty -
@@ -1301,6 +1380,9 @@ function scoreBanCandidate(
     protectOwnCompBonus = clamp(protectOwnCompBonus, 0, 4);
   }
 
+  // ─── MUSTWITH BAN: disrupt enemy pair (e.g. enemy has Rakan → ban Xayah) ──
+  const mustWithBanBonus = getMustWithDenyBonus(enemyState.picks, candidate, true);
+
   // FIX A: Reduce metaPriority dominance, boost signature bans
   const totalScore =
     metaPriority * 0.95 +
@@ -1318,6 +1400,7 @@ function scoreBanCandidate(
     planAdaptiveBanBonus +
     userFavoriteBan +
     protectOwnCompBonus +          // DRAFT FINAL FIX 3
+    mustWithBanBonus +             // MUSTWITH: deny enemy pair
     (candidate.roles.length >= 2 ? 0.8 : 0);
 
 
