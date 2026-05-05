@@ -19,6 +19,9 @@ import {
 } from "@/app/draft-engine/playerHistoryStorage";
 import { getPlayerAverageKda } from "@/app/draft-engine/kdaStorage";
 import { getPlayerMvpStats } from "@/app/draft-engine/mvpStorage";
+import { champions } from "@/app/data/champions";
+import { getChampionGrade } from "@/app/utils/championMasteryUtils";
+import type { ChampionMasteryGrade } from "@/app/types/championMastery";
 import type {
   PlayerHistoryStore,
   PlayerHistoryStatLine,
@@ -76,11 +79,6 @@ function getChampionDisplayName(championId: string) {
   const champion = getRegisteredChampionById(championId);
   if (champion?.name) return champion.name;
   return titleCaseSlug(championId);
-}
-
-function formatBestChamps(champions: string[] | undefined, limit = 5) {
-  if (!champions || champions.length === 0) return "—";
-  return champions.slice(0, limit).map(getChampionDisplayName).join(", ");
 }
 
 function buildPlayerSeasonAverageMap(store: PlayerSeasonStore) {
@@ -337,6 +335,270 @@ function ArrowButton({
   );
 }
 
+type PlayerTab = "stats" | "mastery";
+type MasterySort = "grade" | "alpha";
+
+const GRADE_COLORS: Record<ChampionMasteryGrade, { bg: string; text: string; border: string }> = {
+  SS: { bg: "#B8860B",  text: "#FFF8E1", border: "#FFD466" },
+  S:  { bg: "#8B1A2B",  text: "#FFD1DA", border: "#E84868" },
+  A:  { bg: "#5B2D8E",  text: "#E8D4FF", border: "#A86EDB" },
+  B:  { bg: "#1A6B5A",  text: "#D4F5ED", border: "#38BFA0" },
+  C:  { bg: "#4A4A52",  text: "#D0D0D4", border: "#808088" },
+  D:  { bg: "#6B4226",  text: "#EADDD4", border: "#A87850" },
+  F:  { bg: "#3A1A1A",  text: "#D08080", border: "#802020" },
+};
+
+const GRADE_ORDER: ChampionMasteryGrade[] = ["SS", "S", "A", "B", "C", "D", "F"];
+
+function GradeBadge({ grade }: { grade: ChampionMasteryGrade }) {
+  const colors = GRADE_COLORS[grade];
+  return (
+    <span
+      style={{
+        position: "absolute",
+        top: -4,
+        left: -4,
+        zIndex: 2,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: grade === "SS" ? 26 : 22,
+        height: 22,
+        borderRadius: 6,
+        background: colors.bg,
+        border: `1.5px solid ${colors.border}`,
+        color: colors.text,
+        fontSize: 10,
+        fontWeight: 800,
+        letterSpacing: "0.04em",
+        fontFamily: '"Spiegel", sans-serif',
+        lineHeight: 1,
+      }}
+    >
+      {grade}
+    </span>
+  );
+}
+
+function ChampionMasteryTab({
+  player,
+  role,
+  sort,
+  onSortChange,
+}: {
+  player: Player;
+  role: Role;
+  sort: MasterySort;
+  onSortChange: (s: MasterySort) => void;
+}) {
+  const masteryList = useMemo(() => {
+    // Get all champions playable in this role
+    const roleChamps = champions.filter((c) => c.roles.includes(role));
+
+    const entries = roleChamps.map((c) => ({
+      id: c.id,
+      name: c.name,
+      image: c.image,
+      grade: getChampionGrade(player, c.id),
+    }));
+
+    if (sort === "alpha") {
+      return entries.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    // Sort by grade (best first), then alphabetically within same grade
+    return entries.sort((a, b) => {
+      const gradeA = GRADE_ORDER.indexOf(a.grade);
+      const gradeB = GRADE_ORDER.indexOf(b.grade);
+      if (gradeA !== gradeB) return gradeA - gradeB;
+      return a.name.localeCompare(b.name);
+    });
+  }, [player, role, sort]);
+
+  // Group by grade for section labels
+  const grouped = useMemo(() => {
+    if (sort === "alpha") return null;
+    const map = new Map<ChampionMasteryGrade, typeof masteryList>();
+    for (const entry of masteryList) {
+      const list = map.get(entry.grade) ?? [];
+      list.push(entry);
+      map.set(entry.grade, list);
+    }
+    return map;
+  }, [masteryList, sort]);
+
+  // Count per grade for summary
+  const gradeCounts = useMemo(() => {
+    const counts: Record<ChampionMasteryGrade, number> = { SS: 0, S: 0, A: 0, B: 0, C: 0, D: 0, F: 0 };
+    for (const entry of masteryList) counts[entry.grade]++;
+    return counts;
+  }, [masteryList]);
+
+  return (
+    <div className="flex min-w-0 flex-1 flex-col gap-[12px]">
+      {/* Sort toggle */}
+      <div className="flex items-center gap-[8px]">
+        <span
+          className="uppercase text-[var(--text-secondary)]"
+          style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em" }}
+        >
+          Sort:
+        </span>
+        {(["grade", "alpha"] as MasterySort[]).map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => onSortChange(s)}
+            className="uppercase"
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              padding: "3px 10px",
+              borderRadius: 6,
+              border: `1px solid ${sort === s ? "var(--text-highlight)" : "var(--border-default)"}`,
+              background: sort === s ? "color-mix(in srgb, var(--text-highlight) 12%, transparent)" : "transparent",
+              color: sort === s ? "var(--text-highlight)" : "var(--text-secondary)",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            {s === "grade" ? "Grade" : "A-Z"}
+          </button>
+        ))}
+      </div>
+
+      {/* Grade summary */}
+      <div className="flex flex-wrap items-center" style={{ gap: "4px 8px" }}>
+        {GRADE_ORDER.map((grade) => {
+          const count = gradeCounts[grade];
+          if (count === 0) return null;
+          const colors = GRADE_COLORS[grade];
+          return (
+            <span
+              key={grade}
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.03em",
+                color: colors.border,
+                fontFamily: '"Spiegel", sans-serif',
+              }}
+            >
+              {grade}: {count}
+            </span>
+          );
+        })}
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 500,
+            color: "var(--text-muted)",
+            fontFamily: '"Spiegel", sans-serif',
+            marginLeft: 4,
+          }}
+        >
+          ({masteryList.length} total)
+        </span>
+      </div>
+
+      {/* Champion grid */}
+      {sort === "alpha" || !grouped ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(5, 1fr)",
+            gap: 10,
+          }}
+        >
+          {masteryList.map((entry) => (
+            <ChampionMasteryCard key={entry.id} entry={entry} />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-[14px]">
+          {GRADE_ORDER.map((grade) => {
+            const items = grouped.get(grade);
+            if (!items || items.length === 0) return null;
+            return (
+              <div key={grade} className="flex flex-col gap-[6px]">
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(5, 1fr)",
+                    gap: 10,
+                  }}
+                >
+                  {items.map((entry) => (
+                    <ChampionMasteryCard key={entry.id} entry={entry} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChampionMasteryCard({
+  entry,
+}: {
+  entry: { id: string; name: string; image: string; grade: ChampionMasteryGrade };
+}) {
+  const colors = GRADE_COLORS[entry.grade];
+  const isUnplayable = entry.grade === "F";
+
+  return (
+    <div
+      className="flex flex-col items-center gap-[4px]"
+      style={{ position: "relative" }}
+    >
+      <div
+        style={{
+          position: "relative",
+          width: 72,
+          height: 72,
+          borderRadius: 8,
+          overflow: "hidden",
+          border: `2px solid ${colors.border}`,
+          filter: isUnplayable ? "grayscale(0.7) brightness(0.5)" : "none",
+        }}
+      >
+        <GradeBadge grade={entry.grade} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={entry.image}
+          alt={entry.name}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            objectPosition: "center 15%",
+          }}
+        />
+      </div>
+      <span
+        className="text-center uppercase"
+        style={{
+          fontSize: 9,
+          fontWeight: 700,
+          letterSpacing: "0.04em",
+          color: isUnplayable ? "var(--text-muted)" : "var(--text-secondary)",
+          maxWidth: 76,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          lineHeight: "12px",
+        }}
+      >
+        {entry.name}
+      </span>
+    </div>
+  );
+}
+
 function PlayerCard({
   player,
   role,
@@ -384,13 +646,16 @@ function PlayerCard({
     .join(" - ");
   const tagsLine = playstyleTags.map((t) => t.toUpperCase()).join(", ");
 
+  const [activeTab, setActiveTab] = useState<PlayerTab>("stats");
+  const [masterySort, setMasterySort] = useState<MasterySort>("grade");
+
   return (
     <section
       className="rounded-[16px] bg-[var(--bg-surface)]"
       style={{ padding: 24 }}
     >
       <div className="flex items-stretch gap-[32px]">
-        {/* LEFT — image + name + role + playstyle + avg */}
+        {/* LEFT — image + name + role + playstyle + avg (always visible) */}
         <div
           className="flex shrink-0 flex-col items-center gap-[8px]"
           style={{ width: 220 }}
@@ -501,98 +766,126 @@ function PlayerCard({
           </p>
         </div>
 
-        {/* RIGHT — stats + champs + perf + winrate */}
+        {/* RIGHT — tab switcher + content */}
         <div className="flex min-w-0 flex-1 flex-col gap-[16px]">
-          <div className="flex flex-col gap-[8px]">
-            <StatPair
-              leftLabel="MEC"
-              leftValue={player?.stats.mec ?? "—"}
-              rightLabel="MAC"
-              rightValue={player?.stats.mac ?? "—"}
-            />
-            <StatPair
-              leftLabel="TFG"
-              leftValue={player?.stats.tfg ?? "—"}
-              rightLabel="CLT"
-              rightValue={player?.stats.clt ?? "—"}
-            />
-            <StatPair
-              leftLabel="CON"
-              leftValue={player?.stats.con ?? "—"}
-              rightLabel="IQ"
-              rightValue={player?.stats.iq ?? "—"}
-            />
-          </div>
-
-          <div className="flex flex-col gap-[4px]">
-            <p
-              className="uppercase text-[var(--text-primary)]"
-              style={{
-                fontSize: 13,
-                lineHeight: "16px",
-                fontWeight: 600,
-                letterSpacing: "0.04em",
-              }}
-            >
-              BEST CHAMPS
-            </p>
-            <p
-              className="text-[var(--text-secondary)]"
-              style={{
-                fontSize: 13,
-                lineHeight: "20px",
-                fontWeight: 500,
-              }}
-            >
-              {formatBestChamps(player?.bestChampions, 5).toUpperCase()}
-            </p>
-          </div>
-
-          <div className="flex items-start gap-[32px]">
-            <PerformanceList title="BEST PERFORMANCE CHAMPIONS" items={bestPerf} />
-            <PerformanceList title="WORST PERFORMANCE CHAMPIONS" items={worstPerf} />
-          </div>
-
-          {/* Most played champions — 2 columns of 3 */}
-          <div className="flex flex-col gap-[6px]">
-            <p
-              className="uppercase text-[var(--text-primary)]"
-              style={{ fontSize: 13, lineHeight: "16px", fontWeight: 600, letterSpacing: "0.04em" }}
-            >
-              MOST PLAYED CHAMPIONS
-            </p>
-            {mostPlayed.length === 0 ? (
-              <p className="text-[var(--text-secondary)]" style={{ fontSize: 13, lineHeight: "20px" }}>—</p>
-            ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gridTemplateRows: `repeat(${Math.ceil(mostPlayed.length / 2)}, auto)`,
-                  gridAutoFlow: "column",
-                  gap: "2px 32px",
-                }}
-              >
-                {mostPlayed.map((item, index) => (
-                  <p
-                    key={item.championId}
-                    className="text-[var(--text-secondary)]"
-                    style={{ fontSize: 13, lineHeight: "20px", fontWeight: 500 }}
-                  >
-                    {index + 1}. {item.championName.toUpperCase()} - {Math.round(item.winRate * 100)}% - {item.games}{" "}
-                    {item.games === 1 ? "GAME" : "GAMES"}
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <p
-            className="uppercase text-[var(--text-secondary)]"
-            style={{ fontSize: 13, lineHeight: "20px", fontWeight: 600, letterSpacing: "0.04em" }}
+          {/* Tab bar */}
+          <div
+            className="flex items-center"
+            style={{
+              gap: 0,
+              borderBottom: "1px solid var(--border-default)",
+            }}
           >
-            WIN RATE: {winRateText}
-          </p>
+            {(["stats", "mastery"] as PlayerTab[]).map((tab) => {
+              const isActive = activeTab === tab;
+              const label = tab === "stats" ? "STATS" : "CHAMPION MASTERY";
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  style={{
+                    padding: "8px 16px",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    letterSpacing: "0.06em",
+                    fontFamily: '"Spiegel", sans-serif',
+                    color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
+                    background: "transparent",
+                    border: "none",
+                    borderBottom: isActive ? "2px solid var(--text-highlight)" : "2px solid transparent",
+                    cursor: "pointer",
+                    transition: "color 0.15s ease, border-color 0.15s ease",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Tab content */}
+          {activeTab === "stats" ? (
+            <div className="flex min-w-0 flex-1 flex-col gap-[16px]">
+              <div className="flex flex-col gap-[8px]">
+                <StatPair
+                  leftLabel="MECHANICS"
+                  leftValue={player?.stats.mec ?? "—"}
+                  rightLabel="MACRO"
+                  rightValue={player?.stats.mac ?? "—"}
+                />
+                <StatPair
+                  leftLabel="TEAMFIGHTING"
+                  leftValue={player?.stats.tfg ?? "—"}
+                  rightLabel="CLUTCH"
+                  rightValue={player?.stats.clt ?? "—"}
+                />
+                <StatPair
+                  leftLabel="CONSISTENCY"
+                  leftValue={player?.stats.con ?? "—"}
+                  rightLabel="IQ"
+                  rightValue={player?.stats.iq ?? "—"}
+                />
+              </div>
+
+              <div className="flex items-start gap-[32px]">
+                <PerformanceList title="BEST PERFORMANCE CHAMPIONS" items={bestPerf} />
+                <PerformanceList title="WORST PERFORMANCE CHAMPIONS" items={worstPerf} />
+              </div>
+
+              {/* Most played champions — 2 columns */}
+              <div className="flex flex-col gap-[6px]">
+                <p
+                  className="uppercase text-[var(--text-primary)]"
+                  style={{ fontSize: 13, lineHeight: "16px", fontWeight: 600, letterSpacing: "0.04em" }}
+                >
+                  MOST PLAYED CHAMPIONS
+                </p>
+                {mostPlayed.length === 0 ? (
+                  <p className="text-[var(--text-secondary)]" style={{ fontSize: 13, lineHeight: "20px" }}>—</p>
+                ) : (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gridTemplateRows: `repeat(${Math.ceil(mostPlayed.length / 2)}, auto)`,
+                      gridAutoFlow: "column",
+                      gap: "2px 32px",
+                    }}
+                  >
+                    {mostPlayed.map((item, index) => (
+                      <p
+                        key={item.championId}
+                        className="text-[var(--text-secondary)]"
+                        style={{ fontSize: 13, lineHeight: "20px", fontWeight: 500 }}
+                      >
+                        {index + 1}. {item.championName.toUpperCase()} - {Math.round(item.winRate * 100)}% - {item.games}{" "}
+                        {item.games === 1 ? "GAME" : "GAMES"}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <p
+                className="uppercase text-[var(--text-secondary)]"
+                style={{ fontSize: 13, lineHeight: "20px", fontWeight: 600, letterSpacing: "0.04em" }}
+              >
+                WIN RATE: {winRateText}
+              </p>
+            </div>
+          ) : player ? (
+            <ChampionMasteryTab
+              player={player}
+              role={role}
+              sort={masterySort}
+              onSortChange={setMasterySort}
+            />
+          ) : (
+            <p className="text-[var(--text-secondary)]" style={{ fontSize: 13 }}>
+              No player selected.
+            </p>
+          )}
         </div>
       </div>
     </section>
@@ -861,6 +1154,13 @@ export default function RostersPage() {
                     />
                   </div>
 
+                  {/* Player thumbnails (above card) */}
+                  <PlayerThumbnails
+                    slots={currentGroup.slots}
+                    selectedRole={selectedRole}
+                    onSelect={setSelectedRole}
+                  />
+
                   {/* Player card */}
                   <PlayerCard
                     player={currentSlot?.player ?? null}
@@ -870,13 +1170,6 @@ export default function RostersPage() {
                     kdaMap={kdaMap}
                     mvpMap={mvpMap}
                     history={historyStore}
-                  />
-
-                  {/* Thumbnails */}
-                  <PlayerThumbnails
-                    slots={currentGroup.slots}
-                    selectedRole={selectedRole}
-                    onSelect={setSelectedRole}
                   />
                 </div>
               )}

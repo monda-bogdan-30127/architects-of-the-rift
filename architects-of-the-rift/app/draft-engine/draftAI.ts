@@ -56,6 +56,20 @@ import {
 } from "./advancedDraftReading";
 import { evaluateRuleSynergy } from "./profileRuleEvaluator";
 import { getPlayerChampionMatchupDraftBias } from "./playerHistoryEvaluator";
+import {
+  getMasteryPickBonus,
+  getCachedTopSignatureSlot,
+  getEnemyMasteryBanBonus,
+  getOwnMasteryBanPenalty,
+} from "./championMasteryDraftSystem";
+import { getChampionMap } from "./championPool";
+import {
+  getCachedAdvancedContext,
+  getPredictiveCounterBonus,
+  getClutchAmplifierForSide,
+  getTargetBanningBonus,
+  getPredictiveBanBonus,
+} from "./championMasteryAdvanced";
 
 
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -728,7 +742,42 @@ function scorePickCandidate(
     synergyWeight: config.synergyWeight * phaseBias.compIdentity,
   };
   const projected = getProjectedRoleAndPlayer(candidate, ownState.picks, roster);
+  // ── MASTERY: resolve top signature slot for this team (cached) ──────────
+  const projectedPlayer = projected.projectedPlayer;
 
+  const topSignatureSlot = getCachedTopSignatureSlot({
+    game,
+    side: step.side,
+    roster,
+    availableChampions: getChampionMap(),
+  });
+
+  // ── MASTERY ADVANCED: clutch context + draft reading (cached per turn) ──
+  const enemyTeamSlugForAdv = getTeamSlugForSide(series, step.side === "blue" ? "red" : "blue");
+  const enemyRosterForAdv = getTeamRosterFromSources({ teamSlug: enemyTeamSlugForAdv, save });
+  const advCtx = getCachedAdvancedContext({
+    game,
+    side: step.side,
+    series,
+    enemyRoster: enemyRosterForAdv,
+  });
+  const clutchAmp = getClutchAmplifierForSide(series, step.side);
+
+  // ── MASTERY: compute pick bonus (continuous + signature pull) ───────────
+  const ownPickChampions = ownState.picks
+    .map((id) => getChampionById(id))
+    .filter((c): c is Champion => Boolean(c));
+
+  const masteryPick = getMasteryPickBonus({
+    player: projectedPlayer,
+    candidate,
+    side: step.side,
+    pickNumber: totalPicksSoFar + 1,
+    ownPicks: ownPickChampions,
+    counterValue: 0, // will be overwritten below after counterValue is computed
+    topSignatureSlot,
+    clutchAmplifier: clutchAmp,
+  });
   const metaPriority = clamp(getMetaPriorityScore(candidate), 0, 10);
   const identityBias = getIdentityBias(teamSlug, candidate);
   const flexBonus = candidate.roles.length >= 2 ? 1.8 : 0.35;
@@ -766,6 +815,22 @@ function scorePickCandidate(
   const compSynergy = getCompSynergyScore(ownState.picks, candidate);
   const needFill = getNeedFillScore(ownState.picks, candidate);
   const counterValue = getCounterValueScore(enemyState.picks, candidate);
+  // ── MASTERY: re-compute pick bonus with the actual counterValue ─────────
+  const masteryPickFinal = getMasteryPickBonus({
+    player: projectedPlayer,
+    candidate,
+    side: step.side,
+    pickNumber: totalPicksSoFar + 1,
+    ownPicks: ownPickChampions,
+    counterValue,
+    topSignatureSlot,
+    clutchAmplifier: clutchAmp,
+  });
+  // ── MASTERY ADVANCED: predictive counter prep ───────────────────────────
+  const predictiveCounter = getPredictiveCounterBonus({
+    candidate,
+    predictions: advCtx.enemyPredictions,
+  });
   const weaknessPenalty = getWeaknessPenalty(enemyState.picks, candidate);
   const offMetaPenalty = getOffMetaPenalty(candidate, series);
   const archetypeAffinity = getArchetypeAffinityScore(roster, projected.projectedRole, candidate);
@@ -945,7 +1010,9 @@ function scorePickCandidate(
     matchupHistoryBias +           // DRAFT FINAL FIX 2
     compGate +
     mustWithCompletion +           // MUSTWITH: own team pair completion
-    mustWithDeny -                 // MUSTWITH: enemy pair disruption
+    mustWithDeny +                 // MUSTWITH: enemy pair disruption
+    masteryPickFinal.total +
+    predictiveCounter.bonus -
     weaknessPenalty * adjustedConfig.weaknessWeight -
     blindRiskPenalty -
     comboDependencyPenalty -
@@ -1312,6 +1379,42 @@ function scoreBanCandidate(
   const ownState = getOwnState(game, step.side);
   const enemyState = getEnemyState(game, step.side);
   const enemyTeamSlug = getTeamSlugForSide(series, step.side === "blue" ? "red" : "blue");
+  // ── MASTERY: enemy roster for ban pressure ──────────────────────────────
+  const enemyRoster = getTeamRosterFromSources({ teamSlug: enemyTeamSlug, save });
+  const ownTeamSlug = getTeamSlugForSide(series, step.side);
+  const ownRoster = getTeamRosterFromSources({ teamSlug: ownTeamSlug, save });
+
+  // Enemy has SS/S on this champion → ban pressure
+  const enemyMasteryBan = getEnemyMasteryBanBonus({
+    candidate,
+    enemyRoster,
+  });
+
+  // Own team wants to pick this → don't ban it
+  const ownMasteryProtect = getOwnMasteryBanPenalty({
+    candidate,
+    ownRoster,
+  });
+
+  // ── MASTERY ADVANCED: target banning + draft reading ────────────────────
+  const advCtxBan = getCachedAdvancedContext({
+    game,
+    side: step.side,
+    series,
+    enemyRoster,
+  });
+
+  const targetBan = getTargetBanningBonus({
+    candidate,
+    enemyRoster,
+    currentBans: new Set([...game.bansBlue, ...game.bansRed]),
+    currentPicks: new Set([...game.picksBlue, ...game.picksRed]),
+  });
+
+  const predictiveBan = getPredictiveBanBonus({
+    candidate,
+    predictions: advCtxBan.enemyPredictions,
+  });
 
   const metaPriority = clamp(getMetaPriorityScore(candidate), 0, 10);
   const enemyComfortPressure = clamp((candidate.stats?.prioScore ?? 50) / 13.5, 0, 8);
@@ -1400,7 +1503,11 @@ function scoreBanCandidate(
     planAdaptiveBanBonus +
     userFavoriteBan +
     protectOwnCompBonus +          // DRAFT FINAL FIX 3
-    mustWithBanBonus +             // MUSTWITH: deny enemy pair
+    mustWithBanBonus +
+    enemyMasteryBan.bonus +
+    ownMasteryProtect.penalty +
+    targetBan.bonus +
+    predictiveBan.bonus +
     (candidate.roles.length >= 2 ? 0.8 : 0);
 
 

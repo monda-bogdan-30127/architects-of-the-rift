@@ -16,6 +16,11 @@ import {
   getPlayerChampionHistoryBonus,
   getPlayerChampionSignatureBonus,
 } from "./playerHistoryEvaluator";
+import {
+  hasMasteryOverride,
+  getChampionGrade,
+  gradeToComfortScore,
+} from "@/app/utils/championMasteryUtils";
 
 const championMap = new Map(champions.map((champion) => [champion.id, champion]));
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -346,6 +351,18 @@ export function buildDerivedChampionPool(player: Player, role: Role): string[] {
 
 export function getComfortScore(player: Player | null, champion: Champion): number {
   if (!player) return 5;
+
+  // ── NEW: When mastery override exists, use grade-based comfort ──────────
+  // This intentionally IGNORES bestChampions/comfortChampions/championPool —
+  // the override is the single source of truth for that player.
+  if (hasMasteryOverride(player.id)) {
+    const grade = getChampionGrade(player, champion.id);
+    const gradeComfort = gradeToComfortScore(grade);
+    const signatureBonus = getPlayerChampionSignatureBonus(player.id, champion.id);
+    return clamp(gradeComfort + signatureBonus * 0.35, 0, 10);
+  }
+
+  // ── LEGACY: tier-based fallback for players without mastery override ────
   let base = champion.roles.includes(player.role) ? 4.75 : 2.5;
   if (player.bestChampions.includes(champion.id)) base = 10;
   else if (player.comfortChampions.includes(champion.id)) base = 8.5;

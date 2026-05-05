@@ -66,6 +66,16 @@ import {
 import { generatePlayerKDAs, generateGameLength } from "./kdaGenerator";
 import { recordGameKdas } from "./kdaStorage";
 import { recordPlayerGameMvp, trackSeriesGame } from "./mvpStorage";
+import {
+  applyMasteryToFit,
+  getMasteryVarianceFactor,
+} from "./championMasteryDraftSystem";
+import { clearSignatureSlotCache } from "./championMasteryDraftSystem";
+import { clearAdvancedContextCache } from "./championMasteryAdvanced";
+
+// At the start of each simulation/draft:
+clearSignatureSlotCache();
+clearAdvancedContextCache();
 
 const teamsBySlug = new Map(teams.map((team) => [team.slug, team]));
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -518,7 +528,12 @@ function buildPlayerScores(args: {
       const champion = getChampionById(entry.championId);
       if (!player || !champion) continue;
 
-      const fit = playerChampionDraftFit(entry.playerId, entry.championId);
+      const baseFit = playerChampionDraftFit(entry.playerId, entry.championId);
+      // ── MASTERY: scale fit by champion mastery (single channel into sim) ────
+      const fit = applyMasteryToFit(player, entry.championId, baseFit);
+
+      // ── MASTERY: variance factor (consistent execution for high mastery) ────
+      const masteryVariance = getMasteryVarianceFactor(player, entry.championId);
       const champRoleProfile = getChampionRoleProfile(getChampionById(entry.championId), role);
       const clutch = playerClutchScore(entry.playerId);
       const execution = playerExecutionScore(entry.playerId);
@@ -545,7 +560,7 @@ function buildPlayerScores(args: {
       // REBALANCE: reduced from 0.8 to 0.55 for 25% RNG target
       const personalRng = seededNoise(
         `${args.seriesId}:g${args.gameNumber}:${role}:${entry.side}:${entry.playerId}:personal`,
-        0.55 * personality.volatilityRngScale
+        0.55 * personality.volatilityRngScale * masteryVariance
       );
 
       // Win dominance scaling — close wins ≠ stomps
@@ -574,7 +589,7 @@ function buildPlayerScores(args: {
       // REBALANCE: reduced from 0.30 to 0.18
       const rng = seededNoise(
         `${args.seriesId}:g${args.gameNumber}:${role}:${entry.side}:${entry.playerId}:${entry.championId}`,
-        0.18 * personality.volatilityRngScale
+        0.18 * personality.volatilityRngScale * masteryVariance
       );
 
       const impact = clamp(

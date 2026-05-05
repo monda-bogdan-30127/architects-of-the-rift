@@ -1,13 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
 import PlayerSelectionBar from "@/components/ui/PlayerSelectionBar";
 import Dialog from "@/components/ui/Dialog";
 import { teams } from "@/app/data/teams";
 import { players } from "@/app/data/players";
+import { champions } from "@/app/data/champions";
 import type { Player } from "@/app/types/player";
 import type { Role } from "@/app/types/champion";
+import type { ChampionMasteryGrade } from "@/app/types/championMastery";
+import { getChampionGrade } from "@/app/utils/championMasteryUtils";
 import useBackRedirect from "@/app/hooks/useBrowserBackRedirect";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -40,12 +44,12 @@ type EnrichedPlayer = Player & {
 const roleOrder: Role[] = ["top", "jungle", "mid", "adc", "support"];
 
 const REGION_BUDGET: Record<string, number> = {
-  lck: 39,
-  lpl: 39,
+  lck: 38,
+  lpl: 38,
   lec: 37,
-  lcs: 37,
+  lcs: 36,
 };
-const DEFAULT_BUDGET = 39;
+const DEFAULT_BUDGET = 38;
 
 /**
  * Group A: LCK + LPL   |   Group B: LEC + LCS
@@ -117,6 +121,309 @@ function getStatValue(player: EnrichedPlayer, key: SortKey): number {
   }
 }
 
+// ─── Champion Mastery Popup ───────────────────────────────────────────────────
+
+const MASTERY_GRADE_ORDER: ChampionMasteryGrade[] = ["SS", "S", "A", "B", "C", "D", "F"];
+
+const GRADE_COLORS: Record<ChampionMasteryGrade, { bg: string; text: string; border: string }> = {
+  SS: { bg: "#B8860B",  text: "#FFF8E1", border: "#FFD466" },
+  S:  { bg: "#8B1A2B",  text: "#FFD1DA", border: "#E84868" },
+  A:  { bg: "#5B2D8E",  text: "#E8D4FF", border: "#A86EDB" },
+  B:  { bg: "#1A6B5A",  text: "#D4F5ED", border: "#38BFA0" },
+  C:  { bg: "#4A4A52",  text: "#D0D0D4", border: "#808088" },
+  D:  { bg: "#6B4226",  text: "#EADDD4", border: "#A87850" },
+  F:  { bg: "#3A1A1A",  text: "#D08080", border: "#802020" },
+};
+
+function MasteryGradeBadge({ grade }: { grade: ChampionMasteryGrade }) {
+  const colors = GRADE_COLORS[grade];
+  return (
+    <span
+      style={{
+        position: "absolute",
+        top: -4,
+        left: -4,
+        zIndex: 2,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: grade === "SS" ? 26 : 22,
+        height: 22,
+        borderRadius: 6,
+        background: colors.bg,
+        border: `1.5px solid ${colors.border}`,
+        color: colors.text,
+        fontSize: 10,
+        fontWeight: 800,
+        letterSpacing: "0.04em",
+        fontFamily: '"Spiegel", sans-serif',
+        lineHeight: 1,
+      }}
+    >
+      {grade}
+    </span>
+  );
+}
+
+function ChampionMasteryPopup({
+  player,
+  onClose,
+}: {
+  player: Player;
+  onClose: () => void;
+}) {
+  const role = player.role as Role;
+
+  const masteryList = useMemo(() => {
+    const roleChamps = champions.filter((c) => c.roles.includes(role));
+    return roleChamps
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        image: c.image,
+        grade: getChampionGrade(player, c.id),
+      }))
+      .sort((a, b) => {
+        const ga = MASTERY_GRADE_ORDER.indexOf(a.grade);
+        const gb = MASTERY_GRADE_ORDER.indexOf(b.grade);
+        if (ga !== gb) return ga - gb;
+        return a.name.localeCompare(b.name);
+      });
+  }, [player, role]);
+
+  const playstyleLine = [
+    player.playstyleIdentity?.displayPrimary,
+    player.playstyleIdentity?.displaySecondary,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+
+  const tagsLine = (player.playstyleIdentity?.displayTags ?? []).join(", ");
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{
+        background: "rgba(11,11,15,0.70)",
+        backdropFilter: "blur(6px)",
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          gap: 20,
+          maxWidth: 760,
+          width: "calc(100vw - 48px)",
+          maxHeight: "calc(100vh - 48px)",
+          overflow: "hidden",
+          borderRadius: 16,
+          background: "var(--bg-surface)",
+          padding: "28px 32px 32px",
+        }}
+      >
+        {/* Close X */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            position: "absolute",
+            top: 16,
+            right: 16,
+            width: 28,
+            height: 28,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: "none",
+            background: "transparent",
+            color: "var(--text-highlight)",
+            fontSize: 20,
+            fontWeight: 700,
+            cursor: "pointer",
+            borderRadius: 6,
+            transition: "background 0.15s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+          }}
+        >
+          ✕
+        </button>
+
+        {/* Player info row */}
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <div
+            style={{
+              width: 100,
+              height: 120,
+              flexShrink: 0,
+              overflow: "hidden",
+              borderRadius: 8,
+              background: "var(--bg-elevated)",
+            }}
+          >
+            {player.image && (
+              <img
+                src={player.image}
+                alt={player.name}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center top",
+                }}
+              />
+            )}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span
+              style={{
+                fontSize: 22,
+                fontWeight: 700,
+                color: "var(--text-primary)",
+                lineHeight: 1.2,
+              }}
+            >
+              {player.name}
+            </span>
+
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.1em",
+                color: "var(--text-highlight)",
+              }}
+            >
+              {role.toUpperCase()}
+            </span>
+
+            {playstyleLine && (
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "var(--text-primary)",
+                  letterSpacing: "0.02em",
+                }}
+              >
+                {playstyleLine.toUpperCase()}
+              </span>
+            )}
+
+            {tagsLine && (
+              <span
+                style={{
+                  fontSize: 11,
+                  color: "var(--text-secondary)",
+                  letterSpacing: "0.02em",
+                }}
+              >
+                {tagsLine.toUpperCase()}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Champion grid */}
+        <div
+          className="mastery-scroll"
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            display: "grid",
+            gridTemplateColumns: "repeat(5, 1fr)",
+            gap: 12,
+            paddingRight: 4,
+          }}
+        >
+          {masteryList.map((entry) => {
+            const colors = GRADE_COLORS[entry.grade];
+            const isUnplayable = entry.grade === "F";
+            return (
+              <div
+                key={entry.id}
+                className="flex flex-col items-center"
+                style={{ gap: 4, position: "relative" }}
+              >
+                <div
+                  style={{
+                    position: "relative",
+                    width: 80,
+                    height: 80,
+                    borderRadius: 8,
+                    overflow: "hidden",
+                    border: `2px solid ${colors.border}`,
+                    filter: isUnplayable
+                      ? "grayscale(0.7) brightness(0.5)"
+                      : "none",
+                    transition: "transform 0.15s ease, box-shadow 0.15s ease",
+                    cursor: "default",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isUnplayable) {
+                      e.currentTarget.style.transform = "scale(1.05)";
+                      e.currentTarget.style.boxShadow = `0 0 12px ${colors.border}55`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                >
+                  <MasteryGradeBadge grade={entry.grade} />
+                  <img
+                    src={entry.image}
+                    alt={entry.name}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      objectPosition: "center 15%",
+                    }}
+                  />
+                </div>
+                <span
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 700,
+                    letterSpacing: "0.04em",
+                    color: isUnplayable
+                      ? "var(--text-muted)"
+                      : "var(--text-secondary)",
+                    maxWidth: 84,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    textAlign: "center",
+                    textTransform: "uppercase",
+                    lineHeight: "12px",
+                  }}
+                >
+                  {entry.name}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function DraftPage() {
@@ -138,6 +445,7 @@ export default function DraftPage() {
   const [activeRegionFilter, setActiveRegionFilter] = useState<RegionFilter>("ALL");
   const [sortKey,            setSortKey]            = useState<SortKey>("rosterPoints");
   const [sortDir,            setSortDir]            = useState<SortDir>("desc");
+  const [masteryPlayer,      setMasteryPlayer]      = useState<EnrichedPlayer | null>(null);
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
@@ -322,6 +630,24 @@ export default function DraftPage() {
       <style>{`
         .draft-scroll::-webkit-scrollbar { display: none; }
         .draft-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+
+        .mastery-scroll::-webkit-scrollbar { width: 6px; }
+        .mastery-scroll::-webkit-scrollbar-track {
+          background: rgba(255,255,255,0.04);
+          border-radius: 3px;
+        }
+        .mastery-scroll::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.15);
+          border-radius: 3px;
+          transition: background 0.2s;
+        }
+        .mastery-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(255,255,255,0.28);
+        }
+        .mastery-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255,255,255,0.15) rgba(255,255,255,0.04);
+        }
       `}</style>
 
       <div
@@ -577,11 +903,12 @@ export default function DraftPage() {
             }}
           >
             <colgroup>
-              <col style={{ width: "15%" }} />
+              <col style={{ width: "14%" }} />
               <col style={{ width: "8%"  }} />
               {TABLE_COLUMNS.map((c) => (
-                <col key={c.key} style={{ width: `${77 / TABLE_COLUMNS.length}%` }} />
+                <col key={c.key} style={{ width: `${72 / TABLE_COLUMNS.length}%` }} />
               ))}
+              <col style={{ width: "6%" }} />
             </colgroup>
             <thead>
               <tr>
@@ -609,6 +936,7 @@ export default function DraftPage() {
                     </th>
                   );
                 })}
+                <th style={{ ...thStyle, textAlign: "center" }}>CHAMPION POOL</th>
               </tr>
             </thead>
           </table>
@@ -628,11 +956,12 @@ export default function DraftPage() {
             }}
           >
             <colgroup>
-              <col style={{ width: "15%" }} />
+              <col style={{ width: "14%" }} />
               <col style={{ width: "8%"  }} />
               {TABLE_COLUMNS.map((c) => (
-                <col key={c.key} style={{ width: `${77 / TABLE_COLUMNS.length}%` }} />
+                <col key={c.key} style={{ width: `${72 / TABLE_COLUMNS.length}%` }} />
               ))}
+              <col style={{ width: "6%" }} />
             </colgroup>
 
             <tbody>
@@ -700,6 +1029,44 @@ export default function DraftPage() {
                     <td style={tdStyle}>{player.stats.clt}</td>
                     <td style={tdStyle}>{player.stats.con}</td>
                     <td style={tdStyle}>{player.stats.iq}</td>
+
+                    {/* Champion pool — chevron opens mastery popup */}
+                    <td style={{ ...tdStyle, textAlign: "center", padding: "8px 4px" }}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMasteryPlayer(player);
+                        }}
+                        aria-label={`See ${player.name}'s champion pool`}
+                        style={{
+                          display:        "inline-flex",
+                          alignItems:     "center",
+                          justifyContent: "center",
+                          width:          24,
+                          height:         24,
+                          padding:        0,
+                          border:         "none",
+                          background:     "transparent",
+                          cursor:         "pointer",
+                          color:          "#10E4F9",
+                          transition:     "transform 0.15s ease, filter 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "scale(1.12)";
+                          e.currentTarget.style.filter = "drop-shadow(0 0 4px rgba(16,228,249,0.6))";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "scale(1)";
+                          e.currentTarget.style.filter = "none";
+                        }}
+                      >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M11 9L14 12L11 15" stroke="#10E4F9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M12 3C19.2 3 21 4.8 21 12C21 19.2 19.2 21 12 21C4.8 21 3 19.2 3 12C3 4.8 4.8 3 12 3Z" stroke="#10E4F9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -728,6 +1095,13 @@ export default function DraftPage() {
         primaryLabel="Ready"
         onPrimaryAction={handleConfirmReady}
       />
+
+      {masteryPlayer && (
+        <ChampionMasteryPopup
+          player={masteryPlayer}
+          onClose={() => setMasteryPlayer(null)}
+        />
+      )}
     </>
   );
 }

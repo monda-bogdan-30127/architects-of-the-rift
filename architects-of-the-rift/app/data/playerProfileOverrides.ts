@@ -787,8 +787,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   // LEC — Team Heretics (1-6 Spring)
   // ══════════════════════════════════════════════════════════════════
   "tracyn": {
-    primaryStyle: "tank",
-    primaryDisplayOverride: "Controller",
+    primaryStyle: "carry",
+    primaryDisplayOverride: "Carry",
     secondaryStyle: "weakside",
     tagOverrides: { add: ["Stable"] },
   },

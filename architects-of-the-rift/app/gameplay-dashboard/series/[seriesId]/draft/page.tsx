@@ -11,6 +11,9 @@ import { resolveFinishedDraftAssignments } from "@/app/draft-engine/draftEngine"
 import MatchResultsDialog from "@/components/ui/MatchResultsDialog";
 import type { DraftGameState, DraftSave, DraftSimulationResult, DraftStep, Side } from "@/app/draft-engine/draftTypes";
 import type { Champion, Role } from "@/app/types/champion";
+import type { Player } from "@/app/types/player";
+import type { ChampionMasteryGrade } from "@/app/types/championMastery";
+import { getChampionGrade } from "@/app/utils/championMasteryUtils";
 
 const CHAMPION_CARD_SIZE = 86;
 const CHAMPION_CARD_GAP = 5;
@@ -19,7 +22,6 @@ const MINI_SLOT_SIZE = 34;
 
 const ROLE_ORDER: Role[] = ["top", "jungle", "mid", "adc", "support"];
 const FILTERS: Array<{ key: Role | "all"; label: string; icon: string }> = [
-  { key: "all", label: "ALL", icon: "/pictures/all-roles.png" },
   { key: "top", label: "TOP", icon: "/pictures/filter-tag.png" },
   { key: "jungle", label: "JG", icon: "/pictures/filter-tag-1.png" },
   { key: "mid", label: "MID", icon: "/pictures/filter-tag-2.png" },
@@ -199,6 +201,38 @@ const DRAFT_STYLES = `
   .draft-active-side {
     animation: draft-side-glow 2.4s ease-in-out infinite;
   }
+
+  /* ── Custom mastery tooltip (0.4s delay, position-aware) ──────────────── */
+  [data-mastery-tip] {
+    position: relative;
+  }
+  [data-mastery-tip]::after {
+    content: attr(data-mastery-tip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: rgba(20,20,26,0.94);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.88);
+    font-size: 11px;
+    font-weight: 500;
+    font-family: "Spiegel", sans-serif;
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.12s ease 0s;
+  }
+  [data-mastery-tip]:hover::after {
+    opacity: 1;
+    transition: opacity 0.12s ease 0.4s;
+  }
+  [data-tip-align="left"]::after  { left: 0; }
+  [data-tip-align="center"]::after { left: 50%; transform: translateX(-50%); }
+  [data-tip-align="right"]::after  { right: 0; }
 `;
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -284,7 +318,8 @@ export default function DraftPage() {
   }
 
   function handleFilterToggle(nextFilter: Role | "all") {
-    setRoleFilter((prev) => nextFilter === "all" ? "all" : prev === nextFilter ? "all" : nextFilter);
+    if (nextFilter === "all") { setRoleFilter("all"); return; }
+    setRoleFilter((prev) => prev === nextFilter ? "all" : nextFilter);
   }
 
   function handleSwapMenuToggle(role: Role) {
@@ -312,6 +347,21 @@ export default function DraftPage() {
     window.addEventListener("mousedown", handlePointerDown);
     return () => window.removeEventListener("mousedown", handlePointerDown);
   }, [openSwapRole]);
+
+  // ── Mastery overlay: resolve which player's mastery to show ───────────────
+  const masteryPlayer = useMemo(() => {
+    if (roleFilter === "all" || !currentStep || !blueTeam || !redTeam) return null;
+    const role = roleFilter as Role;
+    const isBan = currentStep.action === "ban";
+    const relevantTeam = isBan
+      ? (userSide === "blue" ? redTeam : blueTeam)
+      : (userSide === "blue" ? blueTeam : redTeam);
+    const roster = getTeamRosterFromSources({ team: relevantTeam, save: draftSave });
+    const playerId = roster[role];
+    if (!playerId) return null;
+    const player = players.find((p) => p.id === playerId);
+    return player ?? null;
+  }, [roleFilter, currentStep, userSide, blueTeam, redTeam, draftSave]);
 
   if (!series || !currentGame || !blueTeam || !redTeam) {
     return (
@@ -438,7 +488,7 @@ export default function DraftPage() {
           }}>
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
               {FILTERS.map((f) => {
-                const isActive = (f.key === "all" && roleFilter === "all") || roleFilter === f.key;
+                const isActive = roleFilter === f.key;
                 return (
                   <button
                     key={f.key}
@@ -496,13 +546,14 @@ export default function DraftPage() {
           </div>
 
           {/* Champion grid */}
-          <div className="draft-scroll" style={{ flex: 1, overflowY: "auto", padding: "10px 14px 14px" }}>
+          <div className="draft-scroll" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "10px 14px 14px" }}>
             <ChampionGrid
               champions={filteredChampions}
               selectedChampionId={selectedChampionId}
               unavailableChampionIds={unavailableChampionIds}
               isUserTurn={isUserTurn}
               onChampionClick={handleChampionClick}
+              masteryPlayer={masteryPlayer}
             />
           </div>
 
@@ -961,14 +1012,68 @@ function SidebarPanel({
 }
 
 // ─── Champion Grid ─────────────────────────────────────────────────────────────
+// ── Mastery grade colours & tooltip descriptions ─────────────────────────────
+
+const GRADE_COLORS: Record<ChampionMasteryGrade, { bg: string; text: string; border: string }> = {
+  SS: { bg: "#B8860B",  text: "#FFF8E1", border: "#FFD466" },
+  S:  { bg: "#8B1A2B",  text: "#FFD1DA", border: "#E84868" },
+  A:  { bg: "#5B2D8E",  text: "#E8D4FF", border: "#A86EDB" },
+  B:  { bg: "#1A6B5A",  text: "#D4F5ED", border: "#38BFA0" },
+  C:  { bg: "#4A4A52",  text: "#D0D0D4", border: "#808088" },
+  D:  { bg: "#6B4226",  text: "#EADDD4", border: "#A87850" },
+  F:  { bg: "#3A1A1A",  text: "#D08080", border: "#802020" },
+};
+
+const GRADE_TOOLTIP: Record<ChampionMasteryGrade, string> = {
+  SS: "Best in the world — must-ban",
+  S:  "Elite level — strong priority",
+  A:  "Reliable competitive pick",
+  B:  "Decent pick — solid baseline",
+  C:  "Below average — narrow situations",
+  D:  "Underperforms — avoid unless forced",
+  F:  "Cannot play this champion",
+};
+
+function MasteryBadgeSmall({ grade }: { grade: ChampionMasteryGrade }) {
+  const colors = GRADE_COLORS[grade];
+  return (
+    <span
+      style={{
+        position: "absolute",
+        top: -3,
+        left: -3,
+        zIndex: 3,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: grade === "SS" ? 22 : 18,
+        height: 18,
+        borderRadius: 5,
+        background: colors.bg,
+        border: `1.5px solid ${colors.border}`,
+        color: colors.text,
+        fontSize: 8,
+        fontWeight: 800,
+        letterSpacing: "0.04em",
+        fontFamily: '"Spiegel", sans-serif',
+        lineHeight: 1,
+        pointerEvents: "none",
+      }}
+    >
+      {grade}
+    </span>
+  );
+}
+
 function ChampionGrid({
-  champions, selectedChampionId, unavailableChampionIds, isUserTurn, onChampionClick,
+  champions: champs, selectedChampionId, unavailableChampionIds, isUserTurn, onChampionClick, masteryPlayer,
 }: {
   champions: Champion[];
   selectedChampionId: string | null;
   unavailableChampionIds: Set<string>;
   isUserTurn: boolean;
   onChampionClick: (id: string) => void;
+  masteryPlayer: Player | null;
 }) {
   return (
     <div style={{
@@ -976,9 +1081,19 @@ function ChampionGrid({
       gridTemplateColumns: `repeat(${CHAMPION_GRID_COLUMNS}, ${CHAMPION_CARD_SIZE}px)`,
       gap: CHAMPION_CARD_GAP,
     }}>
-      {champions.map((champion) => {
+      {champs.map((champion, idx) => {
         const isUnavailable = unavailableChampionIds.has(champion.id);
         const isSelected = selectedChampionId === champion.id;
+
+        const grade = masteryPlayer ? getChampionGrade(masteryPlayer, champion.id) : null;
+        const gradeColors = grade ? GRADE_COLORS[grade] : null;
+        const tooltipText = masteryPlayer && grade
+          ? `${masteryPlayer.name}: ${grade} — ${GRADE_TOOLTIP[grade]}`
+          : undefined;
+
+        // Tooltip alignment based on grid column
+        const col = idx % CHAMPION_GRID_COLUMNS;
+        const tipAlign = col <= 1 ? "left" : col >= CHAMPION_GRID_COLUMNS - 2 ? "right" : "center";
 
         return (
           <button
@@ -987,6 +1102,7 @@ function ChampionGrid({
             onClick={() => onChampionClick(champion.id)}
             disabled={!isUserTurn || isUnavailable}
             className="draft-champ-btn"
+            {...(tooltipText ? { "data-mastery-tip": tooltipText, "data-tip-align": tipAlign } : {})}
             style={{
               width: CHAMPION_CARD_SIZE,
               display: "flex",
@@ -1004,21 +1120,29 @@ function ChampionGrid({
               width: CHAMPION_CARD_SIZE,
               height: CHAMPION_CARD_SIZE,
               position: "relative",
-              overflow: "hidden",
+              overflow: "visible",
               background: "var(--bg-elevated)",
-              outline: isSelected ? "2px solid var(--primary)" : "1px solid var(--border-default)",
+              outline: isSelected
+                ? "2px solid var(--primary)"
+                : grade && gradeColors
+                  ? `2px solid ${gradeColors.border}`
+                  : "1px solid var(--border-default)",
               outlineOffset: isSelected ? "-1px" : "0px",
               boxShadow: isSelected ? "0 0 12px rgba(16,228,249,0.3)" : "none",
               transition: "outline 0.12s, box-shadow 0.12s",
+              borderRadius: 2,
             }}>
-              <Image
-                src={champion.image || "/pictures/champion-thumbnail-placeholder.png"}
-                alt={champion.name}
-                fill
-                sizes={`${CHAMPION_CARD_SIZE}px`}
-                className="draft-champ-img"
-                style={{ objectFit: "cover" }}
-              />
+              {grade && !isUnavailable && <MasteryBadgeSmall grade={grade} />}
+              <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
+                <Image
+                  src={champion.image || "/pictures/champion-thumbnail-placeholder.png"}
+                  alt={champion.name}
+                  fill
+                  sizes={`${CHAMPION_CARD_SIZE}px`}
+                  className="draft-champ-img"
+                  style={{ objectFit: "cover" }}
+                />
+              </div>
               {isSelected && (
                 <div style={{
                   position: "absolute",

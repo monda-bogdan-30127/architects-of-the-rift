@@ -196,6 +196,7 @@ const baseChampions: Champion[] = [
 
     weakVs: [
       { championId: "lee-sin", score: 5 },
+      { championId: "ezreal", score: 5 },
       { championId: "qiyana", score: 3 },
       { championId: "vi", score: 3 },
       { championId: "maokai", score: 2 },
@@ -434,6 +435,7 @@ const baseChampions: Champion[] = [
       { championId: "karma", score: 3 },
       { championId: "seraphine", score: 3 },
       { championId: "braum", score: 3 },
+      { championId: "ezreal", score: 4 },
     ],
 
     synergyWith: [
@@ -3058,6 +3060,7 @@ const baseChampions: Champion[] = [
     needs: [
       { type: "frontline", priority: 1 }
     ],
+
     weaknesses: [
       { exposedTo: "earlyPrio", severity: 2 },
       { exposedTo: "objectiveControl", severity: 1 },
@@ -9507,6 +9510,34 @@ const baseChampions: Champion[] = [
 
   createChampion({
     id: "senna",
+
+    goodVs: [
+      { championId: "milio", score: 4 },
+      { championId: "nautilus", score: 3 },
+      { championId: "xayah", score: 3 },
+      { championId: "lucian", score: 2 },
+      { championId: "jhin", score: 2 },
+    ],
+
+    weakVs: [
+      { championId: "kaisa", score: 5 },
+      { championId: "nami", score: 4 },
+      { championId: "blitzcrank", score: 4 },
+      { championId: "bard", score: 3 },
+      { championId: "caitlyn", score: 3 },
+    ],
+
+    synergyWith: [
+      { championId: "nautilus", score: 5 },
+      { championId: "taric", score: 5 },
+      { championId: "wukong", score: 4 },
+      { championId: "tahm-kench", score: 4 },
+      { championId: "maokai", score: 4 },
+      { championId: "leona", score: 3 },
+      { championId: "xin-zhao", score: 3 },
+      { championId: "sejuani", score: 3 },
+    ],
+
     offers: [
       { type: "poke", strength: 4 },
       { type: "scaling", strength: 4 },
@@ -9517,6 +9548,7 @@ const baseChampions: Champion[] = [
       { type: "frontline", priority: 2 },
       { type: "peel", priority: 1 }
     ],
+    
     weaknesses: [
       { exposedTo: "dive", severity: 3 },
       { exposedTo: "backlineAccess", severity: 3 },
