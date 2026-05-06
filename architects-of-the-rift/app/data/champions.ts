@@ -2722,7 +2722,7 @@ const baseChampions: Champion[] = [
 
     weakVs: [
       { championId: "janna", score: 4 },
-      { championId: "seraphine", score: 4 },
+      { championId: "seraphine", score: 2 },
       { championId: "bard", score: 3 },
       { championId: "renata-glasc", score: 3 },
       { championId: "rakan", score: 3 },
