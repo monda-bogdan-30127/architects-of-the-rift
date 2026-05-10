@@ -26,6 +26,8 @@ import type {
   PlayerHistoryStore,
   PlayerHistoryStatLine,
 } from "@/app/draft-engine/playerHistoryTypes";
+import SpiritIndicator from "@/components/ui/SpiritIndicator";
+import SpiritLogTab from "@/components/ui/SpiritLogTab";
 
 type DraftSave = {
   region: string;
@@ -335,7 +337,7 @@ function ArrowButton({
   );
 }
 
-type PlayerTab = "stats" | "mastery";
+type PlayerTab = "stats" | "mastery" | "spirit";
 type MasterySort = "grade" | "alpha";
 
 const GRADE_COLORS: Record<ChampionMasteryGrade, { bg: string; text: string; border: string }> = {
@@ -607,6 +609,7 @@ function PlayerCard({
   kdaMap,
   mvpMap,
   history,
+  isControlledTeam,
 }: {
   player: Player | null;
   role: Role;
@@ -615,6 +618,7 @@ function PlayerCard({
   kdaMap: Map<string, number>;
   mvpMap: Map<string, MvpEntry>;
   history: PlayerHistoryStore;
+  isControlledTeam: boolean;
 }) {
   const perfs = useMemo(
     () => (player ? getPlayerChampionPerf(history, player.id) : []),
@@ -648,6 +652,13 @@ function PlayerCard({
 
   const [activeTab, setActiveTab] = useState<PlayerTab>("stats");
   const [masterySort, setMasterySort] = useState<MasterySort>("grade");
+
+  // Fall back to stats if navigating away from controlled team while on spirit tab
+  useEffect(() => {
+    if (!isControlledTeam && activeTab === "spirit") {
+      setActiveTab("stats");
+    }
+  }, [isControlledTeam, activeTab]);
 
   return (
     <section
@@ -710,6 +721,14 @@ function PlayerCard({
           >
             {ROLE_LABELS[role]}
           </p>
+
+          {isControlledTeam && player && (
+            <SpiritIndicator
+              playerId={player.id}
+              showLabel
+              size="medium"
+            />
+          )}
 
           {playstyleLine ? (
             <p
@@ -776,9 +795,18 @@ function PlayerCard({
               borderBottom: "1px solid var(--border-default)",
             }}
           >
-            {(["stats", "mastery"] as PlayerTab[]).map((tab) => {
+            {(
+              isControlledTeam
+                ? (["stats", "mastery", "spirit"] as PlayerTab[])
+                : (["stats", "mastery"] as PlayerTab[])
+            ).map((tab) => {
               const isActive = activeTab === tab;
-              const label = tab === "stats" ? "STATS" : "CHAMPION MASTERY";
+              const label =
+                tab === "stats"
+                  ? "STATS"
+                  : tab === "mastery"
+                    ? "CHAMPION MASTERY"
+                    : "SPIRIT LOG";
               return (
                 <button
                   key={tab}
@@ -874,13 +902,15 @@ function PlayerCard({
                 WIN RATE: {winRateText}
               </p>
             </div>
-          ) : player ? (
+          ) : activeTab === "mastery" && player ? (
             <ChampionMasteryTab
               player={player}
               role={role}
               sort={masterySort}
               onSortChange={setMasterySort}
             />
+          ) : activeTab === "spirit" && player && isControlledTeam ? (
+            <SpiritLogTab playerId={player.id} />
           ) : (
             <p className="text-[var(--text-secondary)]" style={{ fontSize: 13 }}>
               No player selected.
@@ -1053,6 +1083,11 @@ export default function RostersPage() {
   const currentSlot =
     currentGroup?.slots.find((s) => s.role === selectedRole) ?? null;
 
+  const isControlledTeam = useMemo(() => {
+    if (!save || !currentGroup) return false;
+    return currentGroup.team.slug === save.controlledTeamSlug;
+  }, [save, currentGroup]);
+
   const goPrevTeam = () => {
     if (teamCount <= 1) return;
     setSelectedTeamIndex((idx) => (idx - 1 + teamCount) % teamCount);
@@ -1170,6 +1205,7 @@ export default function RostersPage() {
                     kdaMap={kdaMap}
                     mvpMap={mvpMap}
                     history={historyStore}
+                    isControlledTeam={isControlledTeam}
                   />
                 </div>
               )}

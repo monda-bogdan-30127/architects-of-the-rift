@@ -72,6 +72,14 @@ import {
 } from "./championMasteryDraftSystem";
 import { clearSignatureSlotCache } from "./championMasteryDraftSystem";
 import { clearAdvancedContextCache } from "./championMasteryAdvanced";
+import {
+  getSpiritScoreModifier,
+  getSpiritVarianceFactor,
+} from "./playerSpiritStorage";
+import {
+  appendGameToSpiritAccumulator,
+  flushSeriesToSpiritEngine,
+} from "./playerSpiritAccumulator";
 
 // At the start of each simulation/draft:
 clearSignatureSlotCache();
@@ -498,6 +506,10 @@ function buildPlayerScores(args: {
   scoreDiff: number;
   blueTeamTotal: number;
   redTeamTotal: number;
+  // SPIRIT: needed to gate spirit modifier to controlled team only
+  blueTeamSlug: string;
+  redTeamSlug: string;
+  controlledTeamSlug: string;
 }): PlayerGameScore[] {
   const result: PlayerGameScore[] = [];
 
@@ -534,6 +546,16 @@ function buildPlayerScores(args: {
 
       // ── MASTERY: variance factor (consistent execution for high mastery) ────
       const masteryVariance = getMasteryVarianceFactor(player, entry.championId);
+      // ── SPIRIT: variance factor (motivated → consistent, on-edge → unstable)
+      // Returns 1.0 for non-controlled-team players, so it's a no-op for AI.
+      const spiritVariance = getSpiritVarianceFactor(
+        entry.playerId,
+        entry.side,
+        args.blueTeamSlug,
+        args.redTeamSlug,
+        args.controlledTeamSlug,
+      );
+      const effectiveVariance = masteryVariance * spiritVariance;
       const champRoleProfile = getChampionRoleProfile(getChampionById(entry.championId), role);
       const clutch = playerClutchScore(entry.playerId);
       const execution = playerExecutionScore(entry.playerId);
@@ -560,7 +582,7 @@ function buildPlayerScores(args: {
       // REBALANCE: reduced from 0.8 to 0.55 for 25% RNG target
       const personalRng = seededNoise(
         `${args.seriesId}:g${args.gameNumber}:${role}:${entry.side}:${entry.playerId}:personal`,
-        0.55 * personality.volatilityRngScale * masteryVariance
+        0.55 * personality.volatilityRngScale * effectiveVariance
       );
 
       // Win dominance scaling — close wins ≠ stomps
@@ -589,7 +611,7 @@ function buildPlayerScores(args: {
       // REBALANCE: reduced from 0.30 to 0.18
       const rng = seededNoise(
         `${args.seriesId}:g${args.gameNumber}:${role}:${entry.side}:${entry.playerId}:${entry.championId}`,
-        0.18 * personality.volatilityRngScale * masteryVariance
+        0.18 * personality.volatilityRngScale * effectiveVariance
       );
 
       const impact = clamp(
@@ -719,6 +741,16 @@ function buildPlayerScores(args: {
         const deficit = 2.5 - rawScore;
         finalScore = 2.5 - Math.log(1 + deficit) * 0.6;
       }
+
+      // ── SPIRIT: score modifier (controlled team only, returns 0 for AI)
+      const spiritMod = getSpiritScoreModifier(
+        entry.playerId,
+        entry.side,
+        args.blueTeamSlug,
+        args.redTeamSlug,
+        args.controlledTeamSlug,
+      );
+      finalScore += spiritMod;
 
       const score = clamp(finalScore, 1, 10);
 
@@ -1123,6 +1155,10 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   );
 
 
+  // Compute team slugs early so we can pass them into buildPlayerScores
+  // (needed for spirit modifier gating). They reflect side swaps across games.
+  const gameTeamSlugs = getGameTeamSlugsForGameNumber(input.series, input.game.number);
+
   const playerScores = buildPlayerScores({
     winnerSide: finalWinnerSide,
     blueRoster,
@@ -1138,6 +1174,9 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     scoreDiff: blueScores.total - redScores.total,
     blueTeamTotal: blueScores.total,
     redTeamTotal: redScores.total,
+    blueTeamSlug: gameTeamSlugs.blueTeamSlug,
+    redTeamSlug: gameTeamSlugs.redTeamSlug,
+    controlledTeamSlug: input.save?.controlledTeamSlug ?? "",
   });
 
   const mvp = [...playerScores].sort((a, b) => b.score - a.score)[0] ?? null;
@@ -1163,8 +1202,6 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
 
   const seriesScore = computeSeriesScoreAfterGame(input, finalWinnerSide);
   const reason = buildReason({ winnerSide: finalWinnerSide, blueScores, redScores });
-
-  const gameTeamSlugs = getGameTeamSlugsForGameNumber(input.series, input.game.number);
 
   recordGames(
     playerScores.map((playerScore) => ({
@@ -1217,6 +1254,57 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     },
     seriesComplete,
   );
+
+  // ── SPIRIT: accumulate per-game data; flush to engine when series completes
+  const controlledSlug = input.save?.controlledTeamSlug ?? "";
+  const isControlledInGame =
+    controlledSlug !== "" &&
+    (gameTeamSlugs.blueTeamSlug === controlledSlug ||
+     gameTeamSlugs.redTeamSlug === controlledSlug);
+
+  if (isControlledInGame) {
+    const controlledSide: "blue" | "red" =
+      gameTeamSlugs.blueTeamSlug === controlledSlug ? "blue" : "red";
+
+    // bansBlue/bansRed may not exist on every game state shape; default safely.
+    const gameAny = input.game as unknown as { bansBlue?: string[]; bansRed?: string[] };
+    const bans = [
+      ...(Array.isArray(gameAny.bansBlue) ? gameAny.bansBlue : []),
+      ...(Array.isArray(gameAny.bansRed) ? gameAny.bansRed : []),
+    ];
+
+    appendGameToSpiritAccumulator({
+      seriesId: input.series.seriesId,
+      bo: input.series.bo as 3 | 5,
+      controlledTeamSlug: controlledSlug,
+      controlledRoster: controlledSide === "blue" ? blueRoster : redRoster,
+      snapshot: {
+        gameNumber: input.game.number,
+        winnerSide: finalWinnerSide,
+        controlledSide,
+        bans,
+        playerEntries: playerScores.map((p) => ({
+          playerId: p.playerId ?? "",
+          score: p.score,
+          championId: p.championId ?? null,
+          role: p.role,
+          side: p.side,
+          isGameMvp: mvp?.playerId === p.playerId,
+        })),
+      },
+    });
+
+    if (seriesComplete) {
+      flushSeriesToSpiritEngine({
+        seriesId: input.series.seriesId,
+        seriesMvpPlayerId: seriesMvpPlayerId ?? null,
+      });
+      // Notify any open Spirit UI to re-read.
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("rift-spirit-updated"));
+      }
+    }
+  }
 
   return {
     winnerSide: finalWinnerSide,

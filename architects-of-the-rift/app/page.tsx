@@ -12,6 +12,8 @@ const SERIES_SAVE_KEY = "rift-series-state";
 const ACTIVE_DRAFT_SERIES_KEY = "rift-active-series-draft";
 const PLAYER_HISTORY_KEY = "rift-player-history";
 const PLAYER_SEASON_STATS_KEY = "rift-player-season-stats";
+const PLAYER_SPIRIT_KEY = "rift-player-spirit";
+const SPIRIT_ACCUMULATOR_KEY = "rift-spirit-accumulator";
 
 export default function HomePage() {
   const router = useRouter();
@@ -32,6 +34,8 @@ export default function HomePage() {
     localStorage.removeItem(ACTIVE_DRAFT_SERIES_KEY);
     localStorage.removeItem(PLAYER_HISTORY_KEY);
     localStorage.removeItem(PLAYER_SEASON_STATS_KEY);
+    localStorage.removeItem(PLAYER_SPIRIT_KEY);
+    localStorage.removeItem(SPIRIT_ACCUMULATOR_KEY);
     localStorage.removeItem("rift-storage-version");
     localStorage.removeItem("rift-player-kda-stats");
     localStorage.removeItem("rift-player-mvp-stats");

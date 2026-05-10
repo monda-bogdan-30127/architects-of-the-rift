@@ -13,6 +13,8 @@ const PLAYER_SEASON_STATS_KEY = "rift-player-season-stats";
 const SAVE_KEY = "rift-draft-save";
 const SERIES_SAVE_KEY = "rift-series-state";
 const ACTIVE_DRAFT_SERIES_KEY = "rift-active-series-draft";
+const PLAYER_SPIRIT_KEY = "rift-player-spirit";
+const SPIRIT_ACCUMULATOR_KEY = "rift-spirit-accumulator";
 
 function localStorageSafe(): Storage | null {
   if (typeof window === "undefined") return null;
@@ -129,6 +131,8 @@ export function migrateAllRiftStorage() {
   validateJsonAtKey(storage, SAVE_KEY);
   validateJsonAtKey(storage, SERIES_SAVE_KEY);
   validateJsonAtKey(storage, ACTIVE_DRAFT_SERIES_KEY);
+  validateJsonAtKey(storage, PLAYER_SPIRIT_KEY);
+  validateJsonAtKey(storage, SPIRIT_ACCUMULATOR_KEY);
 
   storage.setItem(RIFT_STORAGE_VERSION_KEY, String(RIFT_STORAGE_VERSION));
 }
@@ -137,6 +141,13 @@ export function resetRiftStorageVersion() {
   const storage = localStorageSafe();
   if (!storage) return;
   storage.removeItem(RIFT_STORAGE_VERSION_KEY);
+}
+
+export function resetSpiritStorage() {
+  const storage = localStorageSafe();
+  if (!storage) return;
+  storage.removeItem(PLAYER_SPIRIT_KEY);
+  storage.removeItem(SPIRIT_ACCUMULATOR_KEY);
 }
 
 export function makeSafeStatLine(line?: Partial<PlayerHistoryStatLine> | null): PlayerHistoryStatLine {

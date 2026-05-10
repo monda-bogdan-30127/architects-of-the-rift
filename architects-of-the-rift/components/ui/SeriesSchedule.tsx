@@ -24,6 +24,14 @@ import {
 import type { PlayoffDialogState } from "@/app/utils/playoffTypes";
 import { saveFinalsMvp, savePlayoffChampion } from "@/app/utils/playoffStorage";
 import { getTeamFinalsMvpCandidate } from "@/app/utils/playoffUtils";
+import BeAwareDialog, {
+  BE_AWARE_THRESHOLD,
+  buildRecommendation,
+  type BeAwareEntry,
+} from "@/components/ui/BeAwareDialog";
+import { getSpirit } from "@/app/draft-engine/playerSpiritStorage";
+import { players } from "@/app/data/players";
+import type { Role } from "@/app/types/champion";
 
 type SeriesScheduleProps = {
   region: string;
@@ -635,6 +643,8 @@ export default function SeriesSchedule({
   const [seriesState, setSeriesState] = useState<SeriesState>({});
   const [isAwardsDialogOpen, setIsAwardsDialogOpen] = useState(false);
   const [loadingSeriesId, setLoadingSeriesId] = useState<string | null>(null);
+  const [pendingPlaySeries, setPendingPlaySeries] = useState<SeriesDefinition | null>(null);
+  const [beAwareEntries, setBeAwareEntries] = useState<BeAwareEntry[]>([]);
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const hasAutoScrolled = useRef(false);
 
@@ -861,12 +871,61 @@ export default function SeriesSchedule({
     }
   };
 
-  const handlePlaySeries = (series: SeriesDefinition) => {
+  const buildBeAwareEntries = (): BeAwareEntry[] => {
+    if (!controlledTeamSlug) return [];
+
+    const save = readJson<DraftSave>(SAVE_KEY);
+    if (!save) return [];
+
+    const roster =
+      save.updatedTeamRosters?.[controlledTeamSlug] ??
+      (save.controlledTeamSlug === controlledTeamSlug ? save.roster : undefined);
+    if (!roster) return [];
+
+    const entries: BeAwareEntry[] = [];
+    const ROLES: Role[] = ["top", "jungle", "mid", "adc", "support"];
+    for (const role of ROLES) {
+      const playerId = (roster as Partial<Record<Role, string>>)[role];
+      if (!playerId) continue;
+      const spirit = getSpirit(playerId);
+      if (spirit >= BE_AWARE_THRESHOLD) continue;
+
+      const player = players.find((p) => p.id === playerId);
+      entries.push({
+        playerId,
+        playerName: player?.name ?? playerId,
+        spirit,
+        recommendation: buildRecommendation(spirit),
+      });
+    }
+    return entries;
+  };
+
+  const navigateToSeriesDraft = (series: SeriesDefinition) => {
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(ACTIVE_DRAFT_SERIES_KEY);
     }
-
     router.push(`/gameplay-dashboard/series/${series.id}/draft`);
+  };
+
+  const handlePlaySeries = (series: SeriesDefinition) => {
+    const entries = buildBeAwareEntries();
+    if (entries.length === 0) {
+      // No flagged players → skip the dialog and go straight to the draft.
+      navigateToSeriesDraft(series);
+      return;
+    }
+    setBeAwareEntries(entries);
+    setPendingPlaySeries(series);
+  };
+
+  const handleBeAwareContinue = () => {
+    const series = pendingPlaySeries;
+    setPendingPlaySeries(null);
+    setBeAwareEntries([]);
+    if (series) {
+      navigateToSeriesDraft(series);
+    }
   };
 
   const handleReset = () => {
@@ -896,6 +955,12 @@ export default function SeriesSchedule({
         supportName={bestSupportName}
         bestStaffLabel={bestStaffLabel}
         onClose={() => setIsAwardsDialogOpen(false)}
+      />
+
+      <BeAwareDialog
+        open={pendingPlaySeries !== null}
+        entries={beAwareEntries}
+        onContinue={handleBeAwareContinue}
       />
 
       <div className="flex flex-col gap-[16px]">
