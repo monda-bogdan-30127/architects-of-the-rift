@@ -14,15 +14,20 @@ export type SpiritReason =
   | "series_loss"
   | "sweep_win"          // 2-0 in Bo3 or 3-0 in Bo5
   | "sweep_loss"         // 0-2 in Bo3 or 0-3 in Bo5
+  | "close_loss_cushion" // lost 1-2 (Bo3) or 2-3 (Bo5) — fought through
   | "high_score"         // ≥ 7.5 in ≥ 2 games
   | "low_score"          // ≤ 4.5 in ≥ 2 games
   | "game_mvp"           // awarded Game MVP in a game
   | "series_mvp"         // awarded Series MVP
+  | "mvp_loss_cushion"   // Series MVP in a lost series
   | "comfort_picks"      // 2+ games on SS/S/A champion
   | "off_comfort"        // 2+ games on C/D champion (in-series)
   | "off_comfort_streak" // 3 games consecutive on C/D (cross-series)
   | "resilience_win"     // won on a C/D champion
-  | "pool_pressure"      // ≤ 1 champion A+ available after bans
+  | "underperform_signature"   // score ≤4.5 on SS/S/A champ
+  | "overperform_off_comfort"  // score ≥7.5 on C/D champ
+  | "carried_alone_lost" // personal ≥7 avg, teammates ≤5.5 avg, series lost
+  | "pool_pressure"      // ≤ 2 A+ available after bans (soft) / 0 A+ (hard)
   | "leadership_boost"   // team leader spirit ≥ 65 → +2
   | "leadership_drain"   // team leader spirit < 45 → -2
   | "win_streak_3"       // 3 consecutive series wins

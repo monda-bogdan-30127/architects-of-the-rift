@@ -105,8 +105,9 @@ export function generatePlayerKDAs(args: {
       const champMod = clamp((champKda - 3) * 0.03, -0.05, 0.08);
 
       // Kill weight = role base × score multiplier
-      // Score 9.5 → multiplier ~2.5x, Score 5.0 → multiplier ~0.5x
-      const scoreMult = 0.3 + scoreNorm * 2.2;
+      // Score 9.5 → multiplier ~3.1x, Score 5.0 → multiplier ~0.3x
+      // Steeper curve = more variance within team (carries get more kills)
+      const scoreMult = 0.15 + scoreNorm * scoreNorm * 2.95;
       const weight = roleProfile.killWeight * scoreMult + champMod + rng * 0.03;
 
       killWeights.push(Math.max(0.01, weight));
@@ -141,9 +142,10 @@ export function generatePlayerKDAs(args: {
       const inverseScore = 1 - scoreNorm; // High score → 0, low score → 1
 
       // Death weight = role base × inverse score multiplier
-      // Score 5.0 → multiplier ~2.5x (lots of deaths)
-      // Score 9.5 → multiplier ~0.3x (barely dies)
-      const deathMult = 0.3 + inverseScore * 2.2;
+      // Score 5.0 → multiplier ~3.1x (lots of deaths)
+      // Score 9.5 → multiplier ~0.15x (barely dies)
+      // Quadratic curve: dying is strongly correlated with low scores
+      const deathMult = 0.15 + inverseScore * inverseScore * 2.95;
       const weight = roleProfile.deathWeight * deathMult + rng * 0.03;
 
       deathWeights.push(Math.max(0.01, weight));
@@ -191,6 +193,52 @@ export function generatePlayerKDAs(args: {
         player.kda = Math.min(99, Math.round((player.kills + player.assists) * 10) / 10);
       } else {
         player.kda = Math.round(((player.kills + player.assists) / player.deaths) * 10) / 10;
+      }
+    }
+
+    // ─── Score↔KDA consistency enforcement ───────────────────────
+    // High-scoring players MUST have a KDA that matches their score.
+    // If a 9.0 player somehow got 5 deaths from bad RNG, reduce deaths
+    // until KDA meets the floor. This prevents jarring mismatches.
+    const SCORE_KDA_FLOORS: Array<{ minScore: number; minKda: number }> = [
+      { minScore: 9.0, minKda: 5.0 },
+      { minScore: 8.5, minKda: 3.8 },
+      { minScore: 8.0, minKda: 3.0 },
+      { minScore: 7.5, minKda: 2.4 },
+    ];
+
+    // Also enforce a ceiling: low-scoring players shouldn't have amazing KDAs
+    const SCORE_KDA_CEILINGS: Array<{ maxScore: number; maxKda: number }> = [
+      { maxScore: 5.0, maxKda: 2.5 },
+      { maxScore: 4.5, maxKda: 1.8 },
+      { maxScore: 4.0, maxKda: 1.2 },
+    ];
+
+    for (const player of sidePlayers) {
+      // ── Floor enforcement (reduce deaths if KDA too low for score) ──
+      for (const { minScore, minKda } of SCORE_KDA_FLOORS) {
+        if (player.score >= minScore && player.kda < minKda && player.deaths > 0) {
+          // Reduce deaths until KDA meets floor (minimum 0 deaths)
+          while (player.deaths > 0) {
+            player.deaths -= 1;
+            player.kda = player.deaths === 0
+              ? Math.min(99, Math.round((player.kills + player.assists) * 10) / 10)
+              : Math.round(((player.kills + player.assists) / player.deaths) * 10) / 10;
+            if (player.kda >= minKda) break;
+          }
+          break; // Only apply the first (strictest) matching floor
+        }
+      }
+
+      // ── Ceiling enforcement (add deaths if KDA too high for low score) ──
+      for (const { maxScore, maxKda } of SCORE_KDA_CEILINGS) {
+        if (player.score <= maxScore && player.kda > maxKda) {
+          while (player.kda > maxKda && player.deaths < 12) {
+            player.deaths += 1;
+            player.kda = Math.round(((player.kills + player.assists) / player.deaths) * 10) / 10;
+          }
+          break;
+        }
       }
     }
   }
