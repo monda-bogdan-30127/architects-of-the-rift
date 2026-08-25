@@ -573,104 +573,126 @@ function buildPlayerScores(args: {
       const champTags = new Set(champProfile?.tags ?? []);
       const personality = getPlayerPersonalityModifiers(entry.playerId, champTags, args.closeness);
 
-      // ═══ UPGRADE 11: Tight realistic distribution ═══════════════════
-      // Goal: average pro game most players 5.5-7.5
-      //       stars 7.5-8.5, hard carry (rare) 8.5-9.3
-      //       10.0 reserved ONLY for perfect storm (carry event + lucky RNG + dominant win)
+      // ═══ PLAYER RATING v2: match performance first ═══════════════════
+      //
+      // The previous formula used 5.0 as the baseline for permanent player
+      // attributes. Because pro players are usually well above 5, almost every
+      // modifier became positive and teammates converged toward the same high
+      // rating after a win.
+      //
+      // Here permanent talent is measured against a pro-level baseline while
+      // lane performance + individual match variance carry more weight.
+      const proBaseline = 7.0;
 
-      // Per-player variance — each player rolls own day
-      // REBALANCE: reduced from 0.8 to 0.55 for 25% RNG target
+      // Every player gets an independent "game-day" roll.
       const personalRng = seededNoise(
         `${args.seriesId}:g${args.gameNumber}:${role}:${entry.side}:${entry.playerId}:personal`,
-        0.55 * personality.volatilityRngScale * effectiveVariance
+        0.85 * personality.volatilityRngScale * effectiveVariance
       );
 
-      // Win dominance scaling — close wins ≠ stomps
+      // Winning matters, but it no longer gives everybody a near-full grade.
       const dominance = clamp(Math.abs(args.scoreDiff) / 3, 0, 1);
-      // REDUCED: 0.8 / -0.7 (was 1.0 / -0.8)
-      const baseWinSwing = entry.side === args.winnerSide ? 0.8 : -0.7;
-      // Close games: 50% swing. Stomps: 115% swing.
-      const winModifier = baseWinSwing * (0.5 + dominance * 0.65);
+      const baseWinSwing = entry.side === args.winnerSide ? 0.45 : -0.35;
+      const winModifier = baseWinSwing * (0.55 + dominance * 0.65);
 
-      // REBALANCE: 30% comp / 45% talent / 25% RNG
-      // Standard modifiers — comp/draft boosted, talent boosted, RNG reduced
-      const laneModifier = (entry.laneScore - 5) * 0.18;          // mix of talent+draft (was 0.16)
-      const draftModifier = (entry.draftScore - 5) * 0.13;        // pure comp (was 0.09)
-      const fitModifier = (fit - 5) * 0.16;                       // comp×talent (was 0.12)
-      const executionModifier = (execution - 5) * 0.10;           // talent (was 0.08)
-      const clutchModifier = (clutch - 5) * 0.07;                 // talent (was 0.06)
-      const laneSkillModifier = (laning - 5) * 0.08;              // talent (was 0.06)
-      const macroModifier = (macro - 5) * 0.07;                   // talent (was 0.05)
-      const teamfightModifier = (teamfight - 5) * 0.08;           // talent (was 0.06)
-      const consistencyModifier = (consistency - 5) * 0.06;       // talent (was 0.04)
-      const archetypeModifier = (archetypeFit - 5) * 0.07;        // comp×talent (was 0.06)
-      const closeGameModifier = args.closeness * (clutch - 5) * 0.06 * personality.composureClutchScale;
-      const starModifier = (starPower - 5) * 0.12;                // talent (was 0.10)
+      // Match-specific performance is intentionally stronger than static talent.
+      const laneModifier = (entry.laneScore - 5) * 0.34;
+      const draftModifier = (entry.draftScore - 5) * 0.06;
 
-      // Champion RNG — small, most variance is in personalRng
-      // REBALANCE: reduced from 0.30 to 0.18
+      // Permanent player/champion quality improves the expected rating, but
+      // only relative to a realistic pro baseline.
+      const fitModifier = (fit - 6.5) * 0.10;
+      const executionModifier = (execution - proBaseline) * 0.05;
+      const clutchModifier = (clutch - proBaseline) * 0.04;
+      const laneSkillModifier = (laning - proBaseline) * 0.05;
+      const macroModifier = (macro - proBaseline) * 0.04;
+      const teamfightModifier = (teamfight - proBaseline) * 0.05;
+      const consistencyModifier = (consistency - proBaseline) * 0.03;
+      const archetypeModifier = (archetypeFit - 6.5) * 0.06;
+      const closeGameModifier =
+        args.closeness *
+        (clutch - proBaseline) *
+        0.05 *
+        personality.composureClutchScale;
+      const starModifier = (starPower - proBaseline) * 0.06;
+
+      // Champion-specific execution variance stays smaller than the personal roll.
       const rng = seededNoise(
         `${args.seriesId}:g${args.gameNumber}:${role}:${entry.side}:${entry.playerId}:${entry.championId}`,
-        0.18 * personality.volatilityRngScale * effectiveVariance
+        0.24 * personality.volatilityRngScale * effectiveVariance
       );
 
       const impact = clamp(
-        entry.laneScore * 0.2 +
-        fit * 0.18 +
-        clutch * 0.12 +
-        execution * 0.15 +
+        entry.laneScore * 0.24 +
+        fit * 0.14 +
+        clutch * 0.11 +
+        execution * 0.14 +
         teamfight * 0.15 +
         macro * 0.08 +
-        starPower * 0.12,
+        starPower * 0.14,
         0,
         10
       );
+
       const stability = clamp(
-        fit * 0.26 + execution * 0.22 + clutch * 0.18 + consistency * 0.22 + archetypeFit * 0.12,
+        fit * 0.24 +
+        execution * 0.22 +
+        clutch * 0.16 +
+        consistency * 0.25 +
+        archetypeFit * 0.13,
         0,
         10
       );
+
       const carryFactor = clamp(
-        impact * 0.42 +
-        starPower * 0.16 +
-        laning * 0.14 +
+        impact * 0.44 +
+        starPower * 0.15 +
+        laning * 0.13 +
         teamfight * 0.16 +
         archetypeFit * 0.12 +
         personality.greedCarryAmplifier * 3,
         0,
         10
       );
+
       const mistakeRisk = clamp(
         10 -
-        (execution * 0.3 + fit * 0.22 + clutch * 0.16 + consistency * 0.2 + macro * 0.12) +
-        personality.greedRiskAmplifier * 3,
+          (execution * 0.30 +
+            fit * 0.21 +
+            clutch * 0.15 +
+            consistency * 0.20 +
+            macro * 0.14) +
+          personality.greedRiskAmplifier * 3,
         0,
         10
       );
 
-      // Carry/throw events — reduced magnitudes
+      // Carry/throw games are meaningful outliers. A winner can still have a
+      // genuinely poor individual match; a loser can still hard-carry.
       let carryEventBonus = 0;
       let throwEventPenalty = 0;
 
-      // Stricter threshold: needs carryFactor >= 8 AND very lucky RNG
-      const isCarryEvent = carryFactor >= 8.0 && personalRng > 0.55;
-      // Stricter threshold: needs mistakeRisk >= 6.5 AND very unlucky RNG
-      const isThrowEvent = mistakeRisk >= 6.5 && personalRng < -0.55;
+      const isCarryEvent = carryFactor >= 7.8 && personalRng > 0.45;
+      const isThrowEvent = mistakeRisk >= 5.8 && personalRng < -0.45;
 
       if (isCarryEvent) {
-        // REBALANCE: reduced from 0.8/0.4 to 0.55/0.30
-        carryEventBonus = entry.side === args.winnerSide ? 0.55 : 0.30;
+        carryEventBonus = entry.side === args.winnerSide ? 0.90 : 0.55;
       }
+
       if (isThrowEvent) {
-        // REBALANCE: reduced from -0.8/-1.3 to -0.55/-0.90
-        throwEventPenalty = entry.side === args.winnerSide ? -0.55 : -0.90;
+        throwEventPenalty = entry.side === args.winnerSide ? -0.85 : -1.15;
       }
 
-      // Bad team game modifier — if whole team underperformed, individuals feel it
-      const teamTotal = entry.side === "blue" ? args.blueTeamTotal : args.redTeamTotal;
-      const teamPerformanceMod = clamp((teamTotal - 5.5) * 0.14, -0.55, 0.55);
+      // Team context is deliberately small; it should not homogenize all five
+      // player ratings.
+      const teamTotal =
+        entry.side === "blue" ? args.blueTeamTotal : args.redTeamTotal;
+      const teamPerformanceMod = clamp(
+        (teamTotal - 5.5) * 0.06,
+        -0.22,
+        0.22
+      );
 
-      // UPGRADE 12: Macro mistake event (12-18% chance per player)
       const macroMistake = rollMacroMistake({
         player,
         playerId: entry.playerId,
@@ -679,16 +701,21 @@ function buildPlayerScores(args: {
         role,
         side: entry.side,
       });
-      const macroMistakePenalty = macroMistake.occurred ? -macroMistake.severity : 0;
+      const macroMistakePenalty = macroMistake.occurred
+        ? -macroMistake.severity
+        : 0;
 
-      // UPGRADE 12: Champion mastery bonus (up to +1.0 for deep signature)
-      // SCORE FIX: halved on losing side — mastery doesn't save a lost game
-      const rawMastery = getChampionMasteryBonus(entry.playerId, entry.championId);
-      const masteryBonus = entry.side === args.winnerSide ? rawMastery : rawMastery * 0.4;
+      // Mastery helps execution, but it should not automatically inflate a
+      // post-game rating by a full point.
+      const rawMastery = getChampionMasteryBonus(
+        entry.playerId,
+        entry.championId
+      );
+      const masteryBonus =
+        rawMastery * (entry.side === args.winnerSide ? 0.30 : 0.20);
 
-      // BASE LOWERED: 4.2 (was 4.6)
       const rawScore =
-        4.2 +
+        5.35 +
         winModifier +
         teamPerformanceMod +
         laneModifier +
@@ -711,35 +738,32 @@ function buildPlayerScores(args: {
         masteryBonus +
         rng;
 
-      // ─── SCORE FIX: Separate compression for winners and losers ──────
-      // Winners: compress above 8.5 (normal) or 9.0 (carry event)
-      // Losers: compress above 7.5 — a 9.0 on losing team should be very rare
       const isWinner = entry.side === args.winnerSide;
       let finalScore = rawScore;
 
+      // Only the extreme tails are compressed. The normal 4.5–8.5 range is
+      // intentionally left wide so teammates do not all finish 0.2 apart.
       if (isWinner) {
-        if (rawScore > 8.5 && !isCarryEvent) {
-          const excess = rawScore - 8.5;
-          finalScore = 8.5 + Math.log(1 + excess) * 0.50;
-        } else if (rawScore > 9.0 && isCarryEvent) {
-          const excess = rawScore - 9.0;
-          finalScore = 9.0 + Math.log(1 + excess) * 0.4;
+        if (rawScore > 9.1 && !isCarryEvent) {
+          const excess = rawScore - 9.1;
+          finalScore = 9.1 + Math.log(1 + excess) * 0.45;
+        } else if (rawScore > 9.5 && isCarryEvent) {
+          const excess = rawScore - 9.5;
+          finalScore = 9.5 + Math.log(1 + excess) * 0.30;
         }
       } else {
-        // Losers: aggressive compression above 7.5
-        if (rawScore > 7.5 && !isCarryEvent) {
-          const excess = rawScore - 7.5;
-          finalScore = 7.5 + Math.log(1 + excess) * 0.45;
-        } else if (rawScore > 8.0 && isCarryEvent) {
-          const excess = rawScore - 8.0;
-          finalScore = 8.0 + Math.log(1 + excess) * 0.35;
+        if (rawScore > 8.2 && !isCarryEvent) {
+          const excess = rawScore - 8.2;
+          finalScore = 8.2 + Math.log(1 + excess) * 0.40;
+        } else if (rawScore > 8.8 && isCarryEvent) {
+          const excess = rawScore - 8.8;
+          finalScore = 8.8 + Math.log(1 + excess) * 0.32;
         }
       }
 
-      // Floor compression (same for both)
-      if (rawScore < 2.5) {
-        const deficit = 2.5 - rawScore;
-        finalScore = 2.5 - Math.log(1 + deficit) * 0.6;
+      if (rawScore < 2.2) {
+        const deficit = 2.2 - rawScore;
+        finalScore = 2.2 - Math.log(1 + deficit) * 0.55;
       }
 
       // ── SPIRIT: score modifier (controlled team only, returns 0 for AI)
