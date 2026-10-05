@@ -420,6 +420,7 @@ export default function DraftPage() {
           <h3 className="h3" style={{ color: "var(--text-primary)", marginBottom: "2px" }}>{title}</h3>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px" }}>
             <span className="body-small" style={{ color: "var(--text-muted)" }}>Bo{series.bo}</span>
+            {/*
             <button
               type="button"
               onClick={handleExitDraft}
@@ -437,7 +438,7 @@ export default function DraftPage() {
               onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
             >
               EXIT DRAFT
-            </button>
+            </button>*/}
           </div>
         </div>
 

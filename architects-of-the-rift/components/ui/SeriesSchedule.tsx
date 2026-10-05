@@ -977,10 +977,10 @@ export default function SeriesSchedule({
               </p>
             )}
           </div>
-
+          {/* 
           <Button variant="secondary" onClick={handleReset}>
             Reset Schedule
-          </Button>
+          </Button>*/}
         </div>
 
         <div className="flex flex-col gap-[16px]">

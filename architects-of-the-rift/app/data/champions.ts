@@ -1469,7 +1469,7 @@ const baseChampions: Champion[] = [
 
     name: "Taliyah",
     image: "/champions/taliyah.png",
-    roles: ["mid"],
+    roles: ["mid", "adc"],
     damageProfile: ["AP"],
     stats: {
       picks: 40,
@@ -1698,7 +1698,7 @@ const baseChampions: Champion[] = [
 
     name: "Dr. Mundo",
     image: "/champions/dr.-mundo.png",
-    roles: ["jungle"],
+    roles: ["jungle", "top"],
     damageProfile: ["AD", "AP"],
     stats: {
       picks: 14,
@@ -1935,7 +1935,7 @@ const baseChampions: Champion[] = [
     name: "Corki",
     image: "/champions/corki.png",
     roles: ["adc"],
-    damageProfile: ["AD", "AP"],
+    damageProfile: ["AD", "TRUE"],
     stats: {
       picks: 54,
       bans: 10,
@@ -2935,7 +2935,7 @@ const baseChampions: Champion[] = [
 
     name: "Galio",
     image: "/champions/galio.png",
-    roles: ["mid"],
+    roles: ["mid", "top"],
     damageProfile: ["AP"],
     stats: {
       picks: 57,
@@ -3091,7 +3091,7 @@ const baseChampions: Champion[] = [
 
     name: "Seraphine",
     image: "/champions/seraphine.png",
-    roles: ["support"],
+    roles: ["support", "adc"],
     damageProfile: ["AP"],
     stats: {
       picks: 48,
@@ -3319,7 +3319,7 @@ const baseChampions: Champion[] = [
 
     name: "Syndra",
     image: "/champions/syndra.png",
-    roles: ["mid"],
+    roles: ["mid", "adc"],
     damageProfile: ["AP"],
     stats: {
       picks: 119,
@@ -3467,7 +3467,7 @@ const baseChampions: Champion[] = [
 
     name: "Mel",
     image: "/champions/mel.png",
-    roles: ["mid"],
+    roles: ["mid", "adc"],
     damageProfile: ["AP"],
     stats: {
       picks: 23,

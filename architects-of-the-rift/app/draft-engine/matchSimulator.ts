@@ -1203,7 +1203,13 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     controlledTeamSlug: input.save?.controlledTeamSlug ?? "",
   });
 
-  const mvp = [...playerScores].sort((a, b) => b.score - a.score)[0] ?? null;
+  // MVP-ul unui game trebuie sa vina intotdeauna din echipa castigatoare.
+  // Inainte sortam toti cei 10 jucatori, ceea ce permitea unui jucator din
+  // echipa invinsa sa fie trimis catre Series MVP tracking.
+  const winningPlayerScores = playerScores.filter(
+    (playerScore) => playerScore.side === finalWinnerSide
+  );
+  const mvp = [...winningPlayerScores].sort((a, b) => b.score - a.score)[0] ?? null;
 
   // Generate realistic KDAs for each player
   generatePlayerKDAs({

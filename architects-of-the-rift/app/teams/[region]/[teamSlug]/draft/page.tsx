@@ -47,7 +47,7 @@ const REGION_BUDGET: Record<string, number> = {
   lck: 38,
   lpl: 38,
   lec: 37,
-  lcs: 36,
+  lcs: 37,
 };
 const DEFAULT_BUDGET = 38;
 
