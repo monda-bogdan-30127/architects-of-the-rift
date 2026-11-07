@@ -15,7 +15,9 @@ import type {
   MatchupRelation,
   Role,
 } from "@/app/types/champion";
-import { getRelationStrength } from "./matchupGrades";
+import { getRelationStrength, isMatchupLevel, isMatchupPhase } from "./matchupGrades";
+
+const isUsableRelation = (relation: MatchupRelation) => isMatchupLevel(relation.level) && isMatchupPhase(relation.phase);
 
 
 type MatchupListKey = "goodVs" | "weakVs";
@@ -93,9 +95,10 @@ function buildIndex(): MatchupIndex {
   for (const champion of champions) {
     for (const [role, data] of Object.entries(champion.roleData)) {
       if (!data) continue;
+      // Relațiile cu level / phase invalid sunt ignorate aici și raportate de validator.
       explicit[getRoleKey(champion.id, role as Role)] = {
-        goodVs: data.goodVs,
-        weakVs: data.weakVs,
+        goodVs: data.goodVs.filter(isUsableRelation),
+        weakVs: data.weakVs.filter(isUsableRelation),
         mustWith: data.mustWith,
       };
     }

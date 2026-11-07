@@ -12,7 +12,7 @@ Cum sunt organizate datele campionilor și cum le modifici de mână. Căile sun
 | Gradele de mastery ale jucătorilor (SS…F) | `app/data/championMasteryOverrides.ts` |
 | Override-uri de profil pe rol (kit, scaling etc.) | `app/data/championProfileOverrides.ts` |
 | Imaginea campionului | `public/champions/<id>.png` |
-| Semnificația notelor de matchup (1–5) și efectele lor | `app/draft-engine/matchupGrades.ts` |
+| Definițiile matchup-urilor (`level`, `phase`), ponderile și curbele | `app/draft-engine/matchupGrades.ts` |
 
 Numele fișierului e `id`-ul campionului (`jarvan-iv.ts`, `kaisa.ts`). Exportul e `id`-ul în camelCase (`jarvanIv`, `missFortune`). Importurile rămân `@/app/data/champions`, iar folderul se rezolvă prin `index.ts`.
 
@@ -53,10 +53,10 @@ export const poppy = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "camille", score: 4, note: "W oprește E-ul Camillei" },
+        { championId: "camille", level: 2, phase: "all", note: "W oprește E-ul Camillei" },
       ],
       weakVs: [
-        { championId: "shen", score: 2 },
+        { championId: "shen", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
@@ -75,20 +75,73 @@ Reguli de formatare, la fel în toate fișierele:
 
 ## Matchup-uri (`roleData[rol].goodVs` / `weakVs`)
 
-O relație: `{ championId, score, vsRole?, note? }`.
+O relație: `{ championId, level, phase, vsRole?, note? }`. `level` și `phase` sunt obligatorii.
 
-| Notă | goodVs (noi câștigăm) | weakVs (noi pierdem) |
+La fiecare relație pune două întrebări: **„cât de tare?” → `level`** și **„când?” → `phase`**.
+
+### `level`: cât de tare
+
+| level | goodVs (noi câștigăm) | weakVs (noi pierdem) |
 |---|---|---|
-| 5 | counter natural, mereu | hard countered, mereu |
-| 4 | counter condiționat: adversarul scapă dacă echipa îi acoperă slăbiciunile | la fel, invers |
-| 3 | linia e egală, câștigă din mid game | pierde din mid game |
-| 2 | câștigă linia, apoi se egalizează | pierde linia |
-| 1 | skill matchup, mic avantaj | mic dezavantaj |
+| **3** | **Hard counter**: îl bate mereu, indiferent de context | **Hard countered**: pierde mereu |
+| **2** | **Counter**: îl bate, dar adversarul se poate juca dacă echipa îi acoperă slăbiciunile | **Countered**: pierde, dar poate câștiga dacă echipa îi acoperă slăbiciunile |
+| **1** | **Skill matchup**, ușor avantaj: decide jucătorul | **Skill matchup**, ușor dezavantaj |
 
-- **Scrie fiecare relație o singură dată.** `A weakVs B nota g` generează automat `B goodVs A nota g` (și invers). O intrare explicită pe partea cealaltă câștigă, dar dacă are altă notă e eroare de validare.
+### `phase`: când
+
+| phase | Sens |
+|---|---|
+| `"lane"` | Avantajul e în lane phase, se egalizează după |
+| `"late"` | Linia e egală, avantajul vine din mid game încolo |
+| `"all"` | Avantajul ține tot jocul |
+
+### Exemplu: câștigă pe linie, pierde late
+
+```ts
+top: {
+  goodVs: [
+    { championId: "kayle", level: 2, phase: "lane" },   // o domină pe linie...
+  ],
+  weakVs: [
+    { championId: "kayle", level: 2, phase: "late" },   // ...dar Kayle scalează și câștigă late
+  ],
+  mustWith: [],
+  stats: null,
+},
+```
+
+### Reguli
+
+- **Scrie fiecare relație o singură dată.** `A weakVs B {level, phase}` generează automat `B goodVs A {level, phase}` (și invers). O intrare explicită pe partea cealaltă câștigă, dar dacă `level` sau `phase` diferă e eroare de validare.
+- **Același inamic în `goodVs` și `weakVs`** pe același rol e permis doar cu faze opuse: `lane` într-o listă și `late` în cealaltă. Cu `all` nu poate apărea în ambele.
+- **Același inamic nu apare de două ori în aceeași listă** pe același rol.
+- **`level: 1` vine aproape mereu cu `phase: "all"`.** `lane`/`late` sunt permise, dar validatorul dă warning.
 - **`vsRole` lipsă** = matchup de linie: același rol ca al tău. Pentru `adc`/`support` = botlane 2v2 (inamicul pe adc **sau** support). Pune `vsRole` doar pentru cazuri cross-role reale.
-- **Același inamic în `goodVs` și `weakVs`** e permis doar ca 2/3 (câștigi linia, pierzi late).
-- `note` e recomandat la notele 4 și 5.
+- `note` e recomandat la `level` 3 și la `level` 2 cu `phase: "all"`.
+
+### Cum se calculează
+
+Valoarea în faza jocului `p` (early / mid / late) = `MATCHUP_LEVEL_WEIGHT[level] × MATCHUP_PHASE_CURVE[phase][p]`, apoi:
+
+- **level 2:** dacă aliații celui countrat îi acoperă slăbiciunile (`needs` cu prioritate ≥ 2), efectul scade la ×0.5 (acoperire ≥ 50%) sau ×0.3 (acoperire 100%), **doar pe mid și late**. Pe linie echipa nu-l poate ajuta.
+- **level 1:** se scalează cu diferența de `mec` dintre jucătorii de pe cele două roluri.
+- **level 3:** fără modificatori.
+
+Ca referință: un hard counter pe tot jocul valorează 9.5 în fiecare fază, iar `level 2, lane` valorează 3.8 în early și 0.69 în late.
+
+### Conversie din formatul vechi (`score` 1–5)
+
+Formatul vechi (notă 1–5, din DRAFT_REWORK) a fost înlocuit de `level` + `phase`. Datele au fost migrate cu `scripts/migrate-matchups-to-level-phase.ts`:
+
+| score vechi | level | phase |
+|---|---|---|
+| 5 | 3 | `"all"` |
+| 4 | 2 | `"all"` |
+| 3 | 2 | `"late"` |
+| 2 | 2 | `"lane"` |
+| 1 | 1 | `"all"` |
+
+Combinațiile noi, imposibile înainte (de exemplu un hard counter doar pe linie, `level 3, lane`), se scriu direct.
 
 ## `mustWith` (`roleData[rol].mustWith`)
 
@@ -138,7 +191,7 @@ O relație: `{ championId, score, vsRole?, note? }`.
 **După orice modificare de date**
 
 ```bash
-npm run validate:matchups          # structura roleData, note, contradicții, mustWith
+npm run validate:matchups          # structura roleData, level/phase, contradicții, mustWith
 npx tsc --noEmit
 npm run lint
 npx tsx scripts/draft-scenarios.ts # comportamentul mustWith / matchup în draft
