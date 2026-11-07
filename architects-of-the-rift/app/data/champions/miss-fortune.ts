@@ -64,15 +64,10 @@ export const missFortune = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "corki", level: 2, phase: "lane" },
+        { championId: "jinx", level: 2, phase: "lane" },
+        { championId: "kogmaw", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "aphelios", level: 2, phase: "late" },
-        { championId: "zeri", level: 2, phase: "late" },
-        { championId: "caitlyn", level: 2, phase: "lane" },
-        { championId: "kalista", level: 2, phase: "lane" },
-        { championId: "varus", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 6,

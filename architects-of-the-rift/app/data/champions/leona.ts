@@ -62,16 +62,14 @@ export const leona = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "lulu", level: 2, phase: "lane" },
-        { championId: "nami", level: 2, phase: "lane" },
+        { championId: "heimerdinger", level: 2, phase: "lane" },
+        { championId: "lux", level: 2, phase: "lane" },
+        { championId: "seraphine", level: 2, phase: "lane" },
+        { championId: "sona", level: 2, phase: "lane" },
+        { championId: "soraka", level: 2, phase: "lane" },
+        { championId: "yuumi", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "milio", level: 2, phase: "all", note: "ult-ul curăță CC-ul lui Leona" },
-        { championId: "poppy", level: 2, phase: "all", note: "W oprește E-ul lui Leona" },
-        { championId: "bard", level: 2, phase: "lane" },
-        { championId: "neeko", level: 2, phase: "lane" },
-        { championId: "rakan", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 7,

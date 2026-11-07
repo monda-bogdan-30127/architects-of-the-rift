@@ -61,15 +61,15 @@ export const xinZhao = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "nocturne", level: 2, phase: "lane" },
-        { championId: "pantheon", level: 2, phase: "lane" },
+        { championId: "belveth", level: 2, phase: "lane" },
+        { championId: "brand", level: 2, phase: "lane" },
+        { championId: "fiddlesticks", level: 2, phase: "lane" },
+        { championId: "ivern", level: 2, phase: "lane" },
+        { championId: "karthus", level: 2, phase: "lane" },
+        { championId: "kindred", level: 2, phase: "lane" },
+        { championId: "lillia", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "poppy", level: 2, phase: "all", note: "W oprește E-ul lui Xin" },
-        { championId: "ambessa", level: 2, phase: "lane" },
-        { championId: "khazix", level: 2, phase: "lane" },
-        { championId: "skarner", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 7,

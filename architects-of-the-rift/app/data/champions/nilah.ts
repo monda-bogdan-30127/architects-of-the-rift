@@ -63,14 +63,8 @@ export const nilah = createChampion({
 
   roleData: {
     adc: {
-      goodVs: [
-        { championId: "aphelios", level: 2, phase: "lane" },
-        { championId: "kaisa", level: 2, phase: "lane" },
-      ],
-      weakVs: [
-        { championId: "lucian", level: 2, phase: "lane" },
-        { championId: "sivir", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

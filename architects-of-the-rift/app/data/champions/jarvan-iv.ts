@@ -65,15 +65,11 @@ export const jarvanIv = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "xin-zhao", level: 1, phase: "all" },
+        { championId: "belveth", level: 2, phase: "lane" },
+        { championId: "karthus", level: 2, phase: "lane" },
+        { championId: "master-yi", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "poppy", level: 2, phase: "all", note: "W oprește combo-ul EQ" },
-        { championId: "maokai", level: 2, phase: "late" },
-        { championId: "lee-sin", level: 2, phase: "lane" },
-        { championId: "qiyana", level: 2, phase: "lane" },
-        { championId: "vi", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 24,

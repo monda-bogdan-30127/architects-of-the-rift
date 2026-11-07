@@ -67,13 +67,12 @@ export const ambessa = createChampion({
     top: {
       goodVs: [
         { championId: "ornn", level: 2, phase: "lane" },
+        { championId: "sion", level: 2, phase: "lane" },
+        { championId: "yorick", level: 2, phase: "lane" },
+        { championId: "aatrox", level: 1, phase: "all" },
+        { championId: "ksante", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "poppy", level: 2, phase: "all", note: "W oprește dash-urile Ambessei" },
-        { championId: "gwen", level: 2, phase: "late" },
-        { championId: "renekton", level: 2, phase: "lane" },
-        { championId: "rumble", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 22,
@@ -112,13 +111,8 @@ export const ambessa = createChampion({
       },
     },
     jungle: {
-      goodVs: [
-        { championId: "wukong", level: 1, phase: "all" },
-      ],
-      weakVs: [
-        { championId: "poppy", level: 2, phase: "all", note: "W oprește dash-urile Ambessei" },
-        { championId: "jarvan-iv", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: null,
       profile: {

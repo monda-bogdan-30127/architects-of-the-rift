@@ -61,17 +61,14 @@ export const ornn = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "aatrox", level: 2, phase: "late" },
-        { championId: "gnar", level: 1, phase: "all" },
-        { championId: "ksante", level: 1, phase: "all" },
-        { championId: "volibear", level: 1, phase: "all" },
+        { championId: "irelia", level: 2, phase: "all", note: "prea tanky pentru all-in, iar CC-ul oprește stack-urile Ireliei" },
+        { championId: "jayce", level: 2, phase: "late" },
+        { championId: "kled", level: 2, phase: "late" },
+        { championId: "renekton", level: 2, phase: "late" },
+        { championId: "aatrox", level: 1, phase: "all" },
+        { championId: "riven", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "gwen", level: 2, phase: "all", note: "damage pe %HP contra tank-ului" },
-        { championId: "jax", level: 2, phase: "late" },
-        { championId: "jayce", level: 2, phase: "lane" },
-        { championId: "poppy", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 9,

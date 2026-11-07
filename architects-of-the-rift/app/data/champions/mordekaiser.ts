@@ -63,16 +63,13 @@ export const mordekaiser = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "shen", level: 2, phase: "late" },
-        { championId: "yorick", level: 2, phase: "lane" },
+        { championId: "malphite", level: 2, phase: "all", note: "damage magic, armura nu ajută" },
+        { championId: "sion", level: 2, phase: "all", note: "R îl izolează, damage pe %HP contra tank-ului" },
+        { championId: "dr-mundo", level: 2, phase: "late" },
+        { championId: "ornn", level: 2, phase: "late" },
+        { championId: "fiora", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "gangplank", level: 2, phase: "lane" },
-        { championId: "renekton", level: 2, phase: "lane" },
-        { championId: "ornn", level: 1, phase: "all" },
-        { championId: "sett", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

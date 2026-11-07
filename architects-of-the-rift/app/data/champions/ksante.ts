@@ -64,17 +64,11 @@ export const ksante = createChampion({
     top: {
       goodVs: [
         { championId: "jayce", level: 2, phase: "late" },
-        { championId: "aurora", level: 1, phase: "all" },
-        { championId: "jax", level: 1, phase: "all" },
-        { championId: "sion", level: 1, phase: "all" },
+        { championId: "renekton", level: 2, phase: "late" },
+        { championId: "sion", level: 2, phase: "late" },
+        { championId: "ornn", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "vayne", level: 2, phase: "all", note: "true damage și kite contra tank-ului" },
-        { championId: "yorick", level: 2, phase: "late" },
-        { championId: "renekton", level: 2, phase: "lane" },
-        { championId: "rumble", level: 2, phase: "lane" },
-        { championId: "ambessa", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 20,

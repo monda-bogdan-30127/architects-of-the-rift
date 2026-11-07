@@ -64,16 +64,10 @@ export const seraphine = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "karma", level: 2, phase: "lane" },
-        { championId: "lulu", level: 2, phase: "lane" },
+        { championId: "sona", level: 2, phase: "lane" },
+        { championId: "yuumi", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "bard", level: 2, phase: "lane" },
-        { championId: "braum", level: 2, phase: "lane" },
-        { championId: "leona", level: 2, phase: "lane" },
-        { championId: "nautilus", level: 2, phase: "lane" },
-        { championId: "thresh", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: ["ashe"],
       stats: {
         picks: 15,

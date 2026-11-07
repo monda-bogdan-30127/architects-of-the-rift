@@ -65,16 +65,8 @@ export const ziggs = createChampion({
 
   roleData: {
     adc: {
-      goodVs: [
-        { championId: "syndra", level: 2, phase: "lane" },
-      ],
-      weakVs: [
-        { championId: "kaisa", level: 2, phase: "all", note: "dive pe un mage imobil" },
-        { championId: "jhin", level: 2, phase: "lane" },
-        { championId: "jinx", level: 2, phase: "lane" },
-        { championId: "tahm-kench", level: 2, phase: "lane" },
-        { championId: "xayah", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 5,
@@ -99,11 +91,7 @@ export const ziggs = createChampion({
       },
     },
     mid: {
-      goodVs: [
-        { championId: "orianna", level: 2, phase: "lane" },
-        { championId: "syndra", level: 2, phase: "lane" },
-        { championId: "viktor", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
       weakVs: [],
       mustWith: [],
       stats: null,

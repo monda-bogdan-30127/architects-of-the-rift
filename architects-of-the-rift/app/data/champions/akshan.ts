@@ -58,7 +58,10 @@ export const akshan = createChampion({
       stats: null,
     },
     top: {
-      goodVs: [],
+      goodVs: [
+        { championId: "ornn", level: 2, phase: "lane" },
+        { championId: "sion", level: 2, phase: "lane" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: null,

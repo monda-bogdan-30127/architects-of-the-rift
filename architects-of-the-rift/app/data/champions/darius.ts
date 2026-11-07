@@ -64,18 +64,13 @@ export const darius = createChampion({
     top: {
       goodVs: [
         { championId: "camille", level: 2, phase: "lane" },
+        { championId: "galio", level: 2, phase: "lane" },
+        { championId: "garen", level: 2, phase: "lane" },
         { championId: "gragas", level: 2, phase: "lane" },
-        { championId: "ksante", level: 2, phase: "lane" },
-        { championId: "sion", level: 2, phase: "lane" },
-        { championId: "gnar", level: 1, phase: "all" },
+        { championId: "kayle", level: 2, phase: "lane" },
+        { championId: "nasus", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "kennen", level: 2, phase: "all", note: "kite la distanță, Darius nu-l poate prinde" },
-        { championId: "jax", level: 2, phase: "late" },
-        { championId: "ornn", level: 2, phase: "late" },
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "renekton", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

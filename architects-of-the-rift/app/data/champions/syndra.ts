@@ -64,17 +64,13 @@ export const syndra = createChampion({
     mid: {
       goodVs: [
         { championId: "azir", level: 2, phase: "lane" },
-        { championId: "cassiopeia", level: 2, phase: "lane" },
-        { championId: "hwei", level: 2, phase: "lane" },
-        { championId: "viktor", level: 2, phase: "lane" },
-      ],
-      weakVs: [
-        { championId: "annie", level: 2, phase: "lane" },
+        { championId: "kogmaw", level: 2, phase: "lane" },
+        { championId: "orianna", level: 2, phase: "lane" },
         { championId: "ryze", level: 2, phase: "lane" },
-        { championId: "taliyah", level: 2, phase: "lane" },
-        { championId: "vex", level: 2, phase: "lane" },
-        { championId: "twisted-fate", level: 1, phase: "all" },
+        { championId: "viktor", level: 2, phase: "lane" },
+        { championId: "ahri", level: 1, phase: "all" },
       ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 21,
@@ -99,10 +95,10 @@ export const syndra = createChampion({
       },
     },
     adc: {
-      goodVs: [],
-      weakVs: [
-        { championId: "taliyah", level: 2, phase: "lane" },
+      goodVs: [
+        { championId: "jinx", level: 2, phase: "lane" },
       ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

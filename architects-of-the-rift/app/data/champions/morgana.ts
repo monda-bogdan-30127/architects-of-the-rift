@@ -62,18 +62,15 @@ export const morgana = createChampion({
   roleData: {
     support: {
       goodVs: [
+        { championId: "blitzcrank", level: 3, phase: "all", note: "black shield anulează complet hook-ul" },
         { championId: "galio", level: 2, phase: "all", vsRole: "mid", note: "black shield anulează CC-ul lui Galio pe aliat" },
+        { championId: "leona", level: 2, phase: "all", note: "black shield anulează CC-ul lui Leona" },
+        { championId: "nautilus", level: 2, phase: "all", note: "black shield anulează hook-ul și R-ul" },
+        { championId: "pyke", level: 2, phase: "all", note: "black shield anulează hook-ul și stun-ul" },
+        { championId: "thresh", level: 2, phase: "all", note: "black shield anulează hook-ul și flay-ul" },
         { championId: "vi", level: 2, phase: "all", vsRole: "jungle", note: "black shield anulează CC-ul ult-ului lui Vi pe aliat" },
-        { championId: "nami", level: 2, phase: "lane" },
-        { championId: "soraka", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "bard", level: 2, phase: "lane" },
-        { championId: "lulu", level: 2, phase: "lane" },
-        { championId: "pyke", level: 2, phase: "lane" },
-        { championId: "shen", level: 2, phase: "lane" },
-        { championId: "tahm-kench", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

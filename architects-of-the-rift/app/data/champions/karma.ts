@@ -63,16 +63,14 @@ export const karma = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "braum", level: 2, phase: "lane" },
-        { championId: "nami", level: 2, phase: "lane" },
+        { championId: "lulu", level: 2, phase: "lane" },
+        { championId: "milio", level: 2, phase: "lane" },
+        { championId: "sona", level: 2, phase: "lane" },
+        { championId: "soraka", level: 2, phase: "lane" },
+        { championId: "yuumi", level: 2, phase: "lane" },
+        { championId: "nami", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "alistar", level: 2, phase: "lane" },
-        { championId: "leona", level: 2, phase: "lane" },
-        { championId: "nautilus", level: 2, phase: "lane" },
-        { championId: "rakan", level: 2, phase: "lane" },
-        { championId: "thresh", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 14,

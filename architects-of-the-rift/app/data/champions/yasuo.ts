@@ -62,14 +62,10 @@ export const yasuo = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "hwei", level: 2, phase: "lane" },
-        { championId: "twisted-fate", level: 2, phase: "lane" },
-        { championId: "viktor", level: 2, phase: "lane" },
+        { championId: "xerath", level: 2, phase: "lane" },
+        { championId: "ziggs", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "lissandra", level: 2, phase: "all", note: "CC point-click pe un campion care trăiește din dash-uri" },
-        { championId: "vex", level: 2, phase: "all", note: "pasivul pedepsește dash-urile" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
       profile: {
@@ -78,12 +74,9 @@ export const yasuo = createChampion({
     },
     top: {
       goodVs: [
-        { championId: "gnar", level: 2, phase: "lane" },
+        { championId: "gnar", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "malphite", level: 2, phase: "all", note: "armura și ult-ul de neoprit prin windwall" },
-        { championId: "renekton", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
       profile: {

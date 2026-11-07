@@ -65,12 +65,21 @@ export const quinn = createChampion({
   roleData: {
     top: {
       goodVs: [
+        { championId: "darius", level: 2, phase: "all", note: "kite, Darius nu o poate prinde" },
+        { championId: "fiora", level: 2, phase: "lane" },
+        { championId: "garen", level: 2, phase: "lane" },
         { championId: "gnar", level: 2, phase: "lane" },
+        { championId: "gwen", level: 2, phase: "lane" },
+        { championId: "jax", level: 2, phase: "lane" },
+        { championId: "kayle", level: 2, phase: "lane" },
+        { championId: "kled", level: 2, phase: "lane" },
+        { championId: "nasus", level: 2, phase: "lane" },
+        { championId: "olaf", level: 2, phase: "lane" },
         { championId: "renekton", level: 2, phase: "lane" },
+        { championId: "sett", level: 2, phase: "lane" },
+        { championId: "singed", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "gangplank", level: 2, phase: "late" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

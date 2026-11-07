@@ -62,20 +62,10 @@ export const tahmKench = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "lulu", level: 2, phase: "lane" },
-        { championId: "shen", level: 2, phase: "lane" },
-        { championId: "thresh", level: 2, phase: "lane" },
-        { championId: "zilean", level: 2, phase: "lane" },
+        { championId: "blitzcrank", level: 2, phase: "all", note: "devour salvează aliatul prins de hook" },
+        { championId: "pyke", level: 2, phase: "all", note: "devour salvează aliatul de execute" },
       ],
-      weakVs: [
-        { championId: "blitzcrank", level: 2, phase: "lane" },
-        { championId: "janna", level: 2, phase: "lane" },
-        { championId: "leona", level: 2, phase: "lane" },
-        { championId: "nami", level: 2, phase: "lane" },
-        { championId: "rakan", level: 2, phase: "lane" },
-        { championId: "rell", level: 2, phase: "lane" },
-        { championId: "soraka", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 1,

@@ -64,17 +64,10 @@ export const varus = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "aphelios", level: 2, phase: "lane" },
-        { championId: "ezreal", level: 2, phase: "lane" },
         { championId: "jinx", level: 2, phase: "lane" },
-        { championId: "ziggs", level: 2, phase: "lane" },
+        { championId: "kaisa", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "zeri", level: 2, phase: "late" },
-        { championId: "caitlyn", level: 2, phase: "lane" },
-        { championId: "kalista", level: 2, phase: "lane" },
-        { championId: "xayah", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 2,

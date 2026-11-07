@@ -63,22 +63,27 @@ export const vayne = createChampion({
 
   roleData: {
     adc: {
-      goodVs: [
-        { championId: "sivir", level: 2, phase: "late" },
-        { championId: "kogmaw", level: 1, phase: "all" },
-      ],
-      weakVs: [
-        { championId: "ezreal", level: 2, phase: "lane" },
-        { championId: "kalista", level: 2, phase: "lane" },
-        { championId: "lucian", level: 2, phase: "lane" },
-        { championId: "samira", level: 2, phase: "lane" },
-        { championId: "jinx", level: 1, phase: "all" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },
     top: {
-      goodVs: [],
+      goodVs: [
+        { championId: "chogath", level: 2, phase: "all", note: "true damage și kite contra tank-ului" },
+        { championId: "dr-mundo", level: 2, phase: "all", note: "true damage pe %HP contra lui Mundo" },
+        { championId: "illaoi", level: 2, phase: "all", note: "kite în afara tentaculelor" },
+        { championId: "ksante", level: 2, phase: "all", note: "true damage și kite contra tank-ului" },
+        { championId: "mordekaiser", level: 2, phase: "all", note: "kite contra lui Mordekaiser, care n-are gap-closer" },
+        { championId: "ornn", level: 2, phase: "all", note: "true damage și kite contra tank-ului" },
+        { championId: "sion", level: 2, phase: "all", note: "true damage și kite contra tank-ului" },
+        { championId: "zac", level: 2, phase: "all", note: "true damage și kite contra tank-ului" },
+        { championId: "darius", level: 2, phase: "late" },
+        { championId: "garen", level: 2, phase: "late" },
+        { championId: "gnar", level: 2, phase: "late" },
+        { championId: "olaf", level: 2, phase: "late" },
+        { championId: "urgot", level: 2, phase: "late" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: {

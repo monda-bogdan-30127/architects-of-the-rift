@@ -54,7 +54,9 @@ export const hecarim = createChampion({
 
   roleData: {
     jungle: {
-      goodVs: [],
+      goodVs: [
+        { championId: "karthus", level: 2, phase: "lane" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: null,

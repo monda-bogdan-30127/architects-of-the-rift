@@ -50,17 +50,12 @@ export const zyra = createChampion({
   roleData: {
     support: {
       goodVs: [],
-      weakVs: [
-        { championId: "blitzcrank", level: 2, phase: "lane" },
-        { championId: "nautilus", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },
     jungle: {
-      goodVs: [
-        { championId: "wukong", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
       weakVs: [],
       mustWith: [],
       stats: null,

@@ -63,15 +63,10 @@ export const neeko = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "nautilus", level: 2, phase: "lane" },
+        { championId: "soraka", level: 2, phase: "lane" },
+        { championId: "yuumi", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "bard", level: 2, phase: "lane" },
-        { championId: "braum", level: 2, phase: "lane" },
-        { championId: "ezreal", level: 2, phase: "lane" },
-        { championId: "karma", level: 2, phase: "lane" },
-        { championId: "seraphine", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 3,

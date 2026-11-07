@@ -67,13 +67,18 @@ export const rumble = createChampion({
     top: {
       goodVs: [
         { championId: "yorick", level: 2, phase: "all", note: "AoE care curăță ghoul-ii și Maiden-ul" },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "chogath", level: 2, phase: "lane" },
+        { championId: "darius", level: 2, phase: "lane" },
+        { championId: "kled", level: 2, phase: "lane" },
+        { championId: "ksante", level: 2, phase: "lane" },
+        { championId: "malphite", level: 2, phase: "lane" },
         { championId: "ornn", level: 2, phase: "lane" },
+        { championId: "sion", level: 2, phase: "lane" },
+        { championId: "udyr", level: 2, phase: "lane" },
+        { championId: "olaf", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "gwen", level: 2, phase: "late" },
-        { championId: "aurora", level: 2, phase: "lane" },
-        { championId: "gnar", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 23,
@@ -112,7 +117,10 @@ export const rumble = createChampion({
       },
     },
     mid: {
-      goodVs: [],
+      goodVs: [
+        { championId: "anivia", level: 2, phase: "lane" },
+        { championId: "azir", level: 2, phase: "lane" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: {

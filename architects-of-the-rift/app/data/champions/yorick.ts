@@ -65,15 +65,9 @@ export const yorick = createChampion({
     top: {
       goodVs: [
         { championId: "ornn", level: 2, phase: "late" },
-        { championId: "jax", level: 1, phase: "all" },
+        { championId: "sion", level: 2, phase: "late" },
       ],
-      weakVs: [
-        { championId: "gangplank", level: 2, phase: "all", note: "butoaiele curăță ghoul-ii" },
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "ambessa", level: 2, phase: "lane" },
-        { championId: "renekton", level: 2, phase: "lane" },
-        { championId: "sion", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 2,

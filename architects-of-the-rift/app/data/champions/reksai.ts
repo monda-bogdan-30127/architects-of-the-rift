@@ -63,14 +63,9 @@ export const reksai = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "ksante", level: 2, phase: "lane" },
-        { championId: "sion", level: 2, phase: "lane" },
+        { championId: "kayle", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "ambessa", level: 2, phase: "lane" },
-        { championId: "renekton", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
       profile: {

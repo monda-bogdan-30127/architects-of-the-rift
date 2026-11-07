@@ -52,11 +52,9 @@ export const garen = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "ksante", level: 2, phase: "lane" },
+        { championId: "ksante", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "jax", level: 2, phase: "late" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

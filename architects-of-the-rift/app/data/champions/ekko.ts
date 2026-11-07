@@ -51,10 +51,7 @@ export const ekko = createChampion({
   roleData: {
     mid: {
       goodVs: [],
-      weakVs: [
-        { championId: "lissandra", level: 2, phase: "all", note: "CC point-click pe un asasin" },
-        { championId: "vex", level: 2, phase: "all", note: "pasivul pedepsește dash-urile" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

@@ -53,7 +53,15 @@ export const gangplank = createChampion({
 
   roleData: {
     top: {
-      goodVs: [],
+      goodVs: [
+        { championId: "yorick", level: 2, phase: "all", note: "butoaiele curăță ghoul-ii" },
+        { championId: "jax", level: 2, phase: "lane" },
+        { championId: "kled", level: 2, phase: "lane" },
+        { championId: "shen", level: 2, phase: "lane" },
+        { championId: "ornn", level: 2, phase: "late" },
+        { championId: "quinn", level: 2, phase: "late" },
+        { championId: "sion", level: 2, phase: "late" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: {

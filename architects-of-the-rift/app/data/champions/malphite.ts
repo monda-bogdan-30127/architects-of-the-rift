@@ -61,12 +61,9 @@ export const malphite = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "xin-zhao", level: 2, phase: "late" },
+        { championId: "master-yi", level: 2, phase: "all", note: "armură și R pe un campion de autoatacuri" },
       ],
-      weakVs: [
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "jarvan-iv", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 1,
@@ -106,18 +103,14 @@ export const malphite = createChampion({
     },
     top: {
       goodVs: [
-        { championId: "tryndamere", level: 3, phase: "all", note: "armura și ult-ul anulează complet Tryndamere" },
-        { championId: "gangplank", level: 2, phase: "all", note: "armura și ult-ul anulează GP-ul AD" },
+        { championId: "tryndamere", level: 3, phase: "all", note: "armura și R anulează complet un campion de autoatacuri AD" },
+        { championId: "akshan", level: 2, phase: "all", note: "armura anulează autoatacurile, R îl prinde fără escape" },
+        { championId: "gangplank", level: 2, phase: "all", note: "armură și R pe un campion AD fără escape" },
         { championId: "jayce", level: 2, phase: "all", note: "armura anulează poke-ul AD" },
-        { championId: "gnar", level: 1, phase: "all" },
+        { championId: "rengar", level: 2, phase: "all", note: "armură, nu poate fi one-shot" },
+        { championId: "yasuo", level: 2, phase: "all", note: "armură contra crit-ului, R nu poate fi oprit de windwall" },
       ],
-      weakVs: [
-        { championId: "gwen", level: 2, phase: "all", note: "damage AP și true damage contra tank-ului de armură" },
-        { championId: "camille", level: 2, phase: "late" },
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "gragas", level: 2, phase: "lane" },
-        { championId: "ornn", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

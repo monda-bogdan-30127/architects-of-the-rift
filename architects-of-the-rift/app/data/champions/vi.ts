@@ -63,13 +63,11 @@ export const vi = createChampion({
 
   roleData: {
     jungle: {
-      goodVs: [],
-      weakVs: [
-        { championId: "poppy", level: 2, phase: "all", note: "W oprește Q-ul lui Vi" },
-        { championId: "maokai", level: 2, phase: "late" },
-        { championId: "khazix", level: 2, phase: "lane" },
-        { championId: "skarner", level: 2, phase: "lane" },
+      goodVs: [
+        { championId: "nidalee", level: 2, phase: "all", note: "R point-click, Nidalee nu poate scăpa" },
+        { championId: "karthus", level: 2, phase: "lane" },
       ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 15,

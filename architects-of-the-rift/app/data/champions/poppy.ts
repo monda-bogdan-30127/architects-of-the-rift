@@ -62,11 +62,13 @@ export const poppy = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "camille", level: 2, phase: "all", note: "W oprește E-ul Camillei" },
+        { championId: "camille", level: 3, phase: "all", note: "W oprește E-ul Camillei (hookshot-ul e dash)" },
+        { championId: "leona", level: 3, phase: "all", note: "W oprește E-ul lui Leona (dash)" },
+        { championId: "rakan", level: 3, phase: "all", note: "W oprește W-ul și E-ul lui Rakan (dash-uri)" },
+        { championId: "alistar", level: 2, phase: "all", note: "W oprește W-ul (headbutt) lui Alistar" },
+        { championId: "rell", level: 2, phase: "all", note: "W oprește W-ul lui Rell" },
       ],
-      weakVs: [
-        { championId: "shen", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 1,
@@ -91,11 +93,22 @@ export const poppy = createChampion({
       },
     },
     jungle: {
-      goodVs: [],
-      weakVs: [
-        { championId: "trundle", level: 2, phase: "late" },
-        { championId: "aatrox", level: 2, phase: "lane" },
+      goodVs: [
+        { championId: "ambessa", level: 3, phase: "all", note: "W oprește toate dash-urile Ambessei" },
+        { championId: "zac", level: 3, phase: "all", note: "W oprește complet E-ul lui Zac" },
+        { championId: "hecarim", level: 2, phase: "all", note: "W oprește R-ul lui Hecarim" },
+        { championId: "jarvan-iv", level: 2, phase: "all", note: "W oprește combo-ul EQ" },
+        { championId: "khazix", level: 2, phase: "all", note: "W oprește leap-ul lui Kha'Zix" },
+        { championId: "lee-sin", level: 2, phase: "all", note: "W oprește Q2 și insec-ul" },
+        { championId: "naafiri", level: 2, phase: "all", note: "W oprește dash-ul lui Naafiri" },
+        { championId: "pantheon", level: 2, phase: "all", note: "W oprește leap-ul din W" },
+        { championId: "vi", level: 2, phase: "all", note: "W oprește Q-ul lui Vi" },
+        { championId: "warwick", level: 2, phase: "all", note: "W oprește R-ul lui Warwick (leap)" },
+        { championId: "wukong", level: 2, phase: "all", note: "W oprește E-ul lui Wukong" },
+        { championId: "xin-zhao", level: 2, phase: "all", note: "W oprește E-ul lui Xin Zhao" },
+        { championId: "zaahen", level: 2, phase: "all", note: "W oprește dash-ul din E" },
       ],
+      weakVs: [],
       mustWith: [],
       stats: null,
       profile: {
@@ -114,15 +127,18 @@ export const poppy = createChampion({
     },
     top: {
       goodVs: [
-        { championId: "camille", level: 2, phase: "all", note: "W oprește E-ul Camillei" },
+        { championId: "ambessa", level: 3, phase: "all", note: "W oprește toate dash-urile Ambessei" },
+        { championId: "camille", level: 3, phase: "all", note: "W oprește E-ul Camillei (hookshot-ul e dash)" },
+        { championId: "zac", level: 3, phase: "all", note: "W oprește complet E-ul lui Zac" },
+        { championId: "gragas", level: 2, phase: "all", note: "W oprește body slam-ul (E) lui Gragas" },
+        { championId: "irelia", level: 2, phase: "all", note: "W oprește Q-ul (dash) Ireliei" },
+        { championId: "riven", level: 2, phase: "all", note: "W oprește dash-urile din Q și E" },
+        { championId: "warwick", level: 2, phase: "all", note: "W oprește R-ul lui Warwick (leap)" },
+        { championId: "yasuo", level: 2, phase: "all", note: "W oprește E-ul și Q3 (dash-uri)" },
+        { championId: "yone", level: 2, phase: "all", note: "W oprește E-ul și R-ul lui Yone (dash-uri)" },
+        { championId: "zaahen", level: 2, phase: "all", note: "W oprește dash-ul din E" },
       ],
-      weakVs: [
-        { championId: "gwen", level: 2, phase: "late" },
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "jayce", level: 2, phase: "lane" },
-        { championId: "kennen", level: 2, phase: "lane" },
-        { championId: "shen", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

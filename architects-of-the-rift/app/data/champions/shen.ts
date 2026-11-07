@@ -63,12 +63,9 @@ export const shen = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "leona", level: 2, phase: "lane" },
+        { championId: "yuumi", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "braum", level: 2, phase: "lane" },
-        { championId: "nautilus", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 3,
@@ -94,16 +91,9 @@ export const shen = createChampion({
     },
     top: {
       goodVs: [
-        { championId: "gnar", level: 2, phase: "late" },
-        { championId: "kennen", level: 1, phase: "all" },
-        { championId: "ksante", level: 1, phase: "all" },
+        { championId: "tryndamere", level: 2, phase: "all", note: "W blochează autoatacurile, R salvează carry-ul" },
       ],
-      weakVs: [
-        { championId: "jax", level: 2, phase: "late" },
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "kled", level: 2, phase: "lane" },
-        { championId: "renekton", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 4,

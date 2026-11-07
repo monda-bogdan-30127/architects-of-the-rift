@@ -59,18 +59,10 @@ export const nidalee = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "jarvan-iv", level: 2, phase: "lane" },
-        { championId: "nocturne", level: 2, phase: "lane" },
-        { championId: "viego", level: 2, phase: "lane" },
-        { championId: "wukong", level: 2, phase: "lane" },
+        { championId: "nunu", level: 2, phase: "lane" },
+        { championId: "sejuani", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "vi", level: 2, phase: "all", note: "ult point-click, Nidalee nu poate scăpa" },
-        { championId: "sejuani", level: 2, phase: "late" },
-        { championId: "skarner", level: 2, phase: "late" },
-        { championId: "zac", level: 2, phase: "late" },
-        { championId: "volibear", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: ["renekton", "twisted-fate"],
       stats: null,
     },

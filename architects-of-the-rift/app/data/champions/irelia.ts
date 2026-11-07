@@ -65,18 +65,11 @@ export const irelia = createChampion({
   roleData: {
     top: {
       goodVs: [
+        { championId: "gangplank", level: 2, phase: "lane" },
         { championId: "gnar", level: 2, phase: "lane" },
-        { championId: "jayce", level: 2, phase: "lane" },
-        { championId: "kennen", level: 2, phase: "lane" },
-        { championId: "shen", level: 2, phase: "lane" },
-        { championId: "poppy", level: 1, phase: "all" },
+        { championId: "yone", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "ornn", level: 2, phase: "all", note: "prea tanky pentru all-in, CC care oprește stack-urile" },
-        { championId: "sion", level: 2, phase: "late" },
-        { championId: "renekton", level: 2, phase: "lane" },
-        { championId: "camille", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 1,

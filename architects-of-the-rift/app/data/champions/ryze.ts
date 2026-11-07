@@ -64,16 +64,13 @@ export const ryze = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "aurora", level: 2, phase: "late" },
+        { championId: "akali", level: 2, phase: "late" },
+        { championId: "anivia", level: 2, phase: "late" },
+        { championId: "annie", level: 2, phase: "late" },
         { championId: "galio", level: 2, phase: "late" },
-        { championId: "taliyah", level: 2, phase: "lane" },
+        { championId: "cassiopeia", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "akali", level: 2, phase: "lane" },
-        { championId: "anivia", level: 2, phase: "lane" },
-        { championId: "cassiopeia", level: 2, phase: "lane" },
-        { championId: "twisted-fate", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 8,

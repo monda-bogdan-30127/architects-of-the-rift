@@ -60,14 +60,11 @@ export const xayah = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "corki", level: 2, phase: "late" },
+        { championId: "samira", level: 2, phase: "all", note: "R (untargetable) anulează all-in-ul Samirei" },
+        { championId: "ziggs", level: 2, phase: "lane" },
+        { championId: "kaisa", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "ashe", level: 2, phase: "lane" },
-        { championId: "kalista", level: 2, phase: "lane" },
-        { championId: "miss-fortune", level: 2, phase: "lane" },
-        { championId: "sivir", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: ["rakan"],
       stats: {
         picks: 9,

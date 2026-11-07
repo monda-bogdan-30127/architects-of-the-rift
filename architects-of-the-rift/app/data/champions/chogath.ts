@@ -64,25 +64,14 @@ export const chogath = createChampion({
     top: {
       goodVs: [
         { championId: "jayce", level: 2, phase: "late" },
-        { championId: "renekton", level: 2, phase: "late" },
-        { championId: "jax", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "dr-mundo", level: 2, phase: "late" },
-        { championId: "yorick", level: 2, phase: "late" },
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "kennen", level: 2, phase: "lane" },
-        { championId: "rumble", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },
     jungle: {
       goodVs: [],
-      weakVs: [
-        { championId: "dr-mundo", level: 2, phase: "late" },
-        { championId: "aatrox", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 2,
@@ -108,11 +97,9 @@ export const chogath = createChampion({
     },
     mid: {
       goodVs: [
-        { championId: "katarina", level: 2, phase: "all", note: "silence-ul și knock-up-ul întrerup ult-ul Katarinei" },
+        { championId: "katarina", level: 2, phase: "all", note: "silence-ul și knock-up-ul întrerup R-ul Katarinei" },
       ],
-      weakVs: [
-        { championId: "xerath", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

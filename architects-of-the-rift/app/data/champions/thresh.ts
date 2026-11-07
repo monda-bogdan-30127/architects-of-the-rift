@@ -62,13 +62,11 @@ export const thresh = createChampion({
 
   roleData: {
     support: {
-      goodVs: [],
-      weakVs: [
-        { championId: "lux", level: 2, phase: "lane" },
-        { championId: "pyke", level: 2, phase: "lane" },
-        { championId: "shen", level: 2, phase: "lane" },
-        { championId: "rell", level: 1, phase: "all" },
+      goodVs: [
+        { championId: "sona", level: 2, phase: "lane" },
+        { championId: "soraka", level: 2, phase: "lane" },
       ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 1,

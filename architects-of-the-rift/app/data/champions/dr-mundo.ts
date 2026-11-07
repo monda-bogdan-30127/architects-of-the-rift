@@ -62,18 +62,8 @@ export const drMundo = createChampion({
 
   roleData: {
     jungle: {
-      goodVs: [
-        { championId: "lillia", level: 2, phase: "late" },
-        { championId: "viego", level: 2, phase: "late" },
-        { championId: "xin-zhao", level: 2, phase: "late" },
-      ],
-      weakVs: [
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "jarvan-iv", level: 2, phase: "lane" },
-        { championId: "nocturne", level: 2, phase: "lane" },
-        { championId: "pantheon", level: 2, phase: "lane" },
-        { championId: "vi", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: null,
       profile: {
@@ -93,9 +83,7 @@ export const drMundo = createChampion({
     },
     top: {
       goodVs: [],
-      weakVs: [
-        { championId: "aatrox", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

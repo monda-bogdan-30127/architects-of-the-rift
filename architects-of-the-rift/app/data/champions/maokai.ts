@@ -64,16 +64,14 @@ export const maokai = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "lillia", level: 2, phase: "all", note: "CC point-click contra kite-ului" },
-        { championId: "poppy", level: 2, phase: "lane" },
+        { championId: "belveth", level: 2, phase: "all", note: "CC point-click (W) pe un campion care trebuie să stea în luptă" },
+        { championId: "khazix", level: 2, phase: "all", note: "tank cu CC point-click, nu poate fi izolat" },
+        { championId: "master-yi", level: 2, phase: "all", note: "W point-click îl prinde pe Yi după Q" },
+        { championId: "naafiri", level: 2, phase: "all", note: "CC point-click (W) și tank pe care nu-l poate burst-a" },
+        { championId: "rengar", level: 2, phase: "all", note: "tank cu CC point-click, nu poate fi one-shot" },
+        { championId: "pantheon", level: 2, phase: "late" },
       ],
-      weakVs: [
-        { championId: "trundle", level: 2, phase: "all", note: "ult-ul fură rezistențele tank-ului" },
-        { championId: "dr-mundo", level: 2, phase: "late" },
-        { championId: "kindred", level: 2, phase: "late" },
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "naafiri", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 4,
@@ -113,15 +111,8 @@ export const maokai = createChampion({
       },
     },
     support: {
-      goodVs: [
-        { championId: "alistar", level: 2, phase: "lane" },
-        { championId: "nautilus", level: 2, phase: "lane" },
-        { championId: "poppy", level: 2, phase: "lane" },
-      ],
-      weakVs: [
-        { championId: "braum", level: 2, phase: "lane" },
-        { championId: "nami", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

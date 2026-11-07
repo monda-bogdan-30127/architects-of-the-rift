@@ -60,14 +60,19 @@ export const nautilus = createChampion({
 
   roleData: {
     support: {
-      goodVs: [],
-      weakVs: [
-        { championId: "morgana", level: 2, phase: "all", note: "black shield anulează hook-ul și ult-ul" },
-        { championId: "alistar", level: 1, phase: "all" },
-        { championId: "poppy", level: 1, phase: "all" },
-        { championId: "rakan", level: 1, phase: "all" },
-        { championId: "rell", level: 1, phase: "all" },
+      goodVs: [
+        { championId: "lux", level: 2, phase: "all", note: "hook și CC point-click pe un support imobil" },
+        { championId: "heimerdinger", level: 2, phase: "lane" },
+        { championId: "lulu", level: 2, phase: "lane" },
+        { championId: "senna", level: 2, phase: "lane" },
+        { championId: "seraphine", level: 2, phase: "lane" },
+        { championId: "sona", level: 2, phase: "lane" },
+        { championId: "soraka", level: 2, phase: "lane" },
+        { championId: "velkoz", level: 2, phase: "lane" },
+        { championId: "yuumi", level: 2, phase: "lane" },
+        { championId: "zyra", level: 2, phase: "lane" },
       ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 23,

@@ -62,17 +62,10 @@ export const sivir = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "ashe", level: 2, phase: "late" },
-        { championId: "jhin", level: 2, phase: "late" },
-        { championId: "zeri", level: 2, phase: "lane" },
+        { championId: "blitzcrank", level: 2, phase: "all", note: "E (spell shield) blochează hook-ul" },
+        { championId: "kogmaw", level: 2, phase: "late" },
       ],
-      weakVs: [
-        { championId: "yunara", level: 2, phase: "late" },
-        { championId: "caitlyn", level: 2, phase: "lane" },
-        { championId: "lucian", level: 2, phase: "lane" },
-        { championId: "tristana", level: 2, phase: "lane" },
-        { championId: "kaisa", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 3,

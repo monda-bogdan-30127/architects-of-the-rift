@@ -51,7 +51,11 @@ export const illaoi = createChampion({
 
   roleData: {
     top: {
-      goodVs: [],
+      goodVs: [
+        { championId: "ksante", level: 2, phase: "lane" },
+        { championId: "sion", level: 2, phase: "lane" },
+        { championId: "darius", level: 1, phase: "all" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: null,

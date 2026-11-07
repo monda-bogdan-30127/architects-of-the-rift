@@ -66,18 +66,14 @@ export const sejuani = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "aatrox", level: 2, phase: "late" },
+        { championId: "belveth", level: 2, phase: "all", note: "CC în lanț contra lui Bel'Veth, care trebuie să stea în luptă" },
+        { championId: "briar", level: 2, phase: "all", note: "CC pe un campion care nu-și poate controla frenzy-ul" },
+        { championId: "master-yi", level: 2, phase: "all", note: "stun din R și din pasiv pe un campion de autoatacuri" },
+        { championId: "rengar", level: 2, phase: "all", note: "tank cu CC, nu poate fi one-shot" },
         { championId: "naafiri", level: 2, phase: "late" },
-        { championId: "viego", level: 2, phase: "late" },
-        { championId: "wukong", level: 2, phase: "late" },
+        { championId: "pantheon", level: 2, phase: "late" },
       ],
-      weakVs: [
-        { championId: "trundle", level: 2, phase: "all", note: "ult-ul fură rezistențele tank-ului" },
-        { championId: "dr-mundo", level: 2, phase: "late" },
-        { championId: "jarvan-iv", level: 2, phase: "lane" },
-        { championId: "khazix", level: 2, phase: "lane" },
-        { championId: "xin-zhao", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 6,

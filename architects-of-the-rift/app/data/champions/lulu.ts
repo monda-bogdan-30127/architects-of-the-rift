@@ -63,17 +63,11 @@ export const lulu = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "neeko", level: 2, phase: "lane" },
-        { championId: "braum", level: 1, phase: "all" },
-        { championId: "karma", level: 1, phase: "all" },
+        { championId: "camille", level: 2, phase: "all", note: "polymorph oprește all-in-ul Camillei" },
+        { championId: "pyke", level: 2, phase: "all", note: "polymorph oprește all-in-ul, R salvează ținta" },
+        { championId: "rell", level: 2, phase: "all", note: "polymorph oprește engage-ul" },
       ],
-      weakVs: [
-        { championId: "blitzcrank", level: 2, phase: "lane" },
-        { championId: "nami", level: 2, phase: "lane" },
-        { championId: "nautilus", level: 2, phase: "lane" },
-        { championId: "thresh", level: 2, phase: "lane" },
-        { championId: "milio", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 22,

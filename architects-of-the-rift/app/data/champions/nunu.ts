@@ -61,19 +61,8 @@ export const nunu = createChampion({
 
   roleData: {
     jungle: {
-      goodVs: [
-        { championId: "nidalee", level: 2, phase: "late" },
-        { championId: "karthus", level: 2, phase: "lane" },
-        { championId: "kindred", level: 2, phase: "lane" },
-        { championId: "lillia", level: 2, phase: "lane" },
-        { championId: "graves", level: 1, phase: "all" },
-      ],
-      weakVs: [
-        { championId: "trundle", level: 2, phase: "all", note: "ult-ul fură stats-urile tank-ului și invade-uri" },
-        { championId: "jarvan-iv", level: 2, phase: "lane" },
-        { championId: "lee-sin", level: 2, phase: "lane" },
-        { championId: "xin-zhao", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

@@ -61,13 +61,11 @@ export const sylas = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "leblanc", level: 2, phase: "lane" },
+        { championId: "veigar", level: 2, phase: "all", note: "fură R-ul lui Veigar" },
+        { championId: "orianna", level: 1, phase: "all" },
+        { championId: "viktor", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "kassadin", level: 2, phase: "late" },
-        { championId: "aurora", level: 2, phase: "lane" },
-        { championId: "hwei", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 5,
@@ -93,14 +91,9 @@ export const sylas = createChampion({
     },
     jungle: {
       goodVs: [
-        { championId: "sejuani", level: 2, phase: "late" },
-        { championId: "xin-zhao", level: 2, phase: "late" },
+        { championId: "sejuani", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "lee-sin", level: 2, phase: "lane" },
-        { championId: "skarner", level: 2, phase: "lane" },
-        { championId: "trundle", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

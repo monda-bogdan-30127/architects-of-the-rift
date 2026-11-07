@@ -63,15 +63,8 @@ export const zaahen = createChampion({
 
   roleData: {
     jungle: {
-      goodVs: [
-        { championId: "vi", level: 2, phase: "lane" },
-        { championId: "wukong", level: 2, phase: "lane" },
-      ],
-      weakVs: [
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "ambessa", level: 2, phase: "lane" },
-        { championId: "xin-zhao", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: null,
       profile: {
@@ -91,14 +84,11 @@ export const zaahen = createChampion({
     },
     top: {
       goodVs: [
-        { championId: "ksante", level: 2, phase: "lane" },
-        { championId: "sion", level: 2, phase: "lane" },
+        { championId: "sion", level: 2, phase: "late" },
+        { championId: "gwen", level: 1, phase: "all" },
+        { championId: "ksante", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "ambessa", level: 2, phase: "lane" },
-        { championId: "gnar", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 5,

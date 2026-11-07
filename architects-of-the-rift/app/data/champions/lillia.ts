@@ -52,7 +52,10 @@ export const lillia = createChampion({
 
   roleData: {
     jungle: {
-      goodVs: [],
+      goodVs: [
+        { championId: "kindred", level: 2, phase: "lane" },
+        { championId: "sejuani", level: 2, phase: "late" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: {

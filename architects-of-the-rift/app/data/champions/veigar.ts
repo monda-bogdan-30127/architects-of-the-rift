@@ -62,17 +62,8 @@ export const veigar = createChampion({
 
   roleData: {
     mid: {
-      goodVs: [
-        { championId: "orianna", level: 2, phase: "late" },
-        { championId: "taliyah", level: 2, phase: "late" },
-        { championId: "akali", level: 2, phase: "lane" },
-      ],
-      weakVs: [
-        { championId: "sylas", level: 2, phase: "all", note: "fură ult-ul lui Veigar" },
-        { championId: "ahri", level: 2, phase: "lane" },
-        { championId: "ryze", level: 2, phase: "lane" },
-        { championId: "viktor", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: null,
       profile: {

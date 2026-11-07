@@ -63,15 +63,10 @@ export const bard = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "lulu", level: 2, phase: "lane" },
+        { championId: "sona", level: 2, phase: "lane" },
+        { championId: "yuumi", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "janna", level: 2, phase: "lane" },
-        { championId: "karma", level: 2, phase: "lane" },
-        { championId: "nami", level: 2, phase: "lane" },
-        { championId: "renata-glasc", level: 2, phase: "lane" },
-        { championId: "yuumi", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 3,

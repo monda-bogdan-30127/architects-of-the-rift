@@ -63,14 +63,23 @@ export const caitlyn = createChampion({
 
   roleData: {
     adc: {
-      goodVs: [],
-      weakVs: [
-        { championId: "kaisa", level: 2, phase: "late" },
-        { championId: "xayah", level: 2, phase: "late" },
-        { championId: "draven", level: 2, phase: "lane" },
-        { championId: "kalista", level: 2, phase: "lane" },
-        { championId: "lucian", level: 2, phase: "lane" },
+      goodVs: [
+        { championId: "aphelios", level: 2, phase: "lane" },
+        { championId: "corki", level: 2, phase: "lane" },
+        { championId: "jinx", level: 2, phase: "lane" },
+        { championId: "kaisa", level: 2, phase: "lane" },
+        { championId: "kogmaw", level: 2, phase: "lane" },
+        { championId: "miss-fortune", level: 2, phase: "lane" },
+        { championId: "nilah", level: 2, phase: "lane" },
+        { championId: "samira", level: 2, phase: "lane" },
+        { championId: "smolder", level: 2, phase: "lane" },
+        { championId: "tristana", level: 2, phase: "lane" },
+        { championId: "twitch", level: 2, phase: "lane" },
+        { championId: "vayne", level: 2, phase: "lane" },
+        { championId: "yunara", level: 2, phase: "lane" },
+        { championId: "zeri", level: 2, phase: "lane" },
       ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 8,

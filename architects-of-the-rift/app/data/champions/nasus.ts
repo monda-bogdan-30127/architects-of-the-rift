@@ -53,7 +53,9 @@ export const nasus = createChampion({
 
   roleData: {
     top: {
-      goodVs: [],
+      goodVs: [
+        { championId: "chogath", level: 2, phase: "late" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: null,

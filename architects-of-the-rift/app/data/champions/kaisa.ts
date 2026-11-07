@@ -61,16 +61,11 @@ export const kaisa = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "ezreal", level: 2, phase: "late" },
-        { championId: "samira", level: 1, phase: "all" },
+        { championId: "senna", level: 2, phase: "all", note: "dive pe un carry imobil" },
+        { championId: "ziggs", level: 2, phase: "all", note: "dive pe un mage imobil" },
+        { championId: "caitlyn", level: 2, phase: "late" },
       ],
-      weakVs: [
-        { championId: "aphelios", level: 2, phase: "lane" },
-        { championId: "kalista", level: 2, phase: "lane" },
-        { championId: "lucian", level: 2, phase: "lane" },
-        { championId: "jinx", level: 1, phase: "all" },
-        { championId: "zeri", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: ["nautilus", "neeko", "alistar"],
       stats: {
         picks: 11,

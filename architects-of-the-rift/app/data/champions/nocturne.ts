@@ -64,14 +64,15 @@ export const nocturne = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "sejuani", level: 2, phase: "lane" },
+        { championId: "karthus", level: 2, phase: "lane" },
+        { championId: "kayn", level: 2, phase: "lane" },
+        { championId: "master-yi", level: 2, phase: "lane" },
+        { championId: "nidalee", level: 2, phase: "late" },
+        { championId: "pantheon", level: 2, phase: "late" },
+        { championId: "evelynn", level: 1, phase: "all" },
+        { championId: "qiyana", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "skarner", level: 2, phase: "late" },
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "lee-sin", level: 2, phase: "lane" },
-        { championId: "vi", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 14,

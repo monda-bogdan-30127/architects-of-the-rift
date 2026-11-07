@@ -61,16 +61,8 @@ export const kindred = createChampion({
 
   roleData: {
     jungle: {
-      goodVs: [
-        { championId: "wukong", level: 2, phase: "late" },
-        { championId: "sejuani", level: 2, phase: "lane" },
-      ],
-      weakVs: [
-        { championId: "lillia", level: 2, phase: "lane" },
-        { championId: "nidalee", level: 2, phase: "lane" },
-        { championId: "poppy", level: 2, phase: "lane" },
-        { championId: "xin-zhao", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

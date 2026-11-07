@@ -63,27 +63,15 @@ export const zilean = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "leona", level: 2, phase: "all", note: "ult-ul anulează all-in-ul" },
-        { championId: "thresh", level: 2, phase: "lane" },
+        { championId: "pyke", level: 2, phase: "all", note: "R salvează aliatul de execute" },
       ],
-      weakVs: [
-        { championId: "alistar", level: 2, phase: "lane" },
-        { championId: "renata-glasc", level: 2, phase: "lane" },
-        { championId: "yuumi", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },
     mid: {
-      goodVs: [
-        { championId: "leblanc", level: 2, phase: "lane" },
-        { championId: "malzahar", level: 2, phase: "lane" },
-        { championId: "ahri", level: 1, phase: "all" },
-      ],
-      weakVs: [
-        { championId: "orianna", level: 2, phase: "lane" },
-        { championId: "ryze", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

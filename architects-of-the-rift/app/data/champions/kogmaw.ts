@@ -60,21 +60,15 @@ export const kogmaw = createChampion({
     adc: {
       goodVs: [
         { championId: "caitlyn", level: 2, phase: "late" },
-        { championId: "sivir", level: 2, phase: "late" },
-        { championId: "tristana", level: 2, phase: "late" },
       ],
-      weakVs: [
-        { championId: "aphelios", level: 2, phase: "lane" },
-        { championId: "ezreal", level: 2, phase: "lane" },
-        { championId: "lucian", level: 2, phase: "lane" },
-        { championId: "xayah", level: 2, phase: "lane" },
-        { championId: "jinx", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: ["lulu", "braum", "milio"],
       stats: null,
     },
     mid: {
-      goodVs: [],
+      goodVs: [
+        { championId: "galio", level: 2, phase: "late" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: {

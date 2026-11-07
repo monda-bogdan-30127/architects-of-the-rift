@@ -62,15 +62,18 @@ export const trundle = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "naafiri", level: 2, phase: "lane" },
+        { championId: "chogath", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
+        { championId: "dr-mundo", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
+        { championId: "malphite", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
+        { championId: "maokai", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
+        { championId: "nunu", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
+        { championId: "rammus", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
+        { championId: "sejuani", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
+        { championId: "skarner", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
+        { championId: "zac", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
+        { championId: "ivern", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "khazix", level: 2, phase: "lane" },
-        { championId: "kindred", level: 2, phase: "lane" },
-        { championId: "lillia", level: 2, phase: "lane" },
-        { championId: "nidalee", level: 2, phase: "lane" },
-        { championId: "vi", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 10,
@@ -108,7 +111,12 @@ export const trundle = createChampion({
       },
     },
     top: {
-      goodVs: [],
+      goodVs: [
+        { championId: "ksante", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
+        { championId: "malphite", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
+        { championId: "ornn", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
+        { championId: "sion", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: {

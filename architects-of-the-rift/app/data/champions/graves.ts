@@ -64,18 +64,11 @@ export const graves = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "jarvan-iv", level: 2, phase: "lane" },
+        { championId: "amumu", level: 2, phase: "lane" },
+        { championId: "nunu", level: 2, phase: "lane" },
         { championId: "sejuani", level: 2, phase: "lane" },
-        { championId: "wukong", level: 2, phase: "lane" },
-        { championId: "xin-zhao", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "khazix", level: 2, phase: "lane" },
-        { championId: "lee-sin", level: 2, phase: "lane" },
-        { championId: "nidalee", level: 2, phase: "lane" },
-        { championId: "nocturne", level: 2, phase: "lane" },
-        { championId: "pantheon", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

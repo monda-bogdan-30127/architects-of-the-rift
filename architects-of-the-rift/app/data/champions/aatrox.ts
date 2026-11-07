@@ -64,13 +64,10 @@ export const aatrox = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "ambessa", level: 2, phase: "lane" },
-        { championId: "xin-zhao", level: 2, phase: "lane" },
+        { championId: "ivern", level: 2, phase: "lane" },
+        { championId: "kindred", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "jarvan-iv", level: 2, phase: "lane" },
-        { championId: "pantheon", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 1,
@@ -110,15 +107,15 @@ export const aatrox = createChampion({
     },
     top: {
       goodVs: [
-        { championId: "ambessa", level: 2, phase: "lane" },
+        { championId: "galio", level: 2, phase: "lane" },
+        { championId: "mordekaiser", level: 2, phase: "lane" },
+        { championId: "reksai", level: 2, phase: "lane" },
+        { championId: "shen", level: 2, phase: "lane" },
+        { championId: "sion", level: 2, phase: "lane" },
+        { championId: "yorick", level: 2, phase: "lane" },
+        { championId: "jayce", level: 2, phase: "late" },
       ],
-      weakVs: [
-        { championId: "camille", level: 2, phase: "all", note: "true damage și duel superior în sidelane" },
-        { championId: "gwen", level: 2, phase: "late" },
-        { championId: "gnar", level: 2, phase: "lane" },
-        { championId: "renekton", level: 2, phase: "lane" },
-        { championId: "rumble", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 3,

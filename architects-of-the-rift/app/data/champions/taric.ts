@@ -63,17 +63,9 @@ export const taric = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "karma", level: 2, phase: "lane" },
-        { championId: "lulu", level: 2, phase: "lane" },
-        { championId: "tahm-kench", level: 2, phase: "lane" },
+        { championId: "pyke", level: 2, phase: "all", note: "R (imunitate) anulează execute-ul" },
       ],
-      weakVs: [
-        { championId: "senna", level: 2, phase: "late" },
-        { championId: "leona", level: 2, phase: "lane" },
-        { championId: "rakan", level: 2, phase: "lane" },
-        { championId: "thresh", level: 2, phase: "lane" },
-        { championId: "yuumi", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

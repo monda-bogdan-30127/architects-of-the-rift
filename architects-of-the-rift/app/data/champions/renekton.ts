@@ -63,13 +63,27 @@ export const renekton = createChampion({
 
   roleData: {
     top: {
-      goodVs: [],
-      weakVs: [
-        { championId: "camille", level: 2, phase: "late" },
-        { championId: "ornn", level: 2, phase: "late" },
-        { championId: "vayne", level: 2, phase: "late" },
-        { championId: "gnar", level: 2, phase: "lane" },
+      goodVs: [
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "camille", level: 2, phase: "lane" },
+        { championId: "galio", level: 2, phase: "lane" },
+        { championId: "gangplank", level: 2, phase: "lane" },
+        { championId: "irelia", level: 2, phase: "lane" },
+        { championId: "kayle", level: 2, phase: "lane" },
+        { championId: "nasus", level: 2, phase: "lane" },
+        { championId: "ornn", level: 2, phase: "lane" },
+        { championId: "reksai", level: 2, phase: "lane" },
+        { championId: "shen", level: 2, phase: "lane" },
+        { championId: "sion", level: 2, phase: "lane" },
+        { championId: "twisted-fate", level: 2, phase: "lane" },
+        { championId: "vayne", level: 2, phase: "lane" },
+        { championId: "vladimir", level: 2, phase: "lane" },
+        { championId: "yasuo", level: 2, phase: "lane" },
+        { championId: "yone", level: 2, phase: "lane" },
+        { championId: "ambessa", level: 1, phase: "all" },
+        { championId: "olaf", level: 1, phase: "all" },
       ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 8,

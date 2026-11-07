@@ -63,32 +63,17 @@ export const udyr = createChampion({
 
   roleData: {
     top: {
-      goodVs: [
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "jax", level: 1, phase: "all" },
-        { championId: "volibear", level: 1, phase: "all" },
-      ],
-      weakVs: [
-        { championId: "gnar", level: 2, phase: "all", note: "kite contra lui Udyr fără gap-closer" },
-        { championId: "darius", level: 2, phase: "lane" },
-        { championId: "ksante", level: 2, phase: "lane" },
-        { championId: "rumble", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },
     jungle: {
       goodVs: [
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "graves", level: 2, phase: "lane" },
-        { championId: "pantheon", level: 2, phase: "lane" },
-        { championId: "volibear", level: 1, phase: "all" },
+        { championId: "ivern", level: 2, phase: "lane" },
+        { championId: "karthus", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "jarvan-iv", level: 2, phase: "lane" },
-        { championId: "wukong", level: 2, phase: "lane" },
-        { championId: "xin-zhao", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

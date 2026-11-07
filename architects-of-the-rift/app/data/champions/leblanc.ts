@@ -57,17 +57,15 @@ export const leblanc = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "azir", level: 2, phase: "lane" },
-        { championId: "cassiopeia", level: 2, phase: "lane" },
-        { championId: "ziggs", level: 2, phase: "lane" },
+        { championId: "xerath", level: 2, phase: "all", note: "burst și W pe un artillery imobil" },
+        { championId: "aurelion-sol", level: 2, phase: "lane" },
+        { championId: "kassadin", level: 2, phase: "lane" },
+        { championId: "kogmaw", level: 2, phase: "lane" },
+        { championId: "orianna", level: 2, phase: "lane" },
+        { championId: "smolder", level: 2, phase: "lane" },
+        { championId: "viktor", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "galio", level: 2, phase: "all", note: "pasivul de MR și taunt-ul anulează burst-ul" },
-        { championId: "lissandra", level: 2, phase: "all", note: "CC point-click pe LeBlanc" },
-        { championId: "malzahar", level: 2, phase: "all", note: "spell shield și ult point-click" },
-        { championId: "vex", level: 2, phase: "all", note: "pasivul pedepsește dash-urile" },
-        { championId: "kassadin", level: 2, phase: "late" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 4,

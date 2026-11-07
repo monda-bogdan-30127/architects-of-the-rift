@@ -65,19 +65,10 @@ export const corki = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "jhin", level: 2, phase: "lane" },
-        { championId: "jinx", level: 2, phase: "lane" },
-        { championId: "tristana", level: 2, phase: "lane" },
-        { championId: "yunara", level: 2, phase: "lane" },
-        { championId: "zeri", level: 2, phase: "lane" },
+        { championId: "kogmaw", level: 2, phase: "lane" },
+        { championId: "ezreal", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "kaisa", level: 2, phase: "late" },
-        { championId: "caitlyn", level: 2, phase: "lane" },
-        { championId: "kalista", level: 2, phase: "lane" },
-        { championId: "lucian", level: 2, phase: "lane" },
-        { championId: "varus", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 7,

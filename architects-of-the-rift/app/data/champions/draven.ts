@@ -65,18 +65,16 @@ export const draven = createChampion({
   roleData: {
     adc: {
       goodVs: [
+        { championId: "aphelios", level: 2, phase: "lane" },
+        { championId: "ezreal", level: 2, phase: "lane" },
         { championId: "jhin", level: 2, phase: "lane" },
         { championId: "jinx", level: 2, phase: "lane" },
         { championId: "kaisa", level: 2, phase: "lane" },
-        { championId: "sivir", level: 2, phase: "lane" },
+        { championId: "smolder", level: 2, phase: "lane" },
+        { championId: "yunara", level: 2, phase: "lane" },
+        { championId: "zeri", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "ashe", level: 2, phase: "lane" },
-        { championId: "miss-fortune", level: 2, phase: "lane" },
-        { championId: "tristana", level: 2, phase: "lane" },
-        { championId: "varus", level: 2, phase: "lane" },
-        { championId: "xayah", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 1,

@@ -51,7 +51,9 @@ export const xerath = createChampion({
 
   roleData: {
     mid: {
-      goodVs: [],
+      goodVs: [
+        { championId: "chogath", level: 2, phase: "lane" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: null,

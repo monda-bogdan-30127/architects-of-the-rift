@@ -62,16 +62,27 @@ export const kennen = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "malphite", level: 2, phase: "all", note: "AP la distanță, armura nu ajută" },
-        { championId: "ksante", level: 2, phase: "lane" },
-      ],
-      weakVs: [
-        { championId: "galio", level: 3, phase: "all", note: "pasivul de MR al lui W anulează burst-ul AP" },
-        { championId: "ornn", level: 2, phase: "late" },
+        { championId: "darius", level: 2, phase: "all", note: "kite și stun, Darius nu-l poate prinde" },
+        { championId: "malphite", level: 2, phase: "all", note: "damage AP de la distanță, armura nu ajută" },
+        { championId: "olaf", level: 2, phase: "all", note: "kite de la distanță, Olaf nu-l prinde fără R" },
+        { championId: "sett", level: 2, phase: "all", note: "kite contra juggernaut-ului fără range" },
+        { championId: "ambessa", level: 2, phase: "lane" },
         { championId: "camille", level: 2, phase: "lane" },
+        { championId: "fiora", level: 2, phase: "lane" },
+        { championId: "garen", level: 2, phase: "lane" },
         { championId: "gwen", level: 2, phase: "lane" },
+        { championId: "jax", level: 2, phase: "lane" },
+        { championId: "ksante", level: 2, phase: "lane" },
+        { championId: "poppy", level: 2, phase: "lane" },
+        { championId: "renekton", level: 2, phase: "lane" },
+        { championId: "udyr", level: 2, phase: "lane" },
+        { championId: "gnar", level: 1, phase: "all" },
+        { championId: "jayce", level: 1, phase: "all" },
         { championId: "rumble", level: 1, phase: "all" },
+        { championId: "shen", level: 1, phase: "all" },
+        { championId: "teemo", level: 1, phase: "all" },
       ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 3,

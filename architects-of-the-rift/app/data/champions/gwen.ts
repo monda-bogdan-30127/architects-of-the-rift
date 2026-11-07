@@ -62,13 +62,20 @@ export const gwen = createChampion({
 
   roleData: {
     top: {
-      goodVs: [],
-      weakVs: [
-        { championId: "aurora", level: 2, phase: "lane" },
-        { championId: "jayce", level: 2, phase: "lane" },
-        { championId: "zaahen", level: 2, phase: "lane" },
-        { championId: "jax", level: 1, phase: "all" },
+      goodVs: [
+        { championId: "malphite", level: 2, phase: "all", note: "damage magic și true damage contra tank-ului de armură" },
+        { championId: "aatrox", level: 2, phase: "late" },
+        { championId: "ambessa", level: 2, phase: "late" },
+        { championId: "chogath", level: 2, phase: "late" },
+        { championId: "dr-mundo", level: 2, phase: "late" },
+        { championId: "ksante", level: 2, phase: "late" },
+        { championId: "ornn", level: 2, phase: "late" },
+        { championId: "poppy", level: 2, phase: "late" },
+        { championId: "riven", level: 2, phase: "late" },
+        { championId: "rumble", level: 2, phase: "late" },
+        { championId: "sion", level: 2, phase: "late" },
       ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 1,

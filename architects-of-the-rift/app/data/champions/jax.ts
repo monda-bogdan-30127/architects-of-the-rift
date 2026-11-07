@@ -63,16 +63,19 @@ export const jax = createChampion({
   roleData: {
     top: {
       goodVs: [
+        { championId: "tryndamere", level: 2, phase: "all", note: "Counter Strike anulează autoatacurile lui Tryndamere" },
         { championId: "aatrox", level: 2, phase: "late" },
+        { championId: "ambessa", level: 2, phase: "late" },
+        { championId: "camille", level: 2, phase: "late" },
+        { championId: "galio", level: 2, phase: "late" },
+        { championId: "garen", level: 2, phase: "late" },
+        { championId: "gnar", level: 2, phase: "late" },
         { championId: "renekton", level: 2, phase: "late" },
+        { championId: "riven", level: 2, phase: "late" },
+        { championId: "sett", level: 2, phase: "late" },
+        { championId: "volibear", level: 2, phase: "late" },
       ],
-      weakVs: [
-        { championId: "gangplank", level: 2, phase: "lane" },
-        { championId: "gragas", level: 2, phase: "lane" },
-        { championId: "kennen", level: 2, phase: "lane" },
-        { championId: "rumble", level: 2, phase: "lane" },
-        { championId: "ambessa", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 7,

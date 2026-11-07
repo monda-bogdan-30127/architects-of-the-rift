@@ -66,17 +66,11 @@ export const malzahar = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "galio", level: 2, phase: "lane" },
-        { championId: "ryze", level: 2, phase: "lane" },
-        { championId: "vladimir", level: 2, phase: "lane" },
-        { championId: "zoe", level: 2, phase: "lane" },
+        { championId: "katarina", level: 2, phase: "all", note: "R (suppression) întrerupe R-ul Katarinei" },
+        { championId: "leblanc", level: 2, phase: "all", note: "spell shield și R point-click pe un asasin" },
+        { championId: "zed", level: 2, phase: "all", note: "spell shield și R point-click pe un asasin" },
       ],
-      weakVs: [
-        { championId: "veigar", level: 2, phase: "late" },
-        { championId: "azir", level: 2, phase: "lane" },
-        { championId: "taliyah", level: 2, phase: "lane" },
-        { championId: "viktor", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

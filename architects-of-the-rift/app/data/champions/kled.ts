@@ -65,14 +65,9 @@ export const kled = createChampion({
       goodVs: [
         { championId: "aatrox", level: 2, phase: "lane" },
         { championId: "dr-mundo", level: 2, phase: "lane" },
-        { championId: "renekton", level: 1, phase: "all" },
+        { championId: "gragas", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "sion", level: 2, phase: "late" },
-        { championId: "gangplank", level: 2, phase: "lane" },
-        { championId: "gnar", level: 2, phase: "lane" },
-        { championId: "rumble", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 3,

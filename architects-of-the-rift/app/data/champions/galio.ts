@@ -64,16 +64,18 @@ export const galio = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "sylas", level: 2, phase: "all", note: "pasivul de MR contra burst-ului AP" },
-        { championId: "viktor", level: 2, phase: "all", note: "pasivul de MR și engage pe un mage imobil" },
+        { championId: "akali", level: 2, phase: "all", note: "MR și taunt anulează burst-ul Akalei" },
+        { championId: "aurora", level: 2, phase: "all", note: "MR și taunt anulează burst-ul Aurorei" },
+        { championId: "cassiopeia", level: 2, phase: "all", note: "MR din W și engage pe un mage imobil" },
+        { championId: "fizz", level: 2, phase: "all", note: "MR și taunt anulează burst-ul AP" },
+        { championId: "katarina", level: 2, phase: "all", note: "taunt-ul întrerupe R-ul Katarinei, MR contra burst-ului" },
+        { championId: "leblanc", level: 2, phase: "all", note: "MR din W și taunt anulează burst-ul LeBlanc-ului" },
+        { championId: "locke", level: 2, phase: "all", note: "MR și taunt pe un asasin AP" },
+        { championId: "sylas", level: 2, phase: "all", note: "MR anulează burst-ul AP al lui Sylas" },
+        { championId: "viktor", level: 2, phase: "all", note: "MR și taunt pe un mage imobil" },
+        { championId: "zoe", level: 2, phase: "all", note: "MR și engage pe un mage fragil" },
       ],
-      weakVs: [
-        { championId: "ahri", level: 2, phase: "lane" },
-        { championId: "annie", level: 2, phase: "lane" },
-        { championId: "orianna", level: 2, phase: "lane" },
-        { championId: "taliyah", level: 2, phase: "lane" },
-        { championId: "yone", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 9,
@@ -98,7 +100,12 @@ export const galio = createChampion({
       },
     },
     top: {
-      goodVs: [],
+      goodVs: [
+        { championId: "kennen", level: 3, phase: "all", note: "pasivul W (MR) anulează burst-ul AP, iar taunt-ul îl prinde pe Kennen" },
+        { championId: "aurora", level: 2, phase: "all", note: "MR și taunt anulează burst-ul Aurorei" },
+        { championId: "rumble", level: 2, phase: "all", note: "pasivul W (MR) anulează damage-ul AP al lui Rumble" },
+        { championId: "vladimir", level: 2, phase: "all", note: "MR și taunt contra unui mage de lupte lungi" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: {

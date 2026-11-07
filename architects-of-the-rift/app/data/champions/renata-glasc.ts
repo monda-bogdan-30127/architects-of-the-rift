@@ -63,16 +63,10 @@ export const renataGlasc = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "lulu", level: 2, phase: "lane" },
-        { championId: "seraphine", level: 2, phase: "lane" },
+        { championId: "alistar", level: 2, phase: "all", note: "R întoarce engage-ul împotriva echipei care intră" },
+        { championId: "rell", level: 2, phase: "all", note: "R întoarce engage-ul împotriva echipei care intră" },
       ],
-      weakVs: [
-        { championId: "blitzcrank", level: 2, phase: "lane" },
-        { championId: "maokai", level: 2, phase: "lane" },
-        { championId: "neeko", level: 2, phase: "lane" },
-        { championId: "thresh", level: 2, phase: "lane" },
-        { championId: "yuumi", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 16,

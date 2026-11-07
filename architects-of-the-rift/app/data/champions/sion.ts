@@ -63,18 +63,10 @@ export const sion = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "aurora", level: 2, phase: "late" },
         { championId: "jayce", level: 2, phase: "late" },
         { championId: "renekton", level: 2, phase: "late" },
-        { championId: "volibear", level: 2, phase: "late" },
       ],
-      weakVs: [
-        { championId: "gwen", level: 2, phase: "all", note: "damage pe %HP contra tank-ului" },
-        { championId: "mordekaiser", level: 2, phase: "all", note: "ult-ul și damage-ul contra tank-urilor" },
-        { championId: "camille", level: 2, phase: "late" },
-        { championId: "aatrox", level: 2, phase: "lane" },
-        { championId: "kennen", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 1,

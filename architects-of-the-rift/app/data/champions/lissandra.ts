@@ -64,15 +64,16 @@ export const lissandra = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "viktor", level: 2, phase: "lane" },
+        { championId: "akali", level: 2, phase: "all", note: "CC point-click (R) pe un asasin, chiar și în shroud" },
+        { championId: "ekko", level: 2, phase: "all", note: "CC point-click pe un asasin" },
+        { championId: "katarina", level: 2, phase: "all", note: "CC point-click întrerupe R-ul Katarinei" },
+        { championId: "leblanc", level: 2, phase: "all", note: "CC point-click pe LeBlanc" },
+        { championId: "locke", level: 2, phase: "all", note: "CC point-click și R pe sine opresc all-in-ul" },
+        { championId: "talon", level: 2, phase: "all", note: "CC point-click pe un asasin" },
+        { championId: "yasuo", level: 2, phase: "all", note: "CC point-click pe un campion care trăiește din dash-uri" },
+        { championId: "zed", level: 2, phase: "all", note: "R pe sine anulează all-in-ul lui Zed" },
       ],
-      weakVs: [
-        { championId: "swain", level: 2, phase: "late" },
-        { championId: "vladimir", level: 2, phase: "late" },
-        { championId: "orianna", level: 2, phase: "lane" },
-        { championId: "sylas", level: 2, phase: "lane" },
-        { championId: "irelia", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 2,

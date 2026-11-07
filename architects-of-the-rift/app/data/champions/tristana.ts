@@ -64,16 +64,9 @@ export const tristana = createChampion({
     adc: {
       goodVs: [
         { championId: "jhin", level: 2, phase: "all", note: "all-in pe un carry imobil" },
-        { championId: "samira", level: 2, phase: "lane" },
-        { championId: "ziggs", level: 2, phase: "lane" },
+        { championId: "kogmaw", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "aphelios", level: 2, phase: "late" },
-        { championId: "ashe", level: 2, phase: "lane" },
-        { championId: "lucian", level: 2, phase: "lane" },
-        { championId: "miss-fortune", level: 2, phase: "lane" },
-        { championId: "xayah", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 6,
@@ -98,9 +91,7 @@ export const tristana = createChampion({
       },
     },
     mid: {
-      goodVs: [
-        { championId: "ziggs", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
       weakVs: [],
       mustWith: [],
       stats: {
@@ -126,7 +117,11 @@ export const tristana = createChampion({
       },
     },
     top: {
-      goodVs: [],
+      goodVs: [
+        { championId: "ksante", level: 2, phase: "lane" },
+        { championId: "ornn", level: 2, phase: "lane" },
+        { championId: "sion", level: 2, phase: "lane" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: {

@@ -59,15 +59,8 @@ export const jhin = createChampion({
 
   roleData: {
     adc: {
-      goodVs: [
-        { championId: "aphelios", level: 2, phase: "lane" },
-        { championId: "kogmaw", level: 2, phase: "lane" },
-      ],
-      weakVs: [
-        { championId: "jinx", level: 2, phase: "late" },
-        { championId: "xayah", level: 2, phase: "late" },
-        { championId: "caitlyn", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 18,

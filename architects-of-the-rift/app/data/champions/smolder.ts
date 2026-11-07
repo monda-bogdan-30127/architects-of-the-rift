@@ -65,28 +65,17 @@ export const smolder = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "corki", level: 2, phase: "late" },
-        { championId: "senna", level: 2, phase: "late" },
-        { championId: "xayah", level: 2, phase: "late" },
-        { championId: "zeri", level: 2, phase: "late" },
-        { championId: "jinx", level: 1, phase: "all" },
+        { championId: "caitlyn", level: 2, phase: "late" },
+        { championId: "draven", level: 2, phase: "late" },
+        { championId: "lucian", level: 2, phase: "late" },
       ],
-      weakVs: [
-        { championId: "ashe", level: 2, phase: "lane" },
-        { championId: "ezreal", level: 2, phase: "lane" },
-        { championId: "jhin", level: 2, phase: "lane" },
-        { championId: "kalista", level: 2, phase: "lane" },
-        { championId: "varus", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },
     mid: {
       goodVs: [],
-      weakVs: [
-        { championId: "leblanc", level: 2, phase: "lane" },
-        { championId: "zed", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

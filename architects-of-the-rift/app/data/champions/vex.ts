@@ -64,13 +64,13 @@ export const vex = createChampion({
     mid: {
       goodVs: [
         { championId: "akali", level: 2, phase: "all", note: "pasivul pedepsește fiecare dash" },
-        { championId: "sylas", level: 2, phase: "lane" },
+        { championId: "ekko", level: 2, phase: "all", note: "pasivul pedepsește dash-urile" },
+        { championId: "kassadin", level: 2, phase: "all", note: "pasivul pedepsește R-ul (blink) lui Kassadin" },
+        { championId: "leblanc", level: 2, phase: "all", note: "pasivul pedepsește dash-urile din W" },
+        { championId: "yasuo", level: 2, phase: "all", note: "pasivul pedepsește dash-urile" },
+        { championId: "yone", level: 2, phase: "all", note: "pasivul pedepsește dash-urile" },
       ],
-      weakVs: [
-        { championId: "ahri", level: 2, phase: "lane" },
-        { championId: "ryze", level: 2, phase: "lane" },
-        { championId: "viktor", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

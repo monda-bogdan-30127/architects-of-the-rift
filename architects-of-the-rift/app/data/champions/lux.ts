@@ -63,18 +63,8 @@ export const lux = createChampion({
 
   roleData: {
     support: {
-      goodVs: [
-        { championId: "lulu", level: 2, phase: "lane" },
-        { championId: "nami", level: 2, phase: "lane" },
-        { championId: "yuumi", level: 2, phase: "lane" },
-      ],
-      weakVs: [
-        { championId: "blitzcrank", level: 2, phase: "all", note: "hook pe un support imobil" },
-        { championId: "leona", level: 2, phase: "all", note: "engage pe un support imobil" },
-        { championId: "nautilus", level: 2, phase: "all", note: "hook și CC point-click pe un support imobil" },
-        { championId: "alistar", level: 2, phase: "lane" },
-        { championId: "braum", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 1,

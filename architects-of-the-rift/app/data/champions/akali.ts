@@ -63,14 +63,15 @@ export const akali = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "aurora", level: 2, phase: "lane" },
+        { championId: "velkoz", level: 2, phase: "all", note: "shroud-ul o ascunde de skillshot-urile unui mage imobil" },
+        { championId: "xerath", level: 2, phase: "all", note: "shroud-ul o ascunde de skillshot-urile unui artillery imobil" },
+        { championId: "azir", level: 2, phase: "lane" },
+        { championId: "orianna", level: 2, phase: "lane" },
+        { championId: "ryze", level: 2, phase: "lane" },
+        { championId: "viktor", level: 2, phase: "lane" },
+        { championId: "locke", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "lissandra", level: 2, phase: "all", note: "ult point-click și W care o prind în shroud" },
-        { championId: "ahri", level: 2, phase: "lane" },
-        { championId: "annie", level: 2, phase: "lane" },
-        { championId: "twisted-fate", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 13,

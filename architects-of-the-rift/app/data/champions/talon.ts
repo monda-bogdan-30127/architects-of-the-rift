@@ -49,13 +49,18 @@ export const talon = createChampion({
 
   roleData: {
     mid: {
-      goodVs: [],
+      goodVs: [
+        { championId: "kassadin", level: 2, phase: "lane" },
+        { championId: "twisted-fate", level: 2, phase: "lane" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: null,
     },
     jungle: {
-      goodVs: [],
+      goodVs: [
+        { championId: "karthus", level: 2, phase: "lane" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: null,

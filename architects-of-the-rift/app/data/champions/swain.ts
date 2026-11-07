@@ -60,19 +60,8 @@ export const swain = createChampion({
 
   roleData: {
     mid: {
-      goodVs: [
-        { championId: "galio", level: 2, phase: "late" },
-        { championId: "sylas", level: 2, phase: "lane" },
-        { championId: "taliyah", level: 2, phase: "lane" },
-        { championId: "viktor", level: 2, phase: "lane" },
-      ],
-      weakVs: [
-        { championId: "akali", level: 2, phase: "lane" },
-        { championId: "azir", level: 2, phase: "lane" },
-        { championId: "cassiopeia", level: 2, phase: "lane" },
-        { championId: "ryze", level: 2, phase: "lane" },
-        { championId: "syndra", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 1,
@@ -98,7 +87,8 @@ export const swain = createChampion({
     },
     top: {
       goodVs: [
-        { championId: "galio", level: 2, phase: "late" },
+        { championId: "ornn", level: 2, phase: "late" },
+        { championId: "sion", level: 2, phase: "late" },
       ],
       weakVs: [],
       mustWith: [],

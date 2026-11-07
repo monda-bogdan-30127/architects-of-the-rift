@@ -64,16 +64,20 @@ export const cassiopeia = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "aurora", level: 2, phase: "lane" },
-        { championId: "yone", level: 2, phase: "lane" },
+        { championId: "kassadin", level: 3, phase: "all", note: "W (grounding) îl ține pe loc și anulează R-ul lui Kassadin" },
+        { championId: "akali", level: 2, phase: "all", note: "grounding oprește dash-urile Akalei" },
+        { championId: "aurora", level: 2, phase: "all", note: "W (grounding) anulează blink-urile Aurorei" },
+        { championId: "leblanc", level: 2, phase: "all", note: "grounding anulează W-ul LeBlanc-ului" },
+        { championId: "sylas", level: 2, phase: "all", note: "grounding anulează E-ul lui Sylas (dash)" },
+        { championId: "syndra", level: 2, phase: "all", note: "DPS constant contra burst-ului; favorabilă în pro 2026 (59%)" },
+        { championId: "viktor", level: 2, phase: "all", note: "DPS constant și grounding; favorabilă în pro 2026 (59%)" },
+        { championId: "yasuo", level: 2, phase: "all", note: "grounding anulează E-ul și Q3" },
+        { championId: "yone", level: 2, phase: "all", note: "grounding anulează E-ul și R-ul (dash-uri)" },
+        { championId: "zed", level: 2, phase: "all", note: "grounding și R (stun) pe un asasin melee" },
+        { championId: "anivia", level: 1, phase: "all" },
+        { championId: "orianna", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "galio", level: 2, phase: "all", note: "pasivul de MR și engage pe un mage imobil" },
-        { championId: "aurelion-sol", level: 2, phase: "late" },
-        { championId: "anivia", level: 2, phase: "lane" },
-        { championId: "malzahar", level: 2, phase: "lane" },
-        { championId: "yasuo", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 15,
@@ -101,7 +105,9 @@ export const cassiopeia = createChampion({
       },
     },
     adc: {
-      goodVs: [],
+      goodVs: [
+        { championId: "ziggs", level: 2, phase: "all", note: "DPS constant contra unui mage de poke; favorabilă în pro 2026 (12-2)" },
+      ],
       weakVs: [],
       mustWith: [],
       stats: {

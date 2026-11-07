@@ -59,15 +59,12 @@ export const annie = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "hwei", level: 2, phase: "lane" },
-        { championId: "leblanc", level: 2, phase: "lane" },
+        { championId: "irelia", level: 2, phase: "all", note: "stun point-click pe un campion care trebuie să intre" },
+        { championId: "yasuo", level: 2, phase: "all", note: "stun point-click pe un campion care trebuie să intre în ea" },
+        { championId: "yone", level: 2, phase: "all", note: "stun point-click pe un campion care trebuie să intre în ea" },
+        { championId: "akali", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "ryze", level: 2, phase: "late" },
-        { championId: "ahri", level: 2, phase: "lane" },
-        { championId: "cassiopeia", level: 2, phase: "lane" },
-        { championId: "lissandra", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 6,

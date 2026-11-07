@@ -67,14 +67,13 @@ export const camille = createChampion({
       goodVs: [
         { championId: "ksante", level: 2, phase: "late" },
         { championId: "ornn", level: 2, phase: "late" },
+        { championId: "renekton", level: 2, phase: "late" },
+        { championId: "rumble", level: 2, phase: "late" },
+        { championId: "sion", level: 2, phase: "late" },
+        { championId: "aatrox", level: 1, phase: "all" },
+        { championId: "riven", level: 1, phase: "all" },
       ],
-      weakVs: [
-        { championId: "olaf", level: 2, phase: "all", note: "ult-ul ignoră stun-ul și ult-ul Camillei" },
-        { championId: "gwen", level: 2, phase: "late" },
-        { championId: "jax", level: 2, phase: "late" },
-        { championId: "vladimir", level: 2, phase: "late" },
-        { championId: "shen", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 9,
@@ -99,10 +98,10 @@ export const camille = createChampion({
       },
     },
     support: {
-      goodVs: [],
-      weakVs: [
-        { championId: "shen", level: 1, phase: "all" },
+      goodVs: [
+        { championId: "yuumi", level: 2, phase: "lane" },
       ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 2,

@@ -59,19 +59,9 @@ export const elise = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "leona", level: 2, phase: "lane" },
-        { championId: "lulu", level: 2, phase: "lane" },
-        { championId: "poppy", level: 2, phase: "lane" },
-        { championId: "rakan", level: 2, phase: "lane" },
-        { championId: "renata-glasc", level: 2, phase: "lane" },
+        { championId: "soraka", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "alistar", level: 2, phase: "lane" },
-        { championId: "karma", level: 2, phase: "lane" },
-        { championId: "nautilus", level: 2, phase: "lane" },
-        { championId: "neeko", level: 2, phase: "lane" },
-        { championId: "rell", level: 2, phase: "lane" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 1,

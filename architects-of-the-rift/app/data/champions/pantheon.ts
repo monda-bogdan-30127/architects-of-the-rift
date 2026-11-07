@@ -65,17 +65,14 @@ export const pantheon = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "lee-sin", level: 2, phase: "lane" },
-        { championId: "lillia", level: 2, phase: "lane" },
+        { championId: "belveth", level: 2, phase: "lane" },
+        { championId: "graves", level: 2, phase: "lane" },
+        { championId: "ivern", level: 2, phase: "lane" },
+        { championId: "karthus", level: 2, phase: "lane" },
+        { championId: "kindred", level: 2, phase: "lane" },
         { championId: "nocturne", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "poppy", level: 2, phase: "all", note: "W oprește leap-ul lui W" },
-        { championId: "maokai", level: 2, phase: "late" },
-        { championId: "sejuani", level: 2, phase: "late" },
-        { championId: "skarner", level: 2, phase: "late" },
-        { championId: "jarvan-iv", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 15,

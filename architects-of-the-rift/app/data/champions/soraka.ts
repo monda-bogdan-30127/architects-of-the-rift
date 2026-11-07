@@ -62,19 +62,8 @@ export const soraka = createChampion({
 
   roleData: {
     support: {
-      goodVs: [
-        { championId: "leona", level: 2, phase: "lane" },
-        { championId: "shen", level: 2, phase: "lane" },
-        { championId: "bard", level: 1, phase: "all" },
-        { championId: "janna", level: 1, phase: "all" },
-      ],
-      weakVs: [
-        { championId: "karma", level: 2, phase: "lane" },
-        { championId: "nami", level: 2, phase: "lane" },
-        { championId: "rakan", level: 2, phase: "lane" },
-        { championId: "renata-glasc", level: 2, phase: "lane" },
-        { championId: "lulu", level: 1, phase: "all" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },

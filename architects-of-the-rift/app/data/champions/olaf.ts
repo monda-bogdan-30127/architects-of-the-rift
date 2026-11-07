@@ -61,18 +61,17 @@ export const olaf = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "ornn", level: 2, phase: "all", note: "true damage și imunitate la CC în ult" },
-        { championId: "gnar", level: 2, phase: "lane" },
+        { championId: "camille", level: 2, phase: "all", note: "R-ul ignoră stun-ul din E și R-ul Camillei" },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "ambessa", level: 2, phase: "lane" },
+        { championId: "gwen", level: 2, phase: "lane" },
         { championId: "ksante", level: 2, phase: "lane" },
+        { championId: "ornn", level: 2, phase: "lane" },
+        { championId: "shen", level: 2, phase: "lane" },
         { championId: "sion", level: 2, phase: "lane" },
+        { championId: "twisted-fate", level: 2, phase: "lane" },
       ],
-      weakVs: [
-        { championId: "kennen", level: 2, phase: "all", note: "kite la distanță contra juggernaut-ului" },
-        { championId: "fiora", level: 2, phase: "late" },
-        { championId: "renekton", level: 2, phase: "lane" },
-        { championId: "rumble", level: 2, phase: "lane" },
-        { championId: "udyr", level: 1, phase: "all" },
-      ],
+      weakVs: [],
       mustWith: [],
       stats: {
         picks: 16,

@@ -62,29 +62,14 @@ export const zac = createChampion({
 
   roleData: {
     top: {
-      goodVs: [
-        { championId: "aatrox", level: 2, phase: "late" },
-        { championId: "reksai", level: 1, phase: "all" },
-        { championId: "rumble", level: 1, phase: "all" },
-      ],
-      weakVs: [
-        { championId: "poppy", level: 3, phase: "all", note: "W oprește complet E-ul lui Zac" },
-        { championId: "ksante", level: 2, phase: "lane" },
-        { championId: "ornn", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },
     jungle: {
-      goodVs: [
-        { championId: "aatrox", level: 2, phase: "late" },
-        { championId: "xin-zhao", level: 2, phase: "late" },
-      ],
-      weakVs: [
-        { championId: "poppy", level: 3, phase: "all", note: "W oprește complet E-ul lui Zac" },
-        { championId: "maokai", level: 2, phase: "late" },
-        { championId: "nocturne", level: 2, phase: "lane" },
-      ],
+      goodVs: [],
+      weakVs: [],
       mustWith: [],
       stats: null,
     },
