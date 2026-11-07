@@ -430,6 +430,71 @@ for (const support of [SUP_RAKAN_OK, SUP_MULTI]) {
   );
 }
 
+// ─── 10. mustWith direcțional ────────────────────────────────────────────────
+// `mustWith` = „X e construit în jurul lui Y”. Kog'Maw → Lulu și Kalista → Renata
+// sunt într-un sens: Lulu / Renata prima NU forțează ADC-ul. Xayah ↔ Rakan e
+// scris în ambele fișiere, deci oricare primul îl forțează pe celălalt.
+const GRADE_ORDER = { SS: 6, S: 5, A: 4, B: 3, C: 2, D: 1, F: 0 } as Record<string, number>;
+/** Un jucător de pe `role` cu grad ≥ C pe campion (cel mai bun grad), ales la rulare. */
+function playerWith(role: Role, championId: string): string {
+  const best = players
+    .filter((p) => p.teamId !== "free-agent" && p.role === role)
+    .map((p) => ({ id: p.id, rank: GRADE_ORDER[getChampionGrade(p, championId)] ?? 0 }))
+    .filter((entry) => entry.rank >= 2)
+    .sort((a, b) => b.rank - a.rank || a.id.localeCompare(b.id))[0];
+  if (!best) throw new Error(`niciun ${role} cu ${championId} ≥ C`);
+  return best.id;
+}
+
+function firstPickThenR2(id: string, roster: Partial<Record<Role, string>>, first: string) {
+  const { log } = runDraft({
+    series: newSeries(id, BLUE, RED),
+    save: makeSave({ [RED]: roster }),
+    forced: [{ side: "red", action: "pick", nth: 1, championId: first }],
+    stop: (entries) => Boolean(nthPick(entries, "red", 2)),
+  });
+  return nthPick(log, "red", 2);
+}
+
+{
+  const adc = playerWith("adc", "kogmaw");
+  const support = playerWith("support", "lulu");
+  const r2 = firstPickThenR2("s10a", { adc, support }, "lulu");
+  check(
+    "10a. Lulu prima → Kog'Maw NU e forțat",
+    !isLock(r2),
+    `R2=${r2?.championId}, lock=${isLock(r2)} (adc ${adc}: Kog'Maw ${grade(adc, "kogmaw")})`,
+  );
+}
+{
+  const adc = playerWith("adc", "kalista");
+  const support = playerWith("support", "renata-glasc");
+  const r2 = firstPickThenR2("s10b", { adc, support }, "renata-glasc");
+  check(
+    "10b. Renata prima → Kalista NU e forțată",
+    !isLock(r2),
+    `R2=${r2?.championId}, lock=${isLock(r2)} (adc ${adc}: Kalista ${grade(adc, "kalista")})`,
+  );
+}
+{
+  const r2 = firstPickThenR2("s10c", { adc: ADC_XAYAH, support: SUP_RAKAN_OK }, "rakan");
+  check(
+    "10c. Rakan prima → R2 Xayah (reciproc)",
+    r2?.championId === "xayah" && isLock(r2),
+    `R2=${r2?.championId}, lock=${isLock(r2)} (adc ${ADC_XAYAH}: Xayah ${grade(ADC_XAYAH, "xayah")})`,
+  );
+}
+{
+  const adc = playerWith("adc", "kogmaw");
+  const support = playerWith("support", "lulu");
+  const r2 = firstPickThenR2("s10d", { adc, support }, "kogmaw");
+  check(
+    "10d. Kog'Maw prima → R2 Lulu",
+    r2?.championId === "lulu" && isLock(r2),
+    `R2=${r2?.championId}, lock=${isLock(r2)} (support ${support}: Lulu ${grade(support, "lulu")})`,
+  );
+}
+
 // ─── Raport ──────────────────────────────────────────────────────────────────
 for (const result of results) {
   console.log(`${result.pass ? "PASS" : "FAIL"}  ${result.name}\n      ${result.detail}`);

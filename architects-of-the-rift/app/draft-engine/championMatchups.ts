@@ -78,8 +78,6 @@ function resolveDerivedRole(targetId: string, sourceRole: Role, vsRole: Role | u
 
 type MatchupIndex = {
   byKey: Map<ChampionRoleKey, ChampionRoleMatchups>;
-  /** anchorId → campionii care au ancora în `mustWith`, cu rolul pe care o au. */
-  reverseMustWith: Map<string, { championId: string; role: Role }[]>;
   issues: MatchupDerivationIssue[];
 };
 
@@ -156,19 +154,7 @@ function buildIndex(): MatchupIndex {
     }
   }
 
-  const reverseMustWith = new Map<string, { championId: string; role: Role }[]>();
-  for (const [key, entry] of byKey) {
-    const separator = key.lastIndexOf(":");
-    const championId = key.slice(0, separator);
-    const role = key.slice(separator + 1) as Role;
-    for (const anchorId of entry.mustWith) {
-      const list = reverseMustWith.get(anchorId) ?? [];
-      list.push({ championId, role });
-      reverseMustWith.set(anchorId, list);
-    }
-  }
-
-  return { byKey, reverseMustWith, issues };
+  return { byKey, issues };
 }
 
 function getIndex(): MatchupIndex {
@@ -221,20 +207,12 @@ export function getMustWith(championId: string, role: Role): string[] {
 }
 
 /**
- * Partenerii mustWith ai ancorei: întâi lista ancorei, apoi campionii care au
- * ancora în `mustWith` pe rolul complementar (bot: celălalt rol bot; altfel:
- * orice rol diferit de al ancorei).
+ * Partenerii mustWith ai ancorei — DOAR lista ancorei. `mustWith` e direcțional:
+ * „X e construit în jurul lui Y” (Kog'Maw → Lulu) nu face din Lulu o ancoră
+ * pentru Kog'Maw. Perechile reciproce (Xayah ↔ Rakan) se scriu în ambele fișiere.
  */
 export function getMustWithPartners(anchorId: string, anchorRole: Role): string[] {
-  const partners = getMustWith(anchorId, anchorRole);
-  const botComplement = getComplementaryBotRole(anchorRole);
-
-  for (const { championId, role } of getIndex().reverseMustWith.get(anchorId) ?? []) {
-    if (championId === anchorId || partners.includes(championId)) continue;
-    const complementary = botComplement ? role === botComplement : role !== anchorRole;
-    if (complementary) partners.push(championId);
-  }
-  return partners;
+  return getMustWith(anchorId, anchorRole);
 }
 
 /** Derivările imposibile (rol pe care ținta nu-l joacă) — pentru validator. */

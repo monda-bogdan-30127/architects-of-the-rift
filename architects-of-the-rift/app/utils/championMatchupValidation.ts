@@ -48,6 +48,11 @@ export interface MatchupValidationResult {
   levelPhaseCountsByRole: Record<Role, { goodVs: LevelPhaseCounts; weakVs: LevelPhaseCounts }>;
   /** Totalul relațiilor scrise explicit în fișiere. */
   explicitRelationCount: number;
+  /**
+   * Toate perechile `mustWith` (direcționale): ancora:rol → partener; `reciprocal` =
+   * partenerul are și el ancora în `mustWith` pe rolul complementar.
+   */
+  mustWithPairs: { anchor: string; partnerId: string; reciprocal: boolean }[];
   /** Acoperirea cu `profile` manual: per rol, plus lista celor fără, după `presence` descrescător. */
   profileCoverage: {
     byRole: Record<Role, { withProfile: number; total: number }>;
@@ -233,6 +238,23 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
     }
   }
 
+  // ── Perechile mustWith: reciproce sau într-un sens ───────────────────────
+  const mustWithPairs: MatchupValidationResult["mustWithPairs"] = [];
+  for (const champion of champions) {
+    for (const [roleKey, entry] of Object.entries(champion.roleData ?? {})) {
+      if (!entry || !isRole(roleKey)) continue;
+      for (const partnerId of entry.mustWith ?? []) {
+        const partner = byId.get(partnerId);
+        const complementRoles: Role[] =
+          roleKey === "adc" ? ["support"] : roleKey === "support" ? ["adc"] : ROLES.filter((other) => other !== roleKey);
+        const reciprocal = complementRoles.some((other) =>
+          (partner?.roleData?.[other]?.mustWith ?? []).includes(champion.id),
+        );
+        mustWithPairs.push({ anchor: `${champion.id}:${roleKey}`, partnerId, reciprocal });
+      }
+    }
+  }
+
   // ── Acoperire profile manuale ────────────────────────────────────────────
   const byRole = Object.fromEntries(ROLES.map((role) => [role, { withProfile: 0, total: 0 }])) as MatchupValidationResult["profileCoverage"]["byRole"];
   const missing: { key: string; presence: number }[] = [];
@@ -254,6 +276,7 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
     ok: errorCount === 0,
     levelPhaseCountsByRole,
     explicitRelationCount,
+    mustWithPairs,
     profileCoverage: { byRole, missing },
   };
 }

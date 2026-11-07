@@ -5,8 +5,9 @@
 //   - alte roluri: bonus mare + șansă de lock în `chooseAiAction` (5.4);
 //   - ban-uri: nu-ți banezi partenerul, deny pe partenerul inamicului (5.5).
 //
-// Partenerii vin din `getMustWithPartners` (championMatchups.ts). Toate
-// constantele sunt în `MUSTWITH_CONFIG`.
+// Partenerii vin din `getMustWithPartners` (championMatchups.ts) și sunt
+// direcționali: doar `mustWith`-ul ancorei (Kog'Maw → Lulu; Lulu prima nu
+// forțează Kog'Maw). Toate constantele sunt în `MUSTWITH_CONFIG`.
 
 import { players } from "@/app/data/players";
 import type { Champion, Role } from "@/app/types/champion";
@@ -201,11 +202,11 @@ export function getComboPotentialBonus(
   return partner ? { bonus: MUSTWITH_CONFIG.comboPotentialBonus, partner } : { bonus: 0, partner: null };
 }
 
-/** 5.3 — perechea bot din compoziție e explicită (mustWith sau synergyWith ≥ 4)? */
+/** 5.3 — perechea bot din compoziție e explicită (mustWith în oricare fișier sau synergyWith ≥ 4)? */
 export function isExplicitBotPair(adcId: string | null | undefined, supportId: string | null | undefined): boolean {
   if (!adcId || !supportId) return false;
-  if (getMustWithPartners(adcId, "adc").includes(supportId)) return true;
-  if (getMustWithPartners(supportId, "support").includes(adcId)) return true;
+  if (getMustWith(adcId, "adc").includes(supportId)) return true;
+  if (getMustWith(supportId, "support").includes(adcId)) return true;
   const min = MUSTWITH_CONFIG.explicitSynergyMinScore;
   const adc = championsById[adcId];
   const support = championsById[supportId];

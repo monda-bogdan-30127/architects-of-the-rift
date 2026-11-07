@@ -27,6 +27,11 @@ for (const [role, counts] of Object.entries(result.levelPhaseCountsByRole)) {
   }
 }
 
+console.log(`\nINFO — perechi mustWith (${result.mustWithPairs.length}; direcționale: ancora → partener):`);
+for (const pair of result.mustWithPairs) {
+  console.log(`  ${pair.anchor.padEnd(24)} → ${pair.partnerId.padEnd(16)} ${pair.reciprocal ? "reciproc" : "într-un sens"}`);
+}
+
 const coverage = result.profileCoverage;
 console.log("\nINFO — profile manuale (roleData[rol].profile), per rol:");
 for (const [role, { withProfile, total }] of Object.entries(coverage.byRole)) {
