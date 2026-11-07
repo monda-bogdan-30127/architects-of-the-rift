@@ -73,7 +73,7 @@ export const yunara = createChampion({
         { championId: "lucian", level: 2, phase: "late" },
       ],
       weakVs: [],
-      mustWith: [],
+      mustWith: ["lulu"],
       stats: {
         picks: 17,
         bans: null,
