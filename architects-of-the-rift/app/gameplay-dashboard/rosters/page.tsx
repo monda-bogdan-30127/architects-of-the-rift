@@ -650,15 +650,11 @@ function PlayerCard({
     .join(" - ");
   const tagsLine = playstyleTags.map((t) => t.toUpperCase()).join(", ");
 
-  const [activeTab, setActiveTab] = useState<PlayerTab>("stats");
+  const [selectedTab, setActiveTab] = useState<PlayerTab>("stats");
   const [masterySort, setMasterySort] = useState<MasterySort>("grade");
 
   // Fall back to stats if navigating away from controlled team while on spirit tab
-  useEffect(() => {
-    if (!isControlledTeam && activeTab === "spirit") {
-      setActiveTab("stats");
-    }
-  }, [isControlledTeam, activeTab]);
+  const activeTab: PlayerTab = !isControlledTeam && selectedTab === "spirit" ? "stats" : selectedTab;
 
   return (
     <section

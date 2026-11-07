@@ -7,8 +7,12 @@ import type { NeedStatus, TeamCompVector, TeamDraftContext, TeamDraftEvaluation 
 import { ROLE_ORDER } from "./draftTypes";
 import { getCarrySelfProtectionScore } from "./draftArchetypes";
 import { getChampionRoleProfile } from "./championProfileSystem";
+import { getChampionStatsForRole } from "./championRoleStatsSystem";
 import { derivePlayerAdaptationProfile, derivePlayerArchetypeAffinity, derivePlayerPhaseProfile } from "./playerProfileSystem";
 import { evaluateInteractionScore, evaluateRuleSynergy } from "./profileRuleEvaluator";
+import { getMatchupValueVsTeam, getTeamPhaseWeights } from "./matchupScoring";
+import { MUSTWITH_CONFIG, getCompletedMustWithPairs, hadAvailableUnusedPartner } from "./mustWithPriority";
+import { resolveRoleAssignments } from "./draftRoleResolver";
 import { evaluateTeamIdentity } from "./teamIdentitySystem";
 import { evaluateSimulationReadiness } from "./simulationReadinessSystem";
 import {
@@ -153,7 +157,13 @@ function getNeedRequirement(priority: 1 | 2 | 3) {
   return 3;
 }
 
-function evaluatePairSynergy(allyChampionIds: string[], enemyChampionIds: string[] = []) {
+function evaluatePairSynergy(
+  allyChampionIds: string[],
+  enemyChampionIds: string[],
+  assignments: Partial<Record<Role, string>>,
+  roster: Partial<Record<Role, string>>,
+  unavailable: ReadonlySet<string> | null
+) {
   let score = 0;
   const allyChampions = allyChampionIds.map(getChampionById).filter((champion): champion is Champion => Boolean(champion));
   const enemyChampions = enemyChampionIds.map(getChampionById).filter((champion): champion is Champion => Boolean(champion));
@@ -161,29 +171,52 @@ function evaluatePairSynergy(allyChampionIds: string[], enemyChampionIds: string
     for (const relation of champion.synergyWith) {
       if (allyChampionIds.includes(relation.championId)) score += (relation.score ?? 3) * 0.35;
     }
-    for (const relation of champion.mustWith) {
-      if (allyChampionIds.includes(relation.championId)) score += (relation.score ?? 4) * 0.5;
-      else score -= (relation.score ?? 4) * 0.2;
+  }
+
+  // 4.7: perechea mustWith completă → bonus fix (botlane > restul).
+  for (const pair of getCompletedMustWithPairs(assignments)) {
+    score += pair.isBotPair ? MUSTWITH_CONFIG.evaluatorPairBonus.bot : MUSTWITH_CONFIG.evaluatorPairBonus.other;
+  }
+  // Ancoră fără partener → mică penalizare doar dacă un partener era disponibil.
+  if (unavailable) {
+    for (const [role, championId] of Object.entries(assignments) as [Role, string | undefined][]) {
+      if (championId && hadAvailableUnusedPartner(championId, role, assignments, roster, unavailable)) {
+        score -= MUSTWITH_CONFIG.evaluatorMissedPairPenalty;
+      }
     }
   }
+
   const ruleScore = evaluateRuleSynergy(allyChampions, enemyChampions);
   return clamp(score * 0.55 + ruleScore * 0.75, 0, 10);
 }
 
-function evaluateCounterScore(allyChampionIds: string[], enemyChampionIds: string[]) {
+/** Factorul valorilor de matchup în scorul de counter al draftului încheiat (calibrat în §4.9). */
+export const EVALUATOR_COUNTER_FACTOR = 0.4;
+
+function evaluateCounterScore(
+  allyChampionIds: string[],
+  enemyChampionIds: string[],
+  assignments: Partial<Record<Role, string>>,
+  enemyAssignments: Partial<Record<Role, string>>,
+  roster: Partial<Record<Role, string>>,
+  enemyRoster: Partial<Record<Role, string>>
+) {
   let score = 0;
   const allyChampions = allyChampionIds.map(getChampionById).filter((champion): champion is Champion => Boolean(champion));
   const enemyChampions = enemyChampionIds.map(getChampionById).filter((champion): champion is Champion => Boolean(champion));
-  for (const champion of allyChampions) {
-    for (const relation of champion.goodVs) {
-      if (enemyChampionIds.includes(relation.championId)) score += (relation.score ?? 3) * 0.32;
-    }
-    for (const relation of champion.weakVs) {
-      if (enemyChampionIds.includes(relation.championId)) score -= (relation.score ?? 3) * 0.32;
-    }
+  const phaseWeights = getTeamPhaseWeights(allyChampionIds);
+  for (const [role, allyId] of Object.entries(assignments) as [Role, string | undefined][]) {
+    if (!allyId) continue;
+    score += getMatchupValueVsTeam(allyId, role, enemyChampionIds, {
+      phaseWeights,
+      ownAllyIds: allyChampionIds,
+      ownPlayerId: roster[role] ?? null,
+      enemyRoster,
+      enemyAssignments,
+    }).total;
   }
   const interactionScore = evaluateInteractionScore(allyChampions, enemyChampions);
-  return clamp(score + interactionScore, 0, 10);
+  return clamp(score * EVALUATOR_COUNTER_FACTOR + interactionScore, 0, 10);
 }
 
 function evaluateWeaknessPenalty(allyChampionIds: string[], enemyVector: TeamCompVector) {
@@ -292,13 +325,15 @@ export function getPlayerById(playerId: string) {
   return playersById.get(playerId) ?? null;
 }
 
-export function getMetaPriorityScore(champion: Champion): number {
-  const effectivePresence = Math.max(champion.stats.presence ?? 0, champion.stats.picks + champion.stats.bans);
+/** `role` dat → statisticile de pe acel rol (cu fallback pe cele globale). */
+export function getMetaPriorityScore(champion: Champion, role?: Role | null): number {
+  const stats = getChampionStatsForRole(champion, role);
+  const effectivePresence = Math.max(stats.presence ?? 0, stats.picks + stats.bans);
   const presenceRate = clamp(effectivePresence / maxPresence, 0, 1);
-  const banRate = clamp((champion.stats.bans ?? 0) / maxBans, 0, 1);
-  const avgPickRound = champion.stats.avgPickRound ?? 3;
+  const banRate = clamp((stats.bans ?? 0) / maxBans, 0, 1);
+  const avgPickRound = stats.avgPickRound ?? 3;
   const pickPriorityRate = clamp(1 / Math.max(1, avgPickRound), 0, 1);
-  const blindRate = clamp((champion.stats.blindPickRate ?? 40) / 100, 0, 1);
+  const blindRate = clamp((stats.blindPickRate ?? 40) / 100, 0, 1);
   return clamp((presenceRate * 0.53 + banRate * 0.22 + pickPriorityRate * 0.15 + blindRate * 0.1) * 10, 0, 10);
 }
 
@@ -429,8 +464,27 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
   const missingNeeds = evaluateNeedStatuses(context.championIds);
   const satisfiedNeeds = missingNeeds.filter((need) => need.missing === 0).length;
   const needScore = clamp((satisfiedNeeds / Math.max(1, missingNeeds.length)) * 10, 0, 10);
-  const synergyScore = evaluatePairSynergy(context.championIds, context.enemyChampionIds);
-  const counterScore = evaluateCounterScore(context.championIds, context.enemyChampionIds);
+  const hasAssignments = (value?: Partial<Record<Role, string>>): value is Partial<Record<Role, string>> =>
+    Boolean(value && Object.values(value).some(Boolean));
+  const assignments = hasAssignments(context.assignments)
+    ? context.assignments
+    : resolveRoleAssignments(context.championIds, context.roster);
+  const enemyRoster = context.enemyRoster ?? {};
+  const enemyAssignments = hasAssignments(context.enemyAssignments)
+    ? context.enemyAssignments
+    : resolveRoleAssignments(context.enemyChampionIds, enemyRoster);
+  const unavailable = context.unavailableChampionIds
+    ? new Set([...context.unavailableChampionIds, ...context.enemyChampionIds])
+    : null;
+  const synergyScore = evaluatePairSynergy(context.championIds, context.enemyChampionIds, assignments, context.roster, unavailable);
+  const counterScore = evaluateCounterScore(
+    context.championIds,
+    context.enemyChampionIds,
+    assignments,
+    enemyAssignments,
+    context.roster,
+    enemyRoster
+  );
   const weaknessPenalty = evaluateWeaknessPenalty(context.championIds, enemyVector);
   const engageScore = evaluateStructuralScore(context.championIds, ENGAGE_ATTRIBUTES, 11);
   const frontlineScore = evaluateStructuralScore(context.championIds, FRONTLINE_ATTRIBUTES, 12);

@@ -30,10 +30,37 @@ export type ChampionWeakness = {
   severity: 1 | 2 | 3;
 };
 
+/** Folosit doar pentru `synergyWith` (matchup-urile au `MatchupRelation`). */
 export type ChampionRelation = {
   championId: string;
   score?: number;
 };
+
+/** Nota unui matchup, 1..5 — semnificațiile în `draft-engine/matchupGrades.ts`. */
+export type MatchupGrade = 1 | 2 | 3 | 4 | 5;
+
+export type MatchupRelation = {
+  championId: string;
+  /** Obligatoriu, strict 1..5. */
+  score: MatchupGrade;
+  /**
+   * Rolul inamicului. Lipsă = matchup de linie (același rol ca al nostru;
+   * pentru `adc`/`support` = botlane 2v2, adică inamicul pe `adc` SAU `support`).
+   * Explicit doar pentru cazuri cross-role reale.
+   */
+  vsRole?: Role;
+  /** Motiv scurt, recomandat la notele 4 și 5. */
+  note?: string;
+};
+
+export type ChampionRoleMatchups = {
+  goodVs: MatchupRelation[];
+  weakVs: MatchupRelation[];
+  /** Doar id-uri de campioni, fără notă; ordinea = preferința. */
+  mustWith: string[];
+};
+
+export type ChampionRoleKey = `${string}:${Role}`;
 
 export type ChampionCarryProfile = {
   selfPeel?: 0 | 1 | 2 | 3 | 4 | 5;
@@ -285,9 +312,7 @@ export type Champion = {
   roles: Role[];
   damageProfile: DamageType[];
   stats: ChampionStats;
-  weakVs: ChampionRelation[];
-  goodVs: ChampionRelation[];
-  mustWith: ChampionRelation[];
+  /** Matchup-urile și mustWith sunt pe rol: `championRoleMatchups.ts` / `getRoleMatchups`. */
   synergyWith: ChampionRelation[];
   offers: ChampionOffer[];
   needs: ChampionNeed[];

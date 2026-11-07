@@ -371,6 +371,10 @@ export function evaluateDraftGame(
     championIds: game.picksBlue,
     enemyChampionIds: game.picksRed,
     championMap: new Map(champions.map((champion) => [champion.id, champion])),
+    assignments: game.assignmentsBlue,
+    enemyAssignments: game.assignmentsRed,
+    enemyRoster: redRoster,
+    unavailableChampionIds: [...game.bansBlue, ...game.bansRed],
   });
 
   const evaluationRed = evaluateTeamDraft({
@@ -381,6 +385,10 @@ export function evaluateDraftGame(
     championIds: game.picksRed,
     enemyChampionIds: game.picksBlue,
     championMap: new Map(champions.map((champion) => [champion.id, champion])),
+    assignments: game.assignmentsRed,
+    enemyAssignments: game.assignmentsBlue,
+    enemyRoster: blueRoster,
+    unavailableChampionIds: [...game.bansBlue, ...game.bansRed],
   });
 
   return {

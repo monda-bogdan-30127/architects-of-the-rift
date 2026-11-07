@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useStoredJson } from "@/app/hooks/useClientStorage";
 import Image from "next/image";
 import PageContainer from "@/components/ui/PageContainer";
 import DashboardSidebar from "@/components/ui/DashboardSidebar";
@@ -428,20 +429,7 @@ function AwardSection({
 export default function AwardsPage() {
   useBackRedirect("/");
 
-  const [save, setSave] = useState<DraftSave | null>(null);
-
-  useEffect(() => {
-    const rawSave = localStorage.getItem("rift-draft-save");
-    if (!rawSave) {
-      setSave(null);
-      return;
-    }
-    try {
-      setSave(JSON.parse(rawSave) as DraftSave);
-    } catch {
-      setSave(null);
-    }
-  }, []);
+  const save = useStoredJson<DraftSave>("rift-draft-save");
 
   const controlledTeam = useMemo(() => {
     if (!save) return null;

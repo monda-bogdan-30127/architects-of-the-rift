@@ -255,7 +255,6 @@ export default function DraftPage() {
   const [openSwapRole, setOpenSwapRole] = useState<Role | null>(null);
   const swapMenuContainerRef = useRef<HTMLDivElement | null>(null);
   const [resultsGameNumber, setResultsGameNumber] = useState<number | null>(null);
-  const [resultsSimulation, setResultsSimulation] = useState<DraftSimulationResult | null>(null);
   const [resultsSeriesFinished, setResultsSeriesFinished] = useState(false);
 
   useEffect(() => {
@@ -267,13 +266,11 @@ export default function DraftPage() {
     });
   }, [series, currentGame, currentStep, allPicksCompleted, setSeries, draftSave]);
 
-  useEffect(() => {
-    if (!series || resultsGameNumber === null) return;
-    const completedGame = series.games.find((g) => g.number === resultsGameNumber) ?? null;
-    if (!completedGame?.completed || !completedGame.simulation) return;
-    setResultsSimulation(completedGame.simulation);
-    setResultsGameNumber(null);
-  }, [series, resultsGameNumber]);
+  // Dialogul de rezultate apare când jocul terminat are simularea în serie.
+  const resultsGame =
+    series && resultsGameNumber !== null ? series.games.find((g) => g.number === resultsGameNumber) ?? null : null;
+  const resultsSimulation: DraftSimulationResult | null =
+    resultsGame?.completed && resultsGame.simulation ? resultsGame.simulation : null;
 
   const filteredChampions = useMemo(() =>
     [...champions]
@@ -614,7 +611,7 @@ export default function DraftPage() {
       <MatchResultsDialog
         open={Boolean(resultsSimulation)}
         simulation={resultsSimulation}
-        onPrimaryAction={() => { setResultsSimulation(null); if (resultsSeriesFinished) router.push("/gameplay-dashboard"); }}
+        onPrimaryAction={() => { setResultsGameNumber(null); if (resultsSeriesFinished) router.push("/gameplay-dashboard"); }}
         primaryLabel={resultsSeriesFinished ? "BACK TO DASHBOARD" : "GO NEXT GAME"}
         isSeriesComplete={resultsSeriesFinished}
         seriesMvpName={
@@ -689,15 +686,19 @@ function SidebarPanel({
   alignRight?: boolean;
 }) {
   const swapButtonRefs = useRef<Partial<Record<Role, HTMLButtonElement | null>>>({});
-  const [swapMenuPosition, setSwapMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
+  // Poziția e legată de rolul pentru care a fost măsurată: la închidere sau la
+  // schimbarea rolului nu se afișează o poziție veche.
+  const [measuredSwapMenu, setMeasuredSwapMenu] = useState<{ role: Role; top: number; left?: number; right?: number } | null>(null);
+  const swapMenuPosition = measuredSwapMenu && measuredSwapMenu.role === openSwapRole ? measuredSwapMenu : null;
 
   useEffect(() => {
-    if (!openSwapRole) { setSwapMenuPosition(null); return; }
+    if (!openSwapRole) return;
     const update = () => {
       const btn = swapButtonRefs.current[openSwapRole];
       if (!btn) return;
       const rect = btn.getBoundingClientRect();
-      setSwapMenuPosition({
+      setMeasuredSwapMenu({
+        role: openSwapRole,
         top: rect.top,
         ...(alignRight ? { right: Math.max(window.innerWidth - rect.left + 8, 8) } : { left: rect.right + 8 }),
       });

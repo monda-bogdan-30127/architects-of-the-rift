@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useIsClient } from "@/app/hooks/useClientStorage";
 import { createPortal } from "react-dom";
 import type { Player } from "@/app/types/player";
 
@@ -86,7 +87,7 @@ const TAG_DESCRIPTIONS: Record<string, string> = {
 
 export default function PlayerCardTooltip({ player, anchorRef, visible }: Props) {
   const tooltipRef = useRef<HTMLDivElement | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [position, setPosition] = useState<TooltipPosition>({ top: 0, left: 0 });
 
   const { seed } = player.advancedProfile;
@@ -94,10 +95,6 @@ export default function PlayerCardTooltip({ player, anchorRef, visible }: Props)
 
   const primaryDesc  = STYLE_DESCRIPTIONS[displayPrimary]  ?? "A dominant playstyle that defines this player's approach to the game.";
   const secondaryDesc = STYLE_DESCRIPTIONS[displaySecondary] ?? "A complementary tendency that colours how this player operates.";
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useLayoutEffect(() => {
     if (!visible || !anchorRef.current || !tooltipRef.current) return;

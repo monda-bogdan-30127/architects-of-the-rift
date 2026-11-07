@@ -1,5 +1,6 @@
-import type { Champion } from "@/app/types/champion";
+import type { Champion, Role } from "@/app/types/champion";
 import { countOpenEnemyAnswers } from "./draftInformation";
+import { isExposedComboAnchor, type MustWithTeamContext } from "./mustWithPriority";
 import type { ActiveDraftSeries, DraftGameState, Side } from "./draftTypes";
 
 const CONTESTABLE_IDS = new Set(["poppy", "jarvan-iv", "braum", "galio"]);
@@ -33,6 +34,8 @@ export function getContestabilityPenalty(args: {
   series: ActiveDraftSeries;
   allyChampionIds: string[];
   enemyChampionIds: string[];
+  projectedRole?: Role | null;
+  mustWithContext?: MustWithTeamContext;
 }) {
   const { candidate, game, series, allyChampionIds, enemyChampionIds } = args;
   const pickNumber = allyChampionIds.length + 1;
@@ -42,7 +45,14 @@ export function getContestabilityPenalty(args: {
 
   if (CONTESTABLE_IDS.has(candidate.id)) penalty += 2.6;
   if (pickNumber <= 2 && candidate.roles.length === 1) penalty += 1.1;
-  if (candidate.mustWith.length > 0 && pickNumber <= 2) penalty += 0.8;
+  // 4.5: ancora de combo e penalizată doar dacă nu are niciun partener eligibil.
+  if (
+    pickNumber <= 2 &&
+    args.mustWithContext &&
+    isExposedComboAnchor(candidate, args.projectedRole ?? null, args.mustWithContext)
+  ) {
+    penalty += 0.8;
+  }
   if (pickNumber <= 2 && enemyChampionIds.length === 0 && candidate.roles.includes("jungle")) penalty += 0.55;
 
   if (answerIds.length > 0) {

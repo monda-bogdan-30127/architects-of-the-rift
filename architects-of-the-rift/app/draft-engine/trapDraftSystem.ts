@@ -16,6 +16,30 @@ import { champions } from "@/app/data/champions";
 import type { Champion, Role } from "@/app/types/champion";
 import type { ActiveDraftSeries, DraftGameState, DraftSave, Side } from "./draftTypes";
 import { getChampionById, getMetaPriorityScore } from "./draftEvaluator";
+import { getRoleMatchups } from "./championMatchups";
+import { getWeaknessCoverage, WEAKNESS_COVER_CONFIG } from "./matchupGrades";
+import { getProjectedEnemyRoles, getTrapCounterValue } from "./matchupScoring";
+
+/**
+ * Counterii momelii (4.6): weakVs cu nota ≥ 4 pe oricare rol al ei, disponibili.
+ * Nota 4 contează doar dacă echipa care ar lua momeala NU își acoperă slăbiciunile.
+ */
+function getAvailableBaitCounters(
+  bait: Champion,
+  unavailable: ReadonlySet<string>,
+  baitTeamPicks: readonly string[]
+): { championId: string; score: number }[] {
+  const exploitable = getWeaknessCoverage(bait.id, baitTeamPicks) < WEAKNESS_COVER_CONFIG.partialThreshold;
+  const best = new Map<string, number>();
+  for (const role of bait.roles) {
+    for (const relation of getRoleMatchups(bait.id, role).weakVs) {
+      if (unavailable.has(relation.championId)) continue;
+      if (relation.score < 4 || (relation.score === 4 && !exploitable)) continue;
+      best.set(relation.championId, Math.max(best.get(relation.championId) ?? 0, relation.score));
+    }
+  }
+  return [...best].map(([championId, score]) => ({ championId, score })).sort((a, b) => b.score - a.score);
+}
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -94,10 +118,9 @@ function findBaitChampion(
     // Must be tempting — at least 6.5 meta priority
     if (metaPriority < 6.5) continue;
 
-    // Must have real counters
-    const counterChampions = (champion.weakVs ?? [])
-      .filter((rel) => !unavailable.has(rel.championId))
-      .filter((rel) => (rel.score ?? 0) >= 3);
+    // Must have real counters (nota ≥ 4, disponibili)
+    const baitTeamPicks = side === "blue" ? game.picksRed : game.picksBlue;
+    const counterChampions = getAvailableBaitCounters(champion, unavailable, baitTeamPicks);
 
     if (counterChampions.length < 2) continue;
 
@@ -111,7 +134,7 @@ function findBaitChampion(
     // Counter strength = sum of counter scores from available counters
     const counterStrength = counterChampions
       .slice(0, 4)
-      .reduce((sum, rel) => sum + (rel.score ?? 3), 0);
+      .reduce((sum, rel) => sum + rel.score, 0);
 
     // Trap score: high meta (tempting) + high counter availability
     const trapScore = metaPriority * 0.45 + counterStrength * 0.55;
@@ -179,7 +202,8 @@ export function getTrapCounterBonus(
   candidate: Champion,
   game: DraftGameState,
   series: ActiveDraftSeries,
-  side: Side
+  side: Side,
+  candidateRole: Role | null
 ): number {
   // Only works if trap was activated
   if (!shouldAttemptTrap(series, side)) return 0;
@@ -191,13 +215,7 @@ export function getTrapCounterBonus(
   const enemyPicks = side === "blue" ? game.picksRed : game.picksBlue;
   if (!enemyPicks.includes(bait.championId)) return 0;
 
-  // Bonus for champions that counter the bait
-  const counterRelation = candidate.goodVs?.find(
-    (rel) => rel.championId === bait.championId
-  );
-
-  if (!counterRelation) return 0;
-
-  // Strong counter bonus — AI prioritizes the counter-pick
-  return clamp((counterRelation.score ?? 3) * 0.8, 1, 4);
+  // Bonus for champions that counter the bait (nota 5 → 4, 4 → 3, 3/2 → 2, 1 → 1)
+  const baitRole = getProjectedEnemyRoles(enemyPicks).get(bait.championId) ?? null;
+  return getTrapCounterValue(candidate.id, candidateRole, bait.championId, baitRole);
 }

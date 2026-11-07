@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useStoredJson } from "@/app/hooks/useClientStorage";
 import PageContainer from "@/components/ui/PageContainer";
 import DashboardSidebar from "@/components/ui/DashboardSidebar";
 import RegionalStandings from "@/components/ui/RegionalStandings";
@@ -37,22 +38,9 @@ const DEFAULT_PLAYOFF_DIALOG: PlayoffDialogState = {
 export default function GameplayDashboardPage() {
   useBackRedirect("/");
 
-  const [save, setSave] = useState<DraftSave | null>(null);
+  const save = useStoredJson<DraftSave>("rift-draft-save");
   const [playoffDialog, setPlayoffDialog] =
     useState<PlayoffDialogState>(DEFAULT_PLAYOFF_DIALOG);
-
-  useEffect(() => {
-    const rawSave = localStorage.getItem("rift-draft-save");
-
-    if (!rawSave) return;
-
-    try {
-      const parsed = JSON.parse(rawSave) as DraftSave;
-      setSave(parsed);
-    } catch {
-      setSave(null);
-    }
-  }, []);
 
   const controlledTeam = useMemo(() => {
     if (!save) return null;

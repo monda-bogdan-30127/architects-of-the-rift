@@ -22,6 +22,50 @@ import { computeTeamChemistry, getPlayerPersonalityModifiers } from "./personali
 import { evaluateTeamfight } from "./teamfightSystem";
 import { getChampionRoleProfile } from "./championProfileSystem";
 import { evaluateLanePhase } from "./laneEvaluator";
+import { getMatchupValueVsTeam } from "./matchupScoring";
+import { MUSTWITH_CONFIG, getCompletedMustWithPairs } from "./mustWithPriority";
+
+/** 4.8: ponderea avantajului de matchup pe fazele mid/late (early e acoperit de lane phase). */
+export const MATCHUP_PHASE_EDGE_FACTOR = 0.35;
+
+type PhaseEdge = { early: number; mid: number; late: number };
+
+function computeTeamMatchupPhaseEdge(
+  assignments: Partial<Record<Role, string>>,
+  enemyAssignments: Partial<Record<Role, string>>,
+  roster: Partial<Record<Role, string>>,
+  enemyRoster: Partial<Record<Role, string>>
+): PhaseEdge {
+  const allyIds = Object.values(assignments).filter(Boolean) as string[];
+  const enemyIds = Object.values(enemyAssignments).filter(Boolean) as string[];
+  const edge: PhaseEdge = { early: 0, mid: 0, late: 0 };
+  for (const phase of ["early", "mid", "late"] as const) {
+    for (const [role, allyId] of Object.entries(assignments) as [Role, string | undefined][]) {
+      if (!allyId) continue;
+      edge[phase] += getMatchupValueVsTeam(allyId, role, enemyIds, {
+        phase,
+        ownAllyIds: allyIds,
+        ownPlayerId: roster[role] ?? null,
+        enemyRoster,
+        enemyAssignments,
+      }).total;
+    }
+  }
+  return edge;
+}
+
+/** Suma pe roluri a valorilor de matchup în fiecare fază, pentru ambele echipe. */
+export function computeMatchupPhaseEdge(
+  assignmentsBlue: Partial<Record<Role, string>>,
+  assignmentsRed: Partial<Record<Role, string>>,
+  blueRoster: Partial<Record<Role, string>> = {},
+  redRoster: Partial<Record<Role, string>> = {}
+): { blue: PhaseEdge; red: PhaseEdge } {
+  return {
+    blue: computeTeamMatchupPhaseEdge(assignmentsBlue, assignmentsRed, blueRoster, redRoster),
+    red: computeTeamMatchupPhaseEdge(assignmentsRed, assignmentsBlue, redRoster, blueRoster),
+  };
+}
 import {
   average,
   championExecutionDifficulty,
@@ -221,7 +265,7 @@ function computeClutchTeamScore(roster: Partial<Record<Role, string>>) {
 }
 
 function computeMetaAverage(assignments: Partial<Record<Role, string>>) {
-  return round1(average(ROLE_ORDER.map((role) => championMetaPower(assignments[role] ?? null))));
+  return round1(average(ROLE_ORDER.map((role) => championMetaPower(assignments[role] ?? null, role))));
 }
 
 function computeStarPower(playerId: string | null) {
@@ -832,6 +876,9 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
 
   const blueChampionIds = Object.values(assignmentsBlue).filter(Boolean) as string[];
   const redChampionIds = Object.values(assignmentsRed).filter(Boolean) as string[];
+  // Paralel cu *ChampionIds (aceeași ordine de iterare) — pentru statisticile pe rol.
+  const blueChampionRoles = (Object.keys(assignmentsBlue) as Role[]).filter((role) => assignmentsBlue[role]);
+  const redChampionRoles = (Object.keys(assignmentsRed) as Role[]).filter((role) => assignmentsRed[role]);
 
   const blueDraftEval = evaluateTeamDraft({
     side: "blue",
@@ -841,6 +888,10 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     championIds: blueChampionIds,
     enemyChampionIds: redChampionIds,
     championMap,
+    assignments: assignmentsBlue,
+    enemyAssignments: assignmentsRed,
+    enemyRoster: redRoster,
+    unavailableChampionIds: [...input.game.bansBlue, ...input.game.bansRed],
   });
 
   const redDraftEval = evaluateTeamDraft({
@@ -851,6 +902,10 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     championIds: redChampionIds,
     enemyChampionIds: blueChampionIds,
     championMap,
+    assignments: assignmentsRed,
+    enemyAssignments: assignmentsBlue,
+    enemyRoster: blueRoster,
+    unavailableChampionIds: [...input.game.bansBlue, ...input.game.bansRed],
   });
 
   const bluePlayerPower = evaluatePlayerPower(blueRoster, assignmentsBlue);
@@ -916,46 +971,29 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
 
   const blueLate = lateGameScore(
     blueChampionIds,
-    Object.values(blueRoster).filter(Boolean) as string[]
+    Object.values(blueRoster).filter(Boolean) as string[],
+    blueChampionRoles
   );
   const redLate = lateGameScore(
     redChampionIds,
-    Object.values(redRoster).filter(Boolean) as string[]
+    Object.values(redRoster).filter(Boolean) as string[],
+    redChampionRoles
   );
 
   // ─── MUSTWITH COHESION BONUS ──────────────────────────────────────────────
   // Teams with completed mustWith pairs get a small simulation bonus (+0.4 max)
   // representing improved team coordination.
-  function getMustWithCohesionBonus(championIds: string[]): number {
-    const seen = new Set<string>();
-    let bonus = 0;
-    for (let i = 0; i < championIds.length; i++) {
-      for (let j = i + 1; j < championIds.length; j++) {
-        const aId = championIds[i];
-        const bId = championIds[j];
-        if (!aId || !bId) continue;
-        const pairKey = [aId, bId].sort().join(":");
-        if (seen.has(pairKey)) continue;
-        seen.add(pairKey);
-
-        const a = championMap.get(aId);
-        const b = championMap.get(bId);
-        if (!a || !b) continue;
-
-        const aMustB = a.mustWith?.find((e) => e.championId === bId)?.score ?? 0;
-        const bMustA = b.mustWith?.find((e) => e.championId === aId)?.score ?? 0;
-        const score = Math.max(aMustB, bMustA);
-        if (score >= 4) {
-          // 4 → +0.20, 5 → +0.40
-          bonus += 0.20 + (score - 4) * 0.20;
-        }
-      }
-    }
-    return clamp(bonus, 0, 0.4);
+  function getMustWithCohesionBonus(assignments: Partial<Record<Role, string>>): number {
+    const cohesion = MUSTWITH_CONFIG.simulationCohesion;
+    const bonus = getCompletedMustWithPairs(assignments).reduce(
+      (sum, pair) => sum + (pair.isBotPair ? cohesion.bot : cohesion.other),
+      0
+    );
+    return clamp(bonus, 0, cohesion.cap);
   }
 
-  const blueMustWithBonus = getMustWithCohesionBonus(blueChampionIds);
-  const redMustWithBonus = getMustWithCohesionBonus(redChampionIds);
+  const blueMustWithBonus = getMustWithCohesionBonus(assignmentsBlue);
+  const redMustWithBonus = getMustWithCohesionBonus(assignmentsRed);
 
   const blueDraftComposite = clamp(
     blueDraftEval.draftPower * 0.68 +
@@ -1110,6 +1148,13 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   redPhases.mid.phaseTotal += spikes.midSpikeAdvantage.red;
   bluePhases.late.phaseTotal += spikes.lateSpikeAdvantage.blue;
   redPhases.late.phaseTotal += spikes.lateSpikeAdvantage.red;
+
+  // 4.8: avantajul de matchup pe mid/late (notele 3 cresc, notele 2 scad după linie).
+  const matchupEdge = computeMatchupPhaseEdge(assignmentsBlue, assignmentsRed, blueRoster, redRoster);
+  bluePhases.mid.phaseTotal += matchupEdge.blue.mid * MATCHUP_PHASE_EDGE_FACTOR;
+  redPhases.mid.phaseTotal += matchupEdge.red.mid * MATCHUP_PHASE_EDGE_FACTOR;
+  bluePhases.late.phaseTotal += matchupEdge.blue.late * MATCHUP_PHASE_EDGE_FACTOR;
+  redPhases.late.phaseTotal += matchupEdge.red.late * MATCHUP_PHASE_EDGE_FACTOR;
 
   const blueEarlyMult = applyPowerSpikes(assignmentsBlue, "early");
   const blueMidMult = applyPowerSpikes(assignmentsBlue, "mid");

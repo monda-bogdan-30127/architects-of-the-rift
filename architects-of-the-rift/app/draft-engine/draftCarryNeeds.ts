@@ -85,9 +85,17 @@ export function evaluateTeamProtectionSupply(evaluation: Pick<TeamDraftEvaluatio
 export function getBotLaneArchetypeFit(args: {
   championIds: string[];
   championById: (championId: string) => Champion | null;
+  /** Rolurile rezolvate (`resolveRoleAssignments`) — corect și pentru flex (Seraphine, Senna). */
+  assignments?: Partial<Record<Role, string>>;
 }) {
-  const adcChampion = args.championIds.map(args.championById).find((champion): champion is Champion => champion !== null && champion.roles.includes("adc")) ?? null;
-  const supportChampion = args.championIds.map(args.championById).find((champion): champion is Champion => champion !== null && champion.roles.includes("support")) ?? null;
+  const fromRole = (role: Role) => {
+    const championId = args.assignments?.[role];
+    return championId ? args.championById(championId) : null;
+  };
+  const fromRoles = (role: Role) =>
+    args.championIds.map(args.championById).find((champion): champion is Champion => champion !== null && champion.roles.includes(role)) ?? null;
+  const adcChampion = args.assignments ? fromRole("adc") : fromRoles("adc");
+  const supportChampion = args.assignments ? fromRole("support") : fromRoles("support");
 
   if (!adcChampion || !supportChampion) return 5;
 

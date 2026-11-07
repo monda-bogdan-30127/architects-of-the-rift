@@ -24,6 +24,10 @@ import {
 import type { ChampionMasteryGrade } from "@/app/types/championMastery";
 import type { ActiveDraftSeries, DraftGameState, Side } from "./draftTypes";
 import { getMetaPriorityScore } from "./draftEvaluator";
+import { getMatchupValue } from "./matchupScoring";
+
+/** Valoarea de matchup (≈0.9..8.7) → bonus predictiv; echivalent cu vechiul `score (1..5) × 0.18`. */
+const PREDICTIVE_COUNTER_FACTOR = 0.1;
 import { getChampionMap } from "./championPool";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -527,9 +531,13 @@ export function getPredictiveBanBonus(args: {
  */
 export function getPredictiveCounterBonus(args: {
     candidate: Champion;
+    /** Rolul proiectat al candidatului (matchup-urile sunt pe rol). */
+    candidateRole: Role | null;
     predictions: PickPrediction[];
 }): { bonus: number; counters: string[] } {
     if (args.predictions.length === 0) return { bonus: 0, counters: [] };
+    const candidateRole = args.candidateRole ?? args.candidate.roles[0] ?? null;
+    if (!candidateRole) return { bonus: 0, counters: [] };
 
     let bonus = 0;
     const counters: string[] = [];
@@ -537,11 +545,9 @@ export function getPredictiveCounterBonus(args: {
     for (const pred of args.predictions) {
         if (pred.confidence < 0.40) continue; // only high-confidence predictions
 
-        // Does our candidate counter the predicted pick?
-        const goodVsRel = args.candidate.goodVs?.find(
-            (rel) => rel.championId === pred.championId,
-        );
-        if (!goodVsRel) continue;
+        // Does our candidate counter the predicted pick (on the predicted role)?
+        const matchupValue = getMatchupValue(args.candidate.id, candidateRole, pred.championId, pred.role);
+        if (matchupValue <= 0) continue;
 
         // Higher confidence × stronger counter × predicted-pick grade
         const gradeFactor =
@@ -549,7 +555,7 @@ export function getPredictiveCounterBonus(args: {
                 pred.grade === "S" ? 0.7 :
                     0.4;
 
-        const contribution = (goodVsRel.score ?? 0) * pred.confidence * gradeFactor * 0.18;
+        const contribution = matchupValue * pred.confidence * gradeFactor * PREDICTIVE_COUNTER_FACTOR;
         bonus += contribution;
         counters.push(pred.championId);
     }

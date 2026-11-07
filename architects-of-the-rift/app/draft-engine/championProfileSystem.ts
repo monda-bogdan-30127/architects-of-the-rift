@@ -1,6 +1,7 @@
 import { championProfileOverrides } from "@/app/data/championProfileOverrides";
 import type { Champion, ChampionRoleProfile, ChampionSynergyRule, Role } from "@/app/types/champion";
 import type { CompAttribute } from "@/app/types/compAttributes";
+import { getChampionStatsForRole } from "./championRoleStatsSystem";
 
 const clamp = (value: number, min = 0, max = 10) => Math.max(min, Math.min(max, value));
 const avg = (values: number[]) => (values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0);
@@ -109,32 +110,9 @@ function buildSynergyRules(champion: Champion): ChampionRoleProfile["synergy"] {
     });
   }
 
-  for (const relation of champion.mustWith) {
-    mustWith.push({
-      id: `${champion.id}-mustwith-${relation.championId}`,
-      type: "ally",
-      targetChampionIds: [relation.championId],
-      effect: { score: relation.score ?? 6, reason: "High-value structural pairing" },
-    });
-  }
-
-  for (const relation of champion.goodVs) {
-    goodVs.push({
-      id: `${champion.id}-goodvs-${relation.championId}`,
-      type: "enemy",
-      targetChampionIds: [relation.championId],
-      effect: { score: relation.score ?? 4, reason: "Positive matchup signal" },
-    });
-  }
-
-  for (const relation of champion.weakVs) {
-    weakVs.push({
-      id: `${champion.id}-weakvs-${relation.championId}`,
-      type: "enemy",
-      targetChampionIds: [relation.championId],
-      effect: { score: -(relation.score ?? 4), reason: "Negative matchup signal" },
-    });
-  }
+  // DRAFT_REWORK §4.4: matchup-urile (goodVs/weakVs) și mustWith NU mai devin
+  // reguli de profil — se citesc doar din championMatchups.ts, cu rolul proiectat
+  // (altfel erau numărate de 2–3 ori, iar mustWith penaliza ancora fără partener).
 
   if (champion.id === "sejuani") {
     wantsTeam.push({
@@ -265,8 +243,8 @@ export function deriveChampionRoleProfile(champion: Champion, role: Role): Champ
     },
     draftProfile: {
       flexValue: champion.roles.length >= 2 ? 7 : 2,
-      blindPick: clamp((champion.stats.blindPickRate ?? 40) / 10, 0, 10),
-      contestPriority: clamp(getContestPriority(champion), 0, 10),
+      blindPick: clamp((getChampionStatsForRole(champion, role).blindPickRate ?? 40) / 10, 0, 10),
+      contestPriority: clamp(getContestPriority(champion, role), 0, 10),
     },
     comboDependency: {
       needsKnockup: champion.id === "yasuo" ? 9 : 0,
@@ -342,7 +320,7 @@ function buildRoleSpecific(role: Role, champion: Champion, lanePressure: number)
     case "top":
       return { top: {
         sideLaneControl: clamp(avg([offer(champion, "sideLanePressure") * 2, offer(champion, "burstDamage") * 2, 4])),
-        blindStability: clamp((champion.stats.blindPickRate ?? 40) / 10, 0, 10),
+        blindStability: clamp((getChampionStatsForRole(champion, role).blindPickRate ?? 40) / 10, 0, 10),
         weaksideTolerance: clamp(avg([offer(champion, "frontline") * 2, offer(champion, "disengage") * 2, 5])),
       } };
     case "mid":
@@ -356,9 +334,10 @@ function buildRoleSpecific(role: Role, champion: Champion, lanePressure: number)
   }
 }
 
-function getContestPriority(champion: Champion) {
-  const presence = Math.max(champion.stats.presence ?? 0, champion.stats.picks + champion.stats.bans);
-  const avgPickRound = champion.stats.avgPickRound ?? 3;
+function getContestPriority(champion: Champion, role: Role) {
+  const stats = getChampionStatsForRole(champion, role);
+  const presence = Math.max(stats.presence ?? 0, stats.picks + stats.bans);
+  const avgPickRound = stats.avgPickRound ?? 3;
   return presence / 12 + (6 - Math.min(5, avgPickRound));
 }
 

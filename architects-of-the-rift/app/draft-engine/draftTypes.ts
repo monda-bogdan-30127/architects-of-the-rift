@@ -78,6 +78,12 @@ export type TeamDraftContext = {
   championIds: string[];
   enemyChampionIds: string[];
   championMap: Map<string, Champion>;
+  /** Rolurile finale (lipsă → `resolveRoleAssignments(championIds, roster)`). */
+  assignments?: Partial<Record<Role, string>>;
+  enemyAssignments?: Partial<Record<Role, string>>;
+  enemyRoster?: Partial<Record<Role, string>>;
+  /** Ban-uri + alți campioni indisponibili (pentru perechile mustWith ratate). */
+  unavailableChampionIds?: string[];
 };
 
 export type NeedStatus = {
@@ -159,6 +165,13 @@ export type DraftCandidateBreakdown = {
   threatValue?: number;
   synergyRuleValue?: number;
   simulatedFitValue?: number;
+  /** Notele de matchup care au intrat în `counterValue` (pentru explainer). */
+  matchupDetails?: { enemyId: string; enemyRole: Role | null; grade: 1 | 2 | 3 | 4 | 5; kind: "good" | "weak"; value: number }[];
+  /** Pick forțat de regula mustWith (botlane override sau lock non-bot). */
+  mustWithLock?: { anchorId: string; partnerId: string; grade: string | null };
+  /** Bonusurile mustWith adunate în scor (combo potential, non-bot, deny). */
+  mustWithBonus?: number;
+  /** Include, pe lângă cele vechi: "mustwith-lock", "combo-potential", "mustwith-deny". */
   reasonTags?: string[];
   explanation?: string[];
 };

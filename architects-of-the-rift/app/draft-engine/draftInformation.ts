@@ -1,4 +1,5 @@
 import type { Champion, Role } from "@/app/types/champion";
+import { isExposedComboAnchor, type MustWithTeamContext } from "./mustWithPriority";
 import type { ActiveDraftSeries, DraftGameState, Side } from "./draftTypes";
 
 function clamp(value: number, min: number, max: number) {
@@ -12,6 +13,8 @@ export function getInformationScore(args: {
   candidate: Champion;
   allyChampionIds: string[];
   metaPriority: number;
+  projectedRole?: Role | null;
+  mustWithContext?: MustWithTeamContext;
 }) {
   const { candidate, allyChampionIds, metaPriority } = args;
 
@@ -35,7 +38,14 @@ export function getInformationScore(args: {
     leakPenalty += 0.8;
   }
 
-  if (candidate.mustWith.length > 0 && pickNumber <= 2) leakPenalty += 0.8;
+  // 4.5: ancora de combo e penalizată doar dacă nu are niciun partener eligibil.
+  if (
+    pickNumber <= 2 &&
+    args.mustWithContext &&
+    isExposedComboAnchor(candidate, args.projectedRole ?? null, args.mustWithContext)
+  ) {
+    leakPenalty += 0.8;
+  }
 
   return {
     leakPenalty: clamp(leakPenalty, 0, 6),

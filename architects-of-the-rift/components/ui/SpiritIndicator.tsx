@@ -14,12 +14,23 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import {
   getSpirit,
   getSpiritFeelsLabel,
   getSpiritLabelConfig,
 } from "@/app/draft-engine/playerSpiritStorage";
+
+const DEFAULT_SPIRIT = 65;
+
+function subscribeToSpiritUpdates(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener("rift-spirit-updated", onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener("rift-spirit-updated", onChange);
+  };
+}
 
 type Props = {
   /** Either provide a playerId (reads from storage) or a fixed value. */
@@ -41,32 +52,14 @@ export default function SpiritIndicator({
   showLabel = false,
   size = "medium",
 }: Props) {
-  const [spiritValue, setSpiritValue] = useState<number>(() => {
-    if (typeof value === "number") return value;
-    if (playerId) return getSpirit(playerId);
-    return 65;
-  });
-
   // Re-read from storage when playerId changes or when storage is updated
-  // by another tab / a series finishing.
-  useEffect(() => {
-    if (typeof value === "number") {
-      setSpiritValue(value);
-      return;
-    }
-    if (!playerId) return;
-
-    setSpiritValue(getSpirit(playerId));
-
-    const refresh = () => setSpiritValue(getSpirit(playerId));
-    window.addEventListener("storage", refresh);
-    window.addEventListener("rift-spirit-updated", refresh);
-
-    return () => {
-      window.removeEventListener("storage", refresh);
-      window.removeEventListener("rift-spirit-updated", refresh);
-    };
-  }, [playerId, value]);
+  // by another tab / a series finishing. Server / hydration: 65 (no storage).
+  const storedSpirit = useSyncExternalStore(
+    subscribeToSpiritUpdates,
+    () => (playerId ? getSpirit(playerId) : DEFAULT_SPIRIT),
+    () => DEFAULT_SPIRIT,
+  );
+  const spiritValue = typeof value === "number" ? value : storedSpirit;
 
   const config = getSpiritLabelConfig(spiritValue);
   const dims = SIZE_PX[size];

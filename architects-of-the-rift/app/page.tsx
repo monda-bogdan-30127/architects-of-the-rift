@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useStoredString } from "@/app/hooks/useClientStorage";
 import PageContainer from "@/components/ui/PageContainer";
 import Button from "@/components/ui/Button";
 import Dialog from "@/components/ui/Dialog";
@@ -18,14 +19,13 @@ const SPIRIT_ACCUMULATOR_KEY = "rift-spirit-accumulator";
 export default function HomePage() {
   const router = useRouter();
 
-  const [hasSaveFile, setHasSaveFile] = useState(false);
+  const hasSaveFile = Boolean(useStoredString(SAVE_KEY));
   const [isNewGameDialogOpen, setIsNewGameDialogOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const existingSave = localStorage.getItem(SAVE_KEY);
-    setHasSaveFile(Boolean(existingSave));
-    requestAnimationFrame(() => setMounted(true));
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   const handleStartFreshGame = () => {

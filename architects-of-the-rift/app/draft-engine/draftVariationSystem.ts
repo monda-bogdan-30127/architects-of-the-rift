@@ -10,7 +10,7 @@ function hashString(value: string) {
   return Math.abs(hash >>> 0);
 }
 
-function roll(seed: string) {
+export function roll(seed: string) {
   return (hashString(seed) % 10000) / 10000;
 }
 

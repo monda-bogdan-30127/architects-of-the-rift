@@ -394,7 +394,7 @@ export const championProfileOverrides: Record<RoleOverrideKey, ChampionRoleProfi
     threatProfile: { backlineThreat: 5, frontlineThreat: 8, pickThreat: 3, zoneThreat: 3, antiDiveThreat: 6 },
     phaseIdentity: { earlyRole: "tank", midRole: "tank", lateRole: "tank" },
     conditions: { requiresEngage: true },
-    comboDependency: { needsEngage: 7 } as any,
+    comboDependency: { needsEngage: 7 },
   },
 
   "nocturne:jungle": {

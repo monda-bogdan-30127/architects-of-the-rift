@@ -5,6 +5,7 @@ import { teams } from "@/app/data/teams";
 import type { Role } from "@/app/types/champion";
 import type { ActiveDraftSeries, DraftSave, Side } from "@/app/draft-engine/draftTypes";
 import { migrateAllRiftStorage } from "@/app/draft-engine/storageMigration";
+import { useIsClient } from "@/app/hooks/useClientStorage";
 import {
   ACTIVE_DRAFT_SERIES_KEY,
   SAVE_KEY,
@@ -32,24 +33,26 @@ import {
 export function useDraftEngine(seriesId: string) {
   const [series, setSeries] = useState<ActiveDraftSeries | null>(null);
   const [draftSave, setDraftSave] = useState<DraftSave | null>(null);
+  const [loadedSeriesId, setLoadedSeriesId] = useState<string | null>(null);
+  const isClient = useIsClient();
 
-  useEffect(() => {
-    if (!seriesId) return;
-
+  // Încărcarea din localStorage: o singură dată pe seriesId, după hidratare
+  // („adjusting state when a prop changes” — fără setState în useEffect).
+  // Migrarea e idempotentă, deci e sigur s-o rulăm aici înainte de citire.
+  if (isClient && seriesId && loadedSeriesId !== seriesId) {
+    setLoadedSeriesId(seriesId);
     migrateAllRiftStorage();
 
     const save = readJson<DraftSave>(SAVE_KEY);
     setDraftSave(save);
 
     const savedActiveSeries = readJson<ActiveDraftSeries>(ACTIVE_DRAFT_SERIES_KEY);
-    if (savedActiveSeries && savedActiveSeries.seriesId === seriesId) {
-      setSeries(savedActiveSeries);
-      return;
-    }
-
-    const controlledTeamSlug = save?.controlledTeamSlug ?? "";
-    setSeries(createInitialSeries(seriesId, controlledTeamSlug));
-  }, [seriesId]);
+    setSeries(
+      savedActiveSeries && savedActiveSeries.seriesId === seriesId
+        ? savedActiveSeries
+        : createInitialSeries(seriesId, save?.controlledTeamSlug ?? "")
+    );
+  }
 
   useEffect(() => {
     if (!series) return;

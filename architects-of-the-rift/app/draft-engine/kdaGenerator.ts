@@ -16,6 +16,7 @@
 import type { Role } from "@/app/types/champion";
 import type { PlayerGameScore, MatchProfile } from "./matchSimulationTypes";
 import { getChampionByIdSafe, clamp, seededNoise } from "./matchSimulationUtils";
+import { getChampionStatsForRole } from "./championRoleStatsSystem";
 
 // ─── Role expectations ───────────────────────────────────────────────────────
 // Weights add up roughly to 1.0 but are normalized again during allocation.
@@ -55,7 +56,7 @@ function allocateIntegerBudget(args: {
   const raw = safeWeights.map((weight) => (total * weight) / weightSum);
   const allocated = raw.map((value) => Math.floor(value));
 
-  let remaining = total - allocated.reduce((sum, value) => sum + value, 0);
+  const remaining = total - allocated.reduce((sum, value) => sum + value, 0);
 
   const order = raw
     .map((value, index) => ({
@@ -167,8 +168,9 @@ export function generatePlayerKDAs(args: {
       const roleProfile = ROLE_PROFILE[player.role] ?? ROLE_PROFILE.mid;
       const scoreNorm = clamp((player.score - 4) / 6, 0, 1);
 
+      const champion = getChampionByIdSafe(player.championId);
       const championKda =
-        getChampionByIdSafe(player.championId)?.stats.kda ?? 3;
+        (champion ? getChampionStatsForRole(champion, player.role).kda : null) ?? 3;
       const championMultiplier = clamp(
         1 + (championKda - 3) * 0.04,
         0.88,

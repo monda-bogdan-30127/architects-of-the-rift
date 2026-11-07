@@ -17,14 +17,16 @@ import {
   round1,
 } from "./matchSimulationUtils";
 import { getHistoryAdjustedLaneBonus } from "./playerHistoryEvaluator";
+import { getChampionStatsForRole } from "./championRoleStatsSystem";
 
-function earlyStatScore(championId: string | null) {
+function earlyStatScore(championId: string | null, role: Role) {
   const champion = getChampionByIdSafe(championId);
   if (!champion) return 5;
 
-  const cs = clamp(((champion.stats.csDiffAt15 ?? 0) + 15) / 30, 0, 1) * 10;
-  const gold = clamp(((champion.stats.goldDiffAt15 ?? 0) + 700) / 1400, 0, 1) * 10;
-  const xp = clamp(((champion.stats.xpDiffAt15 ?? 0) + 500) / 1000, 0, 1) * 10;
+  const stats = getChampionStatsForRole(champion, role);
+  const cs = clamp(((stats.csDiffAt15 ?? 0) + 15) / 30, 0, 1) * 10;
+  const gold = clamp(((stats.goldDiffAt15 ?? 0) + 700) / 1400, 0, 1) * 10;
+  const xp = clamp(((stats.xpDiffAt15 ?? 0) + 500) / 1000, 0, 1) * 10;
 
   return clamp(cs * 0.3 + gold * 0.45 + xp * 0.25, 0, 10);
 }
@@ -45,15 +47,58 @@ function jungleInfluence(role: Role, playerId: string | null, championId: string
   return clamp(roam * 0.68 + macro * 0.82 + execution * 0.35, 0, 10);
 }
 
+type LaneContext = {
+  blueRoster: Partial<Record<Role, string>>;
+  redRoster: Partial<Record<Role, string>>;
+  assignmentsBlue: Partial<Record<Role, string>>;
+  assignmentsRed: Partial<Record<Role, string>>;
+};
+
+function picksOf(assignments: Partial<Record<Role, string>>) {
+  return Object.values(assignments).filter(Boolean) as string[];
+}
+
+/**
+ * Matchup-ul de linie în early (nota 2 la putere maximă, nota 3 aproape zero).
+ * Botlane = 2v2: adversarul de pe același rol + 0.5 × celălalt campion bot inamic.
+ */
+function laneMatchup(
+  role: Role,
+  allyId: string | null,
+  allyAssignments: Partial<Record<Role, string>>,
+  allyRoster: Partial<Record<Role, string>>,
+  enemyAssignments: Partial<Record<Role, string>>,
+  enemyRoster: Partial<Record<Role, string>>
+) {
+  const ctx = {
+    ownAllyIds: picksOf(allyAssignments),
+    enemyAllyIds: picksOf(enemyAssignments),
+    ownPlayerId: allyRoster[role] ?? null,
+  };
+  let value = matchupPowerAgainst(allyId, role, enemyAssignments[role] ?? null, role, "early", {
+    ...ctx,
+    enemyPlayerId: enemyRoster[role] ?? null,
+  });
+  const otherBotRole: Role | null = role === "adc" ? "support" : role === "support" ? "adc" : null;
+  if (otherBotRole) {
+    value += 0.5 * matchupPowerAgainst(allyId, role, enemyAssignments[otherBotRole] ?? null, otherBotRole, "early", {
+      ...ctx,
+      enemyPlayerId: enemyRoster[otherBotRole] ?? null,
+    });
+  }
+  return clamp(value, -5, 5);
+}
+
 function buildRoleBreakdown(
   role: Role,
   bluePlayerId: string | null,
   redPlayerId: string | null,
   blueChampionId: string | null,
-  redChampionId: string | null
+  redChampionId: string | null,
+  lane: LaneContext
 ): LaneRoleBreakdown {
-  const blueMatchup = matchupPowerAgainst(blueChampionId, redChampionId);
-  const redMatchup = matchupPowerAgainst(redChampionId, blueChampionId);
+  const blueMatchup = laneMatchup(role, blueChampionId, lane.assignmentsBlue, lane.blueRoster, lane.assignmentsRed, lane.redRoster);
+  const redMatchup = laneMatchup(role, redChampionId, lane.assignmentsRed, lane.redRoster, lane.assignmentsBlue, lane.blueRoster);
 
   const blueDraftFit = playerChampionDraftFit(bluePlayerId, blueChampionId);
   const redDraftFit = playerChampionDraftFit(redPlayerId, redChampionId);
@@ -65,11 +110,11 @@ function buildRoleBreakdown(
   const blueConsistency = playerConsistencyScore(bluePlayerId);
   const redConsistency = playerConsistencyScore(redPlayerId);
 
-  const blueEarly = earlyStatScore(blueChampionId);
-  const redEarly = earlyStatScore(redChampionId);
+  const blueEarly = earlyStatScore(blueChampionId, role);
+  const redEarly = earlyStatScore(redChampionId, role);
 
-  const blueBlind = championBlindSafety(getChampionByIdSafe(blueChampionId));
-  const redBlind = championBlindSafety(getChampionByIdSafe(redChampionId));
+  const blueBlind = championBlindSafety(getChampionByIdSafe(blueChampionId), role);
+  const redBlind = championBlindSafety(getChampionByIdSafe(redChampionId), role);
 
   const blueHistoryMatchup = playerChampionMatchupHistoryEdge(
     bluePlayerId,
@@ -168,7 +213,8 @@ export function evaluateLanePhase(args: {
       args.blueRoster[role] ?? null,
       args.redRoster[role] ?? null,
       args.assignmentsBlue[role] ?? null,
-      args.assignmentsRed[role] ?? null
+      args.assignmentsRed[role] ?? null,
+      args
     )
   );
 

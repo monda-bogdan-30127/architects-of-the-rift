@@ -31,8 +31,35 @@ import {
   getUserPreferredOpenRoleBias,
 } from "./userDraftMemory";
 // FIX #1 — import shortlist pentru variatie draft AI
-import { chooseFromAdaptiveShortlist } from "./draftVariationSystem";
+import { chooseFromAdaptiveShortlist, roll } from "./draftVariationSystem";
 import { getChampionRoleProfile } from "./championProfileSystem";
+import { getChampionStatsForRole } from "./championRoleStatsSystem";
+import {
+  PROTECT_BAN_MAX,
+  getAvailableCounterBlindRisk,
+  getCounterProductiveBanValue,
+  getDirectLaneCounterPenalty,
+  getMatchupValueVsTeam,
+  getProjectedEnemyRoles,
+  getProtectOwnPickBanValue,
+  getTeamPhaseWeights,
+  type MatchupDetail,
+} from "./matchupScoring";
+import {
+  MUSTWITH_CONFIG,
+  getAllEligiblePartners,
+  getComboPotentialBonus,
+  getMustWithDenyBonus,
+  getNonBotMustWithBonus,
+  getNonBotOverride,
+  getUnavailableChampionIds,
+  isExplicitBotPair,
+  isProtectedOwnPartner,
+  resolveMustWithLock,
+  type EligiblePartner,
+  type MustWithTeamContext,
+} from "./mustWithPriority";
+import { describeMustWithLock } from "./draftDecisionExplainer";
 import {
   derivePlayerArchetypeAffinity,
   derivePlayerAdaptationProfile,
@@ -313,17 +340,31 @@ function getBlindRiskPenalty(
   game: DraftGameState,
   side: Side,
   candidate: Champion,
-  projectedRole: Role | null
+  projectedRole: Role | null,
+  unavailable: ReadonlySet<string>
 ) {
   if (!projectedRole) return 0;
 
   const ownPickNumber = getCurrentPickNumberForSide(game, side);
-  const safeBlind = clamp((candidate.stats?.blindPickRate ?? 45) / 10, 0, 10);
+  const safeBlind = clamp((getChampionStatsForRole(candidate, projectedRole).blindPickRate ?? 45) / 10, 0, 10);
 
-  if (ownPickNumber >= 4) return 0;
-  if (projectedRole !== "top" && projectedRole !== "mid") return 0;
+  let penalty = 0;
+  if (ownPickNumber < 4 && (projectedRole === "top" || projectedRole === "mid")) {
+    penalty = clamp((6.8 - safeBlind) * 0.95, 0, 4.2);
+  }
 
-  return clamp((6.8 - safeBlind) * 0.95, 0, 4.2);
+  // Counteri de nota 4/5 pe rolul proiectat, încă disponibili, pe roluri inamice încă libere.
+  const enemyPicks = side === "blue" ? game.picksRed : game.picksBlue;
+  const filledEnemyRoles = new Set(getProjectedEnemyRoles(enemyPicks).values());
+  const openEnemyRoles = ROLE_ORDER.filter((role) => !filledEnemyRoles.has(role));
+  penalty += getAvailableCounterBlindRisk(
+    candidate.id,
+    projectedRole,
+    (championId) => !unavailable.has(championId),
+    openEnemyRoles
+  );
+
+  return penalty;
 }
 
 function getNeedFillScore(ownPicks: string[], candidate: Champion) {
@@ -357,14 +398,8 @@ function getCompSynergyScore(ownPicks: string[], candidate: Champion) {
       picked.synergyWith?.find(
         (entry: { championId: string; score?: number }) => entry.championId === candidate.id
       )?.score ?? 0;
-    const mustPair =
-      candidate.mustWith?.find(
-        (entry: { championId: string; score?: number }) => entry.championId === picked.id
-      )?.score ?? 0;
-
     synergy += directSynergy * 0.38;
     synergy += reverseSynergy * 0.38;
-    synergy += mustPair * 0.45;
   }
 
   // UPGRADE 11: subtract known bad synergies
@@ -373,86 +408,79 @@ function getCompSynergyScore(ownPicks: string[], candidate: Champion) {
   return clamp(synergy, 0, 10);
 }
 
-// ─── MUSTWITH BUFFS ──────────────────────────────────────────────────────────
-// Returns +2.5 boost if candidate completes a mustWith pair with own picks.
-// Symmetric: works whether candidate is the "anchor" or the "follow-up".
-// Only activates for HIGH score mustWith (≥4) so it remains contextual.
-function getMustWithCompletionBonus(ownPicks: string[], candidate: Champion): number {
-  if (ownPicks.length === 0) return 0;
+// ─── MUSTWITH STATE (DRAFT_REWORK §5) ────────────────────────────────────────
+// Partenerii eligibili ai ambelor echipe, calculați o singură dată pe tură.
+type MustWithTurnState = {
+  own: MustWithTeamContext;
+  ownPartners: EligiblePartner[];
+  enemy: MustWithTeamContext;
+  enemyPartners: EligiblePartner[];
+  /** §5.4: excepția care poate depăși partenerul non-bot (null = nicio excepție). */
+  nonBotOverride: string | null;
+};
 
-  let maxBonus = 0;
-  for (const pickedId of ownPicks) {
-    const picked = getChampionById(pickedId);
-    if (!picked) continue;
+const mustWithStateCache = new Map<string, MustWithTurnState>();
 
-    // Candidate's mustWith → picked
-    const candidateMustPicked =
-      candidate.mustWith?.find((e) => e.championId === picked.id)?.score ?? 0;
-    // Picked's mustWith → candidate
-    const pickedMustCandidate =
-      picked.mustWith?.find((e) => e.championId === candidate.id)?.score ?? 0;
+function getCachedMustWithState(
+  series: ActiveDraftSeries,
+  game: DraftGameState,
+  side: Side,
+  save: DraftSave | null
+): MustWithTurnState {
+  const enemySide: Side = side === "blue" ? "red" : "blue";
+  const ownRoster = getTeamRosterFromSources({ teamSlug: getTeamSlugForSide(series, side), save });
+  const enemyRoster = getTeamRosterFromSources({ teamSlug: getTeamSlugForSide(series, enemySide), save });
+  const key = [
+    series.seriesId,
+    series.currentGameNumber,
+    side,
+    game.picksBlue.join(","),
+    game.picksRed.join(","),
+    game.bansBlue.join(","),
+    game.bansRed.join(","),
+    ROLE_ORDER.map((role) => ownRoster[role] ?? "").join(","),
+    ROLE_ORDER.map((role) => enemyRoster[role] ?? "").join(","),
+  ].join("|");
 
-    const bestScore = Math.max(candidateMustPicked, pickedMustCandidate);
-    if (bestScore >= 4) {
-      // Scale 4-5 score → 2.0-2.5 boost
-      const bonus = 2.0 + (bestScore - 4) * 0.5;
-      if (bonus > maxBonus) maxBonus = bonus;
-    }
-  }
-  return clamp(maxBonus, 0, 2.5);
+  const cached = mustWithStateCache.get(key);
+  if (cached) return cached;
+
+  const unavailable = getUnavailableChampionIds(series, game);
+  const own: MustWithTeamContext = { ownPicks: getOwnState(game, side).picks, roster: ownRoster, unavailable };
+  const enemy: MustWithTeamContext = { ownPicks: getOwnState(game, enemySide).picks, roster: enemyRoster, unavailable };
+  const ownPartners = getAllEligiblePartners(own);
+  const state: MustWithTurnState = {
+    own,
+    ownPartners,
+    enemy,
+    enemyPartners: getAllEligiblePartners(enemy),
+    nonBotOverride: ownPartners.some((partner) => !partner.isBotPair) ? getNonBotOverride(own, enemy) : null,
+  };
+
+  if (mustWithStateCache.size > 200) mustWithStateCache.clear();
+  mustWithStateCache.set(key, state);
+  return state;
 }
 
-// Returns +1.5 to pick / used externally for +2.0 ban when candidate
-// disrupts an enemy mustWith pair. Only activates if enemy has the "anchor"
-// and candidate is the missing partner (or vice versa).
-function getMustWithDenyBonus(
-  enemyPicks: string[],
-  candidate: Champion,
-  forBan: boolean
-): number {
-  if (enemyPicks.length === 0) return 0;
+function getCounterValueScore(args: {
+  enemyPicks: string[];
+  candidate: Champion;
+  projectedRole: Role | null;
+  ownPicks: string[];
+  projectedPlayerId: string | null;
+  enemyRoster: Partial<Record<Role, string>>;
+}): { score: number; details: MatchupDetail[] } {
+  const role = args.projectedRole ?? args.candidate.roles[0] ?? null;
+  if (!role || args.enemyPicks.length === 0) return { score: 5, details: [] };
 
-  let maxBonus = 0;
-  for (const enemyId of enemyPicks) {
-    const enemy = getChampionById(enemyId);
-    if (!enemy) continue;
+  const { total, details } = getMatchupValueVsTeam(args.candidate.id, role, args.enemyPicks, {
+    phaseWeights: getTeamPhaseWeights(args.ownPicks, args.candidate.id),
+    ownAllyIds: [...args.ownPicks, args.candidate.id],
+    ownPlayerId: args.projectedPlayerId,
+    enemyRoster: args.enemyRoster,
+  });
 
-    const candidateMustEnemy =
-      candidate.mustWith?.find((e) => e.championId === enemy.id)?.score ?? 0;
-    const enemyMustCandidate =
-      enemy.mustWith?.find((e) => e.championId === candidate.id)?.score ?? 0;
-
-    const bestScore = Math.max(candidateMustEnemy, enemyMustCandidate);
-    if (bestScore >= 4) {
-      // Ban gets stronger bonus than pick (ban is safer disruption)
-      const baseBonus = forBan ? 1.5 : 1.0;
-      const bonus = baseBonus + (bestScore - 4) * 0.5; // 4-5 → +1.5/+2.0 ban, +1.0/+1.5 pick
-      if (bonus > maxBonus) maxBonus = bonus;
-    }
-  }
-  return clamp(maxBonus, 0, forBan ? 2.0 : 1.5);
-}
-
-function getCounterValueScore(enemyPicks: string[], candidate: Champion) {
-  let counter = 0;
-  for (const enemyId of enemyPicks) {
-    const enemy = getChampionById(enemyId);
-    if (!enemy) continue;
-
-    const intoEnemy =
-      candidate.goodVs?.find(
-        (entry: { championId: string; score?: number }) => entry.championId === enemy.id
-      )?.score ?? 0;
-    const threatenedByEnemy =
-      candidate.weakVs?.find(
-        (entry: { championId: string; score?: number }) => entry.championId === enemy.id
-      )?.score ?? 0;
-
-    counter += intoEnemy * 0.7;
-    counter -= threatenedByEnemy * 0.55;
-  }
-
-  return clamp(counter + 5, 0, 10);
+  return { score: clamp(total + 5, 0, 10), details };
 }
 
 function getWeaknessPenalty(enemyPicks: string[], candidate: Champion) {
@@ -496,16 +524,18 @@ function getProjectedPlayerScores(
 
 function getOffMetaPenalty(
   candidate: Champion,
-  series: ActiveDraftSeries
+  series: ActiveDraftSeries,
+  projectedRole: Role | null
 ): number {
+  const stats = getChampionStatsForRole(candidate, projectedRole);
   const effectivePresence = Math.max(
-    candidate.stats.presence ?? 0,
-    candidate.stats.picks + candidate.stats.bans
+    stats.presence ?? 0,
+    stats.picks + stats.bans
   );
   if (effectivePresence <= 0) return 6.5;
 
-  const picks = candidate.stats.picks ?? 0;
-  const proWinRate = candidate.stats.proWinRate ?? null;
+  const picks = stats.picks ?? 0;
+  const proWinRate = stats.proWinRate ?? null;
 
   const presenceRate = effectivePresence / Math.max(1, 80);
   const isOffMeta = presenceRate < 0.18 || picks < 7;
@@ -521,14 +551,14 @@ function getOffMetaPenalty(
     penalty *= 0.80;
   }
 
-  const soloqWR = candidate.stats.soloqKrChallengerWinRate ?? null;
+  const soloqWR = stats.soloqKrChallengerWinRate ?? null;
   if (soloqWR !== null && soloqWR >= 53) {
     const soloqDiscount = clamp((soloqWR - 52) / 15, 0.05, 0.20);
     penalty *= (1 - soloqDiscount);
   }
 
-  const csDiff = candidate.stats.csDiffAt15 ?? null;
-  const goldDiff = candidate.stats.goldDiffAt15 ?? null;
+  const csDiff = stats.csDiffAt15 ?? null;
+  const goldDiff = stats.goldDiffAt15 ?? null;
   if (csDiff !== null && csDiff >= 8) penalty *= 0.92;
   if (goldDiff !== null && goldDiff >= 300) penalty *= 0.92;
 
@@ -778,7 +808,7 @@ function scorePickCandidate(
     topSignatureSlot,
     clutchAmplifier: clutchAmp,
   });
-  const metaPriority = clamp(getMetaPriorityScore(candidate), 0, 10);
+  const metaPriority = clamp(getMetaPriorityScore(candidate, projected.projectedRole), 0, 10);
   const identityBias = getIdentityBias(teamSlug, candidate);
   const flexBonus = candidate.roles.length >= 2 ? 1.8 : 0.35;
 
@@ -791,19 +821,29 @@ function scorePickCandidate(
     roster
   );
 
-  const counterpickPreservationBonus = getCounterpickPreservationBonus(
+  const counterpickPreservationBase = getCounterpickPreservationBonus(
     game,
     step.side,
     candidate,
     projected.projectedRole,
     enemyState.picks
   );
+  // 4.1: inamicul are deja pe rolul nostru un counter de nota 4/5 → penalizare suplimentară.
+  const directLaneCounterPenalty = getDirectLaneCounterPenalty(
+    candidate.id,
+    projected.projectedRole,
+    enemyState.picks
+  );
+  const counterpickPreservationBonus = counterpickPreservationBase - directLaneCounterPenalty;
+
+  const mustWithState = getCachedMustWithState(series, game, step.side, save);
 
   const blindRiskPenalty = getBlindRiskPenalty(
     game,
     step.side,
     candidate,
-    projected.projectedRole
+    projected.projectedRole,
+    mustWithState.own.unavailable
   );
 
   const { comfortScore, playerFitScore, projectedPlayerId } = getProjectedPlayerScores(
@@ -814,7 +854,15 @@ function scorePickCandidate(
 
   const compSynergy = getCompSynergyScore(ownState.picks, candidate);
   const needFill = getNeedFillScore(ownState.picks, candidate);
-  const counterValue = getCounterValueScore(enemyState.picks, candidate);
+  const counterResult = getCounterValueScore({
+    enemyPicks: enemyState.picks,
+    candidate,
+    projectedRole: projected.projectedRole,
+    ownPicks: ownState.picks,
+    projectedPlayerId,
+    enemyRoster: enemyRosterForAdv,
+  });
+  const counterValue = counterResult.score;
   // ── MASTERY: re-compute pick bonus with the actual counterValue ─────────
   const masteryPickFinal = getMasteryPickBonus({
     player: projectedPlayer,
@@ -829,10 +877,11 @@ function scorePickCandidate(
   // ── MASTERY ADVANCED: predictive counter prep ───────────────────────────
   const predictiveCounter = getPredictiveCounterBonus({
     candidate,
+    candidateRole: projected.projectedRole,
     predictions: advCtx.enemyPredictions,
   });
   const weaknessPenalty = getWeaknessPenalty(enemyState.picks, candidate);
-  const offMetaPenalty = getOffMetaPenalty(candidate, series);
+  const offMetaPenalty = getOffMetaPenalty(candidate, series, projected.projectedRole);
   const archetypeAffinity = getArchetypeAffinityScore(roster, projected.projectedRole, candidate);
   const comboDependencyPenalty = getComboDependencyPenalty(ownState.picks, candidate, projected.projectedRole);
   const winConditionCoherence = getWinConditionCoherenceScore(ownState.picks, candidate, projected.projectedRole);
@@ -852,6 +901,8 @@ function scorePickCandidate(
     series,
     allyChampionIds: ownState.picks,
     enemyChampionIds: enemyState.picks,
+    projectedRole: projected.projectedRole,
+    mustWithContext: mustWithState.own,
   });
 
   // UPGRADE 12: Draft plan alignment
@@ -932,17 +983,25 @@ function scorePickCandidate(
   });
 
   // UPGRADE 8A: Trap counter bonus — if enemy picked the bait, counter it
-  const trapCounter = getTrapCounterBonus(candidate, game, series, step.side);
+  const trapCounter = getTrapCounterBonus(candidate, game, series, step.side, projected.projectedRole);
 
   let botLaneFitBonus = 0;
   if (projected.projectedRole === "support" || projected.projectedRole === "adc") {
     const currentPicks = [...ownState.picks, candidate.id];
+    const botAssignments = resolveRoleAssignments(currentPicks, roster);
     const fitResult = getBotLaneArchetypeFit({
       championIds: currentPicks,
       championById: getChampionById,
+      assignments: botAssignments,
     });
 
-    botLaneFitBonus = clamp((fitResult - 5) * 0.5, -2, 2);
+    // 5.3: perechea explicită (mustWith / synergyWith ≥ 4) cântărește mai mult.
+    if (isExplicitBotPair(botAssignments.adc, botAssignments.support)) {
+      const cap = MUSTWITH_CONFIG.explicitBotPairFitCap;
+      botLaneFitBonus = clamp((fitResult - 5) * MUSTWITH_CONFIG.explicitBotPairFitWeight, -cap, cap);
+    } else {
+      botLaneFitBonus = clamp((fitResult - 5) * 0.5, -2, 2);
+    }
   }
 
   // DRAFT FINAL FIX 5: Comp completeness gate at picks 4-5
@@ -960,15 +1019,20 @@ function scorePickCandidate(
   //   - Off-meta penalty isn't too high (avoid forcing bad picks)
   const compSafe = canFit && compGate > -2.0 && offMetaPenalty < 8;
 
-  // Own team mustWith completion (e.g. AI has Ashe → Seraphine gets +2.5)
-  const mustWithCompletion = compSafe
-    ? getMustWithCompletionBonus(ownState.picks, candidate)
-    : 0;
-
-  // Enemy mustWith disruption (e.g. enemy has Rakan → Xayah pick gets +1.5)
+  // Botlane-ul (5.2) e override în chooseAiAction; aici rămân bonusurile.
+  // 5.3: primul pick de bot care are un partener mustWith eligibil.
+  const comboPotential = compSafe
+    ? getComboPotentialBonus(candidate, projected.projectedRole, mustWithState.own)
+    : { bonus: 0, partner: null };
+  // 5.4: partenerul unei ancore non-bot proprii.
+  const nonBotMustWith = compSafe
+    ? getNonBotMustWithBonus(candidate, mustWithState.own, mustWithState.ownPartners, mustWithState.nonBotOverride)
+    : { bonus: 0, partner: null };
+  // 5.5: inamicul are ancora, candidatul e partenerul lui liber.
   const mustWithDeny = compSafe
-    ? getMustWithDenyBonus(enemyState.picks, candidate, false)
-    : 0;
+    ? getMustWithDenyBonus(candidate, mustWithState.enemy, false, mustWithState.enemyPartners)
+    : { bonus: 0, partner: null };
+  const mustWithBonus = comboPotential.bonus + nonBotMustWith.bonus + mustWithDeny.bonus;
 
   const userBias = getUserPickPreferenceBias(
     candidate,
@@ -1009,8 +1073,7 @@ function scorePickCandidate(
     ruleSynergyBonus +             // DRAFT FINAL FIX 1
     matchupHistoryBias +           // DRAFT FINAL FIX 2
     compGate +
-    mustWithCompletion +           // MUSTWITH: own team pair completion
-    mustWithDeny +                 // MUSTWITH: enemy pair disruption
+    mustWithBonus +                // MUSTWITH: combo potential / non-bot partner / deny (§5)
     masteryPickFinal.total +
     predictiveCounter.bonus -
     weaknessPenalty * adjustedConfig.weaknessWeight -
@@ -1022,8 +1085,8 @@ function scorePickCandidate(
     invalidRolePenalty;
 
   let planType: DraftCandidateBreakdown["planType"] = "stabilize-comp";
-  if (counterpickPreservationBonus >= 1.2) planType = "hide-solo-lane";
-  if (counterpickPreservationBonus <= -2.5) planType = "hold-counter";
+  if (counterpickPreservationBase >= 1.2) planType = "hide-solo-lane";
+  if (counterpickPreservationBase <= -2.5) planType = "hold-counter";
   else if (
     projected.projectedRole === "adc" ||
     projected.projectedRole === "support"
@@ -1051,7 +1114,12 @@ function scorePickCandidate(
     flexBonus,
     historyBias: userBias,
     counterpickPreservationBonus,
+    matchupDetails: counterResult.details,
+    mustWithBonus,
     reasonTags: [
+      ...(comboPotential.bonus > 0 ? ["combo-potential"] : []),
+      ...(nonBotMustWith.bonus > 0 ? ["mustwith-partner"] : []),
+      ...(mustWithDeny.bonus > 0 ? ["mustwith-deny"] : []),
       canFit ? "valid-role-map" : "invalid-role-map",
       candidate.roles.length >= 2 ? "flex" : "single-role",
       projected.projectedRole ?? "unassigned",
@@ -1121,33 +1189,17 @@ function getRoleCoveredBanPenalty(
 // AI should WANT enemies to pick champions that its own picks counter.
 function getCounterProductiveBanPenalty(
   candidate: Champion,
-  enemyPicks: string[]
+  enemyPicks: string[],
+  ownPicks: string[],
+  ownRoster: Partial<Record<Role, string>>,
+  enemyRoster: Partial<Record<Role, string>>
 ): number {
   if (enemyPicks.length === 0) return 0;
-
-  let totalCounterStrength = 0;
-
-  for (const enemyPickId of enemyPicks) {
-    const enemyChamp = getChampionById(enemyPickId);
-    if (!enemyChamp) continue;
-
-    // Check if the ban candidate is weak against any enemy pick
-    const candidateWeakVsEnemy = candidate.weakVs?.find(
-      (rel) => rel.championId === enemyPickId
-    )?.score ?? 0;
-
-    // Check if enemy champion is strong against the ban candidate
-    const enemyGoodVsCandidate = enemyChamp.goodVs?.find(
-      (rel) => rel.championId === candidate.id
-    )?.score ?? 0;
-
-    totalCounterStrength += candidateWeakVsEnemy * 0.6 + enemyGoodVsCandidate * 0.5;
-  }
-
-  if (totalCounterStrength <= 0) return 0;
-
-  // Negative = penalty to ban score (don't ban what enemy counters)
-  return -clamp(totalCounterStrength * 0.75, 0, 5);
+  // Rolul pe care l-am juca noi pe candidat; pick-urile inamicului îl countrează deja?
+  const candidateRole =
+    getPreferredRolesForChampion(ownPicks, candidate.id, ownRoster)[0] ?? candidate.roles[0] ?? null;
+  // Negativ = penalizare la scorul de ban (nota 5 → nu-l bana deloc).
+  return getCounterProductiveBanValue(candidate.id, candidateRole, enemyPicks, enemyRoster);
 }
 
 // ─── DRAFT FINAL FIX 5: Comp completeness gate ─────────────────────────────
@@ -1227,16 +1279,13 @@ function getEnemySynergyCompletionBonus(
     if (!enemy) continue;
 
     // Cat de bine se sinergiaza candidatul cu pick-urile deja facute de inamic?
+    // (mustWith e tratat de deny-ul din mustWithPriority.ts, §5.5)
     const synergyWithEnemy =
       enemy.synergyWith?.find(
         (e: { championId: string; score?: number }) => e.championId === candidate.id
       )?.score ?? 0;
-    const mustWithEnemy =
-      enemy.mustWith?.find(
-        (e: { championId: string; score?: number }) => e.championId === candidate.id
-      )?.score ?? 0;
 
-    bonus += synergyWithEnemy * 0.42 + mustWithEnemy * 0.65;
+    bonus += synergyWithEnemy * 0.42;
   }
   return clamp(bonus, 0, 4.2);
 }
@@ -1312,8 +1361,9 @@ function getProPickTimingBonus(
   side: Side,
   projectedRole: Role | null
 ): number {
-  const avgPickRound = candidate.stats.avgPickRound ?? 3;
-  const prioScore = candidate.stats.prioScore ?? 50;
+  const roleStats = getChampionStatsForRole(candidate, projectedRole);
+  const avgPickRound = roleStats.avgPickRound ?? 3;
+  const prioScore = roleStats.prioScore ?? 50;
   const ownPickNumber = getCurrentPickNumberForSide(game, side);
 
   // How many total picks have happened?
@@ -1431,7 +1481,13 @@ function scoreBanCandidate(
 
   // BUG FIX: Don't ban champions that enemy picks already counter
   // e.g. don't ban Ryze when user has Anivia (Ryze weakVs Anivia)
-  const counterProductiveBanPenalty = getCounterProductiveBanPenalty(candidate, enemyState.picks);
+  const counterProductiveBanPenalty = getCounterProductiveBanPenalty(
+    candidate,
+    enemyState.picks,
+    ownState.picks,
+    ownRoster,
+    enemyRoster
+  );
 
   // FIX #3: bonus pentru ban-uri in faza 2 care distrug sinergia inamicului
   // Activat dupa prima tura de pick-uri (phaseIndex >= 12)
@@ -1464,27 +1520,34 @@ function scoreBanCandidate(
   // hard-counter what AI itself has picked.
   let protectOwnCompBonus = 0;
   if (game.phaseIndex >= 12 && ownState.picks.length >= 2) {
-    for (const ownPickId of ownState.picks) {
-      const ownChamp = getChampionById(ownPickId);
-      if (!ownChamp) continue;
-
-      // Does the ban candidate counter our pick?
-      const candidateCountersUs = candidate.goodVs?.find(
-        (rel) => rel.championId === ownPickId
-      )?.score ?? 0;
-
-      // Are we weak against this candidate?
-      const weAreWeakVs = ownChamp.weakVs?.find(
-        (rel) => rel.championId === candidate.id
-      )?.score ?? 0;
-
-      protectOwnCompBonus += candidateCountersUs * 0.45 + weAreWeakVs * 0.35;
+    // Rolul probabil al candidatului dacă l-ar lua inamicul.
+    const candidateEnemyRole =
+      getPreferredRolesForChampion(enemyState.picks, candidate.id, enemyRoster)[0] ?? null;
+    const ownAssignments = resolveRoleAssignments(ownState.picks, ownRoster);
+    for (const [ownRole, ownPickId] of Object.entries(ownAssignments) as [Role, string | undefined][]) {
+      if (!ownPickId) continue;
+      protectOwnCompBonus += getProtectOwnPickBanValue(ownPickId, ownRole, candidate.id, candidateEnemyRole);
     }
-    protectOwnCompBonus = clamp(protectOwnCompBonus, 0, 4);
+    protectOwnCompBonus = clamp(protectOwnCompBonus, 0, PROTECT_BAN_MAX);
   }
 
-  // ─── MUSTWITH BAN: disrupt enemy pair (e.g. enemy has Rakan → ban Xayah) ──
-  const mustWithBanBonus = getMustWithDenyBonus(enemyState.picks, candidate, true);
+  // ─── MUSTWITH BAN (§5.5) ──────────────────────────────────────────────────
+  const mustWithBanState = getCachedMustWithState(series, game, step.side, save);
+  // Deny: inamicul are ancora (ex. Rakan) → ban pe partenerul lui liber (Xayah).
+  const mustWithBanBonus = getMustWithDenyBonus(
+    candidate,
+    mustWithBanState.enemy,
+    true,
+    mustWithBanState.enemyPartners
+  ).bonus;
+  // Nu-ți bana niciodată partenerul eligibil al unui campion deja luat.
+  const ownMustWithBanBlock = isProtectedOwnPartner(
+    candidate.id,
+    mustWithBanState.own,
+    mustWithBanState.ownPartners
+  )
+    ? MUSTWITH_CONFIG.ownPartnerBanScore
+    : 0;
 
   // FIX A: Reduce metaPriority dominance, boost signature bans
   const totalScore =
@@ -1504,6 +1567,7 @@ function scoreBanCandidate(
     userFavoriteBan +
     protectOwnCompBonus +          // DRAFT FINAL FIX 3
     mustWithBanBonus +
+    ownMustWithBanBlock +
     enemyMasteryBan.bonus +
     ownMasteryProtect.penalty +
     targetBan.bonus +
@@ -1525,9 +1589,12 @@ function scoreBanCandidate(
     totalScore,
     planType: "deny-signature",
     historyBias: userBias,
+    mustWithBonus: mustWithBanBonus + ownMustWithBanBlock,
     reasonTags: [
       userBias > 1 || signatureBonus > 2 ? "user-pattern" : "meta-ban",
       candidate.roles.length >= 2 ? "flex" : "single-role",
+      ...(mustWithBanBonus > 0 ? ["mustwith-deny"] : []),
+      ...(ownMustWithBanBlock < 0 ? ["mustwith-protected"] : []),
     ],
   };
 }
@@ -1545,6 +1612,16 @@ export function scoreDraftCandidate(
   }
 
   return scorePickCandidate(candidate, step, game, series, save, config);
+}
+
+function withMustWithLock(breakdown: DraftCandidateBreakdown, lock: EligiblePartner): DraftCandidateBreakdown {
+  const mustWithLock = { anchorId: lock.anchorId, partnerId: lock.partnerId, grade: lock.grade };
+  return {
+    ...breakdown,
+    mustWithLock,
+    reasonTags: [...(breakdown.reasonTags ?? []), "mustwith-lock"],
+    explanation: [...(breakdown.explanation ?? []), describeMustWithLock(mustWithLock, lock.isBotPair)],
+  };
 }
 
 function applyRealisticPickTiebreaker(
@@ -1574,6 +1651,27 @@ export function chooseAiAction(
 ): DraftCandidateBreakdown | null {
   if (!pool.length) return null;
 
+  const mustWithState = getCachedMustWithState(series, game, step.side, save);
+  const ownPartnerIds = new Set(mustWithState.ownPartners.map((partner) => partner.partnerId));
+
+  // §5.2 / 4.3: botlane mustWith = override, ÎNAINTE de pre-filtru și de shortlist.
+  if (step.action === "pick") {
+    const lock = resolveMustWithLock(mustWithState.own);
+    const lockedCandidate = lock ? pool.find((champion) => champion.id === lock.partnerId) : undefined;
+    if (lock && lockedCandidate) {
+      const breakdown = scoreDraftCandidate(lockedCandidate, step, game, series, save, config);
+      if (!breakdown.reasonTags?.includes("invalid-role-map")) {
+        return withMustWithLock(breakdown, lock);
+      }
+    }
+  }
+
+  // §5.5: nu-ți bana partenerul eligibil al unui campion deja luat.
+  if (step.action === "ban" && ownPartnerIds.size > 0) {
+    const banPool = pool.filter((champion) => !ownPartnerIds.has(champion.id));
+    if (banPool.length) pool = banPool;
+  }
+
   // UPGRADE 11 FIX 3: Pre-filter pool to speed up scoring.
   // Full scoring is expensive (calls evaluateSimulationReadiness, etc per candidate).
   // For picks: keep top ~50 by meta priority + any player comfort pick.
@@ -1595,6 +1693,12 @@ export function chooseAiAction(
     // If filtered too aggressively and < 20 candidates, fall back to more
     if (filteredPool.length < 20) {
       filteredPool = cheapRanked.slice(0, 80).map((e) => e.champion);
+    }
+
+    // 4.3: partenerii mustWith eligibili nu sunt tăiați de pre-filtru.
+    const included = new Set(filteredPool.map((champion) => champion.id));
+    for (const champion of pool) {
+      if (ownPartnerIds.has(champion.id) && !included.has(champion.id)) filteredPool.push(champion);
     }
   } else {
     // Bans: only top 30 meta candidates matter
@@ -1622,6 +1726,16 @@ export function chooseAiAction(
     );
 
     const seed = `${series.seriesId}:${series.currentGameNumber}:${game.phaseIndex}:${step.side}`;
+
+    // §5.4: partener non-bot pe primul loc → ales cu nonBotLockChance (determinist).
+    const top = valid[0];
+    const nonBotPartner = top
+      ? mustWithState.ownPartners.find((partner) => !partner.isBotPair && partner.partnerId === top.championId)
+      : undefined;
+    if (top && nonBotPartner && roll(`${seed}:mustwith`) < MUSTWITH_CONFIG.nonBotLockChance) {
+      return withMustWithLock(top, nonBotPartner);
+    }
+
     return chooseFromAdaptiveShortlist(valid, seed) ?? null;
   }
 

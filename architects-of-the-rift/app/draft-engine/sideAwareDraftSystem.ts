@@ -21,6 +21,7 @@
 import type { Champion, Role } from "@/app/types/champion";
 import type { DraftGameState, Side } from "./draftTypes";
 import { getMetaPriorityScore } from "./draftEvaluator";
+import { getChampionStatsForRole } from "./championRoleStatsSystem";
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -47,7 +48,7 @@ export function getSideAwareBonus(args: {
   const enemyPicks = side === "blue" ? game.picksRed : game.picksBlue;
   const ownPickNumber = ownPicks.length + 1; // 1-indexed
 
-  const metaPriority = getMetaPriorityScore(candidate);
+  const metaPriority = getMetaPriorityScore(candidate, args.projectedRole);
   const isFlex = candidate.roles.length >= 2;
 
   let bonus = 0;
@@ -75,7 +76,7 @@ export function getSideAwareBonus(args: {
     // Blue pick 4-5 (B4/B5): hardest — they're last to commit solo lanes
     // Want safe, blind-pickable champions
     if (ownPickNumber >= 4) {
-      const safeBlind = candidate.stats?.blindPickRate ?? 45;
+      const safeBlind = getChampionStatsForRole(candidate, args.projectedRole).blindPickRate ?? 45;
       if (safeBlind >= 55) bonus += 0.8;
       if (safeBlind < 35) bonus -= 1.0; // Dangerous to blind
     }

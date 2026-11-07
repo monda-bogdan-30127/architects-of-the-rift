@@ -1,5 +1,6 @@
-import type { Champion, ChampionRoleProfile, ChampionSynergyRule } from "@/app/types/champion";
+import type { Champion, ChampionRoleProfile, ChampionSynergyRule, Role } from "@/app/types/champion";
 import { getChampionRoleProfile } from "./championProfileSystem";
+import { resolveRoleAssignments } from "./draftRoleResolver";
 
 type Entry = { champion: Champion; profile: ChampionRoleProfile };
 
@@ -13,10 +14,16 @@ function profileMatchesRuleTarget(entry: Entry, rule: ChampionSynergyRule) {
   return false;
 }
 
+/** Profilul fiecărui campion pe rolul rezolvat al compoziției (nu primul rol din listă). */
 function getEntries(champions: Champion[]): Entry[] {
+  const assignments = resolveRoleAssignments(champions.map((champion) => champion.id), {});
+  const roleById = new Map<string, Role>();
+  for (const [role, championId] of Object.entries(assignments) as [Role, string | undefined][]) {
+    if (championId) roleById.set(championId, role);
+  }
   return champions
     .map((champion) => {
-      const profile = getChampionRoleProfile(champion);
+      const profile = getChampionRoleProfile(champion, roleById.get(champion.id) ?? null);
       return profile ? { champion, profile } : null;
     })
     .filter((entry): entry is Entry => Boolean(entry));
@@ -24,7 +31,8 @@ function getEntries(champions: Champion[]): Entry[] {
 
 export function evaluateRuleSynergy(allies: Champion[], enemies: Champion[]) {
   const allyEntries = getEntries(allies);
-  const enemyEntries = getEntries(enemies);
+  // `enemies` rămâne în semnătură; regulile de matchup nu mai sunt evaluate aici (§4.4).
+  void enemies;
   let score = 0;
 
   for (const current of allyEntries) {
@@ -47,21 +55,7 @@ export function evaluateRuleSynergy(allies: Champion[], enemies: Champion[]) {
       if (hits > 0) score += rule.effect.score;
     }
 
-    for (const rule of current.profile.synergy.mustWith) {
-      const hits = allyEntries.filter((ally) => ally.champion.id !== current.champion.id && profileMatchesRuleTarget(ally, rule)).length;
-      if (hits > 0) score += rule.effect.score;
-      else score -= Math.abs(rule.effect.score) * 0.8;
-    }
-
-    for (const rule of current.profile.synergy.goodVs) {
-      const hits = enemyEntries.filter((enemy) => profileMatchesRuleTarget(enemy, rule)).length;
-      if (hits > 0) score += Math.abs(rule.effect.score) * Math.min(hits, 2);
-    }
-
-    for (const rule of current.profile.synergy.weakVs) {
-      const hits = enemyEntries.filter((enemy) => profileMatchesRuleTarget(enemy, rule)).length;
-      if (hits > 0) score += rule.effect.score * Math.min(hits, 2);
-    }
+    // mustWith / goodVs / weakVs: tratate de mustWithPriority.ts și matchupScoring.ts (§4.4).
   }
 
   return Math.max(0, Math.min(10, 5 + score * 0.12));

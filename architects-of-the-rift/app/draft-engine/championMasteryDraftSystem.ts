@@ -62,7 +62,7 @@ export function getMasteryDraftBonus(
   if (rawBonus <= 0) return rawBonus;
 
   // Positive bonuses are dampened by meta priority
-  const metaPriority = getMetaPriorityScore(champion);
+  const metaPriority = getMetaPriorityScore(champion, player.role);
   const dampening = getMetaDampeningFactor(metaPriority);
   return rawBonus * dampening;
 }
@@ -181,7 +181,7 @@ export function getSignaturePullBonus(args: {
   if (!synergyOK) base *= 0.3;
 
   // Meta dampening: don't draft around an off-meta SS too hard
-  const metaPriority = getMetaPriorityScore(args.candidate);
+  const metaPriority = getMetaPriorityScore(args.candidate, args.player.role);
   const metaDampening = getMetaDampeningFactor(metaPriority);
 
   // Clutch amplifier (capped to avoid breaking the draft)
@@ -432,7 +432,7 @@ export function getMasteryDraftDiagnostic(args: {
     args.topSignatureSlot?.playerId === args.player.id &&
     args.topSignatureSlot?.championId === args.candidate.id;
   const synergyOK = checkSynergyCompatibility(args.candidate, args.ownPicks);
-  const metaDampening = getMetaDampeningFactor(getMetaPriorityScore(args.candidate));
+  const metaDampening = getMetaDampeningFactor(getMetaPriorityScore(args.candidate, args.player.role));
 
   let reason = `grade=${grade}`;
   if (signaturePull > 1.5) reason += " signature-pull";
