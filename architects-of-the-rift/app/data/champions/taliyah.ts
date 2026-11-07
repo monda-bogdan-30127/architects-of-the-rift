@@ -64,14 +64,14 @@ export const taliyah = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "hwei", score: 2 },
-        { championId: "viktor", score: 2 },
+        { championId: "hwei", level: 2, phase: "lane" },
+        { championId: "viktor", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "kassadin", score: 3 },
-        { championId: "ziggs", score: 2 },
-        { championId: "leblanc", score: 1 },
-        { championId: "yone", score: 1 },
+        { championId: "kassadin", level: 2, phase: "late" },
+        { championId: "ziggs", level: 2, phase: "lane" },
+        { championId: "leblanc", level: 1, phase: "all" },
+        { championId: "yone", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,
@@ -79,7 +79,7 @@ export const taliyah = createChampion({
     adc: {
       goodVs: [],
       weakVs: [
-        { championId: "ziggs", score: 2 },
+        { championId: "ziggs", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

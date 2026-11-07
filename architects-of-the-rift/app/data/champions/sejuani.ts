@@ -66,17 +66,17 @@ export const sejuani = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "aatrox", score: 3 },
-        { championId: "naafiri", score: 3 },
-        { championId: "viego", score: 3 },
-        { championId: "wukong", score: 3 },
+        { championId: "aatrox", level: 2, phase: "late" },
+        { championId: "naafiri", level: 2, phase: "late" },
+        { championId: "viego", level: 2, phase: "late" },
+        { championId: "wukong", level: 2, phase: "late" },
       ],
       weakVs: [
-        { championId: "trundle", score: 4, note: "ult-ul fură rezistențele tank-ului" },
-        { championId: "dr-mundo", score: 3 },
-        { championId: "jarvan-iv", score: 2 },
-        { championId: "khazix", score: 2 },
-        { championId: "xin-zhao", score: 2 },
+        { championId: "trundle", level: 2, phase: "all", note: "ult-ul fură rezistențele tank-ului" },
+        { championId: "dr-mundo", level: 2, phase: "late" },
+        { championId: "jarvan-iv", level: 2, phase: "lane" },
+        { championId: "khazix", level: 2, phase: "lane" },
+        { championId: "xin-zhao", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

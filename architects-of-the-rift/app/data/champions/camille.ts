@@ -65,15 +65,15 @@ export const camille = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "ksante", score: 3 },
-        { championId: "ornn", score: 3 },
+        { championId: "ksante", level: 2, phase: "late" },
+        { championId: "ornn", level: 2, phase: "late" },
       ],
       weakVs: [
-        { championId: "olaf", score: 4, note: "ult-ul ignoră stun-ul și ult-ul Camillei" },
-        { championId: "gwen", score: 3 },
-        { championId: "jax", score: 3 },
-        { championId: "vladimir", score: 3 },
-        { championId: "shen", score: 1 },
+        { championId: "olaf", level: 2, phase: "all", note: "ult-ul ignoră stun-ul și ult-ul Camillei" },
+        { championId: "gwen", level: 2, phase: "late" },
+        { championId: "jax", level: 2, phase: "late" },
+        { championId: "vladimir", level: 2, phase: "late" },
+        { championId: "shen", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,
@@ -81,7 +81,7 @@ export const camille = createChampion({
     support: {
       goodVs: [],
       weakVs: [
-        { championId: "shen", score: 1 },
+        { championId: "shen", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

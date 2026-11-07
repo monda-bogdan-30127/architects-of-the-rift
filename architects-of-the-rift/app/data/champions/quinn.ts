@@ -65,11 +65,11 @@ export const quinn = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "gnar", score: 2 },
-        { championId: "renekton", score: 2 },
+        { championId: "gnar", level: 2, phase: "lane" },
+        { championId: "renekton", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "gangplank", score: 3 },
+        { championId: "gangplank", level: 2, phase: "late" },
       ],
       mustWith: [],
       stats: null,

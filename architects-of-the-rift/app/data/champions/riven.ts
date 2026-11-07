@@ -63,14 +63,14 @@ export const riven = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "gnar", score: 2 },
-        { championId: "ornn", score: 2 },
-        { championId: "vladimir", score: 2 },
+        { championId: "gnar", level: 2, phase: "lane" },
+        { championId: "ornn", level: 2, phase: "lane" },
+        { championId: "vladimir", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "camille", score: 3 },
-        { championId: "gwen", score: 3 },
-        { championId: "aatrox", score: 2 },
+        { championId: "camille", level: 2, phase: "late" },
+        { championId: "gwen", level: 2, phase: "late" },
+        { championId: "aatrox", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

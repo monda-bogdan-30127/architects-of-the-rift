@@ -65,11 +65,11 @@ export const caitlyn = createChampion({
     adc: {
       goodVs: [],
       weakVs: [
-        { championId: "kaisa", score: 3 },
-        { championId: "xayah", score: 3 },
-        { championId: "draven", score: 2 },
-        { championId: "kalista", score: 2 },
-        { championId: "lucian", score: 2 },
+        { championId: "kaisa", level: 2, phase: "late" },
+        { championId: "xayah", level: 2, phase: "late" },
+        { championId: "draven", level: 2, phase: "lane" },
+        { championId: "kalista", level: 2, phase: "lane" },
+        { championId: "lucian", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

@@ -64,24 +64,24 @@ export const senna = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "nautilus", score: 2 },
+        { championId: "nautilus", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "bard", score: 2 },
-        { championId: "blitzcrank", score: 2 },
-        { championId: "nami", score: 2 },
+        { championId: "bard", level: 2, phase: "lane" },
+        { championId: "blitzcrank", level: 2, phase: "lane" },
+        { championId: "nami", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
     },
     adc: {
       goodVs: [
-        { championId: "jhin", score: 2 },
-        { championId: "xayah", score: 2 },
+        { championId: "jhin", level: 2, phase: "lane" },
+        { championId: "xayah", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "kaisa", score: 4, note: "dive pe un carry imobil" },
-        { championId: "caitlyn", score: 2 },
+        { championId: "kaisa", level: 2, phase: "all", note: "dive pe un carry imobil" },
+        { championId: "caitlyn", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

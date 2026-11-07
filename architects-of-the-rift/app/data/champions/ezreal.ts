@@ -63,17 +63,17 @@ export const ezreal = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "miss-fortune", score: 2 },
-        { championId: "ziggs", score: 2 },
-        { championId: "corki", score: 1 },
-        { championId: "jhin", score: 1 },
+        { championId: "miss-fortune", level: 2, phase: "lane" },
+        { championId: "ziggs", level: 2, phase: "lane" },
+        { championId: "corki", level: 1, phase: "all" },
+        { championId: "jhin", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "sivir", score: 3 },
-        { championId: "draven", score: 2 },
-        { championId: "kalista", score: 2 },
-        { championId: "lucian", score: 2 },
-        { championId: "xayah", score: 2 },
+        { championId: "sivir", level: 2, phase: "late" },
+        { championId: "draven", level: 2, phase: "lane" },
+        { championId: "kalista", level: 2, phase: "lane" },
+        { championId: "lucian", level: 2, phase: "lane" },
+        { championId: "xayah", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

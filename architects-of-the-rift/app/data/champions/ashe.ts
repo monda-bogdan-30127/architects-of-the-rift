@@ -66,16 +66,16 @@ export const ashe = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "lucian", score: 3 },
-        { championId: "corki", score: 2 },
-        { championId: "jinx", score: 2 },
+        { championId: "lucian", level: 2, phase: "late" },
+        { championId: "corki", level: 2, phase: "lane" },
+        { championId: "jinx", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "aphelios", score: 3 },
-        { championId: "caitlyn", score: 2 },
-        { championId: "kalista", score: 2 },
-        { championId: "varus", score: 2 },
-        { championId: "ezreal", score: 1 },
+        { championId: "aphelios", level: 2, phase: "late" },
+        { championId: "caitlyn", level: 2, phase: "lane" },
+        { championId: "kalista", level: 2, phase: "lane" },
+        { championId: "varus", level: 2, phase: "lane" },
+        { championId: "ezreal", level: 1, phase: "all" },
       ],
       mustWith: ["seraphine"],
       stats: null,

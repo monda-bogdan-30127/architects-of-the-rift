@@ -64,15 +64,15 @@ export const skarner = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "zac", score: 2 },
-        { championId: "maokai", score: 1 },
+        { championId: "zac", level: 2, phase: "lane" },
+        { championId: "maokai", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "dr-mundo", score: 3 },
-        { championId: "viego", score: 3 },
-        { championId: "lee-sin", score: 2 },
-        { championId: "lillia", score: 2 },
-        { championId: "naafiri", score: 2 },
+        { championId: "dr-mundo", level: 2, phase: "late" },
+        { championId: "viego", level: 2, phase: "late" },
+        { championId: "lee-sin", level: 2, phase: "lane" },
+        { championId: "lillia", level: 2, phase: "lane" },
+        { championId: "naafiri", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

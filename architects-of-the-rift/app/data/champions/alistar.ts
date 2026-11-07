@@ -63,15 +63,15 @@ export const alistar = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "lulu", score: 2 },
-        { championId: "leona", score: 1 },
+        { championId: "lulu", level: 2, phase: "lane" },
+        { championId: "leona", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "janna", score: 4, note: "disengage care anulează combo-ul de engage" },
-        { championId: "bard", score: 2 },
-        { championId: "rakan", score: 2 },
-        { championId: "renata-glasc", score: 2 },
-        { championId: "seraphine", score: 2 },
+        { championId: "janna", level: 2, phase: "all", note: "disengage care anulează combo-ul de engage" },
+        { championId: "bard", level: 2, phase: "lane" },
+        { championId: "rakan", level: 2, phase: "lane" },
+        { championId: "renata-glasc", level: 2, phase: "lane" },
+        { championId: "seraphine", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

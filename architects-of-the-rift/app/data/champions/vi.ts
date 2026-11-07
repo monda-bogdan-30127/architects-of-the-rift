@@ -65,10 +65,10 @@ export const vi = createChampion({
     jungle: {
       goodVs: [],
       weakVs: [
-        { championId: "poppy", score: 4, note: "W oprește Q-ul lui Vi" },
-        { championId: "maokai", score: 3 },
-        { championId: "khazix", score: 2 },
-        { championId: "skarner", score: 2 },
+        { championId: "poppy", level: 2, phase: "all", note: "W oprește Q-ul lui Vi" },
+        { championId: "maokai", level: 2, phase: "late" },
+        { championId: "khazix", level: 2, phase: "lane" },
+        { championId: "skarner", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

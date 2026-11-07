@@ -62,16 +62,16 @@ export const janna = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "karma", score: 1 },
-        { championId: "lulu", score: 1 },
-        { championId: "nami", score: 1 },
+        { championId: "karma", level: 1, phase: "all" },
+        { championId: "lulu", level: 1, phase: "all" },
+        { championId: "nami", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "braum", score: 2 },
-        { championId: "rakan", score: 2 },
-        { championId: "rell", score: 2 },
-        { championId: "taric", score: 2 },
-        { championId: "thresh", score: 2 },
+        { championId: "braum", level: 2, phase: "lane" },
+        { championId: "rakan", level: 2, phase: "lane" },
+        { championId: "rell", level: 2, phase: "lane" },
+        { championId: "taric", level: 2, phase: "lane" },
+        { championId: "thresh", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

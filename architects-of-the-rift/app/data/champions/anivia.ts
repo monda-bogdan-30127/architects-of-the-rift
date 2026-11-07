@@ -62,20 +62,20 @@ export const anivia = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "galio", score: 2 },
+        { championId: "galio", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "azir", score: 2 },
-        { championId: "orianna", score: 2 },
-        { championId: "swain", score: 2 },
-        { championId: "viktor", score: 2 },
+        { championId: "azir", level: 2, phase: "lane" },
+        { championId: "orianna", level: 2, phase: "lane" },
+        { championId: "swain", level: 2, phase: "lane" },
+        { championId: "viktor", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
     },
     support: {
       goodVs: [
-        { championId: "seraphine", score: 2 },
+        { championId: "seraphine", level: 2, phase: "lane" },
       ],
       weakVs: [],
       mustWith: [],

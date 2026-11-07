@@ -64,26 +64,26 @@ export const aatrox = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "ambessa", score: 2 },
-        { championId: "xin-zhao", score: 2 },
+        { championId: "ambessa", level: 2, phase: "lane" },
+        { championId: "xin-zhao", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "jarvan-iv", score: 2 },
-        { championId: "pantheon", score: 2 },
+        { championId: "jarvan-iv", level: 2, phase: "lane" },
+        { championId: "pantheon", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
     },
     top: {
       goodVs: [
-        { championId: "ambessa", score: 2 },
+        { championId: "ambessa", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "camille", score: 4, note: "true damage și duel superior în sidelane" },
-        { championId: "gwen", score: 3 },
-        { championId: "gnar", score: 2 },
-        { championId: "renekton", score: 2 },
-        { championId: "rumble", score: 2 },
+        { championId: "camille", level: 2, phase: "all", note: "true damage și duel superior în sidelane" },
+        { championId: "gwen", level: 2, phase: "late" },
+        { championId: "gnar", level: 2, phase: "lane" },
+        { championId: "renekton", level: 2, phase: "lane" },
+        { championId: "rumble", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

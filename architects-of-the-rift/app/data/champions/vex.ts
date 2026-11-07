@@ -63,13 +63,13 @@ export const vex = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "akali", score: 4, note: "pasivul pedepsește fiecare dash" },
-        { championId: "sylas", score: 2 },
+        { championId: "akali", level: 2, phase: "all", note: "pasivul pedepsește fiecare dash" },
+        { championId: "sylas", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "ahri", score: 2 },
-        { championId: "ryze", score: 2 },
-        { championId: "viktor", score: 2 },
+        { championId: "ahri", level: 2, phase: "lane" },
+        { championId: "ryze", level: 2, phase: "lane" },
+        { championId: "viktor", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

@@ -73,20 +73,9 @@ export type ChampionRoleKey = `${string}:${Role}`;
 export type ChampionRoleStats = { [K in keyof ChampionStats]: ChampionStats[K] | null };
 
 /** Tot ce ține de un campion pe un rol (în fișierul campionului, `roleData[rol]`). */
-/**
- * TEMPORAR (MATCHUP_LEVEL_PHASE §11): formatul vechi cu notă 1–5, acceptat doar până
- * rulează `scripts/migrate-matchups-to-level-phase.ts`. Convertit la citire de `toMatchupRelation`.
- */
-export type LegacyMatchupRelation = {
-  championId: string;
-  score: 1 | 2 | 3 | 4 | 5;
-  vsRole?: Role;
-  note?: string;
-};
-
 export type ChampionRoleData = {
-  goodVs: (MatchupRelation | LegacyMatchupRelation)[];
-  weakVs: (MatchupRelation | LegacyMatchupRelation)[];
+  goodVs: MatchupRelation[];
+  weakVs: MatchupRelation[];
   /** Doar id-uri de campioni, fără notă; ordinea = preferința. */
   mustWith: string[];
   /** null = fără date pe rol, se folosesc stats globale. */

@@ -63,17 +63,17 @@ export const zed = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "cassiopeia", score: 2 },
-        { championId: "taliyah", score: 2 },
-        { championId: "talon", score: 2 },
-        { championId: "vladimir", score: 2 },
+        { championId: "cassiopeia", level: 2, phase: "lane" },
+        { championId: "taliyah", level: 2, phase: "lane" },
+        { championId: "talon", level: 2, phase: "lane" },
+        { championId: "vladimir", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "lissandra", score: 4, note: "ult-ul o face imună la all-in-ul lui Zed" },
-        { championId: "azir", score: 2 },
-        { championId: "syndra", score: 2 },
-        { championId: "zoe", score: 2 },
-        { championId: "leblanc", score: 1 },
+        { championId: "lissandra", level: 2, phase: "all", note: "ult-ul o face imună la all-in-ul lui Zed" },
+        { championId: "azir", level: 2, phase: "lane" },
+        { championId: "syndra", level: 2, phase: "lane" },
+        { championId: "zoe", level: 2, phase: "lane" },
+        { championId: "leblanc", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

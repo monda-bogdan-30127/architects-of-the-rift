@@ -63,14 +63,14 @@ export const aphelios = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "ezreal", score: 3 },
+        { championId: "ezreal", level: 2, phase: "late" },
       ],
       weakVs: [
-        { championId: "caitlyn", score: 2 },
-        { championId: "lucian", score: 2 },
-        { championId: "sivir", score: 2 },
-        { championId: "yunara", score: 1 },
-        { championId: "zeri", score: 1 },
+        { championId: "caitlyn", level: 2, phase: "lane" },
+        { championId: "lucian", level: 2, phase: "lane" },
+        { championId: "sivir", level: 2, phase: "lane" },
+        { championId: "yunara", level: 1, phase: "all" },
+        { championId: "zeri", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

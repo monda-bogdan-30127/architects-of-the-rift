@@ -66,16 +66,16 @@ export const malzahar = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "galio", score: 2 },
-        { championId: "ryze", score: 2 },
-        { championId: "vladimir", score: 2 },
-        { championId: "zoe", score: 2 },
+        { championId: "galio", level: 2, phase: "lane" },
+        { championId: "ryze", level: 2, phase: "lane" },
+        { championId: "vladimir", level: 2, phase: "lane" },
+        { championId: "zoe", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "veigar", score: 3 },
-        { championId: "azir", score: 2 },
-        { championId: "taliyah", score: 2 },
-        { championId: "viktor", score: 2 },
+        { championId: "veigar", level: 2, phase: "late" },
+        { championId: "azir", level: 2, phase: "lane" },
+        { championId: "taliyah", level: 2, phase: "lane" },
+        { championId: "viktor", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

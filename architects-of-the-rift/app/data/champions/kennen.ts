@@ -62,15 +62,15 @@ export const kennen = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "malphite", score: 4, note: "AP la distanță, armura nu ajută" },
-        { championId: "ksante", score: 2 },
+        { championId: "malphite", level: 2, phase: "all", note: "AP la distanță, armura nu ajută" },
+        { championId: "ksante", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "galio", score: 5, note: "pasivul de MR al lui W anulează burst-ul AP" },
-        { championId: "ornn", score: 3 },
-        { championId: "camille", score: 2 },
-        { championId: "gwen", score: 2 },
-        { championId: "rumble", score: 1 },
+        { championId: "galio", level: 3, phase: "all", note: "pasivul de MR al lui W anulează burst-ul AP" },
+        { championId: "ornn", level: 2, phase: "late" },
+        { championId: "camille", level: 2, phase: "lane" },
+        { championId: "gwen", level: 2, phase: "lane" },
+        { championId: "rumble", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

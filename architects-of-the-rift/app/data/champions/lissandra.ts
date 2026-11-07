@@ -64,14 +64,14 @@ export const lissandra = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "viktor", score: 2 },
+        { championId: "viktor", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "swain", score: 3 },
-        { championId: "vladimir", score: 3 },
-        { championId: "orianna", score: 2 },
-        { championId: "sylas", score: 2 },
-        { championId: "irelia", score: 1 },
+        { championId: "swain", level: 2, phase: "late" },
+        { championId: "vladimir", level: 2, phase: "late" },
+        { championId: "orianna", level: 2, phase: "lane" },
+        { championId: "sylas", level: 2, phase: "lane" },
+        { championId: "irelia", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

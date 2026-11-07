@@ -64,13 +64,13 @@ export const nocturne = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "sejuani", score: 2 },
+        { championId: "sejuani", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "skarner", score: 3 },
-        { championId: "aatrox", score: 2 },
-        { championId: "lee-sin", score: 2 },
-        { championId: "vi", score: 2 },
+        { championId: "skarner", level: 2, phase: "late" },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "lee-sin", level: 2, phase: "lane" },
+        { championId: "vi", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

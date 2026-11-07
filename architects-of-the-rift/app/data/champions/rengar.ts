@@ -62,15 +62,15 @@ export const rengar = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "graves", score: 2 },
-        { championId: "khazix", score: 2 },
+        { championId: "graves", level: 2, phase: "lane" },
+        { championId: "khazix", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "rammus", score: 4, note: "armură și taunt contra burst-ului AD" },
-        { championId: "sejuani", score: 4, note: "tank cu CC, nu poate fi one-shot" },
-        { championId: "skarner", score: 4, note: "tank cu suppression, nu poate fi one-shot" },
-        { championId: "zac", score: 2 },
-        { championId: "ivern", score: 1 },
+        { championId: "rammus", level: 2, phase: "all", note: "armură și taunt contra burst-ului AD" },
+        { championId: "sejuani", level: 2, phase: "all", note: "tank cu CC, nu poate fi one-shot" },
+        { championId: "skarner", level: 2, phase: "all", note: "tank cu suppression, nu poate fi one-shot" },
+        { championId: "zac", level: 2, phase: "lane" },
+        { championId: "ivern", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,
@@ -78,7 +78,7 @@ export const rengar = createChampion({
     top: {
       goodVs: [],
       weakVs: [
-        { championId: "zac", score: 2 },
+        { championId: "zac", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

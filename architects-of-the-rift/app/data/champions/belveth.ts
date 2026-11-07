@@ -62,16 +62,16 @@ export const belveth = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "lee-sin", score: 3 },
-        { championId: "trundle", score: 3 },
-        { championId: "vi", score: 3 },
-        { championId: "viego", score: 3 },
+        { championId: "lee-sin", level: 2, phase: "late" },
+        { championId: "trundle", level: 2, phase: "late" },
+        { championId: "vi", level: 2, phase: "late" },
+        { championId: "viego", level: 2, phase: "late" },
       ],
       weakVs: [
-        { championId: "maokai", score: 4, note: "CC point-click și tank pe care nu-l poate topi" },
-        { championId: "sejuani", score: 4, note: "CC în lanț contra lui Bel'Veth" },
-        { championId: "wukong", score: 2 },
-        { championId: "xin-zhao", score: 2 },
+        { championId: "maokai", level: 2, phase: "all", note: "CC point-click și tank pe care nu-l poate topi" },
+        { championId: "sejuani", level: 2, phase: "all", note: "CC în lanț contra lui Bel'Veth" },
+        { championId: "wukong", level: 2, phase: "lane" },
+        { championId: "xin-zhao", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

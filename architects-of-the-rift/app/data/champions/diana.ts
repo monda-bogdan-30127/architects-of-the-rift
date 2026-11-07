@@ -64,18 +64,18 @@ export const diana = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "jarvan-iv", score: 3 },
-        { championId: "udyr", score: 3 },
-        { championId: "volibear", score: 3 },
-        { championId: "nidalee", score: 2 },
-        { championId: "sejuani", score: 2 },
+        { championId: "jarvan-iv", level: 2, phase: "late" },
+        { championId: "udyr", level: 2, phase: "late" },
+        { championId: "volibear", level: 2, phase: "late" },
+        { championId: "nidalee", level: 2, phase: "lane" },
+        { championId: "sejuani", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "trundle", score: 3 },
-        { championId: "nocturne", score: 2 },
-        { championId: "viego", score: 2 },
-        { championId: "wukong", score: 2 },
-        { championId: "xin-zhao", score: 2 },
+        { championId: "trundle", level: 2, phase: "late" },
+        { championId: "nocturne", level: 2, phase: "lane" },
+        { championId: "viego", level: 2, phase: "lane" },
+        { championId: "wukong", level: 2, phase: "lane" },
+        { championId: "xin-zhao", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

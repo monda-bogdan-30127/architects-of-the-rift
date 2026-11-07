@@ -12,29 +12,11 @@ import { champions, championsById } from "@/app/data/champions";
 import type {
   ChampionRoleKey,
   ChampionRoleMatchups,
-  LegacyMatchupRelation,
-  MatchupLevel,
-  MatchupPhase,
   MatchupRelation,
   Role,
 } from "@/app/types/champion";
 import { getRelationStrength } from "./matchupGrades";
 
-/** TEMPORAR (MATCHUP_LEVEL_PHASE §4/§11): nota veche 1–5 → { level, phase }. */
-const LEGACY_SCORE_MAP: Record<LegacyMatchupRelation["score"], { level: MatchupLevel; phase: MatchupPhase }> = {
-  5: { level: 3, phase: "all" },
-  4: { level: 2, phase: "all" },
-  3: { level: 2, phase: "late" },
-  2: { level: 2, phase: "lane" },
-  1: { level: 1, phase: "all" },
-};
-
-/** TEMPORAR: acceptă și formatul vechi (`score`) până la migrarea datelor. */
-export function toMatchupRelation(relation: MatchupRelation | LegacyMatchupRelation): MatchupRelation {
-  if ("level" in relation) return relation;
-  const { score, ...rest } = relation;
-  return { ...rest, ...LEGACY_SCORE_MAP[score] };
-}
 
 type MatchupListKey = "goodVs" | "weakVs";
 
@@ -112,8 +94,8 @@ function buildIndex(): MatchupIndex {
     for (const [role, data] of Object.entries(champion.roleData)) {
       if (!data) continue;
       explicit[getRoleKey(champion.id, role as Role)] = {
-        goodVs: data.goodVs.map(toMatchupRelation),
-        weakVs: data.weakVs.map(toMatchupRelation),
+        goodVs: data.goodVs,
+        weakVs: data.weakVs,
         mustWith: data.mustWith,
       };
     }

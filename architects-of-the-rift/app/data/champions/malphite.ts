@@ -61,28 +61,28 @@ export const malphite = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "xin-zhao", score: 3 },
+        { championId: "xin-zhao", level: 2, phase: "late" },
       ],
       weakVs: [
-        { championId: "aatrox", score: 2 },
-        { championId: "jarvan-iv", score: 2 },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "jarvan-iv", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
     },
     top: {
       goodVs: [
-        { championId: "tryndamere", score: 5, note: "armura și ult-ul anulează complet Tryndamere" },
-        { championId: "gangplank", score: 4, note: "armura și ult-ul anulează GP-ul AD" },
-        { championId: "jayce", score: 4, note: "armura anulează poke-ul AD" },
-        { championId: "gnar", score: 1 },
+        { championId: "tryndamere", level: 3, phase: "all", note: "armura și ult-ul anulează complet Tryndamere" },
+        { championId: "gangplank", level: 2, phase: "all", note: "armura și ult-ul anulează GP-ul AD" },
+        { championId: "jayce", level: 2, phase: "all", note: "armura anulează poke-ul AD" },
+        { championId: "gnar", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "gwen", score: 4, note: "damage AP și true damage contra tank-ului de armură" },
-        { championId: "camille", score: 3 },
-        { championId: "aatrox", score: 2 },
-        { championId: "gragas", score: 2 },
-        { championId: "ornn", score: 1 },
+        { championId: "gwen", level: 2, phase: "all", note: "damage AP și true damage contra tank-ului de armură" },
+        { championId: "camille", level: 2, phase: "late" },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "gragas", level: 2, phase: "lane" },
+        { championId: "ornn", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

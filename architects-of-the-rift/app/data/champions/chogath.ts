@@ -63,16 +63,16 @@ export const chogath = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "jayce", score: 3 },
-        { championId: "renekton", score: 3 },
-        { championId: "jax", score: 2 },
+        { championId: "jayce", level: 2, phase: "late" },
+        { championId: "renekton", level: 2, phase: "late" },
+        { championId: "jax", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "dr-mundo", score: 3 },
-        { championId: "yorick", score: 3 },
-        { championId: "aatrox", score: 2 },
-        { championId: "kennen", score: 2 },
-        { championId: "rumble", score: 2 },
+        { championId: "dr-mundo", level: 2, phase: "late" },
+        { championId: "yorick", level: 2, phase: "late" },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "kennen", level: 2, phase: "lane" },
+        { championId: "rumble", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
@@ -80,18 +80,18 @@ export const chogath = createChampion({
     jungle: {
       goodVs: [],
       weakVs: [
-        { championId: "dr-mundo", score: 3 },
-        { championId: "aatrox", score: 2 },
+        { championId: "dr-mundo", level: 2, phase: "late" },
+        { championId: "aatrox", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
     },
     mid: {
       goodVs: [
-        { championId: "katarina", score: 4, note: "silence-ul și knock-up-ul întrerup ult-ul Katarinei" },
+        { championId: "katarina", level: 2, phase: "all", note: "silence-ul și knock-up-ul întrerup ult-ul Katarinei" },
       ],
       weakVs: [
-        { championId: "xerath", score: 2 },
+        { championId: "xerath", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

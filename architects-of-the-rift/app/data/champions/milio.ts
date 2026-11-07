@@ -62,14 +62,14 @@ export const milio = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "karma", score: 1 },
+        { championId: "karma", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "blitzcrank", score: 2 },
-        { championId: "braum", score: 2 },
-        { championId: "nautilus", score: 2 },
-        { championId: "rakan", score: 2 },
-        { championId: "senna", score: 2 },
+        { championId: "blitzcrank", level: 2, phase: "lane" },
+        { championId: "braum", level: 2, phase: "lane" },
+        { championId: "nautilus", level: 2, phase: "lane" },
+        { championId: "rakan", level: 2, phase: "lane" },
+        { championId: "senna", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

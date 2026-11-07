@@ -62,15 +62,15 @@ export const zeri = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "jhin", score: 3 },
-        { championId: "ziggs", score: 2 },
+        { championId: "jhin", level: 2, phase: "late" },
+        { championId: "ziggs", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "caitlyn", score: 2 },
-        { championId: "nilah", score: 2 },
-        { championId: "senna", score: 2 },
-        { championId: "seraphine", score: 2 },
-        { championId: "xayah", score: 2 },
+        { championId: "caitlyn", level: 2, phase: "lane" },
+        { championId: "nilah", level: 2, phase: "lane" },
+        { championId: "senna", level: 2, phase: "lane" },
+        { championId: "seraphine", level: 2, phase: "lane" },
+        { championId: "xayah", level: 2, phase: "lane" },
       ],
       mustWith: ["lulu", "yuumi"],
       stats: null,

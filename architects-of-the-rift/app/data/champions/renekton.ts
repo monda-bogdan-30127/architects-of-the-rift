@@ -65,10 +65,10 @@ export const renekton = createChampion({
     top: {
       goodVs: [],
       weakVs: [
-        { championId: "camille", score: 3 },
-        { championId: "ornn", score: 3 },
-        { championId: "vayne", score: 3 },
-        { championId: "gnar", score: 2 },
+        { championId: "camille", level: 2, phase: "late" },
+        { championId: "ornn", level: 2, phase: "late" },
+        { championId: "vayne", level: 2, phase: "late" },
+        { championId: "gnar", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

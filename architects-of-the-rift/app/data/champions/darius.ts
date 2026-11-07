@@ -63,18 +63,18 @@ export const darius = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "camille", score: 2 },
-        { championId: "gragas", score: 2 },
-        { championId: "ksante", score: 2 },
-        { championId: "sion", score: 2 },
-        { championId: "gnar", score: 1 },
+        { championId: "camille", level: 2, phase: "lane" },
+        { championId: "gragas", level: 2, phase: "lane" },
+        { championId: "ksante", level: 2, phase: "lane" },
+        { championId: "sion", level: 2, phase: "lane" },
+        { championId: "gnar", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "kennen", score: 4, note: "kite la distanță, Darius nu-l poate prinde" },
-        { championId: "jax", score: 3 },
-        { championId: "ornn", score: 3 },
-        { championId: "aatrox", score: 2 },
-        { championId: "renekton", score: 1 },
+        { championId: "kennen", level: 2, phase: "all", note: "kite la distanță, Darius nu-l poate prinde" },
+        { championId: "jax", level: 2, phase: "late" },
+        { championId: "ornn", level: 2, phase: "late" },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "renekton", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

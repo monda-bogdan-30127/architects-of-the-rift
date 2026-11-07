@@ -59,16 +59,16 @@ export const kogmaw = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "caitlyn", score: 3 },
-        { championId: "sivir", score: 3 },
-        { championId: "tristana", score: 3 },
+        { championId: "caitlyn", level: 2, phase: "late" },
+        { championId: "sivir", level: 2, phase: "late" },
+        { championId: "tristana", level: 2, phase: "late" },
       ],
       weakVs: [
-        { championId: "aphelios", score: 2 },
-        { championId: "ezreal", score: 2 },
-        { championId: "lucian", score: 2 },
-        { championId: "xayah", score: 2 },
-        { championId: "jinx", score: 1 },
+        { championId: "aphelios", level: 2, phase: "lane" },
+        { championId: "ezreal", level: 2, phase: "lane" },
+        { championId: "lucian", level: 2, phase: "lane" },
+        { championId: "xayah", level: 2, phase: "lane" },
+        { championId: "jinx", level: 1, phase: "all" },
       ],
       mustWith: ["lulu", "braum", "milio"],
       stats: null,

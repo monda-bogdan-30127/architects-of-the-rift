@@ -63,17 +63,17 @@ export const syndra = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "azir", score: 2 },
-        { championId: "cassiopeia", score: 2 },
-        { championId: "hwei", score: 2 },
-        { championId: "viktor", score: 2 },
+        { championId: "azir", level: 2, phase: "lane" },
+        { championId: "cassiopeia", level: 2, phase: "lane" },
+        { championId: "hwei", level: 2, phase: "lane" },
+        { championId: "viktor", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "annie", score: 2 },
-        { championId: "ryze", score: 2 },
-        { championId: "taliyah", score: 2 },
-        { championId: "vex", score: 2 },
-        { championId: "twisted-fate", score: 1 },
+        { championId: "annie", level: 2, phase: "lane" },
+        { championId: "ryze", level: 2, phase: "lane" },
+        { championId: "taliyah", level: 2, phase: "lane" },
+        { championId: "vex", level: 2, phase: "lane" },
+        { championId: "twisted-fate", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,
@@ -81,7 +81,7 @@ export const syndra = createChampion({
     adc: {
       goodVs: [],
       weakVs: [
-        { championId: "taliyah", score: 2 },
+        { championId: "taliyah", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

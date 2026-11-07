@@ -62,15 +62,15 @@ export const viego = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "xin-zhao", score: 3 },
-        { championId: "karthus", score: 2 },
+        { championId: "xin-zhao", level: 2, phase: "late" },
+        { championId: "karthus", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "zac", score: 3 },
-        { championId: "naafiri", score: 2 },
-        { championId: "nocturne", score: 2 },
-        { championId: "pantheon", score: 2 },
-        { championId: "vi", score: 2 },
+        { championId: "zac", level: 2, phase: "late" },
+        { championId: "naafiri", level: 2, phase: "lane" },
+        { championId: "nocturne", level: 2, phase: "lane" },
+        { championId: "pantheon", level: 2, phase: "lane" },
+        { championId: "vi", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

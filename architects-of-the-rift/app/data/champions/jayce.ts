@@ -63,15 +63,15 @@ export const jayce = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "ambessa", score: 2 },
-        { championId: "kennen", score: 2 },
+        { championId: "ambessa", level: 2, phase: "lane" },
+        { championId: "kennen", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "aatrox", score: 3 },
-        { championId: "yorick", score: 3 },
-        { championId: "gragas", score: 2 },
-        { championId: "renekton", score: 2 },
-        { championId: "rumble", score: 2 },
+        { championId: "aatrox", level: 2, phase: "late" },
+        { championId: "yorick", level: 2, phase: "late" },
+        { championId: "gragas", level: 2, phase: "lane" },
+        { championId: "renekton", level: 2, phase: "lane" },
+        { championId: "rumble", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

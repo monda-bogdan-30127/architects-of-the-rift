@@ -50,8 +50,8 @@ export const akshan = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "velkoz", score: 2 },
-        { championId: "xerath", score: 2 },
+        { championId: "velkoz", level: 2, phase: "lane" },
+        { championId: "xerath", level: 2, phase: "lane" },
       ],
       weakVs: [],
       mustWith: [],

@@ -64,28 +64,28 @@ export const maokai = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "lillia", score: 4, note: "CC point-click contra kite-ului" },
-        { championId: "poppy", score: 2 },
+        { championId: "lillia", level: 2, phase: "all", note: "CC point-click contra kite-ului" },
+        { championId: "poppy", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "trundle", score: 4, note: "ult-ul fură rezistențele tank-ului" },
-        { championId: "dr-mundo", score: 3 },
-        { championId: "kindred", score: 3 },
-        { championId: "aatrox", score: 2 },
-        { championId: "naafiri", score: 2 },
+        { championId: "trundle", level: 2, phase: "all", note: "ult-ul fură rezistențele tank-ului" },
+        { championId: "dr-mundo", level: 2, phase: "late" },
+        { championId: "kindred", level: 2, phase: "late" },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "naafiri", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
     },
     support: {
       goodVs: [
-        { championId: "alistar", score: 2 },
-        { championId: "nautilus", score: 2 },
-        { championId: "poppy", score: 2 },
+        { championId: "alistar", level: 2, phase: "lane" },
+        { championId: "nautilus", level: 2, phase: "lane" },
+        { championId: "poppy", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "braum", score: 2 },
-        { championId: "nami", score: 2 },
+        { championId: "braum", level: 2, phase: "lane" },
+        { championId: "nami", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

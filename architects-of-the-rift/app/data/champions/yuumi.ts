@@ -63,16 +63,16 @@ export const yuumi = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "lulu", score: 1 },
-        { championId: "nami", score: 1 },
-        { championId: "tahm-kench", score: 1 },
+        { championId: "lulu", level: 1, phase: "all" },
+        { championId: "nami", level: 1, phase: "all" },
+        { championId: "tahm-kench", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "braum", score: 2 },
-        { championId: "nautilus", score: 2 },
-        { championId: "rakan", score: 2 },
-        { championId: "thresh", score: 2 },
-        { championId: "milio", score: 1 },
+        { championId: "braum", level: 2, phase: "lane" },
+        { championId: "nautilus", level: 2, phase: "lane" },
+        { championId: "rakan", level: 2, phase: "lane" },
+        { championId: "thresh", level: 2, phase: "lane" },
+        { championId: "milio", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

@@ -64,17 +64,17 @@ export const ivern = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "jarvan-iv", score: 1 },
-        { championId: "nidalee", score: 1 },
-        { championId: "sejuani", score: 1 },
-        { championId: "skarner", score: 1 },
-        { championId: "xin-zhao", score: 1 },
+        { championId: "jarvan-iv", level: 1, phase: "all" },
+        { championId: "nidalee", level: 1, phase: "all" },
+        { championId: "sejuani", level: 1, phase: "all" },
+        { championId: "skarner", level: 1, phase: "all" },
+        { championId: "xin-zhao", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "pantheon", score: 4, note: "invade-uri timpurii pe un clear fragil" },
-        { championId: "trundle", score: 4, note: "invade și pilon pe un jungler fără duel" },
-        { championId: "lillia", score: 2 },
-        { championId: "viego", score: 2 },
+        { championId: "pantheon", level: 2, phase: "all", note: "invade-uri timpurii pe un clear fragil" },
+        { championId: "trundle", level: 2, phase: "all", note: "invade și pilon pe un jungler fără duel" },
+        { championId: "lillia", level: 2, phase: "lane" },
+        { championId: "viego", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

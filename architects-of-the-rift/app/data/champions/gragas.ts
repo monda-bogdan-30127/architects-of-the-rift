@@ -63,16 +63,16 @@ export const gragas = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "chogath", score: 2 },
-        { championId: "kennen", score: 2 },
-        { championId: "sett", score: 2 },
-        { championId: "shen", score: 2 },
+        { championId: "chogath", level: 2, phase: "lane" },
+        { championId: "kennen", level: 2, phase: "lane" },
+        { championId: "sett", level: 2, phase: "lane" },
+        { championId: "shen", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "fiora", score: 4, note: "vitals și duel superior pe tot jocul" },
-        { championId: "poppy", score: 4, note: "W oprește body slam-ul lui Gragas" },
-        { championId: "camille", score: 2 },
-        { championId: "kled", score: 2 },
+        { championId: "fiora", level: 2, phase: "all", note: "vitals și duel superior pe tot jocul" },
+        { championId: "poppy", level: 2, phase: "all", note: "W oprește body slam-ul lui Gragas" },
+        { championId: "camille", level: 2, phase: "lane" },
+        { championId: "kled", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

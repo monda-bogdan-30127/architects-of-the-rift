@@ -52,8 +52,8 @@ export const ekko = createChampion({
     mid: {
       goodVs: [],
       weakVs: [
-        { championId: "lissandra", score: 4, note: "CC point-click pe un asasin" },
-        { championId: "vex", score: 4, note: "pasivul pedepsește dash-urile" },
+        { championId: "lissandra", level: 2, phase: "all", note: "CC point-click pe un asasin" },
+        { championId: "vex", level: 2, phase: "all", note: "pasivul pedepsește dash-urile" },
       ],
       mustWith: [],
       stats: null,

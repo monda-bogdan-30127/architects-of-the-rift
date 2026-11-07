@@ -61,15 +61,15 @@ export const heimerdinger = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "karma", score: 2 },
-        { championId: "nautilus", score: 2 },
+        { championId: "karma", level: 2, phase: "lane" },
+        { championId: "nautilus", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "leona", score: 4, note: "engage pe un support imobil" },
-        { championId: "rakan", score: 4, note: "engage pe un support imobil" },
-        { championId: "ashe", score: 2 },
-        { championId: "lux", score: 2 },
-        { championId: "nami", score: 2 },
+        { championId: "leona", level: 2, phase: "all", note: "engage pe un support imobil" },
+        { championId: "rakan", level: 2, phase: "all", note: "engage pe un support imobil" },
+        { championId: "ashe", level: 2, phase: "lane" },
+        { championId: "lux", level: 2, phase: "lane" },
+        { championId: "nami", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

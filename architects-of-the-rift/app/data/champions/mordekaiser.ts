@@ -63,15 +63,15 @@ export const mordekaiser = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "shen", score: 3 },
-        { championId: "yorick", score: 2 },
+        { championId: "shen", level: 2, phase: "late" },
+        { championId: "yorick", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "aatrox", score: 2 },
-        { championId: "gangplank", score: 2 },
-        { championId: "renekton", score: 2 },
-        { championId: "ornn", score: 1 },
-        { championId: "sett", score: 1 },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "gangplank", level: 2, phase: "lane" },
+        { championId: "renekton", level: 2, phase: "lane" },
+        { championId: "ornn", level: 1, phase: "all" },
+        { championId: "sett", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

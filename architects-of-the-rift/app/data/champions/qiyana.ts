@@ -63,13 +63,13 @@ export const qiyana = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "xin-zhao", score: 2 },
+        { championId: "xin-zhao", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "nocturne", score: 2 },
-        { championId: "pantheon", score: 2 },
-        { championId: "trundle", score: 2 },
-        { championId: "vi", score: 2 },
+        { championId: "nocturne", level: 2, phase: "lane" },
+        { championId: "pantheon", level: 2, phase: "lane" },
+        { championId: "trundle", level: 2, phase: "lane" },
+        { championId: "vi", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

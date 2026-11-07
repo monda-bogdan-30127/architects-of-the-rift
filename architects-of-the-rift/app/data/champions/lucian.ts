@@ -61,14 +61,14 @@ export const lucian = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "jhin", score: 2 },
+        { championId: "jhin", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "senna", score: 3 },
-        { championId: "xayah", score: 3 },
-        { championId: "yunara", score: 3 },
-        { championId: "draven", score: 2 },
-        { championId: "kalista", score: 2 },
+        { championId: "senna", level: 2, phase: "late" },
+        { championId: "xayah", level: 2, phase: "late" },
+        { championId: "yunara", level: 2, phase: "late" },
+        { championId: "draven", level: 2, phase: "lane" },
+        { championId: "kalista", level: 2, phase: "lane" },
       ],
       mustWith: ["nami", "milio", "braum"],
       stats: null,

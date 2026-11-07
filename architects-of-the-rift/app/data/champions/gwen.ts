@@ -64,10 +64,10 @@ export const gwen = createChampion({
     top: {
       goodVs: [],
       weakVs: [
-        { championId: "aurora", score: 2 },
-        { championId: "jayce", score: 2 },
-        { championId: "zaahen", score: 2 },
-        { championId: "jax", score: 1 },
+        { championId: "aurora", level: 2, phase: "lane" },
+        { championId: "jayce", level: 2, phase: "lane" },
+        { championId: "zaahen", level: 2, phase: "lane" },
+        { championId: "jax", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

@@ -63,17 +63,17 @@ export const fiora = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "aatrox", score: 4, note: "parry pe Q3 și vitals" },
-        { championId: "malphite", score: 4, note: "vitals ignoră armura" },
-        { championId: "ornn", score: 4, note: "vitals contra tank-ului" },
-        { championId: "jax", score: 3 },
+        { championId: "aatrox", level: 2, phase: "all", note: "parry pe Q3 și vitals" },
+        { championId: "malphite", level: 2, phase: "all", note: "vitals ignoră armura" },
+        { championId: "ornn", level: 2, phase: "all", note: "vitals contra tank-ului" },
+        { championId: "jax", level: 2, phase: "late" },
       ],
       weakVs: [
-        { championId: "mordekaiser", score: 4, note: "ult-ul o izolează fără ajutorul echipei" },
-        { championId: "gwen", score: 3 },
-        { championId: "gnar", score: 2 },
-        { championId: "kennen", score: 2 },
-        { championId: "camille", score: 1 },
+        { championId: "mordekaiser", level: 2, phase: "all", note: "ult-ul o izolează fără ajutorul echipei" },
+        { championId: "gwen", level: 2, phase: "late" },
+        { championId: "gnar", level: 2, phase: "lane" },
+        { championId: "kennen", level: 2, phase: "lane" },
+        { championId: "camille", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

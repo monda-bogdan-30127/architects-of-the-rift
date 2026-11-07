@@ -64,16 +64,16 @@ export const kassadin = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "galio", score: 3 },
-        { championId: "orianna", score: 3 },
-        { championId: "syndra", score: 3 },
+        { championId: "galio", level: 2, phase: "late" },
+        { championId: "orianna", level: 2, phase: "late" },
+        { championId: "syndra", level: 2, phase: "late" },
       ],
       weakVs: [
-        { championId: "cassiopeia", score: 5, note: "W-ul îl ține pe loc și anulează ult-ul" },
-        { championId: "lissandra", score: 4, note: "CC point-click și burst înainte de nivelul 6" },
-        { championId: "ryze", score: 2 },
-        { championId: "vladimir", score: 2 },
-        { championId: "zoe", score: 2 },
+        { championId: "cassiopeia", level: 3, phase: "all", note: "W-ul îl ține pe loc și anulează ult-ul" },
+        { championId: "lissandra", level: 2, phase: "all", note: "CC point-click și burst înainte de nivelul 6" },
+        { championId: "ryze", level: 2, phase: "lane" },
+        { championId: "vladimir", level: 2, phase: "lane" },
+        { championId: "zoe", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

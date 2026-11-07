@@ -62,14 +62,14 @@ export const trundle = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "naafiri", score: 2 },
+        { championId: "naafiri", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "khazix", score: 2 },
-        { championId: "kindred", score: 2 },
-        { championId: "lillia", score: 2 },
-        { championId: "nidalee", score: 2 },
-        { championId: "vi", score: 2 },
+        { championId: "khazix", level: 2, phase: "lane" },
+        { championId: "kindred", level: 2, phase: "lane" },
+        { championId: "lillia", level: 2, phase: "lane" },
+        { championId: "nidalee", level: 2, phase: "lane" },
+        { championId: "vi", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

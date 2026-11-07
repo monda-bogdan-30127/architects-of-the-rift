@@ -63,18 +63,18 @@ export const urgot = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "gangplank", score: 4, note: "presiune constantă și shotgun knees pe GP fără mobilitate" },
-        { championId: "ksante", score: 3 },
-        { championId: "ornn", score: 3 },
-        { championId: "sion", score: 3 },
-        { championId: "aatrox", score: 2 },
+        { championId: "gangplank", level: 2, phase: "all", note: "presiune constantă și shotgun knees pe GP fără mobilitate" },
+        { championId: "ksante", level: 2, phase: "late" },
+        { championId: "ornn", level: 2, phase: "late" },
+        { championId: "sion", level: 2, phase: "late" },
+        { championId: "aatrox", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "gnar", score: 4, note: "kite constant contra lui Urgot lent" },
-        { championId: "camille", score: 3 },
-        { championId: "jax", score: 3 },
-        { championId: "kennen", score: 2 },
-        { championId: "renekton", score: 2 },
+        { championId: "gnar", level: 2, phase: "all", note: "kite constant contra lui Urgot lent" },
+        { championId: "camille", level: 2, phase: "late" },
+        { championId: "jax", level: 2, phase: "late" },
+        { championId: "kennen", level: 2, phase: "lane" },
+        { championId: "renekton", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

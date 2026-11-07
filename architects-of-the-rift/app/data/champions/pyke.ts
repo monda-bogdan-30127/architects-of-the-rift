@@ -63,15 +63,15 @@ export const pyke = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "braum", score: 2 },
-        { championId: "karma", score: 2 },
+        { championId: "braum", level: 2, phase: "lane" },
+        { championId: "karma", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "tahm-kench", score: 4, note: "devour salvează aliatul de execute" },
-        { championId: "bard", score: 2 },
-        { championId: "lulu", score: 2 },
-        { championId: "lux", score: 2 },
-        { championId: "shen", score: 2 },
+        { championId: "tahm-kench", level: 2, phase: "all", note: "devour salvează aliatul de execute" },
+        { championId: "bard", level: 2, phase: "lane" },
+        { championId: "lulu", level: 2, phase: "lane" },
+        { championId: "lux", level: 2, phase: "lane" },
+        { championId: "shen", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

@@ -62,11 +62,11 @@ export const nautilus = createChampion({
     support: {
       goodVs: [],
       weakVs: [
-        { championId: "morgana", score: 4, note: "black shield anulează hook-ul și ult-ul" },
-        { championId: "alistar", score: 1 },
-        { championId: "poppy", score: 1 },
-        { championId: "rakan", score: 1 },
-        { championId: "rell", score: 1 },
+        { championId: "morgana", level: 2, phase: "all", note: "black shield anulează hook-ul și ult-ul" },
+        { championId: "alistar", level: 1, phase: "all" },
+        { championId: "poppy", level: 1, phase: "all" },
+        { championId: "rakan", level: 1, phase: "all" },
+        { championId: "rell", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

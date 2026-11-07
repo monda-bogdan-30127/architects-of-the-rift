@@ -67,13 +67,13 @@ export const gnar = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "ksante", score: 2 },
+        { championId: "ksante", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "jax", score: 3 },
-        { championId: "vayne", score: 3 },
-        { championId: "jayce", score: 2 },
-        { championId: "kennen", score: 2 },
+        { championId: "jax", level: 2, phase: "late" },
+        { championId: "vayne", level: 2, phase: "late" },
+        { championId: "jayce", level: 2, phase: "lane" },
+        { championId: "kennen", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

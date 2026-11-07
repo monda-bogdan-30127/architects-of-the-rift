@@ -62,17 +62,17 @@ export const ahri = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "aurora", score: 2 },
-        { championId: "syndra", score: 2 },
-        { championId: "taliyah", score: 2 },
-        { championId: "viktor", score: 2 },
+        { championId: "aurora", level: 2, phase: "lane" },
+        { championId: "syndra", level: 2, phase: "lane" },
+        { championId: "taliyah", level: 2, phase: "lane" },
+        { championId: "viktor", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "aurelion-sol", score: 3 },
-        { championId: "cassiopeia", score: 2 },
-        { championId: "leblanc", score: 2 },
-        { championId: "lissandra", score: 2 },
-        { championId: "sylas", score: 1 },
+        { championId: "aurelion-sol", level: 2, phase: "late" },
+        { championId: "cassiopeia", level: 2, phase: "lane" },
+        { championId: "leblanc", level: 2, phase: "lane" },
+        { championId: "lissandra", level: 2, phase: "lane" },
+        { championId: "sylas", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

@@ -64,15 +64,15 @@ export const cassiopeia = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "aurora", score: 2 },
-        { championId: "yone", score: 2 },
+        { championId: "aurora", level: 2, phase: "lane" },
+        { championId: "yone", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "galio", score: 4, note: "pasivul de MR și engage pe un mage imobil" },
-        { championId: "aurelion-sol", score: 3 },
-        { championId: "anivia", score: 2 },
-        { championId: "malzahar", score: 2 },
-        { championId: "yasuo", score: 1 },
+        { championId: "galio", level: 2, phase: "all", note: "pasivul de MR și engage pe un mage imobil" },
+        { championId: "aurelion-sol", level: 2, phase: "late" },
+        { championId: "anivia", level: 2, phase: "lane" },
+        { championId: "malzahar", level: 2, phase: "lane" },
+        { championId: "yasuo", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

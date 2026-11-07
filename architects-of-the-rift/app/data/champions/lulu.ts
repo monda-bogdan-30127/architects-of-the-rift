@@ -63,16 +63,16 @@ export const lulu = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "neeko", score: 2 },
-        { championId: "braum", score: 1 },
-        { championId: "karma", score: 1 },
+        { championId: "neeko", level: 2, phase: "lane" },
+        { championId: "braum", level: 1, phase: "all" },
+        { championId: "karma", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "blitzcrank", score: 2 },
-        { championId: "nami", score: 2 },
-        { championId: "nautilus", score: 2 },
-        { championId: "thresh", score: 2 },
-        { championId: "milio", score: 1 },
+        { championId: "blitzcrank", level: 2, phase: "lane" },
+        { championId: "nami", level: 2, phase: "lane" },
+        { championId: "nautilus", level: 2, phase: "lane" },
+        { championId: "thresh", level: 2, phase: "lane" },
+        { championId: "milio", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

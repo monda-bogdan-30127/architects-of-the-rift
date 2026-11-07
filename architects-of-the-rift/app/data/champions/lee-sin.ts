@@ -63,15 +63,15 @@ export const leeSin = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "trundle", score: 2 },
-        { championId: "xin-zhao", score: 2 },
+        { championId: "trundle", level: 2, phase: "lane" },
+        { championId: "xin-zhao", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "poppy", score: 4, note: "W oprește Q2 și insec-ul" },
-        { championId: "aatrox", score: 2 },
-        { championId: "vi", score: 2 },
-        { championId: "qiyana", score: 1 },
-        { championId: "wukong", score: 1 },
+        { championId: "poppy", level: 2, phase: "all", note: "W oprește Q2 și insec-ul" },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "vi", level: 2, phase: "lane" },
+        { championId: "qiyana", level: 1, phase: "all" },
+        { championId: "wukong", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

@@ -62,28 +62,28 @@ export const vladimir = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "azir", score: 3 },
-        { championId: "viktor", score: 3 },
-        { championId: "yasuo", score: 2 },
+        { championId: "azir", level: 2, phase: "late" },
+        { championId: "viktor", level: 2, phase: "late" },
+        { championId: "yasuo", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "ahri", score: 2 },
-        { championId: "anivia", score: 2 },
-        { championId: "syndra", score: 2 },
-        { championId: "zoe", score: 2 },
+        { championId: "ahri", level: 2, phase: "lane" },
+        { championId: "anivia", level: 2, phase: "lane" },
+        { championId: "syndra", level: 2, phase: "lane" },
+        { championId: "zoe", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
     },
     top: {
       goodVs: [
-        { championId: "poppy", score: 3 },
-        { championId: "yasuo", score: 2 },
+        { championId: "poppy", level: 2, phase: "late" },
+        { championId: "yasuo", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "aatrox", score: 2 },
-        { championId: "renekton", score: 2 },
-        { championId: "urgot", score: 2 },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "renekton", level: 2, phase: "lane" },
+        { championId: "urgot", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

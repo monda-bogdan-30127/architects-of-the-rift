@@ -64,10 +64,10 @@ export const thresh = createChampion({
     support: {
       goodVs: [],
       weakVs: [
-        { championId: "lux", score: 2 },
-        { championId: "pyke", score: 2 },
-        { championId: "shen", score: 2 },
-        { championId: "rell", score: 1 },
+        { championId: "lux", level: 2, phase: "lane" },
+        { championId: "pyke", level: 2, phase: "lane" },
+        { championId: "shen", level: 2, phase: "lane" },
+        { championId: "rell", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

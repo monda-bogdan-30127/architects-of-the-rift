@@ -64,15 +64,15 @@ export const twistedFate = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "aurora", score: 2 },
-        { championId: "leblanc", score: 2 },
+        { championId: "aurora", level: 2, phase: "lane" },
+        { championId: "leblanc", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "ahri", score: 2 },
-        { championId: "cassiopeia", score: 2 },
-        { championId: "lissandra", score: 2 },
-        { championId: "taliyah", score: 2 },
-        { championId: "zoe", score: 2 },
+        { championId: "ahri", level: 2, phase: "lane" },
+        { championId: "cassiopeia", level: 2, phase: "lane" },
+        { championId: "lissandra", level: 2, phase: "lane" },
+        { championId: "taliyah", level: 2, phase: "lane" },
+        { championId: "zoe", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

@@ -64,12 +64,12 @@ export const kayle = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "gangplank", score: 3 },
-        { championId: "ornn", score: 3 },
+        { championId: "gangplank", level: 2, phase: "late" },
+        { championId: "ornn", level: 2, phase: "late" },
       ],
       weakVs: [
-        { championId: "gnar", score: 2 },
-        { championId: "gwen", score: 2 },
+        { championId: "gnar", level: 2, phase: "lane" },
+        { championId: "gwen", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

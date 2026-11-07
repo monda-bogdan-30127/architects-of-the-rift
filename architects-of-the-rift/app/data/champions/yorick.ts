@@ -64,15 +64,15 @@ export const yorick = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "ornn", score: 3 },
-        { championId: "jax", score: 1 },
+        { championId: "ornn", level: 2, phase: "late" },
+        { championId: "jax", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "gangplank", score: 4, note: "butoaiele curăță ghoul-ii" },
-        { championId: "aatrox", score: 2 },
-        { championId: "ambessa", score: 2 },
-        { championId: "renekton", score: 2 },
-        { championId: "sion", score: 1 },
+        { championId: "gangplank", level: 2, phase: "all", note: "butoaiele curăță ghoul-ii" },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "ambessa", level: 2, phase: "lane" },
+        { championId: "renekton", level: 2, phase: "lane" },
+        { championId: "sion", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

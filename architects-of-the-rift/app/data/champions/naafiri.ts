@@ -64,15 +64,15 @@ export const naafiri = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "lillia", score: 2 },
-        { championId: "xin-zhao", score: 2 },
+        { championId: "lillia", level: 2, phase: "lane" },
+        { championId: "xin-zhao", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "poppy", score: 4, note: "W oprește dash-ul" },
-        { championId: "jarvan-iv", score: 2 },
-        { championId: "nocturne", score: 2 },
-        { championId: "vi", score: 2 },
-        { championId: "wukong", score: 2 },
+        { championId: "poppy", level: 2, phase: "all", note: "W oprește dash-ul" },
+        { championId: "jarvan-iv", level: 2, phase: "lane" },
+        { championId: "nocturne", level: 2, phase: "lane" },
+        { championId: "vi", level: 2, phase: "lane" },
+        { championId: "wukong", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

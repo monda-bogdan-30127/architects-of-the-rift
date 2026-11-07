@@ -63,17 +63,17 @@ export const ksante = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "jayce", score: 3 },
-        { championId: "aurora", score: 1 },
-        { championId: "jax", score: 1 },
-        { championId: "sion", score: 1 },
+        { championId: "jayce", level: 2, phase: "late" },
+        { championId: "aurora", level: 1, phase: "all" },
+        { championId: "jax", level: 1, phase: "all" },
+        { championId: "sion", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "vayne", score: 4, note: "true damage și kite contra tank-ului" },
-        { championId: "yorick", score: 3 },
-        { championId: "renekton", score: 2 },
-        { championId: "rumble", score: 2 },
-        { championId: "ambessa", score: 1 },
+        { championId: "vayne", level: 2, phase: "all", note: "true damage și kite contra tank-ului" },
+        { championId: "yorick", level: 2, phase: "late" },
+        { championId: "renekton", level: 2, phase: "lane" },
+        { championId: "rumble", level: 2, phase: "lane" },
+        { championId: "ambessa", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

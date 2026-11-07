@@ -64,15 +64,15 @@ export const yunara = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "jinx", score: 1 },
-        { championId: "kaisa", score: 1 },
-        { championId: "smolder", score: 1 },
+        { championId: "jinx", level: 1, phase: "all" },
+        { championId: "kaisa", level: 1, phase: "all" },
+        { championId: "smolder", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "ashe", score: 2 },
-        { championId: "caitlyn", score: 2 },
-        { championId: "miss-fortune", score: 2 },
-        { championId: "ezreal", score: 1 },
+        { championId: "ashe", level: 2, phase: "lane" },
+        { championId: "caitlyn", level: 2, phase: "lane" },
+        { championId: "miss-fortune", level: 2, phase: "lane" },
+        { championId: "ezreal", level: 1, phase: "all" },
       ],
       mustWith: ["lulu", "milio", "nami"],
       stats: null,

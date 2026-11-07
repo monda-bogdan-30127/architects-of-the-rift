@@ -64,15 +64,15 @@ export const vayne = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "sivir", score: 3 },
-        { championId: "kogmaw", score: 1 },
+        { championId: "sivir", level: 2, phase: "late" },
+        { championId: "kogmaw", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "ezreal", score: 2 },
-        { championId: "kalista", score: 2 },
-        { championId: "lucian", score: 2 },
-        { championId: "samira", score: 2 },
-        { championId: "jinx", score: 1 },
+        { championId: "ezreal", level: 2, phase: "lane" },
+        { championId: "kalista", level: 2, phase: "lane" },
+        { championId: "lucian", level: 2, phase: "lane" },
+        { championId: "samira", level: 2, phase: "lane" },
+        { championId: "jinx", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

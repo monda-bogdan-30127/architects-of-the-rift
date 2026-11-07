@@ -64,16 +64,16 @@ export const twitch = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "lucian", score: 3 },
-        { championId: "xayah", score: 2 },
-        { championId: "jinx", score: 1 },
-        { championId: "kogmaw", score: 1 },
+        { championId: "lucian", level: 2, phase: "late" },
+        { championId: "xayah", level: 2, phase: "lane" },
+        { championId: "jinx", level: 1, phase: "all" },
+        { championId: "kogmaw", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "aphelios", score: 2 },
-        { championId: "jhin", score: 2 },
-        { championId: "varus", score: 2 },
-        { championId: "zeri", score: 1 },
+        { championId: "aphelios", level: 2, phase: "lane" },
+        { championId: "jhin", level: 2, phase: "lane" },
+        { championId: "varus", level: 2, phase: "lane" },
+        { championId: "zeri", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

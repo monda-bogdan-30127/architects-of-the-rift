@@ -62,10 +62,10 @@ export const poppy = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "camille", score: 4, note: "W oprește E-ul Camillei" },
+        { championId: "camille", level: 2, phase: "all", note: "W oprește E-ul Camillei" },
       ],
       weakVs: [
-        { championId: "shen", score: 2 },
+        { championId: "shen", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
@@ -73,22 +73,22 @@ export const poppy = createChampion({
     jungle: {
       goodVs: [],
       weakVs: [
-        { championId: "trundle", score: 3 },
-        { championId: "aatrox", score: 2 },
+        { championId: "trundle", level: 2, phase: "late" },
+        { championId: "aatrox", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
     },
     top: {
       goodVs: [
-        { championId: "camille", score: 4, note: "W oprește E-ul Camillei" },
+        { championId: "camille", level: 2, phase: "all", note: "W oprește E-ul Camillei" },
       ],
       weakVs: [
-        { championId: "gwen", score: 3 },
-        { championId: "aatrox", score: 2 },
-        { championId: "jayce", score: 2 },
-        { championId: "kennen", score: 2 },
-        { championId: "shen", score: 2 },
+        { championId: "gwen", level: 2, phase: "late" },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "jayce", level: 2, phase: "lane" },
+        { championId: "kennen", level: 2, phase: "lane" },
+        { championId: "shen", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

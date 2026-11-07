@@ -63,15 +63,15 @@ export const kled = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "aatrox", score: 2 },
-        { championId: "dr-mundo", score: 2 },
-        { championId: "renekton", score: 1 },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "dr-mundo", level: 2, phase: "lane" },
+        { championId: "renekton", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "sion", score: 3 },
-        { championId: "gangplank", score: 2 },
-        { championId: "gnar", score: 2 },
-        { championId: "rumble", score: 2 },
+        { championId: "sion", level: 2, phase: "late" },
+        { championId: "gangplank", level: 2, phase: "lane" },
+        { championId: "gnar", level: 2, phase: "lane" },
+        { championId: "rumble", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

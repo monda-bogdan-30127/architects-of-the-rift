@@ -65,27 +65,27 @@ export const volibear = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "aatrox", score: 2 },
-        { championId: "sejuani", score: 2 },
-        { championId: "viego", score: 2 },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "sejuani", level: 2, phase: "lane" },
+        { championId: "viego", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "kindred", score: 3 },
-        { championId: "poppy", score: 3 },
+        { championId: "kindred", level: 2, phase: "late" },
+        { championId: "poppy", level: 2, phase: "late" },
       ],
       mustWith: [],
       stats: null,
     },
     top: {
       goodVs: [
-        { championId: "aatrox", score: 2 },
-        { championId: "gangplank", score: 2 },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "gangplank", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "gnar", score: 4, note: "kite contra juggernaut-ului" },
-        { championId: "camille", score: 3 },
-        { championId: "jax", score: 3 },
-        { championId: "poppy", score: 3 },
+        { championId: "gnar", level: 2, phase: "all", note: "kite contra juggernaut-ului" },
+        { championId: "camille", level: 2, phase: "late" },
+        { championId: "jax", level: 2, phase: "late" },
+        { championId: "poppy", level: 2, phase: "late" },
       ],
       mustWith: [],
       stats: null,

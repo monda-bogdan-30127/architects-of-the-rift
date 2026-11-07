@@ -57,14 +57,14 @@ export const nami = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "milio", score: 2 },
+        { championId: "milio", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "alistar", score: 2 },
-        { championId: "nautilus", score: 2 },
-        { championId: "neeko", score: 2 },
-        { championId: "seraphine", score: 2 },
-        { championId: "thresh", score: 2 },
+        { championId: "alistar", level: 2, phase: "lane" },
+        { championId: "nautilus", level: 2, phase: "lane" },
+        { championId: "neeko", level: 2, phase: "lane" },
+        { championId: "seraphine", level: 2, phase: "lane" },
+        { championId: "thresh", level: 2, phase: "lane" },
       ],
       mustWith: ["lucian", "corki", "jhin", "caitlyn"],
       stats: null,

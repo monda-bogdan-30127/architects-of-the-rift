@@ -63,17 +63,17 @@ export const viktor = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "cassiopeia", score: 2 },
-        { championId: "kassadin", score: 2 },
-        { championId: "mel", score: 2 },
-        { championId: "xerath", score: 1 },
+        { championId: "cassiopeia", level: 2, phase: "lane" },
+        { championId: "kassadin", level: 2, phase: "lane" },
+        { championId: "mel", level: 2, phase: "lane" },
+        { championId: "xerath", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "akali", score: 2 },
-        { championId: "annie", score: 2 },
-        { championId: "azir", score: 2 },
-        { championId: "leblanc", score: 2 },
-        { championId: "orianna", score: 1 },
+        { championId: "akali", level: 2, phase: "lane" },
+        { championId: "annie", level: 2, phase: "lane" },
+        { championId: "azir", level: 2, phase: "lane" },
+        { championId: "leblanc", level: 2, phase: "lane" },
+        { championId: "orianna", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

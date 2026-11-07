@@ -62,13 +62,13 @@ export const aurora = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "viktor", score: 2 },
+        { championId: "viktor", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "galio", score: 4, note: "pasivul de MR și engage-ul anulează burst-ul" },
-        { championId: "annie", score: 2 },
-        { championId: "orianna", score: 2 },
-        { championId: "taliyah", score: 2 },
+        { championId: "galio", level: 2, phase: "all", note: "pasivul de MR și engage-ul anulează burst-ul" },
+        { championId: "annie", level: 2, phase: "lane" },
+        { championId: "orianna", level: 2, phase: "lane" },
+        { championId: "taliyah", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
@@ -76,8 +76,8 @@ export const aurora = createChampion({
     top: {
       goodVs: [],
       weakVs: [
-        { championId: "galio", score: 4, note: "pasivul de MR și engage-ul anulează burst-ul" },
-        { championId: "gnar", score: 2 },
+        { championId: "galio", level: 2, phase: "all", note: "pasivul de MR și engage-ul anulează burst-ul" },
+        { championId: "gnar", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

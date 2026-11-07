@@ -62,14 +62,14 @@ export const blitzcrank = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "karma", score: 2 },
+        { championId: "karma", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "alistar", score: 2 },
-        { championId: "ashe", score: 2 },
-        { championId: "leona", score: 2 },
-        { championId: "nautilus", score: 2 },
-        { championId: "rakan", score: 2 },
+        { championId: "alistar", level: 2, phase: "lane" },
+        { championId: "ashe", level: 2, phase: "lane" },
+        { championId: "leona", level: 2, phase: "lane" },
+        { championId: "nautilus", level: 2, phase: "lane" },
+        { championId: "rakan", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

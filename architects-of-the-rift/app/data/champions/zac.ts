@@ -63,27 +63,27 @@ export const zac = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "aatrox", score: 3 },
-        { championId: "reksai", score: 1 },
-        { championId: "rumble", score: 1 },
+        { championId: "aatrox", level: 2, phase: "late" },
+        { championId: "reksai", level: 1, phase: "all" },
+        { championId: "rumble", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "poppy", score: 5, note: "W oprește complet E-ul lui Zac" },
-        { championId: "ksante", score: 2 },
-        { championId: "ornn", score: 2 },
+        { championId: "poppy", level: 3, phase: "all", note: "W oprește complet E-ul lui Zac" },
+        { championId: "ksante", level: 2, phase: "lane" },
+        { championId: "ornn", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
     },
     jungle: {
       goodVs: [
-        { championId: "aatrox", score: 3 },
-        { championId: "xin-zhao", score: 3 },
+        { championId: "aatrox", level: 2, phase: "late" },
+        { championId: "xin-zhao", level: 2, phase: "late" },
       ],
       weakVs: [
-        { championId: "poppy", score: 5, note: "W oprește complet E-ul lui Zac" },
-        { championId: "maokai", score: 3 },
-        { championId: "nocturne", score: 2 },
+        { championId: "poppy", level: 3, phase: "all", note: "W oprește complet E-ul lui Zac" },
+        { championId: "maokai", level: 2, phase: "late" },
+        { championId: "nocturne", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

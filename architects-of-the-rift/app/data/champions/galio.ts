@@ -64,15 +64,15 @@ export const galio = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "sylas", score: 4, note: "pasivul de MR contra burst-ului AP" },
-        { championId: "viktor", score: 4, note: "pasivul de MR și engage pe un mage imobil" },
+        { championId: "sylas", level: 2, phase: "all", note: "pasivul de MR contra burst-ului AP" },
+        { championId: "viktor", level: 2, phase: "all", note: "pasivul de MR și engage pe un mage imobil" },
       ],
       weakVs: [
-        { championId: "ahri", score: 2 },
-        { championId: "annie", score: 2 },
-        { championId: "orianna", score: 2 },
-        { championId: "taliyah", score: 2 },
-        { championId: "yone", score: 1 },
+        { championId: "ahri", level: 2, phase: "lane" },
+        { championId: "annie", level: 2, phase: "lane" },
+        { championId: "orianna", level: 2, phase: "lane" },
+        { championId: "taliyah", level: 2, phase: "lane" },
+        { championId: "yone", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

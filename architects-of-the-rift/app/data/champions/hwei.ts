@@ -64,16 +64,16 @@ export const hwei = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "akali", score: 2 },
-        { championId: "aurora", score: 2 },
-        { championId: "viktor", score: 2 },
+        { championId: "akali", level: 2, phase: "lane" },
+        { championId: "aurora", level: 2, phase: "lane" },
+        { championId: "viktor", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "galio", score: 4, note: "MR și engage pe un mage imobil" },
-        { championId: "aurelion-sol", score: 3 },
-        { championId: "ahri", score: 2 },
-        { championId: "twisted-fate", score: 2 },
-        { championId: "yone", score: 2 },
+        { championId: "galio", level: 2, phase: "all", note: "MR și engage pe un mage imobil" },
+        { championId: "aurelion-sol", level: 2, phase: "late" },
+        { championId: "ahri", level: 2, phase: "lane" },
+        { championId: "twisted-fate", level: 2, phase: "lane" },
+        { championId: "yone", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

@@ -63,15 +63,15 @@ export const kalista = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "kogmaw", score: 2 },
-        { championId: "zeri", score: 2 },
+        { championId: "kogmaw", level: 2, phase: "lane" },
+        { championId: "zeri", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "aphelios", score: 3 },
-        { championId: "senna", score: 3 },
-        { championId: "twitch", score: 3 },
-        { championId: "draven", score: 2 },
-        { championId: "ziggs", score: 2 },
+        { championId: "aphelios", level: 2, phase: "late" },
+        { championId: "senna", level: 2, phase: "late" },
+        { championId: "twitch", level: 2, phase: "late" },
+        { championId: "draven", level: 2, phase: "lane" },
+        { championId: "ziggs", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

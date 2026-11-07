@@ -64,17 +64,17 @@ export const aurelionSol = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "orianna", score: 3 },
-        { championId: "ryze", score: 3 },
-        { championId: "veigar", score: 3 },
-        { championId: "viktor", score: 3 },
+        { championId: "orianna", level: 2, phase: "late" },
+        { championId: "ryze", level: 2, phase: "late" },
+        { championId: "veigar", level: 2, phase: "late" },
+        { championId: "viktor", level: 2, phase: "late" },
       ],
       weakVs: [
-        { championId: "annie", score: 2 },
-        { championId: "azir", score: 2 },
-        { championId: "syndra", score: 2 },
-        { championId: "taliyah", score: 2 },
-        { championId: "yone", score: 2 },
+        { championId: "annie", level: 2, phase: "lane" },
+        { championId: "azir", level: 2, phase: "lane" },
+        { championId: "syndra", level: 2, phase: "lane" },
+        { championId: "taliyah", level: 2, phase: "lane" },
+        { championId: "yone", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

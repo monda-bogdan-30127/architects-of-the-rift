@@ -66,13 +66,13 @@ export const rumble = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "yorick", score: 4, note: "AoE care curăță ghoul-ii și Maiden-ul" },
-        { championId: "ornn", score: 2 },
+        { championId: "yorick", level: 2, phase: "all", note: "AoE care curăță ghoul-ii și Maiden-ul" },
+        { championId: "ornn", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "gwen", score: 3 },
-        { championId: "aurora", score: 2 },
-        { championId: "gnar", score: 2 },
+        { championId: "gwen", level: 2, phase: "late" },
+        { championId: "aurora", level: 2, phase: "lane" },
+        { championId: "gnar", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

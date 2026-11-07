@@ -51,18 +51,18 @@ export const warwick = createChampion({
     top: {
       goodVs: [],
       weakVs: [
-        { championId: "poppy", score: 4, note: "W oprește ult-ul lui Warwick" },
-        { championId: "gnar", score: 2 },
+        { championId: "poppy", level: 2, phase: "all", note: "W oprește ult-ul lui Warwick" },
+        { championId: "gnar", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
     },
     jungle: {
       goodVs: [
-        { championId: "karthus", score: 2 },
+        { championId: "karthus", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "poppy", score: 4, note: "W oprește ult-ul lui Warwick" },
+        { championId: "poppy", level: 2, phase: "all", note: "W oprește ult-ul lui Warwick" },
       ],
       mustWith: [],
       stats: null,

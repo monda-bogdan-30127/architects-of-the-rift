@@ -64,17 +64,17 @@ export const mel = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "aurora", score: 2 },
-        { championId: "galio", score: 2 },
-        { championId: "yone", score: 2 },
-        { championId: "annie", score: 1 },
+        { championId: "aurora", level: 2, phase: "lane" },
+        { championId: "galio", level: 2, phase: "lane" },
+        { championId: "yone", level: 2, phase: "lane" },
+        { championId: "annie", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "akali", score: 2 },
-        { championId: "azir", score: 2 },
-        { championId: "hwei", score: 2 },
-        { championId: "ryze", score: 2 },
-        { championId: "syndra", score: 2 },
+        { championId: "akali", level: 2, phase: "lane" },
+        { championId: "azir", level: 2, phase: "lane" },
+        { championId: "hwei", level: 2, phase: "lane" },
+        { championId: "ryze", level: 2, phase: "lane" },
+        { championId: "syndra", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
@@ -82,7 +82,7 @@ export const mel = createChampion({
     adc: {
       goodVs: [],
       weakVs: [
-        { championId: "syndra", score: 2 },
+        { championId: "syndra", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

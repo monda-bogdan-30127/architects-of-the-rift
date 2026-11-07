@@ -15,7 +15,6 @@ import {
   getMatchupDerivationIssues,
   getRoleMatchups,
   relationAppliesToEnemyRole,
-  toMatchupRelation,
 } from "../draft-engine/championMatchups";
 import { MATCHUP_LEVELS, MATCHUP_PHASES, isMatchupLevel, isMatchupPhase } from "../draft-engine/matchupGrades";
 import type {
@@ -100,11 +99,10 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
     // ── Relațiile goodVs / weakVs ──────────────────────────────────────────
     for (const list of LISTS) {
       const seen = new Set<string>();
-      for (const raw of entry[list] ?? []) {
+      for (const relation of entry[list] ?? []) {
         explicitRelationCount += 1;
-        // TEMPORAR: formatul vechi (`score`) e citit prin adaptor până la migrare.
-        const relation = toMatchupRelation(raw);
         const label = `${list} ${relation.championId}`;
+        if ("score" in relation) error(key, `${label}: \`score\` încă prezent (formatul vechi; folosește level + phase)`);
         const level: unknown = relation.level;
         const phase: unknown = relation.phase;
         if (level === undefined || level === null) error(key, `${label}: lipsește \`level\``);

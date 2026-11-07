@@ -60,14 +60,14 @@ export const rakan = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "lulu", score: 2 },
+        { championId: "lulu", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "poppy", score: 4, note: "W oprește dash-urile lui Rakan" },
-        { championId: "bard", score: 2 },
-        { championId: "neeko", score: 2 },
-        { championId: "renata-glasc", score: 2 },
-        { championId: "seraphine", score: 2 },
+        { championId: "poppy", level: 2, phase: "all", note: "W oprește dash-urile lui Rakan" },
+        { championId: "bard", level: 2, phase: "lane" },
+        { championId: "neeko", level: 2, phase: "lane" },
+        { championId: "renata-glasc", level: 2, phase: "lane" },
+        { championId: "seraphine", level: 2, phase: "lane" },
       ],
       mustWith: ["xayah"],
       stats: null,

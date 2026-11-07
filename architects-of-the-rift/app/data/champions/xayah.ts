@@ -60,13 +60,13 @@ export const xayah = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "corki", score: 3 },
+        { championId: "corki", level: 2, phase: "late" },
       ],
       weakVs: [
-        { championId: "ashe", score: 2 },
-        { championId: "kalista", score: 2 },
-        { championId: "miss-fortune", score: 2 },
-        { championId: "sivir", score: 1 },
+        { championId: "ashe", level: 2, phase: "lane" },
+        { championId: "kalista", level: 2, phase: "lane" },
+        { championId: "miss-fortune", level: 2, phase: "lane" },
+        { championId: "sivir", level: 1, phase: "all" },
       ],
       mustWith: ["rakan"],
       stats: null,

@@ -62,13 +62,13 @@ export const orianna = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "taliyah", score: 3 },
-        { championId: "azir", score: 1 },
+        { championId: "taliyah", level: 2, phase: "late" },
+        { championId: "azir", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "akali", score: 2 },
-        { championId: "leblanc", score: 2 },
-        { championId: "yone", score: 2 },
+        { championId: "akali", level: 2, phase: "lane" },
+        { championId: "leblanc", level: 2, phase: "lane" },
+        { championId: "yone", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

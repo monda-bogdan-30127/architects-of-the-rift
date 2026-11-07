@@ -61,17 +61,17 @@ export const zoe = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "azir", score: 2 },
-        { championId: "orianna", score: 2 },
-        { championId: "ryze", score: 2 },
-        { championId: "viktor", score: 2 },
+        { championId: "azir", level: 2, phase: "lane" },
+        { championId: "orianna", level: 2, phase: "lane" },
+        { championId: "ryze", level: 2, phase: "lane" },
+        { championId: "viktor", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "galio", score: 4, note: "pasivul de MR și engage pe un mage fragil" },
-        { championId: "ahri", score: 2 },
-        { championId: "akali", score: 2 },
-        { championId: "leblanc", score: 2 },
-        { championId: "lissandra", score: 2 },
+        { championId: "galio", level: 2, phase: "all", note: "pasivul de MR și engage pe un mage fragil" },
+        { championId: "ahri", level: 2, phase: "lane" },
+        { championId: "akali", level: 2, phase: "lane" },
+        { championId: "leblanc", level: 2, phase: "lane" },
+        { championId: "lissandra", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

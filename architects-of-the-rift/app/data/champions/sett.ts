@@ -65,15 +65,15 @@ export const sett = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "aatrox", score: 2 },
-        { championId: "ornn", score: 2 },
-        { championId: "sion", score: 2 },
-        { championId: "volibear", score: 2 },
+        { championId: "aatrox", level: 2, phase: "lane" },
+        { championId: "ornn", level: 2, phase: "lane" },
+        { championId: "sion", level: 2, phase: "lane" },
+        { championId: "volibear", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "kennen", score: 4, note: "kite la distanță contra juggernaut-ului" },
-        { championId: "camille", score: 3 },
-        { championId: "jayce", score: 2 },
+        { championId: "kennen", level: 2, phase: "all", note: "kite la distanță contra juggernaut-ului" },
+        { championId: "camille", level: 2, phase: "late" },
+        { championId: "jayce", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

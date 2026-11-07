@@ -62,16 +62,16 @@ export const locke = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "aurora", score: 2 },
-        { championId: "hwei", score: 2 },
-        { championId: "orianna", score: 2 },
-        { championId: "syndra", score: 2 },
+        { championId: "aurora", level: 2, phase: "lane" },
+        { championId: "hwei", level: 2, phase: "lane" },
+        { championId: "orianna", level: 2, phase: "lane" },
+        { championId: "syndra", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "lissandra", score: 4, note: "CC point-click pe un asasin" },
-        { championId: "ahri", score: 2 },
-        { championId: "leblanc", score: 2 },
-        { championId: "viktor", score: 2 },
+        { championId: "lissandra", level: 2, phase: "all", note: "CC point-click pe un asasin" },
+        { championId: "ahri", level: 2, phase: "lane" },
+        { championId: "leblanc", level: 2, phase: "lane" },
+        { championId: "viktor", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

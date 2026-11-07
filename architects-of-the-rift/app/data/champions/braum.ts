@@ -60,15 +60,15 @@ export const braum = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "poppy", score: 2 },
-        { championId: "soraka", score: 2 },
+        { championId: "poppy", level: 2, phase: "lane" },
+        { championId: "soraka", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "alistar", score: 2 },
-        { championId: "bard", score: 2 },
-        { championId: "nami", score: 2 },
-        { championId: "rakan", score: 2 },
-        { championId: "rell", score: 2 },
+        { championId: "alistar", level: 2, phase: "lane" },
+        { championId: "bard", level: 2, phase: "lane" },
+        { championId: "nami", level: 2, phase: "lane" },
+        { championId: "rakan", level: 2, phase: "lane" },
+        { championId: "rell", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

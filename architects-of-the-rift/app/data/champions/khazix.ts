@@ -63,14 +63,14 @@ export const khazix = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "jarvan-iv", score: 2 },
+        { championId: "jarvan-iv", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "maokai", score: 4, note: "tank cu CC point-click, nu poate fi izolat" },
-        { championId: "poppy", score: 4, note: "W oprește leap-ul" },
-        { championId: "zac", score: 3 },
-        { championId: "evelynn", score: 2 },
-        { championId: "ivern", score: 1 },
+        { championId: "maokai", level: 2, phase: "all", note: "tank cu CC point-click, nu poate fi izolat" },
+        { championId: "poppy", level: 2, phase: "all", note: "W oprește leap-ul" },
+        { championId: "zac", level: 2, phase: "late" },
+        { championId: "evelynn", level: 2, phase: "lane" },
+        { championId: "ivern", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

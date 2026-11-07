@@ -63,16 +63,16 @@ export const azir = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "aurora", score: 3 },
-        { championId: "galio", score: 3 },
-        { championId: "twisted-fate", score: 3 },
-        { championId: "sylas", score: 2 },
+        { championId: "aurora", level: 2, phase: "late" },
+        { championId: "galio", level: 2, phase: "late" },
+        { championId: "twisted-fate", level: 2, phase: "late" },
+        { championId: "sylas", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "akali", score: 2 },
-        { championId: "cassiopeia", score: 2 },
-        { championId: "yone", score: 2 },
-        { championId: "ziggs", score: 2 },
+        { championId: "akali", level: 2, phase: "lane" },
+        { championId: "cassiopeia", level: 2, phase: "lane" },
+        { championId: "yone", level: 2, phase: "lane" },
+        { championId: "ziggs", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

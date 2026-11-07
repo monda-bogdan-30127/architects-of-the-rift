@@ -62,15 +62,15 @@ export const yone = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "leblanc", score: 2 },
-        { championId: "sylas", score: 1 },
+        { championId: "leblanc", level: 2, phase: "lane" },
+        { championId: "sylas", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "annie", score: 2 },
-        { championId: "aurora", score: 2 },
-        { championId: "ryze", score: 2 },
-        { championId: "swain", score: 2 },
-        { championId: "twisted-fate", score: 2 },
+        { championId: "annie", level: 2, phase: "lane" },
+        { championId: "aurora", level: 2, phase: "lane" },
+        { championId: "ryze", level: 2, phase: "lane" },
+        { championId: "swain", level: 2, phase: "lane" },
+        { championId: "twisted-fate", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,

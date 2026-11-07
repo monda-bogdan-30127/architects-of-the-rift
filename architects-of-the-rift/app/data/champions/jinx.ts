@@ -63,14 +63,14 @@ export const jinx = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "ezreal", score: 3 },
+        { championId: "ezreal", level: 2, phase: "late" },
       ],
       weakVs: [
-        { championId: "samira", score: 4, note: "dive pe un carry imobil" },
-        { championId: "caitlyn", score: 2 },
-        { championId: "kalista", score: 2 },
-        { championId: "miss-fortune", score: 2 },
-        { championId: "zeri", score: 1 },
+        { championId: "samira", level: 2, phase: "all", note: "dive pe un carry imobil" },
+        { championId: "caitlyn", level: 2, phase: "lane" },
+        { championId: "kalista", level: 2, phase: "lane" },
+        { championId: "miss-fortune", level: 2, phase: "lane" },
+        { championId: "zeri", level: 1, phase: "all" },
       ],
       mustWith: ["lulu", "milio"],
       stats: null,

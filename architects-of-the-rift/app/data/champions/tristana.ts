@@ -63,23 +63,23 @@ export const tristana = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "jhin", score: 4, note: "all-in pe un carry imobil" },
-        { championId: "samira", score: 2 },
-        { championId: "ziggs", score: 2 },
+        { championId: "jhin", level: 2, phase: "all", note: "all-in pe un carry imobil" },
+        { championId: "samira", level: 2, phase: "lane" },
+        { championId: "ziggs", level: 2, phase: "lane" },
       ],
       weakVs: [
-        { championId: "aphelios", score: 3 },
-        { championId: "ashe", score: 2 },
-        { championId: "lucian", score: 2 },
-        { championId: "miss-fortune", score: 2 },
-        { championId: "xayah", score: 2 },
+        { championId: "aphelios", level: 2, phase: "late" },
+        { championId: "ashe", level: 2, phase: "lane" },
+        { championId: "lucian", level: 2, phase: "lane" },
+        { championId: "miss-fortune", level: 2, phase: "lane" },
+        { championId: "xayah", level: 2, phase: "lane" },
       ],
       mustWith: [],
       stats: null,
     },
     mid: {
       goodVs: [
-        { championId: "ziggs", score: 2 },
+        { championId: "ziggs", level: 2, phase: "lane" },
       ],
       weakVs: [],
       mustWith: [],

@@ -66,17 +66,17 @@ export const wukong = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "dr-mundo", score: 2 },
-        { championId: "lillia", score: 2 },
-        { championId: "viego", score: 2 },
-        { championId: "nocturne", score: 1 },
+        { championId: "dr-mundo", level: 2, phase: "lane" },
+        { championId: "lillia", level: 2, phase: "lane" },
+        { championId: "viego", level: 2, phase: "lane" },
+        { championId: "nocturne", level: 1, phase: "all" },
       ],
       weakVs: [
-        { championId: "poppy", score: 4, note: "W oprește Nimbus Strike" },
-        { championId: "maokai", score: 3 },
-        { championId: "skarner", score: 2 },
-        { championId: "vi", score: 2 },
-        { championId: "qiyana", score: 1 },
+        { championId: "poppy", level: 2, phase: "all", note: "W oprește Nimbus Strike" },
+        { championId: "maokai", level: 2, phase: "late" },
+        { championId: "skarner", level: 2, phase: "lane" },
+        { championId: "vi", level: 2, phase: "lane" },
+        { championId: "qiyana", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,

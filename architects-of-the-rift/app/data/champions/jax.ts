@@ -63,15 +63,15 @@ export const jax = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "aatrox", score: 3 },
-        { championId: "renekton", score: 3 },
+        { championId: "aatrox", level: 2, phase: "late" },
+        { championId: "renekton", level: 2, phase: "late" },
       ],
       weakVs: [
-        { championId: "gangplank", score: 2 },
-        { championId: "gragas", score: 2 },
-        { championId: "kennen", score: 2 },
-        { championId: "rumble", score: 2 },
-        { championId: "ambessa", score: 1 },
+        { championId: "gangplank", level: 2, phase: "lane" },
+        { championId: "gragas", level: 2, phase: "lane" },
+        { championId: "kennen", level: 2, phase: "lane" },
+        { championId: "rumble", level: 2, phase: "lane" },
+        { championId: "ambessa", level: 1, phase: "all" },
       ],
       mustWith: [],
       stats: null,
