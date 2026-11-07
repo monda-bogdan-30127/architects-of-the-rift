@@ -9,8 +9,10 @@ export const kogmaw = createChampion({
 
   synergyWith: [
     { championId: "nami", score: 5 },
+    { championId: "braum", score: 4 },
+    { championId: "janna", score: 4 },
+    { championId: "milio", score: 4 },
     { championId: "tahm-kench", score: 3 },
-    { championId: "janna", score: 4 }
   ],
 
   offers: [
@@ -62,7 +64,7 @@ export const kogmaw = createChampion({
         { championId: "caitlyn", level: 2, phase: "late" },
       ],
       weakVs: [],
-      mustWith: ["lulu", "braum", "milio"],
+      mustWith: ["lulu"],
       stats: null,
     },
     mid: {

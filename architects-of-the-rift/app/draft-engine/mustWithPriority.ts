@@ -350,8 +350,11 @@ export function getCompletedMustWithPairs(
   const pairs: { anchorId: string; partnerId: string; isBotPair: boolean }[] = [];
   for (const [anchorRole, anchorId] of entries) {
     const partners = getMustWithPartners(anchorId, anchorRole);
+    const botComplement = getComplementaryBotRole(anchorRole);
     for (const [partnerRole, partnerId] of entries) {
       if (partnerId === anchorId || !partners.includes(partnerId)) continue;
+      // Perechea bot e completă doar cu partenerul pe celălalt rol bot (ex. Kog'Maw mid + Lulu nu e combo-ul).
+      if (botComplement ? partnerRole !== botComplement : partnerRole === anchorRole) continue;
       const key = [anchorId, partnerId].sort().join(":");
       if (seen.has(key)) continue;
       seen.add(key);

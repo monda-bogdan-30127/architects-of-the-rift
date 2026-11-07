@@ -8,11 +8,14 @@ export const lucian = createChampion({
   damageProfile: ["AD"],
 
   synergyWith: [
-    { championId: "yuumi", score: 3 },
-    { championId: "lulu", score: 3 },
+    { championId: "nami", score: 5 },
+    { championId: "braum", score: 4 },
+    { championId: "milio", score: 4 },
+    { championId: "nautilus", score: 4 },
     { championId: "karma", score: 3 },
+    { championId: "lulu", score: 3 },
+    { championId: "yuumi", score: 3 },
     { championId: "leona", score: 2 },
-    { championId: "nautilus", score: 2 },
   ],
 
   offers: [
@@ -73,7 +76,7 @@ export const lucian = createChampion({
         { championId: "ezreal", level: 1, phase: "all" },
       ],
       weakVs: [],
-      mustWith: ["nami", "milio", "braum"],
+      mustWith: [],
       stats: {
         picks: 16,
         bans: null,

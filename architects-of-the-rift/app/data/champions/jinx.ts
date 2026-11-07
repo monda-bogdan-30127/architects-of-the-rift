@@ -8,11 +8,12 @@ export const jinx = createChampion({
   damageProfile: ["AD"],
 
   synergyWith: [
+    { championId: "lulu", score: 5 },
     { championId: "thresh", score: 5 },
-    { championId: "nautilus", score: 4 },
     { championId: "leona", score: 4 },
+    { championId: "milio", score: 4 },
+    { championId: "nautilus", score: 4 },
     { championId: "renata-glasc", score: 4 },
-    // Fost mustWith (scor 2) — pereche fără sens real de „must” (DRAFT_REWORK §2.5).
     { championId: "braum", score: 2 },
   ],
 
@@ -67,7 +68,7 @@ export const jinx = createChampion({
         { championId: "lucian", level: 2, phase: "late" },
       ],
       weakVs: [],
-      mustWith: ["lulu", "milio"],
+      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

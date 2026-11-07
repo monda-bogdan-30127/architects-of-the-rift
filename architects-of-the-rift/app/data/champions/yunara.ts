@@ -8,13 +8,16 @@ export const yunara = createChampion({
   damageProfile: ["AD"],
 
   synergyWith: [
+    { championId: "lulu", score: 5 },
+    { championId: "milio", score: 4 },
+    { championId: "nami", score: 4 },
     { championId: "nautilus", score: 4 },
     { championId: "rell", score: 4 },
     { championId: "alistar", score: 3 },
-    { championId: "renata-glasc", score: 3 },
+    { championId: "jarvan-iv", score: 3 },
     { championId: "karma", score: 3 },
+    { championId: "renata-glasc", score: 3 },
     { championId: "thresh", score: 3 },
-    { championId: "jarvan-iv", score: 3 }
   ],
 
   offers: [
@@ -70,7 +73,7 @@ export const yunara = createChampion({
         { championId: "lucian", level: 2, phase: "late" },
       ],
       weakVs: [],
-      mustWith: ["lulu", "milio", "nami"],
+      mustWith: [],
       stats: {
         picks: 17,
         bans: null,

@@ -7,8 +7,10 @@ export const nidalee = createChampion({
   roles: ["jungle"],
   damageProfile: ["AP"],
 
-  // Fost mustWith (scor 3) — pereche fără sens real de „must” (DRAFT_REWORK §2.5).
+  // Foste mustWith: sinergii de dive / early, nu dependențe (DRAFT_REWORK §2.5, META_2026 §6.1).
   synergyWith: [
+    { championId: "renekton", score: 4 },
+    { championId: "twisted-fate", score: 4 },
     { championId: "camille", score: 3 },
   ],
 
@@ -63,7 +65,7 @@ export const nidalee = createChampion({
         { championId: "sejuani", level: 2, phase: "lane" },
       ],
       weakVs: [],
-      mustWith: ["renekton", "twisted-fate"],
+      mustWith: [],
       stats: null,
     },
   },

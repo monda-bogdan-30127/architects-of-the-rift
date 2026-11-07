@@ -8,8 +8,12 @@ export const nami = createChampion({
   damageProfile: ["AP"],
 
   synergyWith: [
+    { championId: "lucian", score: 5 },
+    { championId: "caitlyn", score: 4 },
+    { championId: "corki", score: 4 },
+    { championId: "jhin", score: 4 },
+    { championId: "ezreal", score: 3 },
     { championId: "varus", score: 3 },
-    { championId: "ezreal", score: 3 }
   ],
 
   offers: [
@@ -60,7 +64,7 @@ export const nami = createChampion({
         { championId: "yuumi", level: 2, phase: "lane" },
       ],
       weakVs: [],
-      mustWith: ["lucian", "corki", "jhin", "caitlyn"],
+      mustWith: [],
       stats: {
         picks: 3,
         bans: null,

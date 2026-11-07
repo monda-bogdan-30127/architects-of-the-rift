@@ -8,10 +8,13 @@ export const kaisa = createChampion({
   damageProfile: ["AD", "AP"],
 
   synergyWith: [
+    { championId: "nautilus", score: 5 },
+    { championId: "alistar", score: 4 },
+    { championId: "neeko", score: 4 },
     { championId: "rell", score: 4 },
     { championId: "jarvan-iv", score: 3 },
-    { championId: "wukong", score: 3 },
     { championId: "leona", score: 3 },
+    { championId: "wukong", score: 3 },
   ],
 
   offers: [
@@ -66,7 +69,7 @@ export const kaisa = createChampion({
         { championId: "caitlyn", level: 2, phase: "late" },
       ],
       weakVs: [],
-      mustWith: ["nautilus", "neeko", "alistar"],
+      mustWith: [],
       stats: {
         picks: 11,
         bans: null,

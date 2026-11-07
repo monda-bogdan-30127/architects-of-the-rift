@@ -8,11 +8,13 @@ export const zeri = createChampion({
   damageProfile: ["AD"],
 
   synergyWith: [
+    { championId: "lulu", score: 5 },
     { championId: "milio", score: 4 },
-    { championId: "renata-glasc", score: 4 },
     { championId: "nami", score: 4 },
-    { championId: "rakan", score: 3 },
+    { championId: "renata-glasc", score: 4 },
+    { championId: "yuumi", score: 4 },
     { championId: "maokai", score: 3 },
+    { championId: "rakan", score: 3 },
     { championId: "sejuani", score: 3 },
   ],
 
@@ -63,7 +65,7 @@ export const zeri = createChampion({
     adc: {
       goodVs: [],
       weakVs: [],
-      mustWith: ["lulu", "yuumi"],
+      mustWith: [],
       stats: {
         picks: 4,
         bans: null,

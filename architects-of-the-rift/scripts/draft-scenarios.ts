@@ -120,6 +120,18 @@ function check(name: string, pass: boolean, detail: string) {
 
 const isLock = (entry?: LogEntry) => Boolean(entry?.breakdown?.reasonTags?.includes("mustwith-lock"));
 
+// ─── Fixturi mustWith ────────────────────────────────────────────────────────
+// Datele reale au doar perechile stricte (Xayah ↔ Rakan, Kog'Maw → Lulu). Ca să
+// testăm mecanica cu mai mulți parteneri (6) și pe o pereche non-bot (7), le
+// injectăm în memorie ÎNAINTE ca championMatchups să-și construiască indexul.
+function fixtureMustWith(championId: string, role: Role, partners: string[]) {
+  const data = champions.find((champion) => champion.id === championId)?.roleData[role];
+  if (!data) throw new Error(`fixtură invalidă: ${championId}:${role}`);
+  data.mustWith = partners;
+}
+fixtureMustWith("yunara", "adc", ["lulu", "milio", "nami"]);
+fixtureMustWith("nidalee", "jungle", ["renekton", "twisted-fate"]);
+
 // Jucătorii folosiți (gradele sunt afișate în detaliu).
 const ADC_XAYAH = "ruler";        // Xayah A
 const SUP_RAKAN_OK = "keria";     // Rakan B; Lulu B, Milio B, Nami A

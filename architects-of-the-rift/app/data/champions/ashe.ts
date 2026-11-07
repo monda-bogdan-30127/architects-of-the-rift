@@ -8,15 +8,16 @@ export const ashe = createChampion({
   damageProfile: ["AD"],
 
   synergyWith: [
+    { championId: "seraphine", score: 5 },
+    { championId: "azir", score: 3 },
     { championId: "braum", score: 3 },
+    { championId: "jarvan-iv", score: 3 },
+    { championId: "jax", score: 3 },
+    { championId: "orianna", score: 3 },
+    { championId: "sejuani", score: 3 },
+    { championId: "bard", score: 2 },
     { championId: "karma", score: 2 },
     { championId: "lulu", score: 2 },
-    { championId: "bard", score: 2 },
-    { championId: "jax", score: 3 },
-    { championId: "jarvan-iv", score: 3 },
-    { championId: "sejuani", score: 3 },
-    { championId: "orianna", score: 3 },
-    { championId: "azir", score: 3 },
   ],
 
   offers: [
@@ -70,7 +71,7 @@ export const ashe = createChampion({
         { championId: "kaisa", level: 2, phase: "lane" },
       ],
       weakVs: [],
-      mustWith: ["seraphine"],
+      mustWith: [],
       stats: {
         picks: 13,
         bans: null,

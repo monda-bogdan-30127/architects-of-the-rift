@@ -8,14 +8,14 @@ export const kalista = createChampion({
   damageProfile: ["AD"],
 
   synergyWith: [
-    { championId: "renata-glasc", score: 5 },
-    { championId: "nautilus", score: 5 },
     { championId: "leona", score: 5 },
+    { championId: "nautilus", score: 5 },
+    { championId: "renata-glasc", score: 5 },
     { championId: "alistar", score: 4 },
     { championId: "rell", score: 4 },
     { championId: "blitzcrank", score: 3 },
-    { championId: "thresh", score: 3 },
     { championId: "taric", score: 3 },
+    { championId: "thresh", score: 3 },
   ],
 
   offers: [

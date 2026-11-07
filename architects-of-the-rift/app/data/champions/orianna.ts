@@ -10,9 +10,10 @@ export const orianna = createChampion({
   synergyWith: [
     { championId: "vi", score: 5 },
     { championId: "jarvan-iv", score: 4 },
+    { championId: "nocturne", score: 4 },
     { championId: "wukong", score: 4 },
+    { championId: "ambessa", score: 3 },
     { championId: "rell", score: 3 },
-    { championId: "ambessa", score: 3 }
   ],
 
   offers: [

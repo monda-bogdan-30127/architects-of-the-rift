@@ -8,12 +8,13 @@ export const seraphine = createChampion({
   damageProfile: ["AP"],
 
   synergyWith: [
+    { championId: "ashe", score: 5 },
     { championId: "ezreal", score: 4 },
     { championId: "jhin", score: 4 },
     { championId: "xin-zhao", score: 4 },
     { championId: "dr-mundo", score: 3 },
-    { championId: "vi", score: 3 },
     { championId: "ornn", score: 3 },
+    { championId: "vi", score: 3 },
     { championId: "nocturne", score: 2 },
   ],
 
@@ -68,7 +69,7 @@ export const seraphine = createChampion({
         { championId: "yuumi", level: 2, phase: "lane" },
       ],
       weakVs: [],
-      mustWith: ["ashe"],
+      mustWith: [],
       stats: {
         picks: 15,
         bans: null,
