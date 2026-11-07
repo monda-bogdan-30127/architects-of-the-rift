@@ -284,10 +284,7 @@ export type ChampionRoleProfile = {
   synergy: {
     wantsAllies: ChampionSynergyRule[];
     wantsTeam: ChampionSynergyRule[];
-    goodVs: ChampionSynergyRule[];
-    weakVs: ChampionSynergyRule[];
     goodWith: ChampionSynergyRule[];
-    mustWith: ChampionSynergyRule[];
   };
   roleSpecific?: {
     jungle?: {

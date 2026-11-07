@@ -68,10 +68,7 @@ function toTags(champion: Champion, role: Role): string[] {
 function buildSynergyRules(champion: Champion): ChampionRoleProfile["synergy"] {
   const wantsAllies: ChampionSynergyRule[] = [];
   const wantsTeam: ChampionSynergyRule[] = [];
-  const goodVs: ChampionSynergyRule[] = [];
-  const weakVs: ChampionSynergyRule[] = [];
   const goodWith: ChampionSynergyRule[] = [];
-  const mustWith: ChampionSynergyRule[] = [];
 
   if (needPriority(champion, "frontline") >= 2) {
     wantsTeam.push({
@@ -147,7 +144,7 @@ function buildSynergyRules(champion: Champion): ChampionRoleProfile["synergy"] {
     });
   }
 
-  return { wantsAllies, wantsTeam, goodVs, weakVs, goodWith, mustWith };
+  return { wantsAllies, wantsTeam, goodWith };
 }
 
 function getOverride(champion: Champion, role: Role) {
@@ -282,10 +279,7 @@ export function deriveChampionRoleProfile(champion: Champion, role: Role): Champ
     synergy: {
       wantsAllies: override.synergy?.wantsAllies ?? profile.synergy.wantsAllies,
       wantsTeam: override.synergy?.wantsTeam ?? profile.synergy.wantsTeam,
-      goodVs: override.synergy?.goodVs ?? profile.synergy.goodVs,
-      weakVs: override.synergy?.weakVs ?? profile.synergy.weakVs,
       goodWith: override.synergy?.goodWith ?? profile.synergy.goodWith,
-      mustWith: override.synergy?.mustWith ?? profile.synergy.mustWith,
     },
     roleSpecific: {
       ...(profile.roleSpecific ?? {}),
