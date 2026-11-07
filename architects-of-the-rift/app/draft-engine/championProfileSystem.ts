@@ -148,7 +148,15 @@ function buildSynergyRules(champion: Champion): ChampionRoleProfile["synergy"] {
 }
 
 function getOverride(champion: Champion, role: Role) {
-  return championProfileOverrides[`${champion.id}:${role}`];
+  // TEMPORAR: fallback pe fișierul vechi până la mutarea override-urilor în roleData.
+  return champion.roleData[role]?.profile ?? championProfileOverrides[`${champion.id}:${role}`];
+}
+
+/** Regulile din override se ADAUGĂ la cele derivate; aceeași `id` → regula din override o înlocuiește. */
+function mergeRules(base: ChampionSynergyRule[], extra: ChampionSynergyRule[] | undefined): ChampionSynergyRule[] {
+  if (!extra?.length) return base;
+  const extraIds = new Set(extra.map((rule) => rule.id));
+  return [...base.filter((rule) => !extraIds.has(rule.id)), ...extra];
 }
 
 export function deriveChampionRoleProfile(champion: Champion, role: Role): ChampionRoleProfile {
@@ -277,9 +285,9 @@ export function deriveChampionRoleProfile(champion: Champion, role: Role): Champ
     draftProfile: { ...profile.draftProfile, ...(override.draftProfile ?? {}) },
     comboDependency: { ...profile.comboDependency, ...(override.comboDependency ?? {}) },
     synergy: {
-      wantsAllies: override.synergy?.wantsAllies ?? profile.synergy.wantsAllies,
-      wantsTeam: override.synergy?.wantsTeam ?? profile.synergy.wantsTeam,
-      goodWith: override.synergy?.goodWith ?? profile.synergy.goodWith,
+      wantsAllies: mergeRules(profile.synergy.wantsAllies, override.synergy?.wantsAllies),
+      wantsTeam: mergeRules(profile.synergy.wantsTeam, override.synergy?.wantsTeam),
+      goodWith: mergeRules(profile.synergy.goodWith, override.synergy?.goodWith),
     },
     roleSpecific: {
       ...(profile.roleSpecific ?? {}),
@@ -335,6 +343,9 @@ function getContestPriority(champion: Champion, role: Role) {
   return presence / 12 + (6 - Math.min(5, avgPickRound));
 }
 
+/** Cache per obiect campion (datele sunt statice; WeakMap ca să nu țină campionii în viață). */
+const profileCache = new WeakMap<Champion, Map<Role, ChampionRoleProfile>>();
+
 export function getChampionRoleProfile(champion: Champion | null, requestedRole?: Role | null) {
   if (!champion) return null;
   const role = requestedRole && hasRole(champion, requestedRole) ? requestedRole : champion.roles[0] ?? null;
@@ -343,5 +354,17 @@ export function getChampionRoleProfile(champion: Champion | null, requestedRole?
     const existing = champion.roleProfiles.find((profile) => profile.role === role) ?? champion.roleProfiles[0];
     if (existing) return existing;
   }
-  return deriveChampionRoleProfile(champion, role);
+
+  // Datele sunt statice: profilul se calculează o singură dată per campion × rol.
+  let byRole = profileCache.get(champion);
+  if (!byRole) {
+    byRole = new Map();
+    profileCache.set(champion, byRole);
+  }
+  let profile = byRole.get(role);
+  if (!profile) {
+    profile = deriveChampionRoleProfile(champion, role);
+    byRole.set(role, profile);
+  }
+  return profile;
 }

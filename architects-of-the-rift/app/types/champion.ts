@@ -80,6 +80,23 @@ export type ChampionRoleData = {
   mustWith: string[];
   /** null = fără date pe rol, se folosesc stats globale. */
   stats: ChampionRoleStats | null;
+  /**
+   * Corecții manuale peste profilul derivat automat (`getChampionRoleProfile`).
+   * Obiectele se completează câmp cu câmp, `tags` / `abilities` se înlocuiesc,
+   * regulile din `synergy` se adaugă. Toate valorile pe 0–10.
+   */
+  profile?: ChampionRoleProfileOverride;
+};
+
+/** Override parțial de profil: fiecare câmp opțional, obiectele parțiale, array-urile întregi. */
+export type ChampionRoleProfileOverride = {
+  [K in keyof ChampionRoleProfile]?: ChampionRoleProfile[K] extends readonly unknown[]
+    ? ChampionRoleProfile[K]
+    : ChampionRoleProfile[K] extends unknown[]
+      ? ChampionRoleProfile[K]
+      : ChampionRoleProfile[K] extends object
+        ? Partial<ChampionRoleProfile[K]>
+        : ChampionRoleProfile[K];
 };
 
 export type ChampionCarryProfile = {

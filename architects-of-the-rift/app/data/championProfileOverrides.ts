@@ -1,15 +1,8 @@
-import type { ChampionRoleProfile, Role } from "@/app/types/champion";
+import type { ChampionRoleProfileOverride, Role } from "@/app/types/champion";
 
+// TEMPORAR: citit doar ca fallback până la mutarea în `roleData[rol].profile`.
 type RoleOverrideKey = `${string}:${Role}`;
-export type ChampionRoleProfileOverride = {
-  [K in keyof ChampionRoleProfile]?: ChampionRoleProfile[K] extends readonly unknown[]
-    ? ChampionRoleProfile[K]
-    : ChampionRoleProfile[K] extends unknown[]
-      ? ChampionRoleProfile[K]
-      : ChampionRoleProfile[K] extends object
-        ? Partial<ChampionRoleProfile[K]>
-        : ChampionRoleProfile[K];
-};
+export type { ChampionRoleProfileOverride };
 
 export const championProfileOverrides: Record<RoleOverrideKey, ChampionRoleProfileOverride> = {
   "zeri:adc": {
