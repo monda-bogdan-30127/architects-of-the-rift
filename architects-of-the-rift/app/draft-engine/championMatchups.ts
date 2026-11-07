@@ -1,12 +1,11 @@
 // Citirea matchup-urilor și a mustWith pe rol (DRAFT_REWORK §2.3–2.4).
 //
 // Singurul loc (în afară de validator) care citește matchup-urile și mustWith din
-// `champion.roleData` (fișierele din app/data/champions/). Datele explicite sunt
-// completate cu relațiile derivate în ambele sensuri:
-//   A:rA weakVs B (g) → B:rB goodVs A (g, vsRole rA)
+// `champion.roleData` (fișierele din app/data/champions/). Fișierele au doar
+// `goodVs` („pe cine bat eu”); `weakVs` se generează integral din `goodVs`-ul
+// celorlalți:
 //   A:rA goodVs B (g) → B:rB weakVs A (g, vsRole rA)
-// Intrarea explicită câștigă mereu pe cea derivată. Totul se calculează o
-// singură dată, la primul acces.
+// Totul se calculează o singură dată, la primul acces.
 
 import { champions, championsById } from "@/app/data/champions";
 import type {
@@ -19,8 +18,6 @@ import { getRelationStrength, isMatchupLevel, isMatchupPhase } from "./matchupGr
 
 const isUsableRelation = (relation: MatchupRelation) => isMatchupLevel(relation.level) && isMatchupPhase(relation.phase);
 
-
-type MatchupListKey = "goodVs" | "weakVs";
 
 export type MatchupDerivationIssue = {
   level: "warning" | "error";
@@ -91,15 +88,14 @@ let cachedIndex: MatchupIndex | null = null;
 function buildIndex(): MatchupIndex {
   const issues: MatchupDerivationIssue[] = [];
   // Datele explicite, în ordinea campionilor și a rolurilor din `roleData`.
-  const explicit: Partial<Record<ChampionRoleKey, ChampionRoleMatchups>> = {};
+  const explicit: Partial<Record<ChampionRoleKey, Pick<ChampionRoleMatchups, "goodVs" | "mustWith">>> = {};
   for (const champion of champions) {
     for (const [role, data] of Object.entries(champion.roleData)) {
       if (!data) continue;
       // Relațiile cu level / phase invalid sunt ignorate aici și raportate de validator.
       explicit[getRoleKey(champion.id, role as Role)] = {
         goodVs: data.goodVs.filter(isUsableRelation),
-        weakVs: data.weakVs.filter(isUsableRelation),
-        mustWith: data.mustWith,
+        mustWith: data.mustWith ?? [],
       };
     }
   }
@@ -111,78 +107,52 @@ function buildIndex(): MatchupIndex {
       const entry = explicit[key];
       byKey.set(key, {
         goodVs: entry ? [...entry.goodVs] : [],
-        weakVs: entry ? [...entry.weakVs] : [],
+        weakVs: [],
         mustWith: entry ? [...entry.mustWith] : [],
       });
     }
   }
 
-  const derivedLists: [MatchupListKey, MatchupListKey][] = [
-    ["weakVs", "goodVs"],
-    ["goodVs", "weakVs"],
-  ];
-
-  for (const [sourceKey, entry] of Object.entries(explicit) as [ChampionRoleKey, ChampionRoleMatchups][]) {
+  for (const [sourceKey, entry] of Object.entries(explicit) as [ChampionRoleKey, Pick<ChampionRoleMatchups, "goodVs">][]) {
     const separator = sourceKey.lastIndexOf(":");
     const sourceId = sourceKey.slice(0, separator);
     const sourceRole = sourceKey.slice(separator + 1) as Role;
 
-    for (const [fromList, toList] of derivedLists) {
-      for (const relation of entry[fromList]) {
-        const targetId = relation.championId;
-        if (!championsById[targetId]) continue; // id inexistent — raportat de validator
-        const targetRole = resolveDerivedRole(targetId, sourceRole, relation.vsRole);
-        if (!targetRole) {
-          issues.push({
-            level: "warning",
-            key: sourceKey,
-            message: `${fromList} ${targetId}: nu se poate deriva — ${targetId} nu joacă ${relation.vsRole ?? sourceRole}`,
-          });
-          continue;
-        }
-
-        const target = byKey.get(getRoleKey(targetId, targetRole));
-        if (!target) continue;
-
-        const explicitTarget = explicit[getRoleKey(targetId, targetRole)]?.[toList] ?? [];
-        const explicitMatch = explicitTarget.find(
-          (other) =>
-            other.championId === sourceId && relationAppliesToEnemyRole(other, targetRole, sourceRole),
-        );
-        if (explicitMatch) {
-          // Contradicția se vede din ambele sensuri — raportată o singură dată.
-          const differs = explicitMatch.level !== relation.level || explicitMatch.phase !== relation.phase;
-          if (differs && sourceKey < getRoleKey(targetId, targetRole)) {
-            issues.push({
-              level: "error",
-              key: sourceKey,
-              message:
-                `contradicție: ${sourceKey} ${fromList} ${targetId} ${describeLevelPhase(relation)}, ` +
-                `dar ${targetId}:${targetRole} ${toList} ${sourceId} ${describeLevelPhase(explicitMatch)}`,
-            });
-          }
-          continue; // explicitul câștigă
-        }
-
-        const existing = target[toList].find(
-          (other) => other.championId === sourceId && other.vsRole === sourceRole,
-        );
-        if (existing) {
-          if (getRelationStrength(relation) > getRelationStrength(existing)) {
-            existing.level = relation.level;
-            existing.phase = relation.phase;
-          }
-          continue;
-        }
-
-        target[toList].push({
-          championId: sourceId,
-          level: relation.level,
-          phase: relation.phase,
-          vsRole: sourceRole,
-          ...(relation.note ? { note: relation.note } : {}),
+    for (const relation of entry.goodVs) {
+      const targetId = relation.championId;
+      if (!championsById[targetId]) continue; // id inexistent — raportat de validator
+      const targetRole = resolveDerivedRole(targetId, sourceRole, relation.vsRole);
+      if (!targetRole) {
+        issues.push({
+          level: "warning",
+          key: sourceKey,
+          message: `goodVs ${targetId}: nu se poate deriva — ${targetId} nu joacă ${relation.vsRole ?? sourceRole}`,
         });
+        continue;
       }
+
+      const target = byKey.get(getRoleKey(targetId, targetRole));
+      if (!target) continue;
+
+      // Același sursă:rol scris de două ori spre aceeași țintă (ex. cu și fără vsRole) → cea mai puternică.
+      const existing = target.weakVs.find(
+        (other) => other.championId === sourceId && other.vsRole === sourceRole,
+      );
+      if (existing) {
+        if (getRelationStrength(relation) > getRelationStrength(existing)) {
+          existing.level = relation.level;
+          existing.phase = relation.phase;
+        }
+        continue;
+      }
+
+      target.weakVs.push({
+        championId: sourceId,
+        level: relation.level,
+        phase: relation.phase,
+        vsRole: sourceRole,
+        ...(relation.note ? { note: relation.note } : {}),
+      });
     }
   }
 
@@ -206,13 +176,9 @@ function getIndex(): MatchupIndex {
   return cachedIndex;
 }
 
-/** Matchup-urile campionului pe rol: explicite + derivate. Rol nejucat → liste goale. */
+/** Matchup-urile campionului pe rol: `goodVs` din fișier, `weakVs` derivat. Rol nejucat → liste goale. */
 export function getRoleMatchups(championId: string, role: Role): ChampionRoleMatchups {
   return getIndex().byKey.get(getRoleKey(championId, role)) ?? EMPTY_MATCHUPS;
-}
-
-function describeLevelPhase(relation: Pick<MatchupRelation, "level" | "phase">) {
-  return `level ${relation.level}/${relation.phase}`;
 }
 
 function strongestApplicable(
@@ -271,7 +237,7 @@ export function getMustWithPartners(anchorId: string, anchorRole: Role): string[
   return partners;
 }
 
-/** Warning-uri și erori găsite la derivare — pentru validator (§6). */
+/** Derivările imposibile (rol pe care ținta nu-l joacă) — pentru validator. */
 export function getMatchupDerivationIssues(): readonly MatchupDerivationIssue[] {
   return getIndex().issues;
 }

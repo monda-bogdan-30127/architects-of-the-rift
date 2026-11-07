@@ -4,10 +4,11 @@
 // DRAFT_REWORK §6, MATCHUP_LEVEL_PHASE §8). Rulează:
 //   npm run validate:matchups
 //
-// Structura se verifică pe datele explicite; contradicțiile și derivările
-// imposibile vin din `championMatchups.ts` (același cod care le folosește în
-// joc), iar regula „goodVs + weakVs pe același inamic” se verifică pe listele
-// efective (explicit + derivat).
+// Fișierele au doar `goodVs`; `weakVs` e generat de `championMatchups.ts`.
+// Structura se verifică pe datele explicite; derivările imposibile vin din
+// `championMatchups.ts` (același cod care le folosește în joc), iar
+// contradicțiile (A goodVs B și B goodVs A în aceeași fază) se verifică pe
+// listele efective: permis doar lane + late.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { champions as defaultChampions } from "../data/champions";
@@ -55,6 +56,7 @@ export interface MatchupValidationResult {
 }
 
 const ROLES: Role[] = ["top", "jungle", "mid", "adc", "support"];
+/** Listele efective (după derivare). */
 const LISTS = ["goodVs", "weakVs"] as const;
 
 const emptyCounts = (): LevelPhaseCounts =>
@@ -102,10 +104,16 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
   function validateRoleEntry(owner: Champion, role: Role, entry: ChampionRoleData) {
     const key = `${owner.id}:${role}`;
 
-    // ── Relațiile goodVs / weakVs ──────────────────────────────────────────
-    for (const list of LISTS) {
+    // ── weakVs: nu se mai scrie (derivat din goodVs) ─────────────────────
+    if (entry.weakVs?.length) {
+      error(key, `weakVs nu se mai scrie (e derivat): mută cele ${entry.weakVs.length} relații ca goodVs în fișierele adversarilor`);
+    }
+
+    // ── Relațiile goodVs ───────────────────────────────────────────────────
+    {
+      const list = "goodVs";
       const seen = new Set<string>();
-      for (const relation of entry[list] ?? []) {
+      for (const relation of entry.goodVs ?? []) {
         explicitRelationCount += 1;
         const label = `${list} ${relation.championId}`;
         if ("score" in relation) error(key, `${label}: \`score\` încă prezent (formatul vechi; folosește level + phase)`);
@@ -169,14 +177,15 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
     }
   }
 
-  // ── Contradicții explicite și derivări imposibile (din championMatchups) ─
+  // ── Derivări imposibile (din championMatchups) ─────────────────────────
   if (isRealData) {
     for (const issue of getMatchupDerivationIssues()) {
       issues.push({ severity: issue.level, key: issue.key, message: issue.message });
     }
   }
 
-  // ── Același inamic în goodVs și weakVs: permis doar lane + late ──────────
+  // ── Contradicții: același inamic în goodVs și weakVs efectiv ─────────────
+  // (A goodVs B și B goodVs A pe roluri care se întâlnesc) — permis doar lane + late.
   const levelPhaseCountsByRole = Object.fromEntries(
     ROLES.map((role) => [role, { goodVs: emptyCounts(), weakVs: emptyCounts() }]),
   ) as MatchupValidationResult["levelPhaseCountsByRole"];
@@ -207,7 +216,7 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
             if (phases !== "lane+late") {
               error(
                 key,
-                `${good.championId} e și în goodVs (${good.phase}) și în weakVs (${weak.phase}) — permis doar lane + late`,
+                `contradicție: goodVs ${good.championId} (${good.phase}), dar ${good.championId}:${weak.vsRole ?? role} are goodVs ${champion.id} (${weak.phase}) — permis doar lane + late`,
               );
             }
           }
