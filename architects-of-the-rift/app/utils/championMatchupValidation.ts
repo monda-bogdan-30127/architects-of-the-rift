@@ -17,6 +17,7 @@ import {
   relationAppliesToEnemyRole,
 } from "../draft-engine/championMatchups";
 import { MATCHUP_LEVELS, MATCHUP_PHASES, isMatchupLevel, isMatchupPhase } from "../draft-engine/matchupGrades";
+import { getChampionStatsForRole } from "../draft-engine/championRoleStatsSystem";
 import type {
   Champion,
   ChampionRoleData,
@@ -46,6 +47,11 @@ export interface MatchupValidationResult {
   levelPhaseCountsByRole: Record<Role, { goodVs: LevelPhaseCounts; weakVs: LevelPhaseCounts }>;
   /** Totalul relațiilor scrise explicit în fișiere. */
   explicitRelationCount: number;
+  /** Acoperirea cu `profile` manual: per rol, plus lista celor fără, după `presence` descrescător. */
+  profileCoverage: {
+    byRole: Record<Role, { withProfile: number; total: number }>;
+    missing: { key: string; presence: number }[];
+  };
 }
 
 const ROLES: Role[] = ["top", "jungle", "mid", "adc", "support"];
@@ -144,6 +150,23 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
 
     // ── stats ──────────────────────────────────────────────────────────────
     if (entry.stats !== null && typeof entry.stats !== "object") error(key, "stats trebuie să fie null sau un obiect");
+
+    // ── profile (opțional) ─────────────────────────────────────────────────
+    if (entry.profile !== undefined) {
+      if (!entry.profile || typeof entry.profile !== "object") {
+        error(key, "profile trebuie să fie un obiect");
+      } else {
+        if ("role" in entry.profile) error(key, "profile.role nu se scrie: rolul vine din cheia din roleData");
+        const walk = (value: unknown, path: string) => {
+          if (typeof value === "number") {
+            if (!Number.isFinite(value) || value < 0 || value > 10) error(key, `profile.${path} = ${value} în afara 0–10`);
+          } else if (value && typeof value === "object") {
+            for (const [child, childValue] of Object.entries(value)) walk(childValue, path ? `${path}.${child}` : child);
+          }
+        };
+        walk(entry.profile, "");
+      }
+    }
   }
 
   // ── Contradicții explicite și derivări imposibile (din championMatchups) ─
@@ -193,6 +216,18 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
     }
   }
 
+  // ── Acoperire profile manuale ────────────────────────────────────────────
+  const byRole = Object.fromEntries(ROLES.map((role) => [role, { withProfile: 0, total: 0 }])) as MatchupValidationResult["profileCoverage"]["byRole"];
+  const missing: { key: string; presence: number }[] = [];
+  for (const champion of champions) {
+    for (const role of champion.roles) {
+      byRole[role].total += 1;
+      if (champion.roleData?.[role]?.profile) byRole[role].withProfile += 1;
+      else missing.push({ key: `${champion.id}:${role}`, presence: getChampionStatsForRole(champion, role).presence ?? 0 });
+    }
+  }
+  missing.sort((a, b) => b.presence - a.presence || a.key.localeCompare(b.key));
+
   const errorCount = issues.filter((issue) => issue.severity === "error").length;
   const warningCount = issues.length - errorCount;
   return {
@@ -202,5 +237,6 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
     ok: errorCount === 0,
     levelPhaseCountsByRole,
     explicitRelationCount,
+    profileCoverage: { byRole, missing },
   };
 }

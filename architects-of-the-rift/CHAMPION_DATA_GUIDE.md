@@ -10,13 +10,20 @@ Cum sunt organizate datele campionilor și cum le modifici de mână. Căile sun
 | Ordinea campionilor + post-procesarea (`carryProfileOverrides`, merge `synergyWith`) | `app/data/champions/index.ts` |
 | `createChampion`, `mergeWeaknesses` | `app/data/champions/_helpers.ts` |
 | Gradele de mastery ale jucătorilor (SS…F) | `app/data/championMasteryOverrides.ts` |
-| Override-uri de profil pe rol (kit, scaling etc.) | `app/data/championProfileOverrides.ts` |
+| Corecții manuale ale profilului pe rol (abilități, threat, identitate pe faze…) | `roleData[rol].profile` în fișierul campionului |
+| Cum se derivă profilul automat | `app/draft-engine/championProfileSystem.ts` |
 | Imaginea campionului | `public/champions/<id>.png` |
 | Definițiile matchup-urilor (`level`, `phase`), ponderile și curbele | `app/draft-engine/matchupGrades.ts` |
 
 Numele fișierului e `id`-ul campionului (`jarvan-iv.ts`, `kaisa.ts`). Exportul e `id`-ul în camelCase (`jarvanIv`, `missFortune`). Importurile rămân `@/app/data/champions`, iar folderul se rezolvă prin `index.ts`.
 
-Engine-ul citește datele pe rol **doar** prin două getter-e: `getRoleMatchups` / `getMustWith` / `getMustWithPartners` din `app/draft-engine/championMatchups.ts` și `getChampionStatsForRole` din `app/draft-engine/championRoleStatsSystem.ts`. Nimic altceva nu citește `champion.roleData` direct, cu excepția validatorului.
+Engine-ul citește datele pe rol **doar** prin getter-e:
+
+- `getRoleMatchups` / `getMustWith` / `getMustWithPartners` din `app/draft-engine/championMatchups.ts`;
+- `getChampionStatsForRole` din `app/draft-engine/championRoleStatsSystem.ts`;
+- `getChampionRoleProfile` din `app/draft-engine/championProfileSystem.ts`.
+
+Nimic altceva nu citește `champion.roleData` direct, cu excepția validatorului.
 
 ## Formatul unui fișier
 
@@ -70,7 +77,7 @@ export const poppy = createChampion({
 Reguli de formatare, la fel în toate fișierele:
 
 - **Ordinea câmpurilor:** identitate (`id`, `name`, `image`, `roles`, `damageProfile`) → compoziție (`synergyWith`, `offers`, `needs`, `weaknesses`, `playerScaling`, `carryProfile` dacă e explicit) → `stats` → `roleData`.
-- **`roleData` are exact cheile din `roles`, în aceeași ordine.**
+- **`roleData` are exact cheile din `roles`, în aceeași ordine.** Într-un rol: `goodVs`, `weakVs`, `mustWith`, `stats`, apoi `profile` (opțional).
 - `synergyWith` e global pe campion, nu pe rol.
 
 ## Matchup-uri (`roleData[rol].goodVs` / `weakVs`)
@@ -151,6 +158,60 @@ Combinațiile noi, imposibile înainte (de exemplu un hard counter doar pe linie
 - **Atenție la mastery:** dacă un jucător are override-uri în `championMasteryOverrides.ts`, orice campion lipsă din lista lui contează ca **F**. Partenerii trebuie trecuți acolo, altfel combo-ul nu se declanșează niciodată.
 - Perechile slabe (bonus mic, nu „must”) merg în `synergyWith`, nu în `mustWith`.
 
+## Profil pe rol (`roleData[rol].profile`)
+
+Profilul (`ChampionRoleProfile`) descrie cum se joacă un campion pe un rol: tag-uri, abilități, tipul de damage, CC, peel, acces, threat, scaling pe faze, identitate pe faze, condiții, dependențe de combo, reguli de sinergie. Îl folosesc draftul și simularea.
+
+**Profilul e generat automat** pentru orice campion × rol din `offers`, `needs`, `stats` și `playerScaling` (`deriveChampionRoleProfile`). Derivarea nu are cazuri speciale pe id de campion.
+
+**`profile` e opțional.** Pune doar câmpurile pe care derivarea nu le prinde corect: abilități cu efecte speciale, threat/access, identitate pe faze, condiții, `special`, `comboDependency`, reguli de sinergie specifice campionului.
+
+### Reguli de combinare cu profilul derivat
+
+- **obiectele** (`special`, `accessProfile`, `threatProfile`, `comboDependency`, `scaling.early` etc.) se completează **câmp cu câmp**: scrii doar câmpurile pe care le schimbi;
+- **`tags` și `abilities`** se **înlocuiesc** întregi;
+- **regulile din `synergy`** (`wantsAllies`, `wantsTeam`, `goodWith`) se **adaugă** la cele derivate. O regulă cu același `id` ca una derivată o înlocuiește;
+- nu scrie `profile.role`, rolul vine din cheia din `roleData`.
+
+**Toate valorile numerice sunt pe scala 0–10.** Validatorul dă eroare în afara ei.
+
+### Exemplu complet (Braum, support)
+
+```ts
+support: {
+  goodVs: [/* … */],
+  weakVs: [/* … */],
+  mustWith: [],
+  stats: null,
+  profile: {
+    tags: ["ranged", "warden", "peel", "anti-dive", "front-to-back"],
+    abilities: [
+      { key: "passive", name: "Concussive Blows", effects: [{ type: "mark", subtype: "ally-proc-cc", strength: 9, reliability: 9, priority: 9 }] },
+      { key: "e", name: "Unbreakable", effects: [{ type: "projectile-block", strength: 10, reliability: 9, priority: 10 }, { type: "anti-engage", strength: 8, reliability: 8, priority: 8 }] },
+      { key: "r", name: "Glacial Fissure", effects: [{ type: "knockup", strength: 8, reliability: 8, priority: 8 }, { type: "slow", strength: 7, reliability: 9, priority: 7 }] },
+    ],
+    special: { antiDash: 0, projectileBlock: 10, ground: 0, displacement: 6, visionControl: 4 },
+    accessProfile: { engageRange: 5, targetAccess: 3, stickiness: 4 },
+    threatProfile: { backlineThreat: 2, frontlineThreat: 5, pickThreat: 5, zoneThreat: 5, antiDiveThreat: 10 },
+    phaseIdentity: { earlyRole: "peel", midRole: "peel", lateRole: "peel" },
+  },
+},
+```
+
+### Exemplu minimal (Cassiopeia, mid)
+
+Restul profilului rămâne cel derivat; se corectează doar `ground` (W-ul o ține pe loc):
+
+```ts
+profile: {
+  special: { ground: 10 },
+},
+```
+
+### Unde merită completat
+
+`npm run validate:matchups` afișează la final câte combinații campion:rol au `profile` manual, pe fiecare rol, plus lista celor fără, sortată după `presence` (cei mai jucați primii).
+
 ## Statistici pe rol (`roleData[rol].stats`)
 
 - `stats: null` = fără date pe rol; se folosește `stats`-ul global al campionului.
@@ -178,7 +239,7 @@ Combinațiile noi, imposibile înainte (de exemplu un hard counter doar pe linie
 
 **Rol nou pentru un campion existent**
 1. Adaugă rolul în `roles` **și** cheia în `roleData`, în același fișier, pe aceeași poziție.
-2. Completează `goodVs` / `weakVs` / `mustWith` pentru rolul nou (pot fi goale) și `stats: null`.
+2. Completează `goodVs` / `weakVs` / `mustWith` pentru rolul nou (pot fi goale) și `stats: null`. `profile` doar dacă derivarea automată nu e suficientă.
 3. Verifică mastery-ul jucătorilor de pe acel rol în `championMasteryOverrides.ts`.
 
 **Campion nou**
@@ -191,13 +252,13 @@ Combinațiile noi, imposibile înainte (de exemplu un hard counter doar pe linie
 **După orice modificare de date**
 
 ```bash
-npm run validate:matchups          # structura roleData, level/phase, contradicții, mustWith
+npm run validate:matchups          # structura roleData, level/phase, contradicții, mustWith, profile + acoperire
 npx tsc --noEmit
 npm run lint
 npx tsx scripts/draft-scenarios.ts # comportamentul mustWith / matchup în draft
 ```
 
-Pentru o mutare de date care **nu** trebuie să schimbe nimic, compară snapshot-urile:
+Pentru o mutare de date care **nu** trebuie să schimbe nimic, compară snapshot-urile (pentru profile: `scripts/profile-snapshot.ts`, la fel):
 
 ```bash
 npx tsx scripts/champion-data-snapshot.ts                              # înainte → scripts/.snapshot-before.json

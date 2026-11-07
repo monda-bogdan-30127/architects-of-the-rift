@@ -27,6 +27,16 @@ for (const [role, counts] of Object.entries(result.levelPhaseCountsByRole)) {
   }
 }
 
+const coverage = result.profileCoverage;
+console.log("\nINFO — profile manuale (roleData[rol].profile), per rol:");
+for (const [role, { withProfile, total }] of Object.entries(coverage.byRole)) {
+  console.log(`  ${role.padEnd(8)} ${String(withProfile).padStart(3)} / ${total}`);
+}
+console.log(`Fără profile manual (${coverage.missing.length}), după presence (cei mai jucați primii):`);
+for (let index = 0; index < coverage.missing.length; index += 5) {
+  console.log("  " + coverage.missing.slice(index, index + 5).map((entry) => `${entry.key} (${entry.presence})`.padEnd(28)).join(" "));
+}
+
 console.log(
   `\n${result.ok ? "OK" : "EȘUAT"} — ${result.errorCount} erori, ${result.warningCount} warnings`,
 );
