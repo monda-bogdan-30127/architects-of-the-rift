@@ -135,7 +135,16 @@ fixtureMustWith("nidalee", "jungle", ["renekton", "twisted-fate"]);
 // Jucătorii folosiți (gradele sunt afișate în detaliu).
 const ADC_XAYAH = "ruler";        // Xayah A
 const SUP_RAKAN_OK = "keria";     // Rakan B; Lulu B, Milio B, Nami A
-const SUP_RAKAN_D = "cryogen";    // Rakan D; Lulu A, Milio B, Nami B
+const SUP_MULTI = "cryogen";      // grade diferite pe Lulu / Milio / Nami (scenariul 6)
+// Scenariul 2: un jucător cu Rakan sub C, ales la rulare (mastery-ul se schimbă în timp);
+// de preferință un support, altfel orice jucător pus pe support.
+const SUP_RAKAN_LOW = (() => {
+  const rank = { SS: 6, S: 5, A: 4, B: 3, C: 2, D: 1, F: 0 } as Record<string, number>;
+  const candidates = players.filter((p) => p.teamId !== "free-agent" && rank[getChampionGrade(p, "rakan")] < 2);
+  const pick = candidates.find((p) => p.role === "support") ?? candidates.find((p) => !["ruler", "keria", "caliste"].includes(p.id));
+  if (!pick) throw new Error("niciun jucător cu Rakan sub C");
+  return pick.id;
+})();
 const ADC_YUNARA = "caliste";     // Yunara A
 const TOP_RENEKTON = "clear";     // Renekton A, Malphite B
 const MID_TF = "showmaker";       // Twisted Fate A
@@ -164,7 +173,7 @@ const BLUE = "geng";
 
 // ─── 2. Support cu Rakan D → logica normală ─────────────────────────────────
 {
-  const save = makeSave({ [RED]: { adc: ADC_XAYAH, support: SUP_RAKAN_D } });
+  const save = makeSave({ [RED]: { adc: ADC_XAYAH, support: SUP_RAKAN_LOW } });
   const { log } = runDraft({
     series: newSeries("s2", BLUE, RED),
     save,
@@ -173,9 +182,9 @@ const BLUE = "geng";
   });
   const r2 = nthPick(log, "red", 2);
   check(
-    "2. Support cu Rakan D → fără lock",
+    "2. Support cu Rakan sub C → fără lock",
     !isLock(r2),
-    `R2=${r2?.championId}, lock=${isLock(r2)} (support Rakan ${grade(SUP_RAKAN_D, "rakan")})`,
+    `R2=${r2?.championId}, lock=${isLock(r2)} (support ${SUP_RAKAN_LOW}: Rakan ${grade(SUP_RAKAN_LOW, "rakan")})`,
   );
 }
 
@@ -236,7 +245,7 @@ const BLUE = "geng";
 }
 
 // ─── 6. Mai mulți parteneri → mastery-ul cel mai bun ─────────────────────────
-for (const support of [SUP_RAKAN_OK, SUP_RAKAN_D]) {
+for (const support of [SUP_RAKAN_OK, SUP_MULTI]) {
   const options = ["lulu", "milio", "nami"]; // ordinea din yunara:adc mustWith
   const rank = { SS: 6, S: 5, A: 4, B: 3, C: 2, D: 1, F: 0 } as Record<string, number>;
   const expected = [...options].sort((a, b) => rank[grade(support, b)] - rank[grade(support, a)] || options.indexOf(a) - options.indexOf(b))[0];
