@@ -54,8 +54,6 @@ export const karthus = createChampion({
   roleData: {
     jungle: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

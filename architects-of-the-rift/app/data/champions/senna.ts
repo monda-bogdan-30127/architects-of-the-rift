@@ -64,16 +64,12 @@ export const senna = createChampion({
   roleData: {
     support: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
     adc: {
       goodVs: [
         { championId: "kalista", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

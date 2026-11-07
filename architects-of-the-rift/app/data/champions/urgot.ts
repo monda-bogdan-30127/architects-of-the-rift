@@ -66,8 +66,6 @@ export const urgot = createChampion({
         { championId: "gangplank", level: 2, phase: "lane" },
         { championId: "ksante", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

@@ -57,8 +57,6 @@ export const hecarim = createChampion({
       goodVs: [
         { championId: "karthus", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

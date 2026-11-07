@@ -63,8 +63,6 @@ export const malphite = createChampion({
       goodVs: [
         { championId: "master-yi", level: 2, phase: "all", note: "armură și R pe un campion de autoatacuri" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,
@@ -110,8 +108,6 @@ export const malphite = createChampion({
         { championId: "rengar", level: 2, phase: "all", note: "armură, nu poate fi one-shot" },
         { championId: "yasuo", level: 2, phase: "all", note: "armură contra crit-ului, R nu poate fi oprit de windwall" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

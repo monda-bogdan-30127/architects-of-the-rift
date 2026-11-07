@@ -53,8 +53,6 @@ export const evelynn = createChampion({
   roleData: {
     jungle: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

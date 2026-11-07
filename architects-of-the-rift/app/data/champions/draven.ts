@@ -74,8 +74,6 @@ export const draven = createChampion({
         { championId: "yunara", level: 2, phase: "lane" },
         { championId: "zeri", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

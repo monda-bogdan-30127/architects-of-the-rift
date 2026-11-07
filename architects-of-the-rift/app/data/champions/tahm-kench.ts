@@ -65,8 +65,6 @@ export const tahmKench = createChampion({
         { championId: "blitzcrank", level: 2, phase: "all", note: "devour salvează aliatul prins de hook" },
         { championId: "pyke", level: 2, phase: "all", note: "devour salvează aliatul de execute" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

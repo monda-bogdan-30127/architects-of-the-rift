@@ -73,8 +73,6 @@ export const sejuani = createChampion({
         { championId: "naafiri", level: 2, phase: "late" },
         { championId: "pantheon", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 6,
         bans: null,

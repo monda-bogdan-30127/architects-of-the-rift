@@ -83,8 +83,6 @@ export const renekton = createChampion({
         { championId: "ambessa", level: 1, phase: "all" },
         { championId: "olaf", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 8,
         bans: null,

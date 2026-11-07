@@ -66,8 +66,6 @@ export const neeko = createChampion({
         { championId: "soraka", level: 2, phase: "lane" },
         { championId: "yuumi", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 3,
         bans: null,

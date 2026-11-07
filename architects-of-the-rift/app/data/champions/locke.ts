@@ -67,8 +67,6 @@ export const locke = createChampion({
         { championId: "syndra", level: 1, phase: "all" },
         { championId: "viktor", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 11,
         bans: null,

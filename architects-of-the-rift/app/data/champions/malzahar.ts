@@ -70,8 +70,6 @@ export const malzahar = createChampion({
         { championId: "leblanc", level: 2, phase: "all", note: "spell shield și R point-click pe un asasin" },
         { championId: "zed", level: 2, phase: "all", note: "spell shield și R point-click pe un asasin" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

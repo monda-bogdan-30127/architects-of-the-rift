@@ -72,8 +72,6 @@ export const ambessa = createChampion({
         { championId: "aatrox", level: 1, phase: "all" },
         { championId: "ksante", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 22,
         bans: null,
@@ -112,8 +110,6 @@ export const ambessa = createChampion({
     },
     jungle: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
       profile: {
         tags: ["melee", "diver", "carry", "skirmish", "snowball"],

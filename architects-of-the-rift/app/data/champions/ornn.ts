@@ -68,8 +68,6 @@ export const ornn = createChampion({
         { championId: "aatrox", level: 1, phase: "all" },
         { championId: "riven", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 9,
         bans: null,

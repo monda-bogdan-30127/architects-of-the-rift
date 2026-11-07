@@ -60,8 +60,6 @@ export const jhin = createChampion({
   roleData: {
     adc: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 18,
         bans: null,

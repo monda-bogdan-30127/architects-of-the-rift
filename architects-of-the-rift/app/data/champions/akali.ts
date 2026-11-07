@@ -71,8 +71,6 @@ export const akali = createChampion({
         { championId: "viktor", level: 2, phase: "lane" },
         { championId: "locke", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 13,
         bans: null,

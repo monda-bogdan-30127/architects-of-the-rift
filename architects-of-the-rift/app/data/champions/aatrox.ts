@@ -67,8 +67,6 @@ export const aatrox = createChampion({
         { championId: "ivern", level: 2, phase: "lane" },
         { championId: "kindred", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,
@@ -115,8 +113,6 @@ export const aatrox = createChampion({
         { championId: "yorick", level: 2, phase: "lane" },
         { championId: "jayce", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 3,
         bans: null,

@@ -53,8 +53,6 @@ export const fiddlesticks = createChampion({
   roleData: {
     jungle: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

@@ -73,8 +73,6 @@ export const lissandra = createChampion({
         { championId: "yasuo", level: 2, phase: "all", note: "CC point-click pe un campion care trăiește din dash-uri" },
         { championId: "zed", level: 2, phase: "all", note: "R pe sine anulează all-in-ul lui Zed" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 2,
         bans: null,

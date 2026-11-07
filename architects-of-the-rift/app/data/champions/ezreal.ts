@@ -65,8 +65,6 @@ export const ezreal = createChampion({
       goodVs: [
         { championId: "kogmaw", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 26,
         bans: null,

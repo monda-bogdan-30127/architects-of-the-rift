@@ -64,8 +64,6 @@ export const vayne = createChampion({
   roleData: {
     adc: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
     top: {
@@ -84,8 +82,6 @@ export const vayne = createChampion({
         { championId: "olaf", level: 2, phase: "late" },
         { championId: "urgot", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

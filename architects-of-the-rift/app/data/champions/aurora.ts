@@ -65,8 +65,6 @@ export const aurora = createChampion({
         { championId: "orianna", level: 1, phase: "all" },
         { championId: "viktor", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 3,
         bans: null,
@@ -94,8 +92,6 @@ export const aurora = createChampion({
         { championId: "ornn", level: 2, phase: "lane" },
         { championId: "sion", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 2,
         bans: null,

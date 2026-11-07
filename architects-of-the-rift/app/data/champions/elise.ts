@@ -61,8 +61,6 @@ export const elise = createChampion({
       goodVs: [
         { championId: "soraka", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

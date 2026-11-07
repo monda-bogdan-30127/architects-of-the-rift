@@ -70,8 +70,6 @@ export const morgana = createChampion({
         { championId: "thresh", level: 2, phase: "all", note: "black shield anulează hook-ul și flay-ul" },
         { championId: "vi", level: 2, phase: "all", vsRole: "jungle", note: "black shield anulează CC-ul ult-ului lui Vi pe aliat" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

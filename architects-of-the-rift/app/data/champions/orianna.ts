@@ -69,8 +69,6 @@ export const orianna = createChampion({
         { championId: "anivia", level: 1, phase: "all" },
         { championId: "ryze", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 22,
         bans: null,

@@ -67,8 +67,6 @@ export const yorick = createChampion({
         { championId: "ornn", level: 2, phase: "late" },
         { championId: "sion", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 2,
         bans: null,

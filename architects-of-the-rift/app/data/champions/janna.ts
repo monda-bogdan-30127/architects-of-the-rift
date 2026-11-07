@@ -68,8 +68,6 @@ export const janna = createChampion({
         { championId: "rakan", level: 2, phase: "all", note: "disengage anulează engage-ul" },
         { championId: "rell", level: 2, phase: "all", note: "disengage anulează engage-ul" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

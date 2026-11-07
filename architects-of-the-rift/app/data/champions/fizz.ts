@@ -52,8 +52,6 @@ export const fizz = createChampion({
       goodVs: [
         { championId: "xerath", level: 2, phase: "all", note: "E îl ferește de skillshot-uri, all-in pe un artillery imobil" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

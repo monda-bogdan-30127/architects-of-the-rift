@@ -72,8 +72,6 @@ export const nocturne = createChampion({
         { championId: "evelynn", level: 1, phase: "all" },
         { championId: "qiyana", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 14,
         bans: null,

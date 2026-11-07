@@ -64,8 +64,6 @@ export const vladimir = createChampion({
       goodVs: [
         { championId: "viktor", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
     top: {
@@ -74,8 +72,6 @@ export const vladimir = createChampion({
         { championId: "renekton", level: 2, phase: "late" },
         { championId: "rumble", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

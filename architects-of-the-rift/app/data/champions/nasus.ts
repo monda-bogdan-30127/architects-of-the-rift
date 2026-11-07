@@ -56,14 +56,10 @@ export const nasus = createChampion({
       goodVs: [
         { championId: "chogath", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
     jungle: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

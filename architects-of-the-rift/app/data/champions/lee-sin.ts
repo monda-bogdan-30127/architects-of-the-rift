@@ -82,8 +82,6 @@ export const leeSin = createChampion({
         { championId: "sejuani", level: 2, phase: "lane" },
         { championId: "shyvana", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 27,
         bans: null,

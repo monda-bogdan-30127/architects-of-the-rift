@@ -54,8 +54,6 @@ export const garen = createChampion({
       goodVs: [
         { championId: "ksante", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

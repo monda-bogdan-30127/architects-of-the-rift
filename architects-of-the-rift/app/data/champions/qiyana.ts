@@ -67,8 +67,6 @@ export const qiyana = createChampion({
         { championId: "karthus", level: 2, phase: "lane" },
         { championId: "lillia", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 20,
         bans: null,

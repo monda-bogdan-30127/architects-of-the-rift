@@ -69,8 +69,6 @@ export const wukong = createChampion({
         { championId: "zyra", level: 2, phase: "lane" },
         { championId: "nidalee", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 13,
         bans: null,

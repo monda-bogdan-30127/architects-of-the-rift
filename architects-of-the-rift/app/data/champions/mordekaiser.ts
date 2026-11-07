@@ -69,8 +69,6 @@ export const mordekaiser = createChampion({
         { championId: "ornn", level: 2, phase: "late" },
         { championId: "fiora", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

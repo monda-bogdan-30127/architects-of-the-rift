@@ -70,8 +70,6 @@ export const syndra = createChampion({
         { championId: "viktor", level: 2, phase: "lane" },
         { championId: "ahri", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 21,
         bans: null,
@@ -98,8 +96,6 @@ export const syndra = createChampion({
       goodVs: [
         { championId: "jinx", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

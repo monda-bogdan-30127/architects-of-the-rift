@@ -66,8 +66,6 @@ export const tristana = createChampion({
         { championId: "jhin", level: 2, phase: "all", note: "all-in pe un carry imobil" },
         { championId: "kogmaw", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 6,
         bans: null,
@@ -92,8 +90,6 @@ export const tristana = createChampion({
     },
     mid: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,
@@ -122,8 +118,6 @@ export const tristana = createChampion({
         { championId: "ornn", level: 2, phase: "lane" },
         { championId: "sion", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

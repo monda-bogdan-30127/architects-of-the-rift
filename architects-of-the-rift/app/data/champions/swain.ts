@@ -61,8 +61,6 @@ export const swain = createChampion({
   roleData: {
     mid: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,
@@ -90,8 +88,6 @@ export const swain = createChampion({
         { championId: "ornn", level: 2, phase: "late" },
         { championId: "sion", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

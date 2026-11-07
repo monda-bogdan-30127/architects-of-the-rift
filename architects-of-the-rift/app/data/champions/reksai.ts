@@ -65,8 +65,6 @@ export const reksai = createChampion({
       goodVs: [
         { championId: "kayle", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
       profile: {
         tags: ["melee", "lane-bully", "pick", "ad-bruiser", "skirmish"],

@@ -79,8 +79,6 @@ export const caitlyn = createChampion({
         { championId: "yunara", level: 2, phase: "lane" },
         { championId: "zeri", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 8,
         bans: null,

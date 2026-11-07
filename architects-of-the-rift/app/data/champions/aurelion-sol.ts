@@ -67,8 +67,6 @@ export const aurelionSol = createChampion({
         { championId: "taliyah", level: 2, phase: "late" },
         { championId: "viktor", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

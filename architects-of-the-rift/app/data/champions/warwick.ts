@@ -52,8 +52,6 @@ export const warwick = createChampion({
       goodVs: [
         { championId: "kayle", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
     jungle: {
@@ -61,8 +59,6 @@ export const warwick = createChampion({
         { championId: "karthus", level: 2, phase: "lane" },
         { championId: "kindred", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

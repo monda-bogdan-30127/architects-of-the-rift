@@ -90,8 +90,6 @@ export const gnar = createChampion({
         { championId: "aurora", level: 1, phase: "all" },
         { championId: "jayce", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 11,
         bans: null,

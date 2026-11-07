@@ -64,8 +64,6 @@ export const rell = createChampion({
         { championId: "lux", level: 2, phase: "lane" },
         { championId: "sona", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 5,
         bans: null,

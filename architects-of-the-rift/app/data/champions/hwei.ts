@@ -64,8 +64,6 @@ export const hwei = createChampion({
   roleData: {
     mid: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

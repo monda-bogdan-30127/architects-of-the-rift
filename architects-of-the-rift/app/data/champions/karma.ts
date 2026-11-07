@@ -70,8 +70,6 @@ export const karma = createChampion({
         { championId: "yuumi", level: 2, phase: "lane" },
         { championId: "nami", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 14,
         bans: null,

@@ -105,8 +105,15 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
     const key = `${owner.id}:${role}`;
 
     // ── weakVs: nu se mai scrie (derivat din goodVs) ─────────────────────
-    if (entry.weakVs?.length) {
-      error(key, `weakVs nu se mai scrie (e derivat): mută cele ${entry.weakVs.length} relații ca goodVs în fișierele adversarilor`);
+    if ("weakVs" in entry) {
+      const legacy: unknown = (entry as { weakVs?: unknown }).weakVs;
+      const count = Array.isArray(legacy) ? legacy.length : 0;
+      error(
+        key,
+        count
+          ? `weakVs nu se mai scrie (e derivat): mută cele ${count} relații ca goodVs în fișierele adversarilor`
+          : "weakVs nu se mai scrie (e derivat din goodVs): șterge câmpul",
+      );
     }
 
     // ── Relațiile goodVs ───────────────────────────────────────────────────
@@ -135,7 +142,8 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
       }
     }
 
-    // ── mustWith ───────────────────────────────────────────────────────────
+    // ── mustWith (opțional, direcțional) ───────────────────────────────────
+    if (entry.mustWith && entry.mustWith.length === 0) error(key, "mustWith: [] explicit — lipsă = fără partener, șterge câmpul");
     const seenPartners = new Set<string>();
     for (const partnerId of entry.mustWith ?? []) {
       const partner = byId.get(partnerId);

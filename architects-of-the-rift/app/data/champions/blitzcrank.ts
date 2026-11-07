@@ -68,8 +68,6 @@ export const blitzcrank = createChampion({
         { championId: "sona", level: 2, phase: "lane" },
         { championId: "soraka", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

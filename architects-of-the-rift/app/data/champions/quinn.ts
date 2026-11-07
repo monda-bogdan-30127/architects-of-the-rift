@@ -79,8 +79,6 @@ export const quinn = createChampion({
         { championId: "sett", level: 2, phase: "lane" },
         { championId: "singed", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

@@ -66,7 +66,6 @@ export const kalista = createChampion({
         { championId: "ashe", level: 2, phase: "lane" },
         { championId: "yunara", level: 2, phase: "lane" },
       ],
-      weakVs: [],
       mustWith: ["renata-glasc"],
       stats: {
         picks: 16,

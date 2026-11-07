@@ -65,8 +65,6 @@ export const leblanc = createChampion({
         { championId: "smolder", level: 2, phase: "lane" },
         { championId: "viktor", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 4,
         bans: null,

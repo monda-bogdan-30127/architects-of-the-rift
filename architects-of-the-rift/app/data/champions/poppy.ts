@@ -68,8 +68,6 @@ export const poppy = createChampion({
         { championId: "alistar", level: 2, phase: "all", note: "W oprește W-ul (headbutt) lui Alistar" },
         { championId: "rell", level: 2, phase: "all", note: "W oprește W-ul lui Rell" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,
@@ -108,8 +106,6 @@ export const poppy = createChampion({
         { championId: "xin-zhao", level: 2, phase: "all", note: "W oprește E-ul lui Xin Zhao" },
         { championId: "zaahen", level: 2, phase: "all", note: "W oprește dash-ul din E" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
       profile: {
         tags: ["melee", "frontline", "tank", "anti-dash", "engage", "utility", "teamfight"],
@@ -138,8 +134,6 @@ export const poppy = createChampion({
         { championId: "yone", level: 2, phase: "all", note: "W oprește E-ul și R-ul lui Yone (dash-uri)" },
         { championId: "zaahen", level: 2, phase: "all", note: "W oprește dash-ul din E" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

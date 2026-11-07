@@ -66,8 +66,6 @@ export const alistar = createChampion({
         { championId: "sona", level: 2, phase: "lane" },
         { championId: "yuumi", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 22,
         bans: null,

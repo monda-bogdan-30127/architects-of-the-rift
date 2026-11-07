@@ -65,8 +65,6 @@ export const sylas = createChampion({
         { championId: "orianna", level: 1, phase: "all" },
         { championId: "viktor", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 5,
         bans: null,
@@ -93,8 +91,6 @@ export const sylas = createChampion({
       goodVs: [
         { championId: "sejuani", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

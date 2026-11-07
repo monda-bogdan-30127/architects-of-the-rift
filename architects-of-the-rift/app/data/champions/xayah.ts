@@ -64,7 +64,6 @@ export const xayah = createChampion({
         { championId: "ziggs", level: 2, phase: "lane" },
         { championId: "kaisa", level: 1, phase: "all" },
       ],
-      weakVs: [],
       mustWith: ["rakan"],
       stats: {
         picks: 9,

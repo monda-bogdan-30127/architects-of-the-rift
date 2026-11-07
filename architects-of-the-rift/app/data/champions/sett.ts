@@ -67,8 +67,6 @@ export const sett = createChampion({
       goodVs: [
         { championId: "volibear", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

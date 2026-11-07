@@ -63,7 +63,6 @@ export const kogmaw = createChampion({
       goodVs: [
         { championId: "caitlyn", level: 2, phase: "late" },
       ],
-      weakVs: [],
       mustWith: ["lulu"],
       stats: null,
     },
@@ -71,8 +70,6 @@ export const kogmaw = createChampion({
       goodVs: [
         { championId: "galio", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 3,
         bans: null,

@@ -53,8 +53,6 @@ export const amumu = createChampion({
       goodVs: [
         { championId: "master-yi", level: 2, phase: "all", note: "CC în lanț pe un campion de autoatacuri" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

@@ -56,8 +56,6 @@ export const lillia = createChampion({
         { championId: "kindred", level: 2, phase: "lane" },
         { championId: "sejuani", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

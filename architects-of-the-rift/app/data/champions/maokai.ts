@@ -71,8 +71,6 @@ export const maokai = createChampion({
         { championId: "rengar", level: 2, phase: "all", note: "tank cu CC point-click, nu poate fi one-shot" },
         { championId: "pantheon", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 4,
         bans: null,
@@ -112,8 +110,6 @@ export const maokai = createChampion({
     },
     support: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

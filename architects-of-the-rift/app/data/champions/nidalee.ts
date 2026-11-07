@@ -64,8 +64,6 @@ export const nidalee = createChampion({
         { championId: "nunu", level: 2, phase: "lane" },
         { championId: "sejuani", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

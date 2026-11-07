@@ -92,8 +92,6 @@ export const jayce = createChampion({
         { championId: "yorick", level: 2, phase: "lane" },
         { championId: "zaahen", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 12,
         bans: null,
@@ -134,8 +132,6 @@ export const jayce = createChampion({
         { championId: "karthus", level: 2, phase: "lane" },
         { championId: "sejuani", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 3,
         bans: null,

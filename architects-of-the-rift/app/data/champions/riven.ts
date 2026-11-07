@@ -63,8 +63,6 @@ export const riven = createChampion({
   roleData: {
     top: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

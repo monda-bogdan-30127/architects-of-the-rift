@@ -56,8 +56,6 @@ export const rammus = createChampion({
         { championId: "khazix", level: 2, phase: "all", note: "armură și taunt, nu poate fi izolat" },
         { championId: "rengar", level: 2, phase: "all", note: "armură și taunt, nu poate fi one-shot" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

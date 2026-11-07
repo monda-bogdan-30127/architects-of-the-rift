@@ -54,8 +54,6 @@ export const masterYi = createChampion({
   roleData: {
     jungle: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

@@ -65,14 +65,10 @@ export const zilean = createChampion({
       goodVs: [
         { championId: "pyke", level: 2, phase: "all", note: "R salvează aliatul de execute" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
     mid: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

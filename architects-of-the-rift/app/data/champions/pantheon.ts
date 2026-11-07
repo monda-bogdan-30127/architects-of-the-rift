@@ -72,8 +72,6 @@ export const pantheon = createChampion({
         { championId: "kindred", level: 2, phase: "lane" },
         { championId: "nocturne", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 15,
         bans: null,

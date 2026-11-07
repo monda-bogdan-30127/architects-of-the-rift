@@ -58,8 +58,6 @@ export const teemo = createChampion({
         { championId: "nasus", level: 2, phase: "lane" },
         { championId: "olaf", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

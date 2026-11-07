@@ -53,8 +53,6 @@ export const akshan = createChampion({
         { championId: "velkoz", level: 2, phase: "lane" },
         { championId: "xerath", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
     top: {
@@ -62,8 +60,6 @@ export const akshan = createChampion({
         { championId: "ornn", level: 2, phase: "lane" },
         { championId: "sion", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

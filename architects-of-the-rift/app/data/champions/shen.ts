@@ -65,8 +65,6 @@ export const shen = createChampion({
       goodVs: [
         { championId: "yuumi", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 3,
         bans: null,
@@ -93,8 +91,6 @@ export const shen = createChampion({
       goodVs: [
         { championId: "tryndamere", level: 2, phase: "all", note: "W blochează autoatacurile, R salvează carry-ul" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 4,
         bans: null,

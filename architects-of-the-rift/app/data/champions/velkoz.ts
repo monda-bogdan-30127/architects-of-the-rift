@@ -52,14 +52,10 @@ export const velkoz = createChampion({
   roleData: {
     mid: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
     support: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

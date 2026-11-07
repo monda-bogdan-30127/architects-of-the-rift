@@ -69,8 +69,6 @@ export const viktor = createChampion({
         { championId: "syndra", level: 2, phase: "late" },
         { championId: "azir", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 18,
         bans: null,

@@ -66,16 +66,12 @@ export const diana = createChampion({
       goodVs: [
         { championId: "karthus", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
     mid: {
       goodVs: [
         { championId: "xerath", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

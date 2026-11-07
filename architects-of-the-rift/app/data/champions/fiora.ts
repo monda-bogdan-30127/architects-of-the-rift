@@ -72,8 +72,6 @@ export const fiora = createChampion({
         { championId: "sion", level: 2, phase: "all", note: "vitals contra tank-ului" },
         { championId: "darius", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

@@ -68,8 +68,6 @@ export const corki = createChampion({
         { championId: "kogmaw", level: 2, phase: "lane" },
         { championId: "ezreal", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 7,
         bans: null,

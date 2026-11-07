@@ -71,8 +71,6 @@ export const kayle = createChampion({
         { championId: "sion", level: 2, phase: "late" },
         { championId: "zaahen", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

@@ -65,8 +65,6 @@ export const taric = createChampion({
       goodVs: [
         { championId: "pyke", level: 2, phase: "all", note: "R (imunitate) anulează execute-ul" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

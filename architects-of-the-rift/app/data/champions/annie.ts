@@ -64,8 +64,6 @@ export const annie = createChampion({
         { championId: "yone", level: 2, phase: "all", note: "stun point-click pe un campion care trebuie să intre în ea" },
         { championId: "akali", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 6,
         bans: null,

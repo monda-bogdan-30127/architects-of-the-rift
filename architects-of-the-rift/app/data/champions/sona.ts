@@ -52,8 +52,6 @@ export const sona = createChampion({
   roleData: {
     support: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

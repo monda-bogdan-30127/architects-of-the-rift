@@ -65,8 +65,6 @@ export const milio = createChampion({
         { championId: "leona", level: 2, phase: "all", note: "R curăță CC-ul și reface lupta" },
         { championId: "nautilus", level: 2, phase: "all", note: "R curăță CC-ul și reface lupta" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 13,
         bans: null,

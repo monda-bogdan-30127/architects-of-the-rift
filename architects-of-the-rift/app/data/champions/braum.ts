@@ -64,8 +64,6 @@ export const braum = createChampion({
         { championId: "ezreal", level: 2, phase: "lane" },
         { championId: "ziggs", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
       profile: {
         tags: ["ranged", "warden", "peel", "anti-dive", "front-to-back"],

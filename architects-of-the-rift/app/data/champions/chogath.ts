@@ -65,14 +65,10 @@ export const chogath = createChampion({
       goodVs: [
         { championId: "jayce", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
     jungle: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 2,
         bans: null,
@@ -99,8 +95,6 @@ export const chogath = createChampion({
       goodVs: [
         { championId: "katarina", level: 2, phase: "all", note: "silence-ul și knock-up-ul întrerup R-ul Katarinei" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

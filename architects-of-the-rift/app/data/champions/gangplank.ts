@@ -62,8 +62,6 @@ export const gangplank = createChampion({
         { championId: "quinn", level: 2, phase: "late" },
         { championId: "sion", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

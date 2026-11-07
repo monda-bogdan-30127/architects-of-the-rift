@@ -69,8 +69,6 @@ export const xinZhao = createChampion({
         { championId: "kindred", level: 2, phase: "lane" },
         { championId: "lillia", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 7,
         bans: null,

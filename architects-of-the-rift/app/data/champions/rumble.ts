@@ -78,8 +78,6 @@ export const rumble = createChampion({
         { championId: "udyr", level: 2, phase: "lane" },
         { championId: "olaf", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 23,
         bans: null,
@@ -121,8 +119,6 @@ export const rumble = createChampion({
         { championId: "anivia", level: 2, phase: "lane" },
         { championId: "azir", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

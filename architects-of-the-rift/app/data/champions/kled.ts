@@ -67,8 +67,6 @@ export const kled = createChampion({
         { championId: "dr-mundo", level: 2, phase: "lane" },
         { championId: "gragas", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 3,
         bans: null,

@@ -66,8 +66,6 @@ export const thresh = createChampion({
         { championId: "sona", level: 2, phase: "lane" },
         { championId: "soraka", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

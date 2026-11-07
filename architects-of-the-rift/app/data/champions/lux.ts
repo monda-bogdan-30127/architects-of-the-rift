@@ -64,8 +64,6 @@ export const lux = createChampion({
   roleData: {
     support: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

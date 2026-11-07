@@ -65,8 +65,6 @@ export const yasuo = createChampion({
         { championId: "xerath", level: 2, phase: "lane" },
         { championId: "ziggs", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
       profile: {
         comboDependency: { needsKnockup: 9 },
@@ -76,8 +74,6 @@ export const yasuo = createChampion({
       goodVs: [
         { championId: "gnar", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
       profile: {
         comboDependency: { needsKnockup: 9 },

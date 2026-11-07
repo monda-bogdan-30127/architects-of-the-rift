@@ -54,8 +54,6 @@ export const xerath = createChampion({
       goodVs: [
         { championId: "chogath", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

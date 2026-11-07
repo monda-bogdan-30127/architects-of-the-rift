@@ -62,8 +62,6 @@ export const yone = createChampion({
   roleData: {
     mid: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 3,
         bans: null,
@@ -88,8 +86,6 @@ export const yone = createChampion({
     },
     top: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

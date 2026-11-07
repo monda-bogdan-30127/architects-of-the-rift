@@ -67,8 +67,6 @@ export const lulu = createChampion({
         { championId: "pyke", level: 2, phase: "all", note: "polymorph oprește all-in-ul, R salvează ținta" },
         { championId: "rell", level: 2, phase: "all", note: "polymorph oprește engage-ul" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 22,
         bans: null,

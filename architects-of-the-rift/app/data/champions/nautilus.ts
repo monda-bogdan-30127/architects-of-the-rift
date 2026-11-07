@@ -72,8 +72,6 @@ export const nautilus = createChampion({
         { championId: "yuumi", level: 2, phase: "lane" },
         { championId: "zyra", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 23,
         bans: null,

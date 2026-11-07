@@ -67,8 +67,6 @@ export const skarner = createChampion({
         { championId: "master-yi", level: 2, phase: "all", note: "R (suppression) point-click pe un campion de autoatacuri" },
         { championId: "rengar", level: 2, phase: "all", note: "tank cu suppression, nu poate fi one-shot" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 4,
         bans: null,

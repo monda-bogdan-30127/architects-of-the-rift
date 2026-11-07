@@ -70,8 +70,6 @@ export const darius = createChampion({
         { championId: "kayle", level: 2, phase: "lane" },
         { championId: "nasus", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

@@ -68,16 +68,12 @@ export const volibear = createChampion({
         { championId: "karthus", level: 2, phase: "lane" },
         { championId: "kindred", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
     top: {
       goodVs: [
         { championId: "kayle", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

@@ -75,8 +75,6 @@ export const galio = createChampion({
         { championId: "viktor", level: 2, phase: "all", note: "MR și taunt pe un mage imobil" },
         { championId: "zoe", level: 2, phase: "all", note: "MR și engage pe un mage fragil" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 9,
         bans: null,
@@ -106,8 +104,6 @@ export const galio = createChampion({
         { championId: "rumble", level: 2, phase: "all", note: "pasivul W (MR) anulează damage-ul AP al lui Rumble" },
         { championId: "vladimir", level: 2, phase: "all", note: "MR și taunt contra unui mage de lupte lungi" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 5,
         bans: null,

@@ -121,7 +121,7 @@ for (const [id, byRole] of imported) {
     lines.splice(
       roleDataEnd,
       0,
-      ...newRoles.flatMap((role) => [`    ${role}: {`, "      goodVs: [],", "      weakVs: [],", "      mustWith: [],", "      stats: null,", "    },"]),
+      ...newRoles.flatMap((role) => [`    ${role}: {`, "      goodVs: [],", "      stats: null,", "    },"]),
     );
     addedRoles.push(...newRoles.map((role) => `${id}:${role}`));
   }

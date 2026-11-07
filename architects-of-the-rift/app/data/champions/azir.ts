@@ -66,8 +66,6 @@ export const azir = createChampion({
         { championId: "syndra", level: 2, phase: "late" },
         { championId: "zed", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

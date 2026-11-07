@@ -70,8 +70,6 @@ export const ashe = createChampion({
         { championId: "samira", level: 2, phase: "all", note: "slow constant și R opresc dive-ul Samirei" },
         { championId: "kaisa", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 13,
         bans: null,

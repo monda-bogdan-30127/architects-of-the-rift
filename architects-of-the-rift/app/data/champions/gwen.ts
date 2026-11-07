@@ -75,8 +75,6 @@ export const gwen = createChampion({
         { championId: "rumble", level: 2, phase: "late" },
         { championId: "sion", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

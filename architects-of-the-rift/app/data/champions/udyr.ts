@@ -64,8 +64,6 @@ export const udyr = createChampion({
   roleData: {
     top: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
     jungle: {
@@ -73,8 +71,6 @@ export const udyr = createChampion({
         { championId: "ivern", level: 2, phase: "lane" },
         { championId: "karthus", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

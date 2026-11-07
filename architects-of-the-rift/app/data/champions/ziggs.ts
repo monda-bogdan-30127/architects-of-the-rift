@@ -66,8 +66,6 @@ export const ziggs = createChampion({
   roleData: {
     adc: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 5,
         bans: null,
@@ -92,8 +90,6 @@ export const ziggs = createChampion({
     },
     mid: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

@@ -64,8 +64,6 @@ export const zaahen = createChampion({
   roleData: {
     jungle: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
       profile: {
         tags: ["melee", "fighter", "assassin", "snowball", "skirmish"],
@@ -91,8 +89,6 @@ export const zaahen = createChampion({
         { championId: "gwen", level: 1, phase: "all" },
         { championId: "ksante", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 5,
         bans: null,

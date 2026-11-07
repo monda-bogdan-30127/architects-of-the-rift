@@ -62,8 +62,6 @@ export const anivia = createChampion({
   roleData: {
     mid: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 8,
         bans: null,
@@ -88,8 +86,6 @@ export const anivia = createChampion({
     },
     support: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

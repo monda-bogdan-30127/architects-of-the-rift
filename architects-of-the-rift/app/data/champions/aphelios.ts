@@ -65,8 +65,6 @@ export const aphelios = createChampion({
       goodVs: [
         { championId: "ashe", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 2,
         bans: null,

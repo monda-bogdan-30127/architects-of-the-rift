@@ -66,8 +66,6 @@ export const naafiri = createChampion({
       goodVs: [
         { championId: "karthus", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 6,
         bans: null,

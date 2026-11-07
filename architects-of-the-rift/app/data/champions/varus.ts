@@ -67,8 +67,6 @@ export const varus = createChampion({
         { championId: "jinx", level: 2, phase: "lane" },
         { championId: "kaisa", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 2,
         bans: null,

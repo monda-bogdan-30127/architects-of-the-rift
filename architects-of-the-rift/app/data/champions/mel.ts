@@ -68,8 +68,6 @@ export const mel = createChampion({
         { championId: "xerath", level: 2, phase: "all", note: "W reflectă skillshot-urile unui artillery" },
         { championId: "ziggs", level: 2, phase: "all", note: "W reflectă skillshot-urile" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,
@@ -94,8 +92,6 @@ export const mel = createChampion({
     },
     adc: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

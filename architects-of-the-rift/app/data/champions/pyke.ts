@@ -65,8 +65,6 @@ export const pyke = createChampion({
       goodVs: [
         { championId: "sona", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 2,
         bans: null,

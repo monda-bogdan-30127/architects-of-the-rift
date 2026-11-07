@@ -73,8 +73,6 @@ export const camille = createChampion({
         { championId: "aatrox", level: 1, phase: "all" },
         { championId: "riven", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 9,
         bans: null,
@@ -101,8 +99,6 @@ export const camille = createChampion({
       goodVs: [
         { championId: "yuumi", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 2,
         bans: null,

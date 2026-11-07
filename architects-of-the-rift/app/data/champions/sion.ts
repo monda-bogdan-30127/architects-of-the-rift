@@ -66,8 +66,6 @@ export const sion = createChampion({
         { championId: "jayce", level: 2, phase: "late" },
         { championId: "renekton", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

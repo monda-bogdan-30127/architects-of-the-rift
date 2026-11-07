@@ -67,8 +67,6 @@ export const vi = createChampion({
         { championId: "nidalee", level: 2, phase: "all", note: "R point-click, Nidalee nu poate scăpa" },
         { championId: "karthus", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 15,
         bans: null,

@@ -82,8 +82,6 @@ export const kennen = createChampion({
         { championId: "shen", level: 1, phase: "all" },
         { championId: "teemo", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 3,
         bans: null,

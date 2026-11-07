@@ -63,8 +63,6 @@ export const nami = createChampion({
       goodVs: [
         { championId: "yuumi", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 3,
         bans: null,

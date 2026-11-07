@@ -68,8 +68,6 @@ export const kaisa = createChampion({
         { championId: "ziggs", level: 2, phase: "all", note: "dive pe un mage imobil" },
         { championId: "caitlyn", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 11,
         bans: null,

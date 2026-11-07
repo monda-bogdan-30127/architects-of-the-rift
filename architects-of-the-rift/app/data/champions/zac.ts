@@ -63,14 +63,10 @@ export const zac = createChampion({
   roleData: {
     top: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
     jungle: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

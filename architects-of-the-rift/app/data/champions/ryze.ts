@@ -70,8 +70,6 @@ export const ryze = createChampion({
         { championId: "galio", level: 2, phase: "late" },
         { championId: "cassiopeia", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 8,
         bans: null,

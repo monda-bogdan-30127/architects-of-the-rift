@@ -66,8 +66,6 @@ export const twitch = createChampion({
       goodVs: [
         { championId: "kalista", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

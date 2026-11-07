@@ -67,8 +67,6 @@ export const jinx = createChampion({
         { championId: "caitlyn", level: 2, phase: "late" },
         { championId: "lucian", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

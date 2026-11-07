@@ -65,8 +65,6 @@ export const ahri = createChampion({
         { championId: "vladimir", level: 2, phase: "lane" },
         { championId: "zoe", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 6,
         bans: null,

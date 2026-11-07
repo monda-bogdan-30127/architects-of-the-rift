@@ -54,8 +54,6 @@ export const shaco = createChampion({
       goodVs: [
         { championId: "karthus", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

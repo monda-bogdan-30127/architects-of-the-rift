@@ -77,8 +77,6 @@ export const cassiopeia = createChampion({
         { championId: "anivia", level: 1, phase: "all" },
         { championId: "orianna", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 15,
         bans: null,
@@ -108,8 +106,6 @@ export const cassiopeia = createChampion({
       goodVs: [
         { championId: "ziggs", level: 2, phase: "all", note: "DPS constant contra unui mage de poke; favorabilă în pro 2026 (12-2)" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

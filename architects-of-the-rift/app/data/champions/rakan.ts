@@ -64,7 +64,6 @@ export const rakan = createChampion({
         { championId: "sona", level: 2, phase: "lane" },
         { championId: "soraka", level: 2, phase: "lane" },
       ],
-      weakVs: [],
       mustWith: ["xayah"],
       stats: {
         picks: 11,

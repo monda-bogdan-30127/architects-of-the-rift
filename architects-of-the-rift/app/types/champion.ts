@@ -76,8 +76,6 @@ export type ChampionRoleStats = { [K in keyof ChampionStats]: ChampionStats[K] |
 export type ChampionRoleData = {
   /** „Pe cine bat eu”. `weakVs` nu se scrie: e derivat din `goodVs`-ul celorlalți. */
   goodVs: MatchupRelation[];
-  /** @deprecated Format vechi, ignorat de engine; validatorul dă eroare dacă e nevid. Dispare după migrare. */
-  weakVs?: MatchupRelation[];
   /**
    * Direcțional: campionul e construit în jurul acestor parteneri (doar id-uri,
    * ordinea = preferința). Lipsă = fără partener; nu se scrie `mustWith: []`.

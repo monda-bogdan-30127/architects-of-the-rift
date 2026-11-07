@@ -63,8 +63,6 @@ export const gragas = createChampion({
   roleData: {
     top: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

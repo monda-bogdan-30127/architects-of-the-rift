@@ -53,16 +53,12 @@ export const talon = createChampion({
         { championId: "kassadin", level: 2, phase: "lane" },
         { championId: "twisted-fate", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
     jungle: {
       goodVs: [
         { championId: "karthus", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

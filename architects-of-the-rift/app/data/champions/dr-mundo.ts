@@ -63,8 +63,6 @@ export const drMundo = createChampion({
   roleData: {
     jungle: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
       profile: {
         tags: ["melee", "frontline", "tank", "stat-check", "anti-poke"],
@@ -83,8 +81,6 @@ export const drMundo = createChampion({
     },
     top: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

@@ -70,8 +70,6 @@ export const zed = createChampion({
         { championId: "smolder", level: 2, phase: "lane" },
         { championId: "twisted-fate", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

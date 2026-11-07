@@ -67,8 +67,6 @@ export const missFortune = createChampion({
         { championId: "jinx", level: 2, phase: "lane" },
         { championId: "kogmaw", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 6,
         bans: null,

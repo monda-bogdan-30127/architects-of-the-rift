@@ -68,8 +68,6 @@ export const ksante = createChampion({
         { championId: "sion", level: 2, phase: "late" },
         { championId: "ornn", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 20,
         bans: null,
@@ -109,8 +107,6 @@ export const ksante = createChampion({
     },
     mid: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

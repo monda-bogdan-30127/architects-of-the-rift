@@ -70,8 +70,6 @@ export const vex = createChampion({
         { championId: "yasuo", level: 2, phase: "all", note: "pasivul pedepsește dash-urile" },
         { championId: "yone", level: 2, phase: "all", note: "pasivul pedepsește dash-urile" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

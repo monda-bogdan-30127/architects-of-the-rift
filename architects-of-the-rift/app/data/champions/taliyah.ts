@@ -66,8 +66,6 @@ export const taliyah = createChampion({
       goodVs: [
         { championId: "aurelion-sol", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 8,
         bans: null,
@@ -92,8 +90,6 @@ export const taliyah = createChampion({
     },
     adc: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

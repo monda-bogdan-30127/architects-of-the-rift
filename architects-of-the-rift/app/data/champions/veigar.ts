@@ -63,8 +63,6 @@ export const veigar = createChampion({
   roleData: {
     mid: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
       profile: {
         tags: ["ranged", "control", "burst", "pick", "zone-control", "ap"],

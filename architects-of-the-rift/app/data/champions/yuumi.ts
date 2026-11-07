@@ -63,8 +63,6 @@ export const yuumi = createChampion({
   roleData: {
     support: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 4,
         bans: null,

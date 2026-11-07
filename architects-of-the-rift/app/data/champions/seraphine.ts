@@ -68,8 +68,6 @@ export const seraphine = createChampion({
         { championId: "sona", level: 2, phase: "lane" },
         { championId: "yuumi", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 15,
         bans: null,
@@ -94,8 +92,6 @@ export const seraphine = createChampion({
     },
     adc: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

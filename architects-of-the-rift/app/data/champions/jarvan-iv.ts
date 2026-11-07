@@ -69,8 +69,6 @@ export const jarvanIv = createChampion({
         { championId: "karthus", level: 2, phase: "lane" },
         { championId: "master-yi", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 24,
         bans: null,

@@ -63,8 +63,6 @@ export const samira = createChampion({
         { championId: "jhin", level: 2, phase: "all", note: "dive pe un carry imobil" },
         { championId: "jinx", level: 2, phase: "all", note: "dive pe un carry imobil" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

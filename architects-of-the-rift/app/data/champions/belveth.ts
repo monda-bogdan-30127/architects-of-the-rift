@@ -67,8 +67,6 @@ export const belveth = createChampion({
         { championId: "vi", level: 2, phase: "late" },
         { championId: "xin-zhao", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

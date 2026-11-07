@@ -65,8 +65,6 @@ export const sivir = createChampion({
         { championId: "blitzcrank", level: 2, phase: "all", note: "E (spell shield) blochează hook-ul" },
         { championId: "kogmaw", level: 2, phase: "late" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 3,
         bans: null,

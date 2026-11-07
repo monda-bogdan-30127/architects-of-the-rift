@@ -73,8 +73,6 @@ export const trundle = createChampion({
         { championId: "zac", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
         { championId: "ivern", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 10,
         bans: null,
@@ -117,8 +115,6 @@ export const trundle = createChampion({
         { championId: "ornn", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
         { championId: "sion", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,

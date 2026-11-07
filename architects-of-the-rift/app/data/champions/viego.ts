@@ -65,8 +65,6 @@ export const viego = createChampion({
         { championId: "karthus", level: 2, phase: "lane" },
         { championId: "kindred", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

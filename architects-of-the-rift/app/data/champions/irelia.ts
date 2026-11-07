@@ -69,8 +69,6 @@ export const irelia = createChampion({
         { championId: "gnar", level: 2, phase: "lane" },
         { championId: "yone", level: 1, phase: "all" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 1,
         bans: null,
@@ -95,8 +93,6 @@ export const irelia = createChampion({
     },
     mid: {
       goodVs: [],
-      weakVs: [],
-      mustWith: [],
       stats: null,
     },
   },

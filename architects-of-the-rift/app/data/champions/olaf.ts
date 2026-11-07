@@ -71,8 +71,6 @@ export const olaf = createChampion({
         { championId: "sion", level: 2, phase: "lane" },
         { championId: "twisted-fate", level: 2, phase: "lane" },
       ],
-      weakVs: [],
-      mustWith: [],
       stats: {
         picks: 16,
         bans: null,
