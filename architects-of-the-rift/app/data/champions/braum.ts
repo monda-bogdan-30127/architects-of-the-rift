@@ -72,6 +72,18 @@ export const braum = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["ranged", "warden", "peel", "anti-dive", "front-to-back"],
+        abilities: [
+          { key: "passive", name: "Concussive Blows", effects: [{ type: "mark", subtype: "ally-proc-cc", strength: 9, reliability: 9, priority: 9 }] },
+          { key: "e", name: "Unbreakable", effects: [{ type: "projectile-block", strength: 10, reliability: 9, priority: 10 }, { type: "anti-engage", strength: 8, reliability: 8, priority: 8 }] },
+          { key: "r", name: "Glacial Fissure", effects: [{ type: "knockup", strength: 8, reliability: 8, priority: 8 }, { type: "slow", strength: 7, reliability: 9, priority: 7 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 10, ground: 0, displacement: 6, visionControl: 4 },
+        accessProfile: { engageRange: 5, targetAccess: 3, stickiness: 4 },
+        threatProfile: { backlineThreat: 2, frontlineThreat: 5, pickThreat: 5, zoneThreat: 5, antiDiveThreat: 10 },
+        phaseIdentity: { earlyRole: "peel", midRole: "peel", lateRole: "peel" },
+      },
     },
   },
 });

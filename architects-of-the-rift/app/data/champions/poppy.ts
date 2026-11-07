@@ -78,6 +78,19 @@ export const poppy = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "frontline", "tank", "anti-dash", "engage", "utility", "teamfight"],
+        abilities: [
+          { key: "q", name: "Hammer Shock", effects: [{ type: "burst", strength: 6, reliability: 7, priority: 6 }, { type: "slow", strength: 5, reliability: 8, priority: 5 }, { type: "zone-control", subtype: "delayed-area-threat", strength: 6, reliability: 7, priority: 6 }] },
+          { key: "w", name: "Steadfast Presence", effects: [{ type: "anti-dash", subtype: "area-denial", strength: 10, reliability: 9, priority: 10, counters: ["dash"] }, { type: "anti-engage", strength: 9, reliability: 9, priority: 9 }, { type: "zone-control", subtype: "anti-entry-zone", strength: 8, reliability: 9, priority: 8 }] },
+          { key: "e", name: "Heroic Charge", effects: [{ type: "dash", strength: 6, reliability: 7, priority: 6 }, { type: "stun", subtype: "wall-conditional", strength: 8, reliability: 6, priority: 8, conditions: ["needs-terrain"] }, { type: "displacement", strength: 7, reliability: 7, priority: 7 }] },
+          { key: "r", name: "Keeper's Verdict", effects: [{ type: "displacement", subtype: "fight-reset", strength: 10, reliability: 7, priority: 10 }, { type: "anti-engage", subtype: "deny-commit", strength: 9, reliability: 7, priority: 9 }, { type: "zone-control", subtype: "objective-space-control", strength: 8, reliability: 7, priority: 8 }] },
+        ],
+        special: { antiDash: 10, projectileBlock: 0, ground: 0, displacement: 9, visionControl: 3 },
+        accessProfile: { engageRange: 6, targetAccess: 5, stickiness: 6 },
+        threatProfile: { backlineThreat: 5, frontlineThreat: 7, pickThreat: 6, zoneThreat: 8, antiDiveThreat: 10 },
+        phaseIdentity: { earlyRole: "utility", midRole: "tank", lateRole: "peel" },
+      },
     },
     top: {
       goodVs: [

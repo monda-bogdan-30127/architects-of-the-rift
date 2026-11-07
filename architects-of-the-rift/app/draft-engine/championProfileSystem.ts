@@ -1,4 +1,3 @@
-import { championProfileOverrides } from "@/app/data/championProfileOverrides";
 import type { Champion, ChampionRoleProfile, ChampionSynergyRule, Role } from "@/app/types/champion";
 import type { CompAttribute } from "@/app/types/compAttributes";
 import { getChampionStatsForRole } from "./championRoleStatsSystem";
@@ -111,45 +110,15 @@ function buildSynergyRules(champion: Champion): ChampionRoleProfile["synergy"] {
   // reguli de profil — se citesc doar din championMatchups.ts, cu rolul proiectat
   // (altfel erau numărate de 2–3 ori, iar mustWith penaliza ancora fără partener).
 
-  if (champion.id === "sejuani") {
-    wantsTeam.push({
-      id: "sejuani-melee-density",
-      type: "team",
-      targetTags: ["melee"],
-      scalingByCount: [
-        { count: 1, score: 2 },
-        { count: 2, score: 6 },
-        { count: 3, score: 10 },
-      ],
-      effect: { score: 0, reason: "Passive and stack access improve with melee allies" },
-    });
-  }
-
-  if (champion.id === "zeri") {
-    wantsTeam.push({
-      id: "zeri-protection-shell",
-      type: "team",
-      targetTags: ["frontline", "enchanter", "warden"],
-      minCount: 2,
-      effect: { score: 8, reason: "Needs real protection structure to unlock full value" },
-    });
-  }
-
-  if (champion.id === "xin-zhao") {
-    goodWith.push({
-      id: "xin-enchanter-shell",
-      type: "ally",
-      targetTags: ["enchanter", "shielding", "healing"],
-      effect: { score: 6, reason: "Protection extends commit windows" },
-    });
-  }
+  // Regulile specifice unui campion (ex. Sejuani + melee, Zeri + protecție) stau în
+  // `roleData[rol].profile.synergy` din fișierul campionului și se adaugă la acestea.
 
   return { wantsAllies, wantsTeam, goodWith };
 }
 
+/** Corecțiile manuale din fișierul campionului (`roleData[rol].profile`). */
 function getOverride(champion: Champion, role: Role) {
-  // TEMPORAR: fallback pe fișierul vechi până la mutarea override-urilor în roleData.
-  return champion.roleData[role]?.profile ?? championProfileOverrides[`${champion.id}:${role}`];
+  return champion.roleData[role]?.profile;
 }
 
 /** Regulile din override se ADAUGĂ la cele derivate; aceeași `id` → regula din override o înlocuiește. */
@@ -185,12 +154,12 @@ export function deriveChampionRoleProfile(champion: Champion, role: Role): Champ
       burst: clamp(baseDamageBurst || (role === "mid" ? 6 : 3)),
       dps: clamp(baseDamageDps || (role === "adc" ? 8 : 3)),
       poke: clamp(baseDamagePoke || (waveclear >= 6 ? 4 : 1)),
-      execute: clamp(champion.id === "veigar" ? 9 : 0),
+      execute: 0,
     },
     damageDelivery: {
       uptime: clamp(avg([baseDamageDps, scaling, role === "adc" ? 8 : 3])),
       reliability: clamp(avg([baseDamageBurst, baseDamageDps, reliableCC, 5])),
-      aoe: clamp(avg([waveclear, pick, champion.id === "orianna" ? 8 : 2])),
+      aoe: clamp(avg([waveclear, pick, 2])),
     },
     ccProfile: {
       hard: clamp(avg([engage, pick, reliableCC])),
@@ -213,8 +182,8 @@ export function deriveChampionRoleProfile(champion: Champion, role: Role): Champ
     },
     special: {
       antiDash: 0,
-      projectileBlock: champion.id === "braum" ? 10 : 0,
-      ground: champion.id === "cassiopeia" ? 10 : 0,
+      projectileBlock: 0,
+      ground: 0,
       displacement: clamp(avg([pick, engage])),
       visionControl: clamp(avg([offer(champion, "roamPressure") * 2, offer(champion, "pick") * 2, 2])),
     },
@@ -252,11 +221,11 @@ export function deriveChampionRoleProfile(champion: Champion, role: Role): Champ
       contestPriority: clamp(getContestPriority(champion, role), 0, 10),
     },
     comboDependency: {
-      needsKnockup: champion.id === "yasuo" ? 9 : 0,
+      needsKnockup: 0,
       needsEngage: needPriority(champion, "engage") >= 2 ? 6 : 0,
       needsFrontline: needPriority(champion, "frontline") >= 2 ? 6 : 0,
       needsPeel: needPriority(champion, "peel") >= 2 ? 6 : 0,
-      needsEnchanter: champion.id === "zeri" || champion.id === "xin-zhao" ? 7 : 0,
+      needsEnchanter: 0,
     },
     synergy: buildSynergyRules(champion),
     roleSpecific: buildRoleSpecific(role, champion, lanePressure),
@@ -350,11 +319,6 @@ export function getChampionRoleProfile(champion: Champion | null, requestedRole?
   if (!champion) return null;
   const role = requestedRole && hasRole(champion, requestedRole) ? requestedRole : champion.roles[0] ?? null;
   if (!role) return null;
-  if (champion.roleProfiles?.length) {
-    const existing = champion.roleProfiles.find((profile) => profile.role === role) ?? champion.roleProfiles[0];
-    if (existing) return existing;
-  }
-
   // Datele sunt statice: profilul se calculează o singură dată per campion × rol.
   let byRole = profileCache.get(champion);
   if (!byRole) {

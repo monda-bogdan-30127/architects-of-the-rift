@@ -76,6 +76,20 @@ export const ambessa = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "diver", "carry", "skirmish", "snowball"],
+        abilities: [
+          { key: "q", name: "Cunning Sweep / Sundering Slam", effects: [{ type: "burst", strength: 7, reliability: 7, priority: 7 }, { type: "slow", strength: 4, reliability: 7, priority: 4 }] },
+          { key: "e", name: "Public Execution", effects: [{ type: "dash", strength: 8, reliability: 8, priority: 8 }, { type: "mobility", subtype: "target-stick", strength: 8, reliability: 8, priority: 8 }] },
+          { key: "r", name: "Shadow Hunt", effects: [{ type: "dash", subtype: "backline-commit", strength: 10, reliability: 8, priority: 10 }, { type: "burst", subtype: "carry-assassination-window", strength: 9, reliability: 7, priority: 9 }, { type: "setup", subtype: "dive-start", strength: 7, reliability: 7, priority: 7 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 2, visionControl: 1 },
+        accessProfile: { engageRange: 8, targetAccess: 9, stickiness: 8 },
+        threatProfile: { backlineThreat: 9, frontlineThreat: 7, pickThreat: 6, zoneThreat: 4, antiDiveThreat: 3 },
+        phaseIdentity: { earlyRole: "carry", midRole: "carry", lateRole: "secondary-carry" },
+        conditions: { requiresFrontline: true, requiresPeel: true, requiresFollowUp: true },
+        comboDependency: { needsFrontline: 6, needsPeel: 5, needsEngage: 0 },
+      },
     },
     jungle: {
       goodVs: [
@@ -87,6 +101,20 @@ export const ambessa = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "diver", "carry", "skirmish", "snowball"],
+        abilities: [
+          { key: "q", name: "Cunning Sweep / Sundering Slam", effects: [{ type: "burst", strength: 7, reliability: 7, priority: 7 }, { type: "slow", strength: 4, reliability: 7, priority: 4 }] },
+          { key: "e", name: "Public Execution", effects: [{ type: "dash", strength: 8, reliability: 8, priority: 8 }, { type: "mobility", subtype: "target-stick", strength: 8, reliability: 8, priority: 8 }] },
+          { key: "r", name: "Shadow Hunt", effects: [{ type: "dash", subtype: "backline-commit", strength: 10, reliability: 8, priority: 10 }, { type: "burst", subtype: "carry-assassination-window", strength: 9, reliability: 7, priority: 9 }, { type: "setup", subtype: "dive-start", strength: 7, reliability: 7, priority: 7 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 2, visionControl: 1 },
+        accessProfile: { engageRange: 8, targetAccess: 9, stickiness: 8 },
+        threatProfile: { backlineThreat: 9, frontlineThreat: 7, pickThreat: 6, zoneThreat: 4, antiDiveThreat: 3 },
+        phaseIdentity: { earlyRole: "carry", midRole: "carry", lateRole: "secondary-carry" },
+        conditions: { requiresFrontline: true, requiresPeel: true, requiresFollowUp: true },
+        comboDependency: { needsFrontline: 6, needsPeel: 5 },
+      },
     },
   },
 });

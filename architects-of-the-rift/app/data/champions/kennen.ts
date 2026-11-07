@@ -74,6 +74,20 @@ export const kennen = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["ranged", "ap", "teamfight", "flank", "wombo"],
+        abilities: [
+          { key: "q", name: "Thundering Shuriken", effects: [{ type: "poke", strength: 5, reliability: 7, priority: 5 }] },
+          { key: "e", name: "Lightning Rush", effects: [{ type: "dash", subtype: "flank-entry", strength: 7, reliability: 8, priority: 7 }, { type: "mobility", strength: 8, reliability: 8, priority: 8 }] },
+          { key: "r", name: "Slicing Maelstrom", effects: [{ type: "stun", subtype: "multi-target", strength: 8, reliability: 8, priority: 8 }, { type: "zone-control", subtype: "aoe-lockdown", strength: 9, reliability: 8, priority: 9 }, { type: "burst", subtype: "teamfight-spike", strength: 8, reliability: 7, priority: 8 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 0, visionControl: 1 },
+        accessProfile: { engageRange: 7, targetAccess: 8, stickiness: 5 },
+        threatProfile: { backlineThreat: 8, frontlineThreat: 6, pickThreat: 4, zoneThreat: 9, antiDiveThreat: 3 },
+        phaseIdentity: { earlyRole: "secondary-carry", midRole: "carry", lateRole: "utility" },
+        conditions: { requiresEngage: true, requiresFollowUp: true },
+        comboDependency: { needsEngage: 7, needsFrontline: 0, needsPeel: 0 },
+      },
     },
   },
 });

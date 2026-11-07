@@ -74,6 +74,25 @@ export const zeri = createChampion({
       ],
       mustWith: ["lulu", "yuumi"],
       stats: null,
+      profile: {
+        tags: ["ranged", "backline", "dps", "primary-carry", "front-to-back", "teamfight", "ad"],
+        abilities: [
+          { key: "q", name: "Burst Fire", effects: [{ type: "dps", subtype: "main-pattern", strength: 9, reliability: 7, priority: 9 }] },
+          { key: "w", name: "Ultrashock Laser", effects: [{ type: "poke", strength: 5, reliability: 5, priority: 5 }] },
+          { key: "e", name: "Spark Surge", effects: [{ type: "dash", strength: 7, reliability: 7, priority: 7 }, { type: "mobility", subtype: "repositioning", strength: 8, reliability: 8, priority: 8 }] },
+          { key: "r", name: "Lightning Crash", effects: [{ type: "dps", subtype: "extended-fight", strength: 9, reliability: 8, priority: 9 }, { type: "zone-control", subtype: "teamfight-threat-space", strength: 6, reliability: 7, priority: 6 }] },
+        ],
+        accessProfile: { engageRange: 2, targetAccess: 5, stickiness: 7 },
+        threatProfile: { backlineThreat: 8, frontlineThreat: 9, pickThreat: 2, zoneThreat: 5, antiDiveThreat: 1 },
+        phaseIdentity: { earlyRole: "secondary-carry", midRole: "carry", lateRole: "carry" },
+        conditions: { requiresFrontline: true, requiresPeel: true },
+        comboDependency: { needsFrontline: 8, needsPeel: 9, needsEnchanter: 7 },
+        synergy: {
+          wantsTeam: [
+            { id: "zeri-protection-shell", type: "team", targetTags: ["frontline", "enchanter", "warden"], minCount: 2, effect: { score: 8, reason: "Needs real protection structure to unlock full value" } },
+          ],
+        },
+      },
     },
   },
 });

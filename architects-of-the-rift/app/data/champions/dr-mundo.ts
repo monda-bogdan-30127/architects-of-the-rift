@@ -76,6 +76,20 @@ export const drMundo = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "frontline", "tank", "stat-check", "anti-poke"],
+        abilities: [
+          { key: "q", name: "Infected Bonesaw", effects: [{ type: "slow", strength: 7, reliability: 8, priority: 7 }, { type: "poke", strength: 5, reliability: 8, priority: 5 }] },
+          { key: "e", name: "Blunt Force Trauma", effects: [{ type: "burst", strength: 6, reliability: 8, priority: 6 }] },
+          { key: "r", name: "Maximum Dosage", effects: [{ type: "heal", subtype: "massive-self-sustain", strength: 10, reliability: 10, priority: 10 }, { type: "mobility", subtype: "run-down", strength: 6, reliability: 8, priority: 6 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 0, visionControl: 2 },
+        accessProfile: { engageRange: 4, targetAccess: 5, stickiness: 7 },
+        threatProfile: { backlineThreat: 5, frontlineThreat: 8, pickThreat: 3, zoneThreat: 3, antiDiveThreat: 6 },
+        phaseIdentity: { earlyRole: "tank", midRole: "tank", lateRole: "tank" },
+        conditions: { requiresEngage: true },
+        comboDependency: { needsEngage: 7 },
+      },
     },
     top: {
       goodVs: [],

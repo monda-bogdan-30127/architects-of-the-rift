@@ -78,6 +78,20 @@ export const pantheon = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "burst", "pick", "early-game", "semi-global", "ad"],
+        abilities: [
+          { key: "w", name: "Shield Vault", effects: [{ type: "stun", strength: 8, reliability: 10, priority: 8 }, { type: "pick", subtype: "targeted-catch", strength: 8, reliability: 10, priority: 8 }] },
+          { key: "e", name: "Aegis Assault", effects: [{ type: "anti-engage", subtype: "front-facing-block", strength: 7, reliability: 8, priority: 7 }] },
+          { key: "r", name: "Grand Starfall", effects: [{ type: "mobility", subtype: "map-roam", strength: 9, reliability: 8, priority: 9 }, { type: "setup", subtype: "cross-map-collapse", strength: 8, reliability: 8, priority: 8 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 0, visionControl: 3 },
+        accessProfile: { engageRange: 7, targetAccess: 8, stickiness: 6 },
+        threatProfile: { backlineThreat: 8, frontlineThreat: 5, pickThreat: 9, zoneThreat: 4, antiDiveThreat: 4 },
+        phaseIdentity: { earlyRole: "carry", midRole: "pick", lateRole: "utility" },
+        conditions: { requiresFollowUp: true },
+        comboDependency: { needsFollowUp: 6 },
+      },
     },
   },
 });

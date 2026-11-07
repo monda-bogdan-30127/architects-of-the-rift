@@ -72,6 +72,9 @@ export const yasuo = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        comboDependency: { needsKnockup: 9 },
+      },
     },
     top: {
       goodVs: [
@@ -83,6 +86,9 @@ export const yasuo = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        comboDependency: { needsKnockup: 9 },
+      },
     },
   },
 });

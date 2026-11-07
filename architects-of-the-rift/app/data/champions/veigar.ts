@@ -75,6 +75,18 @@ export const veigar = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["ranged", "control", "burst", "pick", "zone-control", "ap"],
+        abilities: [
+          { key: "w", name: "Dark Matter", effects: [{ type: "burst", strength: 9, reliability: 5, priority: 9 }] },
+          { key: "e", name: "Event Horizon", effects: [{ type: "zone-control", subtype: "cage", strength: 10, reliability: 8, priority: 10 }, { type: "stun", subtype: "edge-contact", strength: 9, reliability: 7, priority: 9 }, { type: "anti-engage", subtype: "area-denial", strength: 9, reliability: 8, priority: 9 }] },
+          { key: "r", name: "Primordial Burst", effects: [{ type: "execute", strength: 9, reliability: 9, priority: 9 }, { type: "burst", strength: 10, reliability: 9, priority: 10 }] },
+        ],
+        accessProfile: { engageRange: 0, targetAccess: 3, stickiness: 2 },
+        threatProfile: { backlineThreat: 8, frontlineThreat: 7, pickThreat: 9, zoneThreat: 10, antiDiveThreat: 7 },
+        phaseIdentity: { earlyRole: "utility", midRole: "pick", lateRole: "carry" },
+        damageProfileDetailed: { execute: 9 },
+      },
     },
   },
 });

@@ -72,6 +72,19 @@ export const vi = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "dive", "engage", "pick", "ad"],
+        abilities: [
+          { key: "q", name: "Vault Breaker", effects: [{ type: "dash", strength: 8, reliability: 7, priority: 8 }, { type: "knockup", strength: 7, reliability: 7, priority: 7 }] },
+          { key: "r", name: "Cease and Desist", effects: [{ type: "unstoppable", strength: 8, reliability: 9, priority: 9 }, { type: "knockup", subtype: "point-and-click-engage", strength: 10, reliability: 10, priority: 10 }, { type: "pick", subtype: "carry-lock", strength: 10, reliability: 10, priority: 10 }, { type: "setup", subtype: "carry-isolation", strength: 10, reliability: 10, priority: 10 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 6, visionControl: 2 },
+        accessProfile: { engageRange: 8, targetAccess: 10, stickiness: 8 },
+        threatProfile: { backlineThreat: 10, frontlineThreat: 5, pickThreat: 10, zoneThreat: 3, antiDiveThreat: 2 },
+        phaseIdentity: { earlyRole: "pick", midRole: "carry", lateRole: "pick" },
+        conditions: { requiresFollowUp: true },
+        comboDependency: { needsFollowUp: 8, needsPeel: 4 },
+      },
     },
   },
 });

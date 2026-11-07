@@ -74,6 +74,17 @@ export const bard = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["ranged", "pick", "utility", "zone-control", "roam"],
+        abilities: [
+          { key: "q", name: "Cosmic Binding", effects: [{ type: "stun", strength: 8, reliability: 6, priority: 8 }, { type: "setup", subtype: "catch", strength: 8, reliability: 6, priority: 8 }] },
+          { key: "e", name: "Magical Journey", effects: [{ type: "mobility", subtype: "team-portal", strength: 8, reliability: 8, priority: 8 }, { type: "setup", subtype: "flank-access", strength: 7, reliability: 8, priority: 7 }] },
+          { key: "r", name: "Tempered Fate", effects: [{ type: "zone-control", subtype: "stasis", strength: 10, reliability: 8, priority: 10 }, { type: "anti-engage", subtype: "fight-pause", strength: 10, reliability: 8, priority: 10 }, { type: "setup", subtype: "objective-control", strength: 10, reliability: 8, priority: 10 }] },
+        ],
+        accessProfile: { engageRange: 7, targetAccess: 6, stickiness: 3 },
+        threatProfile: { backlineThreat: 6, frontlineThreat: 4, pickThreat: 9, zoneThreat: 10, antiDiveThreat: 8 },
+        phaseIdentity: { earlyRole: "utility", midRole: "pick", lateRole: "zone-control" },
+      },
     },
   },
 });

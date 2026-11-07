@@ -76,6 +76,20 @@ export const rumble = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["ranged", "ap", "zone-control", "teamfight", "lane-priority"],
+        abilities: [
+          { key: "q", name: "Flamespitter", effects: [{ type: "dps", subtype: "close-range-cone", strength: 8, reliability: 8, priority: 8 }] },
+          { key: "e", name: "Electro Harpoon", effects: [{ type: "slow", strength: 6, reliability: 8, priority: 6 }, { type: "poke", strength: 5, reliability: 7, priority: 5 }] },
+          { key: "r", name: "The Equalizer", effects: [{ type: "zone-control", subtype: "teamfight-line", strength: 10, reliability: 8, priority: 10 }, { type: "slow", subtype: "aoe", strength: 8, reliability: 9, priority: 8 }, { type: "burst", subtype: "wombo-follow-up", strength: 8, reliability: 8, priority: 8 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 0, visionControl: 2 },
+        accessProfile: { engageRange: 7, targetAccess: 5, stickiness: 5 },
+        threatProfile: { backlineThreat: 8, frontlineThreat: 8, pickThreat: 4, zoneThreat: 10, antiDiveThreat: 4 },
+        phaseIdentity: { earlyRole: "carry", midRole: "zone-control", lateRole: "utility" },
+        conditions: { requiresFrontline: true, requiresEngage: true, requiresPeel: true },
+        comboDependency: { needsEngage: 8, needsFrontline: 7, needsPeel: 4 },
+      },
     },
   },
 });

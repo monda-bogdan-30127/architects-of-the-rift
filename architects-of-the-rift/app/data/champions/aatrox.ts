@@ -73,6 +73,20 @@ export const aatrox = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "drain-fighter", "skirmish", "teamfight", "ad"],
+        abilities: [
+          { key: "q", name: "The Darkin Blade", effects: [{ type: "burst", strength: 7, reliability: 6, priority: 7 }, { type: "knockup", subtype: "sweetspot", strength: 6, reliability: 6, priority: 6 }] },
+          { key: "w", name: "Infernal Chains", effects: [{ type: "slow", strength: 5, reliability: 7, priority: 5 }, { type: "setup", subtype: "pullback-zone", strength: 6, reliability: 6, priority: 6 }] },
+          { key: "e", name: "Umbral Dash", effects: [{ type: "dash", strength: 5, reliability: 8, priority: 5 }, { type: "heal", subtype: "self-sustain", strength: 6, reliability: 8, priority: 6 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 0, visionControl: 1 },
+        accessProfile: { engageRange: 6, targetAccess: 7, stickiness: 6 },
+        threatProfile: { backlineThreat: 7, frontlineThreat: 8, pickThreat: 5, zoneThreat: 6, antiDiveThreat: 5 },
+        phaseIdentity: { earlyRole: "carry", midRole: "carry", lateRole: "secondary-carry" },
+        conditions: { requiresPeel: true },
+        comboDependency: { needsPeel: 4 },
+      },
     },
     top: {
       goodVs: [
@@ -87,6 +101,20 @@ export const aatrox = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "drain-fighter", "skirmish", "teamfight", "blindable"],
+        abilities: [
+          { key: "q", name: "The Darkin Blade", effects: [{ type: "burst", strength: 7, reliability: 6, priority: 7 }, { type: "knockup", subtype: "sweetspot", strength: 6, reliability: 6, priority: 6 }] },
+          { key: "w", name: "Infernal Chains", effects: [{ type: "slow", strength: 5, reliability: 7, priority: 5 }, { type: "pick", subtype: "pullback-zone", strength: 6, reliability: 6, priority: 6 }] },
+          { key: "e", name: "Umbral Dash", effects: [{ type: "dash", strength: 5, reliability: 8, priority: 5 }, { type: "heal", subtype: "self-sustain", strength: 6, reliability: 8, priority: 6 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 0, visionControl: 1 },
+        accessProfile: { engageRange: 6, targetAccess: 7, stickiness: 6 },
+        threatProfile: { backlineThreat: 7, frontlineThreat: 8, pickThreat: 5, zoneThreat: 6, antiDiveThreat: 5 },
+        phaseIdentity: { earlyRole: "carry", midRole: "carry", lateRole: "secondary-carry" },
+        conditions: { requiresPeel: true },
+        comboDependency: { needsEngage: 0, needsFrontline: 0, needsPeel: 4 },
+      },
     },
   },
 });

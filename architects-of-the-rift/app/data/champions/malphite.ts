@@ -69,6 +69,20 @@ export const malphite = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "frontline", "engage", "tank", "anti-ad"],
+        abilities: [
+          { key: "q", name: "Seismic Shard", effects: [{ type: "slow", strength: 7, reliability: 9, priority: 7 }, { type: "poke", strength: 4, reliability: 8, priority: 4 }] },
+          { key: "e", name: "Ground Slam", effects: [{ type: "anti-engage", subtype: "attack-speed-cripple", strength: 7, reliability: 8, priority: 7 }] },
+          { key: "r", name: "Unstoppable Force", effects: [{ type: "unstoppable", strength: 10, reliability: 10, priority: 10 }, { type: "knockup", subtype: "aoe-engage", strength: 10, reliability: 10, priority: 10 }, { type: "setup", subtype: "wombo-start", strength: 10, reliability: 10, priority: 10 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 8, visionControl: 1 },
+        accessProfile: { engageRange: 10, targetAccess: 8, stickiness: 5 },
+        threatProfile: { backlineThreat: 8, frontlineThreat: 6, pickThreat: 7, zoneThreat: 8, antiDiveThreat: 7 },
+        phaseIdentity: { earlyRole: "tank", midRole: "setup", lateRole: "tank" },
+        conditions: { requiresFollowUp: true },
+        comboDependency: { needsFollowUp: 8 },
+      },
     },
     top: {
       goodVs: [

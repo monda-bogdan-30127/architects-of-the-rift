@@ -73,6 +73,21 @@ export const qiyana = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "assassin", "pick", "burst", "terrain-combo", "ad"],
+        abilities: [
+          { key: "q", name: "Elemental Wrath / Edge of Ixtal", effects: [{ type: "burst", strength: 8, reliability: 7, priority: 8 }, { type: "root", subtype: "river-empower", strength: 6, reliability: 6, priority: 6 }] },
+          { key: "w", name: "Terrashape", effects: [{ type: "mobility", subtype: "element-access", strength: 7, reliability: 9, priority: 7 }] },
+          { key: "e", name: "Audacity", effects: [{ type: "dash", strength: 8, reliability: 8, priority: 8 }] },
+          { key: "r", name: "Supreme Display of Talent", effects: [{ type: "stun", subtype: "terrain-aoe", strength: 10, reliability: 7, priority: 10 }, { type: "burst", subtype: "teamfight-spike", strength: 9, reliability: 7, priority: 9 }, { type: "pick", subtype: "catch-on-wall", strength: 8, reliability: 7, priority: 8 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 7, visionControl: 2 },
+        accessProfile: { engageRange: 8, targetAccess: 9, stickiness: 7 },
+        threatProfile: { backlineThreat: 10, frontlineThreat: 4, pickThreat: 9, zoneThreat: 8, antiDiveThreat: 1 },
+        phaseIdentity: { earlyRole: "carry", midRole: "pick", lateRole: "pick" },
+        conditions: { requiresFollowUp: true, requiresFrontline: true },
+        comboDependency: { needsFollowUp: 6, needsFrontline: 4 },
+      },
     },
   },
 });

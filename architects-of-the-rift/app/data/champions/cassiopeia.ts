@@ -76,6 +76,9 @@ export const cassiopeia = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        special: { ground: 10 },
+      },
     },
   },
 });

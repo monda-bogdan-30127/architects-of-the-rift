@@ -74,6 +74,20 @@ export const ornn = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "frontline", "engage", "tank", "teamfight", "weakside"],
+        abilities: [
+          { key: "q", name: "Volcanic Rupture", effects: [{ type: "slow", strength: 5, reliability: 8, priority: 5 }, { type: "zone-control", subtype: "pillar", strength: 5, reliability: 7, priority: 5 }] },
+          { key: "e", name: "Searing Charge", effects: [{ type: "dash", strength: 5, reliability: 7, priority: 5 }, { type: "knockup", subtype: "terrain-combo", strength: 8, reliability: 7, priority: 8 }] },
+          { key: "r", name: "Call of the Forge God", effects: [{ type: "knockup", subtype: "long-range-engage", strength: 9, reliability: 8, priority: 9 }, { type: "setup", subtype: "teamfight-start", strength: 9, reliability: 8, priority: 9 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 7, visionControl: 1 },
+        accessProfile: { engageRange: 8, targetAccess: 5, stickiness: 5 },
+        threatProfile: { backlineThreat: 5, frontlineThreat: 7, pickThreat: 6, zoneThreat: 6, antiDiveThreat: 7 },
+        phaseIdentity: { earlyRole: "tank", midRole: "setup", lateRole: "tank" },
+        conditions: { requiresFollowUp: true },
+        comboDependency: { needsEngage: 0, needsFrontline: 0, needsPeel: 0 },
+      },
     },
   },
 });

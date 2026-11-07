@@ -81,6 +81,20 @@ export const aurora = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["ranged", "ap", "skirmish", "zone-control", "carry"],
+        abilities: [
+          { key: "q", name: "Aurora Q", effects: [{ type: "poke", strength: 6, reliability: 7, priority: 6 }, { type: "burst", subtype: "return-hit", strength: 7, reliability: 6, priority: 7 }] },
+          { key: "w", name: "Aurora W", effects: [{ type: "mobility", subtype: "phase-shift", strength: 7, reliability: 8, priority: 7 }] },
+          { key: "r", name: "Aurora R", effects: [{ type: "zone-control", subtype: "arena", strength: 9, reliability: 8, priority: 9 }, { type: "setup", subtype: "fight-trap", strength: 8, reliability: 8, priority: 8 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 2, visionControl: 2 },
+        accessProfile: { engageRange: 7, targetAccess: 7, stickiness: 5 },
+        threatProfile: { backlineThreat: 7, frontlineThreat: 6, pickThreat: 5, zoneThreat: 9, antiDiveThreat: 4 },
+        phaseIdentity: { earlyRole: "secondary-carry", midRole: "carry", lateRole: "carry" },
+        conditions: { requiresFrontline: true, requiresEngage: true, requiresPeel: true },
+        comboDependency: { needsEngage: 5, needsFrontline: 6, needsPeel: 4 },
+      },
     },
   },
 });

@@ -352,7 +352,6 @@ export type Champion = {
   weaknesses: ChampionWeakness[];
   playerScaling?: ChampionPlayerScaling;
   carryProfile?: ChampionCarryProfile;
-  roleProfiles?: ChampionRoleProfile[];
   championTags?: string[];
   /**
    * Matchup-uri, mustWith și statistici pe rol — exact cheile din `roles`.

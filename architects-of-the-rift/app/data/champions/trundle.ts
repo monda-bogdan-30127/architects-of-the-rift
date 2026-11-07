@@ -73,6 +73,19 @@ export const trundle = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "frontline-breaker", "anti-tank", "skirmish", "utility"],
+        abilities: [
+          { key: "e", name: "Pillar of Ice", effects: [{ type: "zone-control", subtype: "terrain-block", strength: 9, reliability: 9, priority: 9 }, { type: "displacement", subtype: "micro-knock", strength: 6, reliability: 8, priority: 6 }, { type: "pick", subtype: "path-cut", strength: 7, reliability: 8, priority: 7 }] },
+          { key: "r", name: "Subjugate", effects: [{ type: "dps", subtype: "tank-drain", strength: 8, reliability: 9, priority: 8 }, { type: "anti-engage", subtype: "frontline-steal", strength: 7, reliability: 8, priority: 7 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 6, visionControl: 2 },
+        accessProfile: { engageRange: 5, targetAccess: 5, stickiness: 8 },
+        threatProfile: { backlineThreat: 4, frontlineThreat: 9, pickThreat: 7, zoneThreat: 8, antiDiveThreat: 5 },
+        phaseIdentity: { earlyRole: "utility", midRole: "carry", lateRole: "utility" },
+        conditions: { requiresEngage: true },
+        comboDependency: { needsEngage: 5 },
+      },
     },
   },
 });

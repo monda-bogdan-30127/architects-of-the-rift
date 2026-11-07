@@ -80,6 +80,26 @@ export const sejuani = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "frontline", "engage", "tank", "setup", "teamfight"],
+        abilities: [
+          { key: "passive", name: "Fury of the North", effects: [{ type: "mark", subtype: "melee-ally-proc", strength: 9, reliability: 9, priority: 8 }] },
+          { key: "q", name: "Arctic Assault", effects: [{ type: "dash", strength: 6, reliability: 7, priority: 6 }, { type: "knockup", strength: 7, reliability: 7, priority: 7 }, { type: "setup", subtype: "engage-start", strength: 8, reliability: 7, priority: 8 }] },
+          { key: "e", name: "Permafrost", effects: [{ type: "stun", subtype: "conditional-freeze", strength: 8, reliability: 8, priority: 8, conditions: ["requires-passive-stacks"] }] },
+          { key: "r", name: "Glacial Prison", effects: [{ type: "stun", subtype: "long-range-pick", strength: 9, reliability: 8, priority: 9 }, { type: "slow", subtype: "aoe-follow-up", strength: 7, reliability: 9, priority: 7 }, { type: "setup", subtype: "teamfight-start", strength: 9, reliability: 8, priority: 9 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 7, visionControl: 3 },
+        accessProfile: { engageRange: 8, targetAccess: 6, stickiness: 6 },
+        threatProfile: { backlineThreat: 7, frontlineThreat: 8, pickThreat: 8, zoneThreat: 6, antiDiveThreat: 7 },
+        phaseIdentity: { earlyRole: "setup", midRole: "tank", lateRole: "setup" },
+        conditions: { requiresFollowUp: true },
+        comboDependency: { needsEngage: 0, needsFrontline: 0, needsPeel: 0 },
+        synergy: {
+          wantsTeam: [
+            { id: "sejuani-melee-density", type: "team", targetTags: ["melee"], scalingByCount: [{ count: 1, score: 2 }, { count: 2, score: 6 }, { count: 3, score: 10 }], effect: { score: 0, reason: "Passive and stack access improve with melee allies" } },
+          ],
+        },
+      },
     },
   },
 });

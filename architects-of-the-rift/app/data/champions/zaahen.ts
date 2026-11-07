@@ -74,6 +74,20 @@ export const zaahen = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "fighter", "assassin", "snowball", "skirmish"],
+        abilities: [
+          { key: "q", name: "Zaahen Q", effects: [{ type: "burst", strength: 8, reliability: 7, priority: 8 }] },
+          { key: "e", name: "Zaahen E", effects: [{ type: "dash", strength: 7, reliability: 8, priority: 7 }, { type: "mobility", subtype: "reset-positioning", strength: 7, reliability: 8, priority: 7 }] },
+          { key: "r", name: "Zaahen R", effects: [{ type: "burst", subtype: "all-in-finisher", strength: 9, reliability: 7, priority: 9 }, { type: "execute", strength: 6, reliability: 7, priority: 6 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 1, visionControl: 1 },
+        accessProfile: { engageRange: 7, targetAccess: 8, stickiness: 8 },
+        threatProfile: { backlineThreat: 9, frontlineThreat: 6, pickThreat: 7, zoneThreat: 3, antiDiveThreat: 2 },
+        phaseIdentity: { earlyRole: "carry", midRole: "carry", lateRole: "pick" },
+        conditions: { requiresFrontline: true, requiresPeel: true },
+        comboDependency: { needsFrontline: 6, needsPeel: 5 },
+      },
     },
     top: {
       goodVs: [
@@ -87,6 +101,20 @@ export const zaahen = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "fighter", "assassin", "snowball", "skirmish"],
+        abilities: [
+          { key: "q", name: "Zaahen Q", effects: [{ type: "burst", strength: 8, reliability: 7, priority: 8 }] },
+          { key: "e", name: "Zaahen E", effects: [{ type: "dash", strength: 7, reliability: 8, priority: 7 }, { type: "mobility", subtype: "reset-positioning", strength: 7, reliability: 8, priority: 7 }] },
+          { key: "r", name: "Zaahen R", effects: [{ type: "burst", subtype: "all-in-finisher", strength: 9, reliability: 7, priority: 9 }, { type: "execute", strength: 6, reliability: 7, priority: 6 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 1, visionControl: 1 },
+        accessProfile: { engageRange: 7, targetAccess: 8, stickiness: 8 },
+        threatProfile: { backlineThreat: 9, frontlineThreat: 6, pickThreat: 7, zoneThreat: 3, antiDiveThreat: 2 },
+        phaseIdentity: { earlyRole: "carry", midRole: "carry", lateRole: "pick" },
+        conditions: { requiresFrontline: true, requiresPeel: true },
+        comboDependency: { needsFrontline: 6, needsPeel: 5, needsEngage: 0 },
+      },
     },
   },
 });

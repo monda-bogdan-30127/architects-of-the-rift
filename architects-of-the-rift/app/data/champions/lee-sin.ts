@@ -75,6 +75,20 @@ export const leeSin = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "skirmish", "playmaker", "pick", "ad"],
+        abilities: [
+          { key: "q", name: "Sonic Wave / Resonating Strike", effects: [{ type: "poke", strength: 5, reliability: 7, priority: 5 }, { type: "dash", subtype: "targeted-follow", strength: 8, reliability: 8, priority: 8 }] },
+          { key: "w", name: "Safeguard / Iron Will", effects: [{ type: "dash", subtype: "ward-hop", strength: 8, reliability: 8, priority: 8 }, { type: "shield", strength: 5, reliability: 8, priority: 5 }] },
+          { key: "r", name: "Dragon's Rage", effects: [{ type: "displacement", subtype: "insec-kick", strength: 10, reliability: 7, priority: 10 }, { type: "pick", subtype: "kick-isolation", strength: 9, reliability: 7, priority: 9 }, { type: "setup", subtype: "carry-delivery", strength: 9, reliability: 7, priority: 9 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 10, visionControl: 3 },
+        accessProfile: { engageRange: 8, targetAccess: 9, stickiness: 6 },
+        threatProfile: { backlineThreat: 8, frontlineThreat: 5, pickThreat: 10, zoneThreat: 4, antiDiveThreat: 3 },
+        phaseIdentity: { earlyRole: "carry", midRole: "pick", lateRole: "utility" },
+        conditions: { requiresFollowUp: true },
+        comboDependency: { needsFollowUp: 7 },
+      },
     },
   },
 });

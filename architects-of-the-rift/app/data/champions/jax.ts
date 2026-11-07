@@ -75,6 +75,20 @@ export const jax = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "duelist", "scaling", "splitpush", "diver"],
+        abilities: [
+          { key: "q", name: "Leap Strike", effects: [{ type: "dash", strength: 7, reliability: 8, priority: 7 }] },
+          { key: "e", name: "Counter Strike", effects: [{ type: "anti-engage", subtype: "auto-attack-denial", strength: 8, reliability: 8, priority: 8 }, { type: "stun", strength: 6, reliability: 8, priority: 6 }] },
+          { key: "r", name: "Grandmaster-At-Arms", effects: [{ type: "dps", subtype: "extended-fight-scaling", strength: 8, reliability: 8, priority: 8 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 0, visionControl: 1 },
+        accessProfile: { engageRange: 6, targetAccess: 8, stickiness: 8 },
+        threatProfile: { backlineThreat: 8, frontlineThreat: 8, pickThreat: 5, zoneThreat: 3, antiDiveThreat: 4 },
+        phaseIdentity: { earlyRole: "secondary-carry", midRole: "carry", lateRole: "carry" },
+        conditions: { requiresFrontline: true, requiresPeel: true },
+        comboDependency: { needsEngage: 0, needsFrontline: 5, needsPeel: 4 },
+      },
     },
   },
 });

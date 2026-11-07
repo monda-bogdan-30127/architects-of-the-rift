@@ -72,6 +72,18 @@ export const orianna = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["ranged", "control", "teamfight", "follow-up", "ap", "secondary-carry"],
+        abilities: [
+          { key: "q", name: "Command: Attack", effects: [{ type: "poke", strength: 6, reliability: 8, priority: 6 }, { type: "setup", subtype: "ball-placement", strength: 8, reliability: 9, priority: 8 }] },
+          { key: "e", name: "Command: Protect", effects: [{ type: "shield", strength: 7, reliability: 9, priority: 7 }, { type: "setup", subtype: "carry-protection", strength: 5, reliability: 8, priority: 5 }] },
+          { key: "r", name: "Command: Shockwave", effects: [{ type: "displacement", strength: 9, reliability: 7, priority: 9 }, { type: "setup", subtype: "aoe-follow-up", strength: 10, reliability: 8, priority: 10 }, { type: "burst", subtype: "teamfight-swing", strength: 8, reliability: 8, priority: 8 }] },
+        ],
+        accessProfile: { engageRange: 7, targetAccess: 4, stickiness: 2 },
+        threatProfile: { backlineThreat: 7, frontlineThreat: 7, pickThreat: 6, zoneThreat: 8, antiDiveThreat: 5 },
+        phaseIdentity: { earlyRole: "utility", midRole: "setup", lateRole: "carry" },
+        damageDelivery: { aoe: 5.333333333333333 },
+      },
     },
   },
 });

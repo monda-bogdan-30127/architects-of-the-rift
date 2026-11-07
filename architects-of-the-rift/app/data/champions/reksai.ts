@@ -73,6 +73,19 @@ export const reksai = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "lane-bully", "pick", "ad-bruiser", "skirmish"],
+        abilities: [
+          { key: "q", name: "Queen's Wrath / Prey Seeker", effects: [{ type: "dps", strength: 6, reliability: 8, priority: 6 }, { type: "poke", subtype: "burrowed", strength: 4, reliability: 7, priority: 4 }] },
+          { key: "w", name: "Burrow / Un-burrow", effects: [{ type: "knockup", strength: 7, reliability: 8, priority: 7 }, { type: "vision", subtype: "tremor-sense", strength: 6, reliability: 9, priority: 6 }] },
+          { key: "e", name: "Tunnel / Furious Bite", effects: [{ type: "dash", strength: 7, reliability: 8, priority: 7 }, { type: "burst", subtype: "true-damage-finisher", strength: 8, reliability: 8, priority: 8 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 5, visionControl: 6 },
+        accessProfile: { engageRange: 7, targetAccess: 8, stickiness: 6 },
+        threatProfile: { backlineThreat: 7, frontlineThreat: 7, pickThreat: 7, zoneThreat: 4, antiDiveThreat: 3 },
+        phaseIdentity: { earlyRole: "carry", midRole: "pick", lateRole: "utility" },
+        comboDependency: { needsEngage: 0, needsFrontline: 0, needsPeel: 0 },
+      },
     },
   },
 });

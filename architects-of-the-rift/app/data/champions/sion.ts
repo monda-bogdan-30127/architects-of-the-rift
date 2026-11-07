@@ -77,6 +77,20 @@ export const sion = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "frontline", "tank", "engage", "weakside", "waveclear"],
+        abilities: [
+          { key: "q", name: "Decimating Smash", effects: [{ type: "knockup", subtype: "charged-aoe", strength: 8, reliability: 6, priority: 8 }, { type: "burst", strength: 6, reliability: 6, priority: 6 }] },
+          { key: "e", name: "Roar of the Slayer", effects: [{ type: "slow", strength: 5, reliability: 8, priority: 5 }, { type: "poke", strength: 4, reliability: 7, priority: 4 }] },
+          { key: "r", name: "Unstoppable Onslaught", effects: [{ type: "unstoppable", strength: 9, reliability: 8, priority: 9 }, { type: "knockup", subtype: "long-range-engage", strength: 9, reliability: 7, priority: 9 }, { type: "setup", subtype: "fight-start", strength: 9, reliability: 8, priority: 9 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 7, visionControl: 1 },
+        accessProfile: { engageRange: 9, targetAccess: 5, stickiness: 4 },
+        threatProfile: { backlineThreat: 5, frontlineThreat: 7, pickThreat: 6, zoneThreat: 6, antiDiveThreat: 7 },
+        phaseIdentity: { earlyRole: "tank", midRole: "setup", lateRole: "tank" },
+        conditions: { requiresFollowUp: true },
+        comboDependency: { needsEngage: 0, needsFrontline: 0, needsPeel: 0 },
+      },
     },
   },
 });

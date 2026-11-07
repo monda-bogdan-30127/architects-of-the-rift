@@ -77,6 +77,20 @@ export const gnar = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["ranged", "teamfight", "engage", "weakside", "blindable"],
+        abilities: [
+          { key: "q", name: "Boomerang Throw / Boulder Toss", effects: [{ type: "poke", strength: 6, reliability: 8, priority: 6 }, { type: "slow", strength: 5, reliability: 8, priority: 5 }] },
+          { key: "e", name: "Hop / Crunch", effects: [{ type: "dash", strength: 6, reliability: 8, priority: 6 }, { type: "setup", subtype: "mega-gnar-entry", strength: 6, reliability: 7, priority: 6 }] },
+          { key: "r", name: "GNAR!", effects: [{ type: "displacement", subtype: "wall-slam", strength: 10, reliability: 7, priority: 10 }, { type: "stun", subtype: "multi-target", strength: 9, reliability: 7, priority: 9 }, { type: "setup", subtype: "wombo", strength: 10, reliability: 7, priority: 10 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 10, visionControl: 1 },
+        accessProfile: { engageRange: 7, targetAccess: 6, stickiness: 5 },
+        threatProfile: { backlineThreat: 7, frontlineThreat: 6, pickThreat: 5, zoneThreat: 8, antiDiveThreat: 7 },
+        phaseIdentity: { earlyRole: "secondary-carry", midRole: "setup", lateRole: "utility" },
+        conditions: { requiresEngage: true, requiresFollowUp: true },
+        comboDependency: { needsEngage: 4, needsFrontline: 0, needsPeel: 0 },
+      },
     },
   },
 });

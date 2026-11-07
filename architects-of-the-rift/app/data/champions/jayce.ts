@@ -75,6 +75,19 @@ export const jayce = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["ranged", "ad", "poke", "lane-priority", "siege"],
+        abilities: [
+          { key: "q", name: "Shock Blast / To the Skies!", effects: [{ type: "poke", subtype: "accelerated-blast", strength: 9, reliability: 7, priority: 9 }, { type: "burst", strength: 7, reliability: 7, priority: 7 }] },
+          { key: "e", name: "Thundering Blow / Acceleration Gate", effects: [{ type: "displacement", subtype: "self-peel-knockback", strength: 6, reliability: 8, priority: 6 }, { type: "setup", subtype: "poke-enable", strength: 8, reliability: 9, priority: 8 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 6, visionControl: 1 },
+        accessProfile: { engageRange: 8, targetAccess: 6, stickiness: 4 },
+        threatProfile: { backlineThreat: 8, frontlineThreat: 6, pickThreat: 5, zoneThreat: 7, antiDiveThreat: 3 },
+        phaseIdentity: { earlyRole: "carry", midRole: "carry", lateRole: "secondary-carry" },
+        conditions: { requiresFrontline: true, requiresPeel: true },
+        comboDependency: { needsEngage: 0, needsFrontline: 5, needsPeel: 4 },
+      },
     },
   },
 });

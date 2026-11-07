@@ -72,6 +72,25 @@ export const xinZhao = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "dive", "burst", "skirmish", "primary-carry", "ad"],
+        abilities: [
+          { key: "q", name: "Three Talon Strike", effects: [{ type: "dps", strength: 6, reliability: 8, priority: 6 }, { type: "knockup", subtype: "3-hit-conditional", strength: 7, reliability: 7, priority: 7 }] },
+          { key: "e", name: "Audacious Charge", effects: [{ type: "dash", strength: 8, reliability: 8, priority: 8 }, { type: "slow", strength: 5, reliability: 8, priority: 5 }, { type: "setup", subtype: "backline-entry", strength: 7, reliability: 8, priority: 7 }] },
+          { key: "r", name: "Crescent Guard", effects: [{ type: "zone-control", subtype: "carry-space-creation", strength: 8, reliability: 8, priority: 8 }, { type: "anti-engage", subtype: "outer-threat-denial", strength: 7, reliability: 7, priority: 7 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 5, visionControl: 4 },
+        accessProfile: { engageRange: 7, targetAccess: 9, stickiness: 8 },
+        threatProfile: { backlineThreat: 9, frontlineThreat: 6, pickThreat: 7, zoneThreat: 5, antiDiveThreat: 3 },
+        phaseIdentity: { earlyRole: "carry", midRole: "carry", lateRole: "utility" },
+        conditions: { requiresPeel: true },
+        comboDependency: { needsEnchanter: 7, needsPeel: 6 },
+        synergy: {
+          goodWith: [
+            { id: "xin-enchanter-shell", type: "ally", targetTags: ["enchanter", "shielding", "healing"], effect: { score: 6, reason: "Protection extends commit windows" } },
+          ],
+        },
+      },
     },
   },
 });

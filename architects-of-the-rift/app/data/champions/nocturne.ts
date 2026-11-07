@@ -74,6 +74,21 @@ export const nocturne = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "dive", "pick", "backline-access", "ad"],
+        abilities: [
+          { key: "q", name: "Duskbringer", effects: [{ type: "mobility", subtype: "trail-speed", strength: 6, reliability: 8, priority: 6 }] },
+          { key: "w", name: "Shroud of Darkness", effects: [{ type: "anti-engage", subtype: "spell-shield", strength: 8, reliability: 8, priority: 8 }] },
+          { key: "e", name: "Unspeakable Horror", effects: [{ type: "cc", subtype: "fear-delayed", strength: 7, reliability: 6, priority: 7 }] },
+          { key: "r", name: "Paranoia", effects: [{ type: "dash", subtype: "global-dive", strength: 10, reliability: 9, priority: 10 }, { type: "pick", subtype: "backline-collapse", strength: 9, reliability: 9, priority: 9 }, { type: "setup", subtype: "darkness-engage", strength: 8, reliability: 9, priority: 8 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 0, visionControl: 4 },
+        accessProfile: { engageRange: 10, targetAccess: 10, stickiness: 7 },
+        threatProfile: { backlineThreat: 10, frontlineThreat: 4, pickThreat: 9, zoneThreat: 3, antiDiveThreat: 2 },
+        phaseIdentity: { earlyRole: "carry", midRole: "pick", lateRole: "pick" },
+        conditions: { requiresFollowUp: true, requiresPeel: true },
+        comboDependency: { needsFollowUp: 6, needsPeel: 4 },
+      },
     },
   },
 });

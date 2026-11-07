@@ -76,6 +76,19 @@ export const yorick = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "splitpush", "side-lane", "structure-damage"],
+        abilities: [
+          { key: "q", name: "Last Rites", effects: [{ type: "dps", subtype: "extended-side-lane", strength: 7, reliability: 8, priority: 7 }] },
+          { key: "w", name: "Dark Procession", effects: [{ type: "zone-control", subtype: "cage", strength: 6, reliability: 7, priority: 6 }] },
+          { key: "e", name: "Mourning Mist", effects: [{ type: "slow", strength: 4, reliability: 7, priority: 4 }, { type: "setup", subtype: "ghoul-chase", strength: 5, reliability: 8, priority: 5 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 0, visionControl: 1 },
+        accessProfile: { engageRange: 4, targetAccess: 5, stickiness: 6 },
+        threatProfile: { backlineThreat: 5, frontlineThreat: 8, pickThreat: 3, zoneThreat: 4, antiDiveThreat: 2 },
+        phaseIdentity: { earlyRole: "utility", midRole: "carry", lateRole: "carry" },
+        comboDependency: { needsEngage: 0, needsFrontline: 0, needsPeel: 0 },
+      },
     },
   },
 });

@@ -80,6 +80,20 @@ export const wukong = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "dive", "teamfight", "engage", "ad"],
+        abilities: [
+          { key: "w", name: "Warrior Trickster", effects: [{ type: "mobility", subtype: "stealth-reposition", strength: 7, reliability: 8, priority: 7 }] },
+          { key: "e", name: "Nimbus Strike", effects: [{ type: "dash", strength: 8, reliability: 8, priority: 8 }, { type: "dps", subtype: "entry-damage", strength: 6, reliability: 8, priority: 6 }] },
+          { key: "r", name: "Cyclone", effects: [{ type: "knockup", subtype: "aoe-teamfight", strength: 9, reliability: 8, priority: 9 }, { type: "dps", subtype: "extended-spin", strength: 7, reliability: 8, priority: 7 }, { type: "setup", subtype: "wombo", strength: 9, reliability: 8, priority: 9 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 7, visionControl: 2 },
+        accessProfile: { engageRange: 7, targetAccess: 8, stickiness: 7 },
+        threatProfile: { backlineThreat: 8, frontlineThreat: 7, pickThreat: 6, zoneThreat: 8, antiDiveThreat: 4 },
+        phaseIdentity: { earlyRole: "carry", midRole: "setup", lateRole: "utility" },
+        conditions: { requiresFollowUp: true },
+        comboDependency: { needsFollowUp: 7, needsEngage: 0, needsFrontline: 0 },
+      },
     },
   },
 });

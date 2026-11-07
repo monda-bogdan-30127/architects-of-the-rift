@@ -72,6 +72,19 @@ export const renekton = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "bruiser", "lane-bully", "setup", "early-game"],
+        abilities: [
+          { key: "w", name: "Ruthless Predator", effects: [{ type: "stun", strength: 7, reliability: 9, priority: 7 }, { type: "burst", subtype: "targeted-trade", strength: 7, reliability: 9, priority: 7 }] },
+          { key: "e", name: "Slice and Dice", effects: [{ type: "dash", strength: 7, reliability: 8, priority: 7 }, { type: "mobility", subtype: "double-dash-window", strength: 7, reliability: 8, priority: 7 }] },
+          { key: "r", name: "Dominus", effects: [{ type: "dps", subtype: "extended-fight", strength: 6, reliability: 8, priority: 6 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 0, visionControl: 1 },
+        accessProfile: { engageRange: 6, targetAccess: 7, stickiness: 6 },
+        threatProfile: { backlineThreat: 7, frontlineThreat: 7, pickThreat: 7, zoneThreat: 4, antiDiveThreat: 4 },
+        phaseIdentity: { earlyRole: "carry", midRole: "setup", lateRole: "utility" },
+        comboDependency: { needsEngage: 0, needsFrontline: 0, needsPeel: 0 },
+      },
     },
   },
 });

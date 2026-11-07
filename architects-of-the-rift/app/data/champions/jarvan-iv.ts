@@ -76,6 +76,20 @@ export const jarvanIv = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "engage", "dive", "setup", "teamfight", "ad"],
+        abilities: [
+          { key: "q", name: "Dragon Strike", effects: [{ type: "poke", strength: 4, reliability: 7, priority: 4 }, { type: "setup", subtype: "flag-combo", strength: 7, reliability: 8, priority: 7 }] },
+          { key: "e", name: "Demacian Standard", effects: [{ type: "setup", subtype: "combo-anchor", strength: 8, reliability: 9, priority: 8 }] },
+          { key: "r", name: "Cataclysm", effects: [{ type: "pick", subtype: "carry-isolation", strength: 9, reliability: 9, priority: 9 }, { type: "zone-control", subtype: "terrain-cage", strength: 8, reliability: 8, priority: 8 }, { type: "setup", subtype: "follow-up-window", strength: 9, reliability: 9, priority: 9 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 6, visionControl: 2 },
+        accessProfile: { engageRange: 8, targetAccess: 8, stickiness: 7 },
+        threatProfile: { backlineThreat: 9, frontlineThreat: 6, pickThreat: 9, zoneThreat: 8, antiDiveThreat: 3 },
+        phaseIdentity: { earlyRole: "setup", midRole: "pick", lateRole: "utility" },
+        conditions: { requiresFollowUp: true },
+        comboDependency: { needsFollowUp: 8, needsEngage: 0, needsFrontline: 0 },
+      },
     },
   },
 });

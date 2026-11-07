@@ -76,6 +76,21 @@ export const maokai = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "frontline", "engage", "tank", "vision", "utility"],
+        abilities: [
+          { key: "q", name: "Bramble Smash", effects: [{ type: "displacement", strength: 7, reliability: 8, priority: 7 }, { type: "slow", strength: 5, reliability: 8, priority: 5 }] },
+          { key: "w", name: "Twisted Advance", effects: [{ type: "dash", subtype: "point-and-click-root", strength: 7, reliability: 9, priority: 7 }, { type: "root", strength: 8, reliability: 9, priority: 8 }, { type: "pick", subtype: "reliable-catch", strength: 8, reliability: 9, priority: 8 }] },
+          { key: "e", name: "Sapling Toss", effects: [{ type: "vision", subtype: "brush-control", strength: 8, reliability: 9, priority: 8 }, { type: "zone-control", subtype: "area-scouting", strength: 7, reliability: 9, priority: 7 }] },
+          { key: "r", name: "Nature's Grasp", effects: [{ type: "root", subtype: "long-range-teamfight", strength: 9, reliability: 8, priority: 9 }, { type: "setup", subtype: "front-to-back-engage", strength: 9, reliability: 8, priority: 9 }, { type: "zone-control", subtype: "lane-fill", strength: 8, reliability: 8, priority: 8 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 6, visionControl: 9 },
+        accessProfile: { engageRange: 8, targetAccess: 5, stickiness: 6 },
+        threatProfile: { backlineThreat: 5, frontlineThreat: 7, pickThreat: 8, zoneThreat: 9, antiDiveThreat: 7 },
+        phaseIdentity: { earlyRole: "utility", midRole: "setup", lateRole: "tank" },
+        conditions: { requiresFollowUp: true },
+        comboDependency: { needsFollowUp: 7 },
+      },
     },
     support: {
       goodVs: [

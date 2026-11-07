@@ -71,6 +71,21 @@ export const gwen = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "ap", "duelist", "scaling", "frontline-killer"],
+        abilities: [
+          { key: "q", name: "Snip Snip!", effects: [{ type: "burst", subtype: "center-hit", strength: 7, reliability: 7, priority: 7 }, { type: "dps", strength: 8, reliability: 8, priority: 8 }] },
+          { key: "w", name: "Hallowed Mist", effects: [{ type: "anti-engage", subtype: "outside-target-denial", strength: 8, reliability: 8, priority: 8 }] },
+          { key: "e", name: "Skip 'n Slash", effects: [{ type: "dash", strength: 6, reliability: 8, priority: 6 }, { type: "mobility", subtype: "duel-stickiness", strength: 7, reliability: 8, priority: 7 }] },
+          { key: "r", name: "Needlework", effects: [{ type: "poke", strength: 6, reliability: 7, priority: 6 }, { type: "slow", strength: 5, reliability: 7, priority: 5 }, { type: "dps", subtype: "extended-fight-finisher", strength: 8, reliability: 7, priority: 8 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 0, visionControl: 1 },
+        accessProfile: { engageRange: 5, targetAccess: 7, stickiness: 7 },
+        threatProfile: { backlineThreat: 7, frontlineThreat: 10, pickThreat: 2, zoneThreat: 4, antiDiveThreat: 2 },
+        phaseIdentity: { earlyRole: "secondary-carry", midRole: "carry", lateRole: "carry" },
+        conditions: { requiresFrontline: true, requiresEngage: true, requiresPeel: true },
+        comboDependency: { needsFrontline: 7, needsPeel: 5, needsEngage: 6 },
+      },
     },
   },
 });

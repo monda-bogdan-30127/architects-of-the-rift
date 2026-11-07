@@ -76,6 +76,20 @@ export const naafiri = createChampion({
       ],
       mustWith: [],
       stats: null,
+      profile: {
+        tags: ["melee", "assassin", "dive", "burst", "ad"],
+        abilities: [
+          { key: "w", name: "Hounds' Pursuit", effects: [{ type: "dash", subtype: "pack-engage", strength: 9, reliability: 8, priority: 9 }, { type: "pick", subtype: "backline-lock", strength: 7, reliability: 7, priority: 7 }] },
+          { key: "e", name: "Eviscerate", effects: [{ type: "burst", strength: 7, reliability: 8, priority: 7 }] },
+          { key: "r", name: "The Call of the Pack", effects: [{ type: "mobility", subtype: "hunt-speed", strength: 8, reliability: 8, priority: 8 }, { type: "burst", subtype: "assassination-window", strength: 8, reliability: 8, priority: 8 }] },
+        ],
+        special: { antiDash: 0, projectileBlock: 0, ground: 0, displacement: 0, visionControl: 2 },
+        accessProfile: { engageRange: 8, targetAccess: 9, stickiness: 8 },
+        threatProfile: { backlineThreat: 9, frontlineThreat: 4, pickThreat: 8, zoneThreat: 3, antiDiveThreat: 1 },
+        phaseIdentity: { earlyRole: "carry", midRole: "pick", lateRole: "pick" },
+        conditions: { requiresFrontline: true, requiresPeel: true },
+        comboDependency: { needsFrontline: 5, needsPeel: 4 },
+      },
     },
   },
 });
