@@ -28,6 +28,7 @@ import {
   resolveRoleAssignments,
 } from "./draftRoleResolver";
 import type { ActiveDraftSeries, DraftGameState, Side } from "./draftTypes";
+import { isHardCounter } from "./matchupGrades";
 
 export const MUSTWITH_CONFIG = {
   /** Gradul minim de mastery al jucătorului pe partener (C). */
@@ -231,12 +232,13 @@ export function getNonBotOverride(ctx: MustWithTeamContext, enemyCtx: MustWithTe
     if (!enemyId) continue;
     const player = getRosterPlayer(ctx.roster, role);
     for (const relation of getRoleMatchups(enemyId, role).weakVs) {
-      if (relation.score !== 5 || !isFree(relation.championId)) continue;
+      // Hard counter care contează pe linie (level 3, lane sau all) — vechea „notă 5”.
+      if (!isHardCounter(relation) || relation.phase === "late" || !isFree(relation.championId)) continue;
       if (!relationAppliesToEnemyRole(relation, role, role)) continue;
       if (!championsById[relation.championId]?.roles.includes(role)) continue;
       const counterGrade = player ? getChampionGrade(player, relation.championId) : null;
       if (counterGrade && GRADE_RANK[counterGrade] < MUSTWITH_CONFIG.minPartnerGradeRank) continue;
-      return `counter nota 5: ${relation.championId} contra ${enemyId} (${role})`;
+      return `hard counter: ${relation.championId} contra ${enemyId} (${role})`;
     }
   }
 

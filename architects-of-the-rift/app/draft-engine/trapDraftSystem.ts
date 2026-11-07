@@ -17,12 +17,14 @@ import type { Champion, Role } from "@/app/types/champion";
 import type { ActiveDraftSeries, DraftGameState, DraftSave, Side } from "./draftTypes";
 import { getChampionById, getMetaPriorityScore } from "./draftEvaluator";
 import { getRoleMatchups } from "./championMatchups";
-import { getWeaknessCoverage, WEAKNESS_COVER_CONFIG } from "./matchupGrades";
+import { getWeaknessCoverage, isStrongCounter, WEAKNESS_COVER_CONFIG } from "./matchupGrades";
 import { getProjectedEnemyRoles, getTrapCounterValue } from "./matchupScoring";
 
 /**
- * Counterii momelii (4.6): weakVs cu nota ≥ 4 pe oricare rol al ei, disponibili.
- * Nota 4 contează doar dacă echipa care ar lua momeala NU își acoperă slăbiciunile.
+ * Counterii momelii (4.6): weakVs „strong” (level 3, sau level 2 pe tot jocul) pe
+ * oricare rol al ei, disponibili. Level 2 contează doar dacă echipa care ar lua
+ * momeala NU își acoperă slăbiciunile. `score` = tăria în counterStrength
+ * (level 3 → 5, level 2 → 4, ca vechile note 5 / 4).
  */
 function getAvailableBaitCounters(
   bait: Champion,
@@ -34,8 +36,9 @@ function getAvailableBaitCounters(
   for (const role of bait.roles) {
     for (const relation of getRoleMatchups(bait.id, role).weakVs) {
       if (unavailable.has(relation.championId)) continue;
-      if (relation.score < 4 || (relation.score === 4 && !exploitable)) continue;
-      best.set(relation.championId, Math.max(best.get(relation.championId) ?? 0, relation.score));
+      if (!isStrongCounter(relation) || (relation.level === 2 && !exploitable)) continue;
+      const strength = relation.level === 3 ? 5 : 4;
+      best.set(relation.championId, Math.max(best.get(relation.championId) ?? 0, strength));
     }
   }
   return [...best].map(([championId, score]) => ({ championId, score })).sort((a, b) => b.score - a.score);

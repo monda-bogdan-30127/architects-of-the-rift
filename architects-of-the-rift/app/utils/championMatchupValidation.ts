@@ -1,7 +1,7 @@
 // ─── utils/championMatchupValidation.ts ─────────────────────────────────────
 //
-// Validează datele pe rol din `champion.roleData` (fișierele din app/data/champions/,
-// DRAFT_REWORK §6). Rulează:
+// Validează datele pe rol din `champion.roleData` (fișierele din app/data/champions/;
+// DRAFT_REWORK §6, MATCHUP_LEVEL_PHASE §8). Rulează:
 //   npm run validate:matchups
 //
 // Structura se verifică pe datele explicite; contradicțiile și derivările
@@ -15,8 +15,17 @@ import {
   getMatchupDerivationIssues,
   getRoleMatchups,
   relationAppliesToEnemyRole,
+  toMatchupRelation,
 } from "../draft-engine/championMatchups";
-import type { Champion, ChampionRoleData, MatchupGrade, MatchupRelation, Role } from "../types/champion";
+import { MATCHUP_LEVELS, MATCHUP_PHASES, isMatchupLevel, isMatchupPhase } from "../draft-engine/matchupGrades";
+import type {
+  Champion,
+  ChampionRoleData,
+  MatchupLevel,
+  MatchupPhase,
+  MatchupRelation,
+  Role,
+} from "../types/champion";
 
 export type MatchupIssueSeverity = "error" | "warning";
 
@@ -26,23 +35,27 @@ export interface MatchupValidationIssue {
   message: string;
 }
 
-export type GradeCounts = Record<MatchupGrade, number>;
+/** Câte relații în fiecare celulă level × phase. */
+export type LevelPhaseCounts = Record<MatchupLevel, Record<MatchupPhase, number>>;
 
 export interface MatchupValidationResult {
   issues: MatchupValidationIssue[];
   errorCount: number;
   warningCount: number;
   ok: boolean;
-  /** Per rol: câte relații efective (explicit + derivat) are fiecare notă. */
-  gradeCountsByRole: Record<Role, { goodVs: GradeCounts; weakVs: GradeCounts }>;
-  /** Totalul relațiilor scrise explicit în fișier. */
+  /** Per rol: relațiile efective (explicit + derivat) pe level × phase. */
+  levelPhaseCountsByRole: Record<Role, { goodVs: LevelPhaseCounts; weakVs: LevelPhaseCounts }>;
+  /** Totalul relațiilor scrise explicit în fișiere. */
   explicitRelationCount: number;
 }
 
 const ROLES: Role[] = ["top", "jungle", "mid", "adc", "support"];
 const LISTS = ["goodVs", "weakVs"] as const;
 
-const emptyCounts = (): GradeCounts => ({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });
+const emptyCounts = (): LevelPhaseCounts =>
+  Object.fromEntries(
+    MATCHUP_LEVELS.map((level) => [level, Object.fromEntries(MATCHUP_PHASES.map((phase) => [phase, 0]))]),
+  ) as LevelPhaseCounts;
 
 function isRole(value: unknown): value is Role {
   return typeof value === "string" && (ROLES as string[]).includes(value);
@@ -87,21 +100,25 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
     // ── Relațiile goodVs / weakVs ──────────────────────────────────────────
     for (const list of LISTS) {
       const seen = new Set<string>();
-      for (const relation of entry[list] ?? []) {
+      for (const raw of entry[list] ?? []) {
         explicitRelationCount += 1;
+        // TEMPORAR: formatul vechi (`score`) e citit prin adaptor până la migrare.
+        const relation = toMatchupRelation(raw);
         const label = `${list} ${relation.championId}`;
-        const score: unknown = relation.score;
-        if (score === undefined || score === null) error(key, `${label}: lipsește \`score\``);
-        else if (typeof score !== "number" || !Number.isInteger(score) || score < 1 || score > 5) {
-          error(key, `${label}: score ${String(score)} în afara 1..5 / ne-întreg`);
-        }
+        const level: unknown = relation.level;
+        const phase: unknown = relation.phase;
+        if (level === undefined || level === null) error(key, `${label}: lipsește \`level\``);
+        else if (!isMatchupLevel(level)) error(key, `${label}: level ${String(level)} în afara 1..3`);
+        if (phase === undefined || phase === null) error(key, `${label}: lipsește \`phase\``);
+        else if (!isMatchupPhase(phase)) error(key, `${label}: phase "${String(phase)}" invalid (lane / late / all)`);
+        if (level === 1 && phase !== "all") warning(key, `${label}: level 1 cu phase "${String(phase)}" — rar are sens`);
         if (!byId.has(relation.championId)) error(key, `${label}: campion inexistent`);
         if (relation.championId === owner.id) error(key, `${label}: self-reference`);
         if (relation.vsRole !== undefined && !isRole(relation.vsRole)) {
           error(key, `${label}: vsRole invalid "${String(relation.vsRole)}"`);
         }
         const dedupeKey = `${relation.championId}|${relation.vsRole ?? ""}`;
-        if (seen.has(dedupeKey)) error(key, `${label}: duplicat în aceeași listă`);
+        if (seen.has(dedupeKey)) error(key, `${label}: același adversar de două ori în aceeași listă`);
         seen.add(dedupeKey);
       }
     }
@@ -138,14 +155,14 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
     }
   }
 
-  // ── Același inamic în goodVs și weakVs: permis doar 2/3 ──────────────────
-  const gradeCountsByRole = Object.fromEntries(
+  // ── Același inamic în goodVs și weakVs: permis doar lane + late ──────────
+  const levelPhaseCountsByRole = Object.fromEntries(
     ROLES.map((role) => [role, { goodVs: emptyCounts(), weakVs: emptyCounts() }]),
-  ) as MatchupValidationResult["gradeCountsByRole"];
+  ) as MatchupValidationResult["levelPhaseCountsByRole"];
 
   if (isRealData) {
     const isValid = (relation: MatchupRelation, ownerId: string) =>
-      relation.championId !== ownerId && Number.isInteger(relation.score) && relation.score >= 1 && relation.score <= 5;
+      relation.championId !== ownerId && isMatchupLevel(relation.level) && isMatchupPhase(relation.phase);
     const reportedPairs = new Set<string>();
     for (const champion of champions) {
       for (const role of champion.roles) {
@@ -153,7 +170,7 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
         const effective = getRoleMatchups(champion.id, role);
         for (const list of LISTS) {
           for (const relation of effective[list]) {
-            if (isValid(relation, champion.id)) gradeCountsByRole[role][list][relation.score] += 1;
+            if (isValid(relation, champion.id)) levelPhaseCountsByRole[role][list][relation.level][relation.phase] += 1;
           }
         }
         for (const good of effective.goodVs) {
@@ -165,11 +182,11 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
             const pairKey = [champion.id, good.championId].sort().join("|") + `|${role}`;
             if (reportedPairs.has(pairKey)) continue;
             reportedPairs.add(pairKey);
-            const pair = [good.score, weak.score].sort().join("/");
-            if (pair !== "2/3") {
+            const phases = [good.phase, weak.phase].sort().join("+");
+            if (phases !== "lane+late") {
               error(
                 key,
-                `${good.championId} e și în goodVs (${good.score}) și în weakVs (${weak.score}) — permis doar 2/3`,
+                `${good.championId} e și în goodVs (${good.phase}) și în weakVs (${weak.phase}) — permis doar lane + late`,
               );
             }
           }
@@ -185,7 +202,7 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
     errorCount,
     warningCount,
     ok: errorCount === 0,
-    gradeCountsByRole,
+    levelPhaseCountsByRole,
     explicitRelationCount,
   };
 }

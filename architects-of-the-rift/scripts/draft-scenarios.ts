@@ -285,9 +285,12 @@ for (const support of [SUP_RAKAN_OK, SUP_RAKAN_D]) {
     if (r2) picks[r2.championId] = (picks[r2.championId] ?? 0) + 1;
   }
   check(
-    "7b. Counter nota 5 pe linie bate partenerul",
+    "7b. Hard counter pe linie bate partenerul",
     renektonPicked / counterRuns <= 0.2,
-    `Renekton ${renektonPicked}/${counterRuns}; R2: ${Object.entries(picks).map(([id, count]) => `${id}×${count}`).join(", ")} (Malphite vs Tryndamere = nota ${getRoleMatchups("malphite", "top").goodVs.find((r) => r.championId === "tryndamere")?.score})`,
+    (() => {
+      const relation = getRoleMatchups("malphite", "top").goodVs.find((r) => r.championId === "tryndamere");
+      return `Renekton ${renektonPicked}/${counterRuns}; R2: ${Object.entries(picks).map(([id, count]) => `${id}×${count}`).join(", ")} (Malphite vs Tryndamere = level ${relation?.level}/${relation?.phase})`;
+    })(),
   );
   // 7c. Excepția SS: support-ul are un campion SS liber (Keria — Bard) → partenerul nu mai e forțat.
   let partnerWithSs = 0;
@@ -314,14 +317,15 @@ for (const support of [SUP_RAKAN_OK, SUP_RAKAN_D]) {
 
 // ─── 8. Efectele notelor ─────────────────────────────────────────────────────
 {
-  // 8a. Nota 4 cu slăbiciuni acoperite → efect ×0.5. Căutăm o relație de nota 4 și aliați
-  //     care acoperă jumătate (dar nu toate) slăbiciunile celui countrat.
-  let detail = "nicio relație de nota 4 cu acoperire parțială găsită";
+  // 8a. Level 2 cu slăbiciuni acoperite → efect ×0.5 doar pe mid și late (early neschimbat).
+  //     Căutăm o relație level 2 / all și aliați care acoperă jumătate (dar nu toate)
+  //     slăbiciunile celui countrat.
+  let detail = "nicio relație level 2 / all cu acoperire parțială găsită";
   let pass = false;
   outer: for (const champion of champions) {
     for (const role of champion.roles) {
       for (const relation of getRoleMatchups(champion.id, role).weakVs) {
-        if (relation.score !== 4) continue;
+        if (relation.level !== 2 || relation.phase !== "all") continue;
         const enemyRole = relation.vsRole ?? role;
         const allies = champions.map((ally) => ally.id).filter((id) => id !== champion.id && id !== relation.championId);
         const halfCover = allies.find((id) => {
@@ -329,40 +333,48 @@ for (const support of [SUP_RAKAN_OK, SUP_RAKAN_D]) {
           return coverage >= 0.5 && coverage < 1;
         });
         if (!halfCover) continue;
-        const uncovered = getMatchupValue(champion.id, role, relation.championId, enemyRole, { ownAllyIds: [] });
-        const covered = getMatchupValue(champion.id, role, relation.championId, enemyRole, { ownAllyIds: [halfCover] });
-        pass = Math.abs(covered - uncovered * 0.5) < 1e-9 && uncovered < 0;
-        detail = `${champion.id}:${role} weakVs ${relation.championId} (4): fără acoperire ${uncovered.toFixed(2)}, cu ${halfCover} ${covered.toFixed(2)}`;
+        const value = (phase: "early" | "mid" | "late", allies: string[]) =>
+          getMatchupValue(champion.id, role, relation.championId, enemyRole, { phase, ownAllyIds: allies });
+        const phases = ["early", "mid", "late"] as const;
+        const uncovered = phases.map((phase) => value(phase, []));
+        const covered = phases.map((phase) => value(phase, [halfCover]));
+        pass =
+          uncovered[0] < 0 &&
+          Math.abs(covered[0] - uncovered[0]) < 1e-9 &&
+          Math.abs(covered[1] - uncovered[1] * 0.5) < 1e-9 &&
+          Math.abs(covered[2] - uncovered[2] * 0.5) < 1e-9;
+        const fmt = (values: number[]) => values.map((v) => v.toFixed(2)).join(" / ");
+        detail = `${champion.id}:${role} weakVs ${relation.championId} (2/all), early/mid/late: fără acoperire ${fmt(uncovered)}, cu ${halfCover} ${fmt(covered)}`;
         break outer;
       }
     }
   }
-  check("8a. Nota 4 cu slăbiciuni acoperite → efect înjumătățit", pass, detail);
+  check("8a. Level 2 cu slăbiciuni acoperite → mid/late înjumătățit, early neschimbat", pass, detail);
 
-  // 8b. Nota 2 vs nota 3 în simulare: 2 domină early, 3 domină late.
-  const findGrade = (gradeValue: number) => {
+  // 8b. Lane vs late în simulare: lane domină early, late domină late.
+  const findGrade = (phase: "lane" | "late") => {
     for (const champion of champions) {
       for (const role of champion.roles) {
-        const relation = getRoleMatchups(champion.id, role).goodVs.find((r) => r.score === gradeValue && !r.vsRole);
+        const relation = getRoleMatchups(champion.id, role).goodVs.find((r) => r.level === 2 && r.phase === phase && !r.vsRole);
         if (relation) return { id: champion.id, role, enemyId: relation.championId };
       }
     }
     return null;
   };
-  const two = findGrade(2);
-  const three = findGrade(3);
+  const two = findGrade("lane");
+  const three = findGrade("late");
   if (two && three) {
     const v2early = matchupPowerAgainst(two.id, two.role, two.enemyId, two.role, "early");
     const v2late = matchupPowerAgainst(two.id, two.role, two.enemyId, two.role, "late");
     const v3early = matchupPowerAgainst(three.id, three.role, three.enemyId, three.role, "early");
     const v3late = matchupPowerAgainst(three.id, three.role, three.enemyId, three.role, "late");
     check(
-      "8b. Nota 2 vs 3: early vs late diferit",
+      "8b. Lane vs late: early vs late diferit",
       v2early > v2late && v3late > v3early,
-      `nota 2 (${two.id} vs ${two.enemyId}) early ${v2early.toFixed(2)} / late ${v2late.toFixed(2)}; nota 3 (${three.id} vs ${three.enemyId}) early ${v3early.toFixed(2)} / late ${v3late.toFixed(2)}`,
+      `2/lane (${two.id} vs ${two.enemyId}) early ${v2early.toFixed(2)} / late ${v2late.toFixed(2)}; 2/late (${three.id} vs ${three.enemyId}) early ${v3early.toFixed(2)} / late ${v3late.toFixed(2)}`,
     );
   } else {
-    check("8b. Nota 2 vs 3: early vs late diferit", false, "nu s-au găsit relații de nota 2 și 3");
+    check("8b. Lane vs late: early vs late diferit", false, "nu s-au găsit relații 2/lane și 2/late");
   }
 }
 

@@ -1,5 +1,5 @@
 import type { FullMatchSimulationResult } from "./matchSimulationTypes";
-import type { Champion, Role } from "@/app/types/champion";
+import type { Champion, MatchupLevel, MatchupPhase, Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
 import type { Team } from "@/app/types/team";
 import type { CompAttribute } from "@/app/types/compAttributes";
@@ -166,7 +166,14 @@ export type DraftCandidateBreakdown = {
   synergyRuleValue?: number;
   simulatedFitValue?: number;
   /** Notele de matchup care au intrat în `counterValue` (pentru explainer). */
-  matchupDetails?: { enemyId: string; enemyRole: Role | null; grade: 1 | 2 | 3 | 4 | 5; kind: "good" | "weak"; value: number }[];
+  matchupDetails?: {
+    enemyId: string;
+    enemyRole: Role | null;
+    level: MatchupLevel;
+    phase: MatchupPhase;
+    kind: "good" | "weak";
+    value: number;
+  }[];
   /** Pick forțat de regula mustWith (botlane override sau lock non-bot). */
   mustWithLock?: { anchorId: string; partnerId: string; grade: string | null };
   /** Bonusurile mustWith adunate în scor (combo potential, non-bot, deny). */

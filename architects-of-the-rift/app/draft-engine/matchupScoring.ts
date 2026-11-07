@@ -1,40 +1,50 @@
-// Singurul loc unde o notă de matchup devine valoare numerică (DRAFT_REWORK §4.0).
+// Singurul loc unde o relație de matchup devine valoare numerică
+// (DRAFT_REWORK §4.0, MATCHUP_LEVEL_PHASE §5).
 //
 // Valoare pozitivă = avantaj pentru campionul nostru, negativă = dezavantaj.
-// Notele vin din `championMatchups.ts`; definițiile și factorii din
-// `matchupGrades.ts` (faza, nota 4 = slăbiciuni acoperite, nota 1 = skill).
+// Valoarea în faza p = MATCHUP_LEVEL_WEIGHT[level] × curba[phase][p], apoi:
+//   - level 2: factorul de slăbiciuni acoperite, DOAR pe mid și late;
+//   - level 1: factorul de skill (diferența de `mec`), pe toate fazele;
+//   - level 3: fără modificatori.
+// Relațiile vin din `championMatchups.ts`; definițiile și curbele din `matchupGrades.ts`.
 
 import { champions } from "@/app/data/champions";
 import { players } from "@/app/data/players";
-import type { MatchupGrade, Role } from "@/app/types/champion";
-import { getMatchupGrades, getRoleMatchups, relationAppliesToEnemyRole } from "./championMatchups";
+import type { MatchupLevel, MatchupPhase, MatchupRelation, Role } from "@/app/types/champion";
+import { getMatchupRelations, getRoleMatchups, relationAppliesToEnemyRole } from "./championMatchups";
 import { getChampionRoleProfile } from "./championProfileSystem";
 import { resolveRoleAssignments } from "./draftRoleResolver";
 import {
-  MATCHUP_GRADE_EFFECTS,
-  getPhaseMultiplier,
+  MATCHUP_LEVEL_WEIGHT,
+  combinePhases,
+  getPhaseCurve,
   getSkillMatchupMultiplier,
   getWeaknessCoverage,
   getWeaknessCoverMultiplier,
+  isHardCounter,
+  isLaneCounter,
+  isStrongCounter,
+  type GamePhase,
   type MatchupKind,
-  type MatchupPhase,
   type MatchupPhaseWeights,
 } from "./matchupGrades";
+
+export { isHardCounter, isLaneCounter, isStrongCounter };
 
 export type MatchupContext = {
   /** Draft: greutățile fazelor după planul compoziției proprii. Lipsă = media fazelor. */
   phaseWeights?: MatchupPhaseWeights;
   /** Simulare: o singură fază (are prioritate față de `phaseWeights`). */
-  phase?: MatchupPhase;
-  /** Nota 4: aliații noștri (pot acoperi slăbiciunile NOASTRE). */
+  phase?: GamePhase;
+  /** Level 2: aliații noștri (pot acoperi slăbiciunile NOASTRE). */
   ownAllyIds?: readonly string[];
-  /** Nota 4: aliații lor (pot acoperi slăbiciunile LOR). Implicit în `getMatchupValueVsTeam`: pick-urile inamice. */
+  /** Level 2: aliații lor (pot acoperi slăbiciunile LOR). Implicit în `getMatchupValueVsTeam`: pick-urile inamice. */
   enemyAllyIds?: readonly string[];
-  /** Nota 1: jucătorul nostru proiectat. */
+  /** Level 1: jucătorul nostru proiectat. */
   ownPlayerId?: string | null;
-  /** Nota 1: jucătorul advers (un singur inamic). */
+  /** Level 1: jucătorul advers (un singur inamic). */
   enemyPlayerId?: string | null;
-  /** Nota 1 în `getMatchupValueVsTeam`: jucătorul advers se ia de pe rolul fiecărui inamic. */
+  /** Level 1 în `getMatchupValueVsTeam`: jucătorul advers se ia de pe rolul fiecărui inamic. */
   enemyRoster?: Partial<Record<Role, string>>;
   /** Rolurile finale ale inamicilor, dacă se știu (altfel se proiectează). */
   enemyAssignments?: Partial<Record<Role, string>>;
@@ -43,7 +53,8 @@ export type MatchupContext = {
 export type MatchupDetail = {
   enemyId: string;
   enemyRole: Role | null;
-  grade: MatchupGrade;
+  level: MatchupLevel;
+  phase: MatchupPhase;
   kind: MatchupKind;
   value: number;
 };
@@ -55,26 +66,31 @@ function getPlayerMec(playerId: string | null | undefined): number | null {
   return playersById.get(playerId)?.stats.mec ?? null;
 }
 
-function getGradeEffectValue(
-  grade: MatchupGrade,
+function getRelationEffectValue(
+  relation: Pick<MatchupRelation, "level" | "phase">,
   kind: MatchupKind,
   championId: string,
   enemyId: string,
   ctx: MatchupContext,
 ): number {
-  const effect = MATCHUP_GRADE_EFFECTS[grade];
-  let value = effect.draftWeight * getPhaseMultiplier(grade, { phase: ctx.phase, weights: ctx.phaseWeights });
+  const curve = getPhaseCurve(relation.level, relation.phase);
+  const components = { ...curve };
 
-  if (effect.conditionalOnWeaknessCover) {
-    // Campionul countrat și aliații care îi pot acoperi slăbiciunile.
+  if (relation.level === 2) {
+    // Slăbiciunile celui countrat, acoperite de aliații lui — contează în teamfight-uri
+    // (mid / late), nu pe linie.
     const counteredId = kind === "good" ? enemyId : championId;
     const counteredAllies = kind === "good" ? ctx.enemyAllyIds : ctx.ownAllyIds;
     if (counteredAllies?.length) {
-      value *= getWeaknessCoverMultiplier(getWeaknessCoverage(counteredId, counteredAllies));
+      const cover = getWeaknessCoverMultiplier(getWeaknessCoverage(counteredId, counteredAllies));
+      components.mid *= cover;
+      components.late *= cover;
     }
   }
 
-  if (effect.skillDependent) {
+  let value = MATCHUP_LEVEL_WEIGHT[relation.level] * combinePhases(components, { phase: ctx.phase, weights: ctx.phaseWeights });
+
+  if (relation.level === 1) {
     const ownMec = getPlayerMec(ctx.ownPlayerId);
     const enemyMec = getPlayerMec(ctx.enemyPlayerId);
     value *= kind === "good"
@@ -85,7 +101,7 @@ function getGradeEffectValue(
   return kind === "good" ? value : -value;
 }
 
-/** Notele aplicabile și valoarea fiecăreia (pot fi două: combinația 2/3). */
+/** Relațiile aplicabile și valoarea fiecăreia (pot fi două: lane + late pe același adversar). */
 export function getMatchupDetails(
   championId: string,
   role: Role,
@@ -93,13 +109,19 @@ export function getMatchupDetails(
   enemyRole: Role | null,
   ctx: MatchupContext = {},
 ): MatchupDetail[] {
-  const grades = getMatchupGrades(championId, role, enemyId, enemyRole);
+  const relations = getMatchupRelations(championId, role, enemyId, enemyRole);
   const details: MatchupDetail[] = [];
-  if (grades.good) {
-    details.push({ enemyId, enemyRole, grade: grades.good, kind: "good", value: getGradeEffectValue(grades.good, "good", championId, enemyId, ctx) });
-  }
-  if (grades.weak) {
-    details.push({ enemyId, enemyRole, grade: grades.weak, kind: "weak", value: getGradeEffectValue(grades.weak, "weak", championId, enemyId, ctx) });
+  for (const kind of ["good", "weak"] as const) {
+    const relation = relations[kind];
+    if (!relation) continue;
+    details.push({
+      enemyId,
+      enemyRole,
+      level: relation.level,
+      phase: relation.phase,
+      kind,
+      value: getRelationEffectValue(relation, kind, championId, enemyId, ctx),
+    });
   }
   return details;
 }
@@ -159,10 +181,17 @@ export function getMatchupValueVsTeam(
   return { total: details.reduce((sum, detail) => sum + detail.value, 0), details };
 }
 
-// ─── Tabele notă → valoare pentru deciziile discrete (ban-uri, trap) ─────────
+// ─── Tabele level/phase → valoare pentru deciziile discrete (ban-uri, trap) ──
 
-/** 4.2 protectOwnCompBonus: cât de important e să banezi un counter al pick-ului propriu. */
-const PROTECT_BAN_VALUE: Record<MatchupGrade, number> = { 5: 2.5, 4: 1.6, 3: 0.8, 2: 0.6, 1: 0.2 };
+type LevelPhase = Pick<MatchupRelation, "level" | "phase">;
+const isLaneOrAll = (relation: LevelPhase) => relation.phase === "lane" || relation.phase === "all";
+
+/** protectOwnCompBonus: 3/all → 2.5; 3/lane|late → 1.8; 2/all → 1.6; 2/late → 0.8; 2/lane → 0.6; 1 → 0.2. */
+function protectBanValue(relation: LevelPhase): number {
+  if (relation.level === 3) return relation.phase === "all" ? 2.5 : 1.8;
+  if (relation.level === 2) return relation.phase === "all" ? 1.6 : relation.phase === "late" ? 0.8 : 0.6;
+  return 0.2;
+}
 export const PROTECT_BAN_MAX = 4;
 
 /** Valoarea de ban pentru a proteja `ownId` (pe `ownRole`) de `candidateId` (pe `candidateRole`). */
@@ -172,13 +201,14 @@ export function getProtectOwnPickBanValue(
   candidateId: string,
   candidateRole: Role | null,
 ): number {
-  const weak = getMatchupGrades(ownId, ownRole, candidateId, candidateRole).weak;
-  return weak ? PROTECT_BAN_VALUE[weak] : 0;
+  const weak = getMatchupRelations(ownId, ownRole, candidateId, candidateRole).weak;
+  return weak ? protectBanValue(weak) : 0;
 }
 
 /**
- * 4.2 getCounterProductiveBanPenalty: pick-urile inamicului îl countrează deja
- * pe candidat (dacă l-am lua noi). Nota 5 → nu-l bana deloc; nota 1 → aproape zero.
+ * getCounterProductiveBanPenalty: pick-urile inamicului îl countrează deja pe
+ * candidat (dacă l-am lua noi). Proporțional cu valoarea; maxim (nu-l bana deloc)
+ * la level 3 / all.
  */
 export const COUNTER_PRODUCTIVE_BAN = { hardCounterPenalty: -15, valueFactor: 1.2, maxPenalty: 5 } as const;
 
@@ -196,15 +226,19 @@ export function getCounterProductiveBanValue(
     if (!enemyRole) continue;
     for (const detail of getMatchupDetails(enemyId, enemyRole, candidateId, candidateRole)) {
       if (detail.kind !== "good") continue;
-      if (detail.grade === 5) return COUNTER_PRODUCTIVE_BAN.hardCounterPenalty;
+      if (detail.level === 3 && detail.phase === "all") return COUNTER_PRODUCTIVE_BAN.hardCounterPenalty;
       total += detail.value;
     }
   }
   return -Math.min(COUNTER_PRODUCTIVE_BAN.maxPenalty, total * COUNTER_PRODUCTIVE_BAN.valueFactor);
 }
 
-/** 4.6 getTrapCounterBonus: nota 5 → 4, 4 → 3, 3/2 → 2, 1 → 1. */
-const TRAP_COUNTER_BONUS: Record<MatchupGrade, number> = { 5: 4, 4: 3, 3: 2, 2: 2, 1: 1 };
+/** getTrapCounterBonus: 3/all → 4; 3/lane|late sau 2/all → 3; 2/lane|late → 2; 1 → 1. */
+function trapCounterBonus(relation: LevelPhase): number {
+  if (relation.level === 3) return relation.phase === "all" ? 4 : 3;
+  if (relation.level === 2) return relation.phase === "all" ? 3 : 2;
+  return 1;
+}
 
 export function getTrapCounterValue(
   candidateId: string,
@@ -213,12 +247,20 @@ export function getTrapCounterValue(
   baitRole: Role | null,
 ): number {
   if (!candidateRole) return 0;
-  const good = getMatchupGrades(candidateId, candidateRole, baitId, baitRole).good;
-  return good ? TRAP_COUNTER_BONUS[good] : 0;
+  const good = getMatchupRelations(candidateId, candidateRole, baitId, baitRole).good;
+  return good ? trapCounterBonus(good) : 0;
 }
 
-/** 4.1 penalizare suplimentară: inamicul are deja pe rolul nostru un counter de nota 4/5. */
-const DIRECT_COUNTER_PENALTY: Partial<Record<MatchupGrade, number>> = { 5: 3, 4: 1.5 };
+/**
+ * Penalizare suplimentară: inamicul are deja pe rolul nostru un counter direct.
+ * 3/lane|all → 3; 2/all sau 3/late → 1.5; 2/lane → 0.75. Lane-ul contează mai mult
+ * aici, pentru că e matchup direct de linie.
+ */
+function directCounterPenalty(relation: LevelPhase): number {
+  if (relation.level === 3) return isLaneOrAll(relation) ? 3 : 1.5;
+  if (relation.level === 2) return relation.phase === "all" ? 1.5 : relation.phase === "lane" ? 0.75 : 0;
+  return 0;
+}
 
 export function getDirectLaneCounterPenalty(
   candidateId: string,
@@ -231,14 +273,18 @@ export function getDirectLaneCounterPenalty(
   let penalty = 0;
   for (const [enemyId, enemyRole] of enemyRoles) {
     if (enemyRole !== candidateRole) continue;
-    const weak = getMatchupGrades(candidateId, candidateRole, enemyId, enemyRole).weak;
-    if (weak) penalty = Math.max(penalty, DIRECT_COUNTER_PENALTY[weak] ?? 0);
+    const weak = getMatchupRelations(candidateId, candidateRole, enemyId, enemyRole).weak;
+    if (weak) penalty = Math.max(penalty, directCounterPenalty(weak));
   }
   return penalty;
 }
 
-/** 4.1 getBlindRiskPenalty: risc suplimentar pentru counterii de nota 4/5 încă disponibili. */
-const BLIND_COUNTER_RISK: Partial<Record<MatchupGrade, number>> = { 5: 0.6, 4: 0.3 };
+/** getBlindRiskPenalty: 3/all → 0.6; 3/lane|late → 0.45; 2/all → 0.3 (counteri încă disponibili). */
+function blindCounterRisk(relation: LevelPhase): number {
+  if (relation.level === 3) return relation.phase === "all" ? 0.6 : 0.45;
+  if (relation.level === 2 && relation.phase === "all") return 0.3;
+  return 0;
+}
 
 export function getAvailableCounterBlindRisk(
   candidateId: string,
@@ -248,7 +294,7 @@ export function getAvailableCounterBlindRisk(
 ): number {
   let risk = 0;
   for (const relation of getRoleMatchups(candidateId, candidateRole).weakVs) {
-    const value = BLIND_COUNTER_RISK[relation.score];
+    const value = blindCounterRisk(relation);
     if (!value || !isAvailable(relation.championId)) continue;
     const appliesToOpenRole = openEnemyRoles.some((enemyRole) =>
       relationAppliesToEnemyRole(relation, candidateRole, enemyRole),
@@ -258,9 +304,9 @@ export function getAvailableCounterBlindRisk(
   return risk;
 }
 
-/** Numărul de weakVs cu nota ≥ 4 pe rol (siguranța de blind în simulare). */
-export function countHardCounters(championId: string, role: Role): number {
-  return getRoleMatchups(championId, role).weakVs.filter((relation) => relation.score >= 4).length;
+/** Numărul de weakVs „strong” pe rol (siguranța de blind în simulare). */
+export function countStrongCounters(championId: string, role: Role): number {
+  return getRoleMatchups(championId, role).weakVs.filter(isStrongCounter).length;
 }
 
 // ─── Greutățile fazelor după compoziție ──────────────────────────────────────

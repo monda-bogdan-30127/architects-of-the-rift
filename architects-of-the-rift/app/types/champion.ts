@@ -36,13 +36,17 @@ export type ChampionRelation = {
   score?: number;
 };
 
-/** Nota unui matchup, 1..5 — semnificațiile în `draft-engine/matchupGrades.ts`. */
-export type MatchupGrade = 1 | 2 | 3 | 4 | 5;
+/** Cât de tare: 3 = hard counter, 2 = counter (condiționat), 1 = skill matchup. Vezi `draft-engine/matchupGrades.ts`. */
+export type MatchupLevel = 1 | 2 | 3;
+/** Când: "lane" = lane phase, "late" = din mid game încolo, "all" = tot jocul. */
+export type MatchupPhase = "lane" | "late" | "all";
 
 export type MatchupRelation = {
   championId: string;
-  /** Obligatoriu, strict 1..5. */
-  score: MatchupGrade;
+  /** Obligatoriu. */
+  level: MatchupLevel;
+  /** Obligatoriu. */
+  phase: MatchupPhase;
   /**
    * Rolul inamicului. Lipsă = matchup de linie (același rol ca al nostru;
    * pentru `adc`/`support` = botlane 2v2, adică inamicul pe `adc` SAU `support`).
@@ -69,9 +73,20 @@ export type ChampionRoleKey = `${string}:${Role}`;
 export type ChampionRoleStats = { [K in keyof ChampionStats]: ChampionStats[K] | null };
 
 /** Tot ce ține de un campion pe un rol (în fișierul campionului, `roleData[rol]`). */
+/**
+ * TEMPORAR (MATCHUP_LEVEL_PHASE §11): formatul vechi cu notă 1–5, acceptat doar până
+ * rulează `scripts/migrate-matchups-to-level-phase.ts`. Convertit la citire de `toMatchupRelation`.
+ */
+export type LegacyMatchupRelation = {
+  championId: string;
+  score: 1 | 2 | 3 | 4 | 5;
+  vsRole?: Role;
+  note?: string;
+};
+
 export type ChampionRoleData = {
-  goodVs: MatchupRelation[];
-  weakVs: MatchupRelation[];
+  goodVs: (MatchupRelation | LegacyMatchupRelation)[];
+  weakVs: (MatchupRelation | LegacyMatchupRelation)[];
   /** Doar id-uri de campioni, fără notă; ordinea = preferința. */
   mustWith: string[];
   /** null = fără date pe rol, se folosesc stats globale. */

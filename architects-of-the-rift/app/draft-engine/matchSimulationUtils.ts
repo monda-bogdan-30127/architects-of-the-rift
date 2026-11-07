@@ -9,8 +9,8 @@ import type { Champion } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
 import { getComfortScore, getMetaPriorityScore, getPlayerChampionFitScore } from "./draftEvaluator";
 import { getChampionStatsForRole } from "./championRoleStatsSystem";
-import { countHardCounters, getMatchupValue, type MatchupContext } from "./matchupScoring";
-import type { MatchupPhase } from "./matchupGrades";
+import { countStrongCounters, getMatchupValue, type MatchupContext } from "./matchupScoring";
+import type { GamePhase } from "./matchupGrades";
 import { 
   getHistoryAdjustedDraftFit, 
   getPlayerChampionMatchupHistoryBonus,
@@ -63,7 +63,7 @@ export function matchupPowerAgainst(
   allyRole: Role,
   enemyChampionId: string | null,
   enemyRole: Role | null,
-  phase: MatchupPhase,
+  phase: GamePhase,
   ctx: MatchupContext = {}
 ) {
   if (!allyChampionId || !enemyChampionId) return 0;
@@ -75,7 +75,7 @@ export function championBlindSafety(champion: Champion | null, role?: Role | nul
   const blindRate = clamp((getChampionStatsForRole(champion, role).blindPickRate ?? 50) / 100, 0, 1);
   // Doar counterii reali (nota ≥ 4) pe rol, nu toată lista weakVs.
   const counterRole = role && champion.roles.includes(role) ? role : champion.roles[0];
-  const hardCounters = Math.min(counterRole ? countHardCounters(champion.id, counterRole) : 0, 6) / 6;
+  const hardCounters = Math.min(counterRole ? countStrongCounters(champion.id, counterRole) : 0, 6) / 6;
   return clamp((blindRate * 0.75 + (1 - hardCounters) * 0.25) * 10, 0, 10);
 }
 

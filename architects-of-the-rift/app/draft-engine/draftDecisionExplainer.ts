@@ -1,5 +1,6 @@
 import { championsById } from "@/app/data/champions";
 import type { DraftCandidateBreakdown, TeamDraftEvaluation } from "./draftTypes";
+import { describeMatchup } from "./matchupGrades";
 
 function championName(championId: string) {
   return championsById[championId]?.name ?? championId;
@@ -37,6 +38,15 @@ function explainMustWith(breakdown: DraftCandidateBreakdown): string[] {
   return lines;
 }
 
+/** Cele mai importante două matchup-uri ale candidatului, în cuvinte („Counter pe linie vs Jax”). */
+function explainMatchups(breakdown: DraftCandidateBreakdown): string[] {
+  return [...(breakdown.matchupDetails ?? [])]
+    .filter((detail) => Math.abs(detail.value) >= 0.9)
+    .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
+    .slice(0, 2)
+    .map((detail) => describeMatchup({ championId: detail.enemyId, level: detail.level, phase: detail.phase }, detail.kind));
+}
+
 function topReasonEntries(reasonMap: Array<[string, number]>) {
   return reasonMap
     .filter(([, value]) => Math.abs(value) >= 0.9)
@@ -62,6 +72,7 @@ export function explainDraftCandidate(breakdown: DraftCandidateBreakdown): strin
 
   return [
     ...explainMustWith(breakdown),
+    ...explainMatchups(breakdown),
     ...reasons.map(({ label, value }) => `${label}: ${value >= 0 ? "+" : ""}${value.toFixed(1)}`),
   ];
 }

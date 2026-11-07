@@ -12,10 +12,29 @@ import { champions, championsById } from "@/app/data/champions";
 import type {
   ChampionRoleKey,
   ChampionRoleMatchups,
-  MatchupGrade,
+  LegacyMatchupRelation,
+  MatchupLevel,
+  MatchupPhase,
   MatchupRelation,
   Role,
 } from "@/app/types/champion";
+import { getRelationStrength } from "./matchupGrades";
+
+/** TEMPORAR (MATCHUP_LEVEL_PHASE §4/§11): nota veche 1–5 → { level, phase }. */
+const LEGACY_SCORE_MAP: Record<LegacyMatchupRelation["score"], { level: MatchupLevel; phase: MatchupPhase }> = {
+  5: { level: 3, phase: "all" },
+  4: { level: 2, phase: "all" },
+  3: { level: 2, phase: "late" },
+  2: { level: 2, phase: "lane" },
+  1: { level: 1, phase: "all" },
+};
+
+/** TEMPORAR: acceptă și formatul vechi (`score`) până la migrarea datelor. */
+export function toMatchupRelation(relation: MatchupRelation | LegacyMatchupRelation): MatchupRelation {
+  if ("level" in relation) return relation;
+  const { score, ...rest } = relation;
+  return { ...rest, ...LEGACY_SCORE_MAP[score] };
+}
 
 type MatchupListKey = "goodVs" | "weakVs";
 
@@ -90,8 +109,13 @@ function buildIndex(): MatchupIndex {
   // Datele explicite, în ordinea campionilor și a rolurilor din `roleData`.
   const explicit: Partial<Record<ChampionRoleKey, ChampionRoleMatchups>> = {};
   for (const champion of champions) {
-    for (const [role, data] of Object.entries(champion.roleData) as [Role, ChampionRoleMatchups | undefined][]) {
-      if (data) explicit[getRoleKey(champion.id, role)] = data;
+    for (const [role, data] of Object.entries(champion.roleData)) {
+      if (!data) continue;
+      explicit[getRoleKey(champion.id, role as Role)] = {
+        goodVs: data.goodVs.map(toMatchupRelation),
+        weakVs: data.weakVs.map(toMatchupRelation),
+        mustWith: data.mustWith,
+      };
     }
   }
   const byKey = new Map<ChampionRoleKey, ChampionRoleMatchups>();
@@ -142,13 +166,14 @@ function buildIndex(): MatchupIndex {
         );
         if (explicitMatch) {
           // Contradicția se vede din ambele sensuri — raportată o singură dată.
-          if (explicitMatch.score !== relation.score && sourceKey < getRoleKey(targetId, targetRole)) {
+          const differs = explicitMatch.level !== relation.level || explicitMatch.phase !== relation.phase;
+          if (differs && sourceKey < getRoleKey(targetId, targetRole)) {
             issues.push({
               level: "error",
               key: sourceKey,
               message:
-                `contradicție: ${sourceKey} ${fromList} ${targetId} ${relation.score}, ` +
-                `dar ${targetId}:${targetRole} ${toList} ${sourceId} ${explicitMatch.score}`,
+                `contradicție: ${sourceKey} ${fromList} ${targetId} ${describeLevelPhase(relation)}, ` +
+                `dar ${targetId}:${targetRole} ${toList} ${sourceId} ${describeLevelPhase(explicitMatch)}`,
             });
           }
           continue; // explicitul câștigă
@@ -158,13 +183,17 @@ function buildIndex(): MatchupIndex {
           (other) => other.championId === sourceId && other.vsRole === sourceRole,
         );
         if (existing) {
-          if (relation.score > existing.score) existing.score = relation.score;
+          if (getRelationStrength(relation) > getRelationStrength(existing)) {
+            existing.level = relation.level;
+            existing.phase = relation.phase;
+          }
           continue;
         }
 
         target[toList].push({
           championId: sourceId,
-          score: relation.score,
+          level: relation.level,
+          phase: relation.phase,
           vsRole: sourceRole,
           ...(relation.note ? { note: relation.note } : {}),
         });
@@ -197,34 +226,39 @@ export function getRoleMatchups(championId: string, role: Role): ChampionRoleMat
   return getIndex().byKey.get(getRoleKey(championId, role)) ?? EMPTY_MATCHUPS;
 }
 
-function maxApplicableGrade(
+function describeLevelPhase(relation: Pick<MatchupRelation, "level" | "phase">) {
+  return `level ${relation.level}/${relation.phase}`;
+}
+
+function strongestApplicable(
   relations: readonly MatchupRelation[],
   ownRole: Role,
   enemyId: string,
   enemyRole: Role | null | undefined,
-): MatchupGrade | undefined {
-  let best: MatchupGrade | undefined;
+): MatchupRelation | undefined {
+  let best: MatchupRelation | undefined;
   for (const relation of relations) {
     if (relation.championId !== enemyId) continue;
     if (!relationAppliesToEnemyRole(relation, ownRole, enemyRole)) continue;
-    if (!best || relation.score > best) best = relation.score;
+    if (!best || getRelationStrength(relation) > getRelationStrength(best)) best = relation;
   }
   return best;
 }
 
 /**
- * Notele campionului (pe `role`) contra `enemyId` (pe `enemyRole`, dacă se știe).
- * Pot exista ambele (combinația permisă 2/3: câștigă pe linie, pierde late).
+ * Relațiile campionului (pe `role`) contra `enemyId` (pe `enemyRole`, dacă se știe);
+ * din mai multe aplicabile pe aceeași listă se ia cea mai puternică.
+ * Pot exista ambele (permis doar lane + late: câștigă pe linie, pierde late).
  */
-export function getMatchupGrades(
+export function getMatchupRelations(
   championId: string,
   role: Role,
   enemyId: string,
   enemyRole?: Role | null,
-): { good?: MatchupGrade; weak?: MatchupGrade } {
+): { good?: MatchupRelation; weak?: MatchupRelation } {
   const matchups = getRoleMatchups(championId, role);
-  const good = maxApplicableGrade(matchups.goodVs, role, enemyId, enemyRole);
-  const weak = maxApplicableGrade(matchups.weakVs, role, enemyId, enemyRole);
+  const good = strongestApplicable(matchups.goodVs, role, enemyId, enemyRole);
+  const weak = strongestApplicable(matchups.weakVs, role, enemyId, enemyRole);
   return {
     ...(good ? { good } : {}),
     ...(weak ? { weak } : {}),
