@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# snapshot-uri date campioni (scripts/champion-data-snapshot.ts)
+scripts/.snapshot-*.json
