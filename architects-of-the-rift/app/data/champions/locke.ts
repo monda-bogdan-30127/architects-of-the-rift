@@ -90,6 +90,20 @@ export const locke = createChampion({
         xpDiffAt15: -291,
         soloqKrChallengerWinRate: null,
       },
+      profile: {
+        abilities: [
+          { key: "passive", name: "Silver Stake", effects: [{ type: "dps", subtype: "on-hit-missing-health", strength: 6, reliability: 8, priority: 6 }] },
+          { key: "q", name: "Soul Nails", effects: [{ type: "slow", strength: 5, reliability: 6, priority: 6 }, { type: "mark", subtype: "nail-stacks", strength: 7, reliability: 6, priority: 7 }] },
+          { key: "w", name: "Soul Ignition", effects: [{ type: "mobility", subtype: "attack-move-speed", strength: 6, reliability: 9, priority: 5 }] },
+          { key: "e", name: "Ashen Pursuit", effects: [{ type: "dash", subtype: "blink-then-dash", strength: 8, reliability: 8, priority: 9 }, { type: "mobility", subtype: "reset-on-takedown", strength: 8, reliability: 7, priority: 8 }] },
+          { key: "r", name: "Purgatory", effects: [{ type: "execute", subtype: "chain-execute", strength: 9, reliability: 7, priority: 10 }, { type: "slow", subtype: "decaying-99", strength: 9, reliability: 7, priority: 8 }, { type: "zone-control", strength: 6, reliability: 6, priority: 6 }] },
+        ],
+        damageProfileDetailed: { execute: 9 },
+        ccProfile: { soft: 6, pick: 7 },
+        accessProfile: { engageRange: 6, targetAccess: 7, stickiness: 6 },
+        threatProfile: { backlineThreat: 8, pickThreat: 8 },
+        phaseIdentity: { earlyRole: "carry", midRole: "carry", lateRole: "pick" },
+      },
     },
   },
 });

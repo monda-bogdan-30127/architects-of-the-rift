@@ -217,6 +217,7 @@ profile: {
 - `stats: null` = fără date pe rol; se folosește `stats`-ul global al campionului.
 - Poți completa doar o parte din câmpuri: scrie obiectul complet și lasă `null` unde lipsesc datele. Fiecare câmp `null` cade pe valoarea globală.
 - **Sursa:** gol.gg (sau ceva echivalent) filtrat pe turneu **și** pe rol, același eșantion ca statistica globală (Worlds 2026).
+- **Import automat:** pune tabelele gol.gg ca TSV în `data-sources/<turneu>/<rol>.tsv` (`top`, `jungle`, `mid`, `adc`, `support`) și rulează `npx tsx scripts/import-role-stats.ts data-sources/<turneu>`. Scriptul completează `roleData[rol].stats` și adaugă rolul în `roles` dacă un campion a fost jucat pe un rol pe care nu-l are. `bans` și `avgBanTurn` rămân `null` (ban-urile nu au rol), iar `presence` = pick-uri pe rol + ban-uri. Importul e idempotent; la final scriptul semnalează dacă pick-urile pe rol nu se adună la cele globale (alt eșantion).
 - **Unde contează cel mai mult:** la campionii flex (Poppy, Seraphine, Senna, Taliyah…). La un campion cu un singur rol, statistica pe rol e practic cea globală.
 
 | Câmp | Semnificație |

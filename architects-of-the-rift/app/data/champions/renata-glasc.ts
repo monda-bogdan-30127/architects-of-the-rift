@@ -89,6 +89,17 @@ export const renataGlasc = createChampion({
         xpDiffAt15: 157,
         soloqKrChallengerWinRate: null,
       },
+      profile: {
+        abilities: [
+          { key: "q", name: "Handshake", effects: [{ type: "root", strength: 6, reliability: 6, priority: 7 }, { type: "displacement", subtype: "throw", strength: 6, reliability: 6, priority: 6 }] },
+          { key: "w", name: "Bailout", effects: [{ type: "shield", subtype: "delayed-revive", strength: 8, reliability: 7, priority: 9 }] },
+          { key: "e", name: "Loyalty Program", effects: [{ type: "shield", strength: 5, reliability: 8, priority: 5 }, { type: "slow", strength: 4, reliability: 7, priority: 4 }] },
+          { key: "r", name: "Hostile Takeover", effects: [{ type: "anti-engage", subtype: "berserk-wave", strength: 9, reliability: 7, priority: 10 }, { type: "zone-control", strength: 8, reliability: 7, priority: 8 }] },
+        ],
+        ccProfile: { hard: 6, lockdown: 6 },
+        special: { displacement: 5 },
+        threatProfile: { zoneThreat: 8 },
+      },
     },
   },
 });
