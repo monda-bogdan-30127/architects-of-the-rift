@@ -62,6 +62,22 @@ export type ChampionRoleMatchups = {
 
 export type ChampionRoleKey = `${string}:${Role}`;
 
+/**
+ * Statistici pe rol; `null` pe un câmp = „fără date, se folosește statistica
+ * globală” (`Champion.stats`). Citite doar prin `getChampionStatsForRole`.
+ */
+export type ChampionRoleStats = { [K in keyof ChampionStats]: ChampionStats[K] | null };
+
+/** Tot ce ține de un campion pe un rol (în fișierul campionului, `roleData[rol]`). */
+export type ChampionRoleData = {
+  goodVs: MatchupRelation[];
+  weakVs: MatchupRelation[];
+  /** Doar id-uri de campioni, fără notă; ordinea = preferința. */
+  mustWith: string[];
+  /** null = fără date pe rol, se folosesc stats globale. */
+  stats: ChampionRoleStats | null;
+};
+
 export type ChampionCarryProfile = {
   selfPeel?: 0 | 1 | 2 | 3 | 4 | 5;
   selfSave?: 0 | 1 | 2 | 3 | 4 | 5;
@@ -312,7 +328,6 @@ export type Champion = {
   roles: Role[];
   damageProfile: DamageType[];
   stats: ChampionStats;
-  /** Matchup-urile și mustWith sunt pe rol: `championRoleMatchups.ts` / `getRoleMatchups`. */
   synergyWith: ChampionRelation[];
   offers: ChampionOffer[];
   needs: ChampionNeed[];
@@ -321,4 +336,9 @@ export type Champion = {
   carryProfile?: ChampionCarryProfile;
   roleProfiles?: ChampionRoleProfile[];
   championTags?: string[];
+  /**
+   * Matchup-uri, mustWith și statistici pe rol — exact cheile din `roles`.
+   * Citite doar prin `championMatchups.ts` și `championRoleStatsSystem.ts`.
+   */
+  roleData: Partial<Record<Role, ChampionRoleData>>;
 };

@@ -1,0 +1,79 @@
+import { createChampion } from "./_helpers";
+
+export const nocturne = createChampion({
+  id: "nocturne",
+  name: "Nocturne",
+  image: "/champions/nocturne.png",
+  roles: ["jungle"],
+  damageProfile: ["AD"],
+
+  synergyWith: [
+    { championId: "orianna", score: 5 },
+    { championId: "ahri", score: 5 },
+    { championId: "akali", score: 3 },
+    { championId: "shen", score: 5 },
+    { championId: "ornn", score: 5 },
+    { championId: "galio", score: 4 },
+    { championId: "twisted-fate", score: 4 },
+    { championId: "ryze", score: 4 },
+  ],
+
+  offers: [
+    { type: "backlineAccess", strength: 5 },
+    { type: "dive", strength: 5 },
+    { type: "pick", strength: 4 },
+    { type: "roamPressure", strength: 3 }
+  ],
+
+  needs: [
+    { type: "followUp", priority: 2 }
+  ],
+
+  weaknesses: [
+    { exposedTo: "disengage", severity: 3 },
+    { exposedTo: "peel", severity: 2 },
+    { exposedTo: "antiDive", severity: 2 },
+    { exposedTo: "frontline", severity: 2 },
+    { exposedTo: "zoneControl", severity: 1 },
+  ],
+
+  playerScaling: { mac: 4, tfg: 3, clt: 3, iq: 4 },
+
+  stats: {
+    picks: 13,
+    bans: 57,
+    presence: 70,
+    prioScore: 89,
+    wins: 8,
+    losses: 5,
+    proWinRate: 62,
+    kda: 4.8,
+    avgBanTurn: 3.1,
+    avgPickRound: 1.31,
+    blindPickRate: 92.3,
+    averageGameTime: "31:58",
+    csPerMinute: 7,
+    damagePerMinute: 404,
+    goldPerMinute: 389,
+    csDiffAt15: 1.2,
+    goldDiffAt15: -193,
+    xpDiffAt15: -161,
+    soloqKrChallengerWinRate: 59.69,
+  },
+
+  roleData: {
+    jungle: {
+      goodVs: [
+        { championId: "sejuani", score: 2 },
+      ],
+      weakVs: [
+        { championId: "skarner", score: 3 },
+        { championId: "aatrox", score: 2 },
+        { championId: "lee-sin", score: 2 },
+        { championId: "vi", score: 2 },
+      ],
+      mustWith: [],
+      stats: null,
+    },
+  },
+});

@@ -1,6 +1,7 @@
 // ─── utils/championMatchupValidation.ts ─────────────────────────────────────
 //
-// Validează `championRoleMatchups` (DRAFT_REWORK §6). Rulează:
+// Validează datele pe rol din `champion.roleData` (fișierele din app/data/champions/,
+// DRAFT_REWORK §6). Rulează:
 //   npm run validate:matchups
 //
 // Structura se verifică pe datele explicite; contradicțiile și derivările
@@ -10,20 +11,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { champions as defaultChampions } from "../data/champions";
-import { championRoleMatchups as defaultMatchups } from "../data/championRoleMatchups";
 import {
   getMatchupDerivationIssues,
   getRoleMatchups,
   relationAppliesToEnemyRole,
 } from "../draft-engine/championMatchups";
-import type {
-  Champion,
-  ChampionRoleKey,
-  ChampionRoleMatchups,
-  MatchupGrade,
-  MatchupRelation,
-  Role,
-} from "../types/champion";
+import type { Champion, ChampionRoleData, MatchupGrade, MatchupRelation, Role } from "../types/champion";
 
 export type MatchupIssueSeverity = "error" | "warning";
 
@@ -55,12 +48,6 @@ function isRole(value: unknown): value is Role {
   return typeof value === "string" && (ROLES as string[]).includes(value);
 }
 
-function parseKey(key: string): { championId: string; role: string } | null {
-  const separator = key.lastIndexOf(":");
-  if (separator <= 0) return null;
-  return { championId: key.slice(0, separator), role: key.slice(separator + 1) };
-}
-
 /** Există un rol inamic pe care se aplică ambele relații? */
 function overlaps(a: MatchupRelation, b: MatchupRelation, ownRole: Role): boolean {
   return ROLES.some(
@@ -69,36 +56,33 @@ function overlaps(a: MatchupRelation, b: MatchupRelation, ownRole: Role): boolea
   );
 }
 
-export function validateChampionRoleMatchups(
-  matchups: Partial<Record<ChampionRoleKey, ChampionRoleMatchups>> = defaultMatchups,
-  champions: Champion[] = defaultChampions,
-): MatchupValidationResult {
+export function validateChampionRoleMatchups(champions: Champion[] = defaultChampions): MatchupValidationResult {
+  // Verificările pe listele efective (derivare) folosesc indexul din championMatchups,
+  // construit din datele reale — rulează doar pentru ele.
+  const isRealData = champions === defaultChampions;
   const issues: MatchupValidationIssue[] = [];
   const error = (key: string, message: string) => issues.push({ severity: "error", key, message });
   const warning = (key: string, message: string) => issues.push({ severity: "warning", key, message });
   const byId = new Map(champions.map((champion) => [champion.id, champion]));
   let explicitRelationCount = 0;
 
-  // ── Acoperire: fiecare campion × rol din `roles`, nimic în plus ──────────
-  for (const champion of champions) {
-    for (const role of champion.roles) {
-      if (!matchups[`${champion.id}:${role}`]) error(`${champion.id}:${role}`, "lipsește intrarea pentru acest campion × rol");
+  // ── roleData: exact cheile din `roles` ───────────────────────────────────
+  for (const owner of champions) {
+    const roleKeys = Object.keys(owner.roleData ?? {});
+    for (const role of owner.roles) {
+      if (!owner.roleData?.[role]) error(`${owner.id}:${role}`, `roleData nu are rolul ${role} din \`roles\``);
+    }
+    for (const roleKey of roleKeys) {
+      if (!isRole(roleKey)) error(`${owner.id}:${roleKey}`, `roleData are o cheie invalidă "${roleKey}"`);
+      else if (!owner.roles.includes(roleKey)) error(`${owner.id}:${roleKey}`, `roleData are rolul ${roleKey}, care nu e în \`roles\``);
+    }
+    for (const [roleKey, entry] of Object.entries(owner.roleData ?? {})) {
+      if (entry && isRole(roleKey)) validateRoleEntry(owner, roleKey, entry);
     }
   }
 
-  for (const [key, entry] of Object.entries(matchups) as [string, ChampionRoleMatchups][]) {
-    const parsed = parseKey(key);
-    if (!parsed || !isRole(parsed.role)) {
-      error(key, "cheie invalidă (format așteptat `championId:rol`)");
-      continue;
-    }
-    const owner = byId.get(parsed.championId);
-    const role = parsed.role;
-    if (!owner) {
-      error(key, `campion inexistent: ${parsed.championId}`);
-      continue;
-    }
-    if (!owner.roles.includes(role)) error(key, `${owner.id} nu are rolul ${role} în \`roles\``);
+  function validateRoleEntry(owner: Champion, role: Role, entry: ChampionRoleData) {
+    const key = `${owner.id}:${role}`;
 
     // ── Relațiile goodVs / weakVs ──────────────────────────────────────────
     for (const list of LISTS) {
@@ -142,11 +126,13 @@ export function validateChampionRoleMatchups(
         warning(key, `mustWith ${partnerId}: partenerul nu are niciun rol diferit de ${role}`);
       }
     }
+
+    // ── stats ──────────────────────────────────────────────────────────────
+    if (entry.stats !== null && typeof entry.stats !== "object") error(key, "stats trebuie să fie null sau un obiect");
   }
 
   // ── Contradicții explicite și derivări imposibile (din championMatchups) ─
-  // Doar pentru datele reale: indexul din championMatchups e construit din ele.
-  if (matchups === defaultMatchups) {
+  if (isRealData) {
     for (const issue of getMatchupDerivationIssues()) {
       issues.push({ severity: issue.level, key: issue.key, message: issue.message });
     }
@@ -157,7 +143,7 @@ export function validateChampionRoleMatchups(
     ROLES.map((role) => [role, { goodVs: emptyCounts(), weakVs: emptyCounts() }]),
   ) as MatchupValidationResult["gradeCountsByRole"];
 
-  if (matchups === defaultMatchups) {
+  if (isRealData) {
     const isValid = (relation: MatchupRelation, ownerId: string) =>
       relation.championId !== ownerId && Number.isInteger(relation.score) && relation.score >= 1 && relation.score <= 5;
     const reportedPairs = new Set<string>();

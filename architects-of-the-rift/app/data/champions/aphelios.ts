@@ -1,0 +1,79 @@
+import { createChampion } from "./_helpers";
+
+export const aphelios = createChampion({
+  id: "aphelios",
+  name: "Aphelios",
+  image: "/champions/aphelios.png",
+  roles: ["adc"],
+  damageProfile: ["AD"],
+
+  synergyWith: [
+    { championId: "thresh", score: 4 },
+    { championId: "lulu", score: 4 },
+    { championId: "braum", score: 3 },
+    { championId: "nautilus", score: 3 },
+    { championId: "leona", score: 3 },
+    { championId: "milio", score: 3 },
+    { championId: "renata-glasc", score: 3 },
+  ],
+
+  offers: [
+    { type: "sustainedDamage", strength: 5 },
+    { type: "scaling", strength: 5 },
+    { type: "siege", strength: 4 }
+  ],
+
+  needs: [
+    { type: "frontline", priority: 3 },
+    { type: "peel", priority: 3 }
+  ],
+
+  weaknesses: [
+    { exposedTo: "dive", severity: 3 },
+    { exposedTo: "backlineAccess", severity: 3 },
+    { exposedTo: "pick", severity: 3 },
+    { exposedTo: "engage", severity: 2 },
+    { exposedTo: "earlyPrio", severity: 2 },
+  ],
+
+  playerScaling: { mec: 4, tfg: 5, clt: 3, con: 4 },
+
+  stats: {
+    picks: 1,
+    bans: 2,
+    presence: 3,
+    prioScore: 4,
+    wins: 1,
+    losses: 0,
+    proWinRate: 100,
+    kda: 9,
+    avgBanTurn: 7.5,
+    avgPickRound: 1,
+    blindPickRate: 0,
+    averageGameTime: "37:32",
+    csPerMinute: 10.3,
+    damagePerMinute: 672,
+    goldPerMinute: 495,
+    csDiffAt15: -24,
+    goldDiffAt15: -471,
+    xpDiffAt15: -462,
+    soloqKrChallengerWinRate: 53.17,
+  },
+
+  roleData: {
+    adc: {
+      goodVs: [
+        { championId: "ezreal", score: 3 },
+      ],
+      weakVs: [
+        { championId: "caitlyn", score: 2 },
+        { championId: "lucian", score: 2 },
+        { championId: "sivir", score: 2 },
+        { championId: "yunara", score: 1 },
+        { championId: "zeri", score: 1 },
+      ],
+      mustWith: [],
+      stats: null,
+    },
+  },
+});

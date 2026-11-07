@@ -1,4 +1,4 @@
-// Validează championRoleMatchups (DRAFT_REWORK §6).
+// Validează datele pe rol (`roleData`) din app/data/champions/ (DRAFT_REWORK §6).
 //
 //   npm run validate:matchups        (= npx tsx scripts/validate-matchups.ts)
 //

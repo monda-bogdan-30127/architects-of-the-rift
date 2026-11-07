@@ -1,0 +1,82 @@
+import { createChampion } from "./_helpers";
+
+export const fiora = createChampion({
+  id: "fiora",
+  name: "Fiora",
+  image: "/champions/fiora.png",
+  roles: ["top"],
+  damageProfile: ["AD", "TRUE"],
+
+  synergyWith: [
+    { championId: "sejuani", score: 5 },
+    { championId: "braum", score: 5 },
+    { championId: "lee-sin", score: 4 },
+    { championId: "jarvan-iv", score: 4 },
+    { championId: "vi", score: 4 },
+    { championId: "twisted-fate", score: 3 },
+    { championId: "taliyah", score: 3 },
+    { championId: "galio", score: 3 },
+  ],
+
+  offers: [
+    { type: "splitpush", strength: 5 },
+    { type: "sideLanePressure", strength: 5 },
+    { type: "sustainedDamage", strength: 4 }
+  ],
+
+  needs: [
+    { type: "engage", priority: 1 }
+  ],
+
+  weaknesses: [
+    { exposedTo: "pick", severity: 2 },
+    { exposedTo: "engage", severity: 2 },
+    { exposedTo: "poke", severity: 2 },
+    { exposedTo: "waveclear", severity: 1 },
+    { exposedTo: "siege", severity: 1 },
+  ],
+
+  playerScaling: { mec: 5, tfg: 3, clt: 3, con: 3 },
+
+  stats: {
+    picks: 0,
+    bans: 0,
+    presence: 0,
+    prioScore: 0,
+    wins: 0,
+    losses: 0,
+    proWinRate: null,
+    kda: null,
+    avgBanTurn: null,
+    avgPickRound: null,
+    blindPickRate: null,
+    averageGameTime: null,
+    csPerMinute: null,
+    damagePerMinute: null,
+    goldPerMinute: null,
+    csDiffAt15: null,
+    goldDiffAt15: null,
+    xpDiffAt15: null,
+    soloqKrChallengerWinRate: 58.22,
+  },
+
+  roleData: {
+    top: {
+      goodVs: [
+        { championId: "aatrox", score: 4, note: "parry pe Q3 și vitals" },
+        { championId: "malphite", score: 4, note: "vitals ignoră armura" },
+        { championId: "ornn", score: 4, note: "vitals contra tank-ului" },
+        { championId: "jax", score: 3 },
+      ],
+      weakVs: [
+        { championId: "mordekaiser", score: 4, note: "ult-ul o izolează fără ajutorul echipei" },
+        { championId: "gwen", score: 3 },
+        { championId: "gnar", score: 2 },
+        { championId: "kennen", score: 2 },
+        { championId: "camille", score: 1 },
+      ],
+      mustWith: [],
+      stats: null,
+    },
+  },
+});

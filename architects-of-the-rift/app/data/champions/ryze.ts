@@ -1,0 +1,81 @@
+import { createChampion } from "./_helpers";
+
+export const ryze = createChampion({
+  id: "ryze",
+  name: "Ryze",
+  image: "/champions/ryze.png",
+  roles: ["mid"],
+  damageProfile: ["AP"],
+
+  synergyWith: [
+    { championId: "pantheon", score: 5 },
+    { championId: "vi", score: 4 },
+    { championId: "wukong", score: 4 },
+    { championId: "nautilus", score: 3 },
+    { championId: "rell", score: 3 },
+    { championId: "renata-glasc", score: 3 },
+    { championId: "xayah", score: 3 }
+  ],
+
+  offers: [
+    { type: "waveclear", strength: 4 },
+    { type: "sustainedDamage", strength: 4 },
+    { type: "sideLanePressure", strength: 4 },
+    { type: "scaling", strength: 4 }
+  ],
+
+  needs: [
+    { type: "frontline", priority: 2 },
+    { type: "peel", priority: 1 }
+  ],
+
+  weaknesses: [
+    { exposedTo: "dive", severity: 2 },
+    { exposedTo: "backlineAccess", severity: 2 },
+    { exposedTo: "pick", severity: 2 },
+    { exposedTo: "engage", severity: 2 },
+    { exposedTo: "earlyPrio", severity: 2 },
+  ],
+
+  playerScaling: { mec: 4, mac: 4, con: 4, iq: 5 },
+
+  stats: {
+    picks: 7,
+    bans: 4,
+    presence: 11,
+    prioScore: 10,
+    wins: 2,
+    losses: 5,
+    proWinRate: 29,
+    kda: 3.2,
+    avgBanTurn: 7.8,
+    avgPickRound: 2.29,
+    blindPickRate: 71.4,
+    averageGameTime: "30:04",
+    csPerMinute: 9.3,
+    damagePerMinute: 479,
+    goldPerMinute: 399,
+    csDiffAt15: -2.1,
+    goldDiffAt15: 158,
+    xpDiffAt15: -82,
+    soloqKrChallengerWinRate: 52,
+  },
+
+  roleData: {
+    mid: {
+      goodVs: [
+        { championId: "aurora", score: 3 },
+        { championId: "galio", score: 3 },
+        { championId: "taliyah", score: 2 },
+      ],
+      weakVs: [
+        { championId: "akali", score: 2 },
+        { championId: "anivia", score: 2 },
+        { championId: "cassiopeia", score: 2 },
+        { championId: "twisted-fate", score: 1 },
+      ],
+      mustWith: [],
+      stats: null,
+    },
+  },
+});

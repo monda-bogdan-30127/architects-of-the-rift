@@ -1,6 +1,7 @@
 // Citirea matchup-urilor și a mustWith pe rol (DRAFT_REWORK §2.3–2.4).
 //
-// Singurul loc care citește `championRoleMatchups`. Datele explicite sunt
+// Singurul loc (în afară de validator) care citește matchup-urile și mustWith din
+// `champion.roleData` (fișierele din app/data/champions/). Datele explicite sunt
 // completate cu relațiile derivate în ambele sensuri:
 //   A:rA weakVs B (g) → B:rB goodVs A (g, vsRole rA)
 //   A:rA goodVs B (g) → B:rB weakVs A (g, vsRole rA)
@@ -8,7 +9,6 @@
 // singură dată, la primul acces.
 
 import { champions, championsById } from "@/app/data/champions";
-import { championRoleMatchups } from "@/app/data/championRoleMatchups";
 import type {
   ChampionRoleKey,
   ChampionRoleMatchups,
@@ -87,7 +87,13 @@ let cachedIndex: MatchupIndex | null = null;
 
 function buildIndex(): MatchupIndex {
   const issues: MatchupDerivationIssue[] = [];
-  const explicit = championRoleMatchups as Partial<Record<ChampionRoleKey, ChampionRoleMatchups>>;
+  // Datele explicite, în ordinea campionilor și a rolurilor din `roleData`.
+  const explicit: Partial<Record<ChampionRoleKey, ChampionRoleMatchups>> = {};
+  for (const champion of champions) {
+    for (const [role, data] of Object.entries(champion.roleData) as [Role, ChampionRoleMatchups | undefined][]) {
+      if (data) explicit[getRoleKey(champion.id, role)] = data;
+    }
+  }
   const byKey = new Map<ChampionRoleKey, ChampionRoleMatchups>();
 
   for (const champion of champions) {

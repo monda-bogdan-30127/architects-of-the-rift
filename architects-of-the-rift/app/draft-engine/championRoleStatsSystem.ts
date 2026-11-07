@@ -1,15 +1,14 @@
 // Statistici pe rol cu fallback pe statistica globală (DRAFT_REWORK §3).
 //
+// Sursa: `champion.roleData[rol].stats` (fișierele din app/data/champions/).
 // Câmp cu câmp: valoarea de pe rol dacă nu e `null`, altfel `champion.stats`.
-// Cât timp `championRoleStats` e gol, întoarce chiar obiectul `champion.stats`
-// (comportament identic). Rol necunoscut / nejucat → `champion.stats`.
+// `stats: null` pe rol (sau rol necunoscut / nejucat) → chiar obiectul `champion.stats`.
 
-import { championRoleStats, type ChampionRoleStats } from "@/app/data/championRoleStats";
-import type { Champion, ChampionRoleKey, ChampionStats, Role } from "@/app/types/champion";
+import type { Champion, ChampionRoleKey, ChampionRoleStats, ChampionStats, Role } from "@/app/types/champion";
 
 const mergedCache = new Map<ChampionRoleKey, { base: ChampionStats; merged: ChampionStats }>();
 
-function mergeRoleStats(base: ChampionStats, roleStats: ChampionRoleStats | undefined): ChampionStats {
+function mergeRoleStats(base: ChampionStats, roleStats: ChampionRoleStats | null | undefined): ChampionStats {
   if (!roleStats) return base;
 
   let merged: ChampionStats | null = null;
@@ -29,7 +28,7 @@ export function getChampionStatsForRole(champion: Champion, role: Role | null | 
   const cached = mergedCache.get(key);
   if (cached && cached.base === champion.stats) return cached.merged;
 
-  const merged = mergeRoleStats(champion.stats, championRoleStats[key]);
+  const merged = mergeRoleStats(champion.stats, champion.roleData[role]?.stats);
   mergedCache.set(key, { base: champion.stats, merged });
   return merged;
 }

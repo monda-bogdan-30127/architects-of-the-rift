@@ -1,0 +1,87 @@
+import { createChampion } from "./_helpers";
+
+export const rengar = createChampion({
+  id: "rengar",
+  name: "Rengar",
+  image: "/champions/rengar.png",
+  roles: ["jungle", "top"],
+  damageProfile: ["AD"],
+
+  synergyWith: [
+    { championId: "ivern", score: 5 },
+    { championId: "leblanc", score: 4 },
+    { championId: "qiyana", score: 4 },
+    { championId: "orianna", score: 4 },
+    { championId: "naafiri", score: 3 },
+    { championId: "pyke", score: 3 },
+    { championId: "ashe", score: 2 },
+  ],
+
+  offers: [
+    { type: "pick", strength: 5 },
+    { type: "burstDamage", strength: 5 },
+    { type: "backlineAccess", strength: 4 }
+  ],
+
+  needs: [
+    { type: "frontline", priority: 2 }
+  ],
+
+  weaknesses: [
+    { exposedTo: "dive", severity: 2 },
+    { exposedTo: "backlineAccess", severity: 2 },
+    { exposedTo: "peel", severity: 2 },
+    { exposedTo: "antiDive", severity: 2 },
+    { exposedTo: "disengage", severity: 2 },
+  ],
+
+  playerScaling: { mec: 4, mac: 4, tfg: 3, iq: 4 },
+
+  stats: {
+    picks: 0,
+    bans: 0,
+    presence: 0,
+    prioScore: 0,
+    wins: 0,
+    losses: 0,
+    proWinRate: null,
+    kda: null,
+    avgBanTurn: null,
+    avgPickRound: null,
+    blindPickRate: null,
+    averageGameTime: null,
+    csPerMinute: null,
+    damagePerMinute: null,
+    goldPerMinute: null,
+    csDiffAt15: null,
+    goldDiffAt15: null,
+    xpDiffAt15: null,
+    soloqKrChallengerWinRate: 59.66,
+  },
+
+  roleData: {
+    jungle: {
+      goodVs: [
+        { championId: "graves", score: 2 },
+        { championId: "khazix", score: 2 },
+      ],
+      weakVs: [
+        { championId: "rammus", score: 4, note: "armură și taunt contra burst-ului AD" },
+        { championId: "sejuani", score: 4, note: "tank cu CC, nu poate fi one-shot" },
+        { championId: "skarner", score: 4, note: "tank cu suppression, nu poate fi one-shot" },
+        { championId: "zac", score: 2 },
+        { championId: "ivern", score: 1 },
+      ],
+      mustWith: [],
+      stats: null,
+    },
+    top: {
+      goodVs: [],
+      weakVs: [
+        { championId: "zac", score: 2 },
+      ],
+      mustWith: [],
+      stats: null,
+    },
+  },
+});

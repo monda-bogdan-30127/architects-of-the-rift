@@ -1,0 +1,92 @@
+import { createChampion } from "./_helpers";
+
+export const ziggs = createChampion({
+  id: "ziggs",
+  name: "Ziggs",
+  image: "/champions/ziggs.png",
+  roles: ["adc", "mid"],
+  damageProfile: ["AP"],
+
+  synergyWith: [
+    { championId: "jarvan-iv", score: 5 },
+    { championId: "amumu", score: 5 },
+    { championId: "rell", score: 4 },
+    { championId: "nautilus", score: 4 },
+    { championId: "leona", score: 4 },
+    { championId: "bard", score: 3 },
+    { championId: "taliyah", score: 3 },
+    { championId: "orianna", score: 3 },
+  ],
+
+  offers: [
+    { type: "poke", strength: 4 },
+    { type: "scaling", strength: 4 },
+    { type: "siege", strength: 4 },
+    { type: "sustainedDamage", strength: 4 },
+    { type: "waveclear", strength: 4 }
+  ],
+
+  needs: [
+    { type: "frontline", priority: 2 },
+    { type: "peel", priority: 2 }
+  ],
+
+  weaknesses: [
+    { exposedTo: "dive", severity: 3 },
+    { exposedTo: "backlineAccess", severity: 3 },
+    { exposedTo: "pick", severity: 3 },
+    { exposedTo: "engage", severity: 2 },
+    { exposedTo: "earlyPrio", severity: 2 },
+  ],
+
+  playerScaling: { mec: 4, tfg: 4, clt: 2, con: 4 },
+
+  stats: {
+    picks: 5,
+    bans: 1,
+    presence: 6,
+    prioScore: 5,
+    wins: 1,
+    losses: 4,
+    proWinRate: 20,
+    kda: 1.7,
+    avgBanTurn: 8,
+    avgPickRound: 2.8,
+    blindPickRate: 60,
+    averageGameTime: "31:44",
+    csPerMinute: 9.8,
+    damagePerMinute: 633,
+    goldPerMinute: 411,
+    csDiffAt15: 2.8,
+    goldDiffAt15: -258,
+    xpDiffAt15: 145,
+    soloqKrChallengerWinRate: 59.75,
+  },
+
+  roleData: {
+    adc: {
+      goodVs: [
+        { championId: "syndra", score: 2 },
+      ],
+      weakVs: [
+        { championId: "kaisa", score: 4, note: "dive pe un mage imobil" },
+        { championId: "jhin", score: 2 },
+        { championId: "jinx", score: 2 },
+        { championId: "tahm-kench", score: 2 },
+        { championId: "xayah", score: 2 },
+      ],
+      mustWith: [],
+      stats: null,
+    },
+    mid: {
+      goodVs: [
+        { championId: "orianna", score: 2 },
+        { championId: "syndra", score: 2 },
+        { championId: "viktor", score: 2 },
+      ],
+      weakVs: [],
+      mustWith: [],
+      stats: null,
+    },
+  },
+});
