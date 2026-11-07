@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "validate:matchups": "npx tsx scripts/validate-matchups.ts"
+    "validate:matchups": "npx tsx scripts/validate-matchups.ts",
+    "matchups": "npx tsx scripts/matchups-report.ts"
   },
   "dependencies": {
     "next": "16.1.6",

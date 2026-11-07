@@ -60,16 +60,12 @@ export const poppy = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "camille", level: 2, phase: "all", note: "W oprește E-ul Camillei" },
+        { championId: "camille", level: 3, phase: "all", note: "W oprește E-ul Camillei" },
       ],
-      weakVs: [
-        { championId: "shen", level: 2, phase: "lane" },
-      ],
-      mustWith: [],
       stats: null,
     },
-    jungle: { goodVs: [], weakVs: [/* … */], mustWith: [], stats: null },
-    top: { goodVs: [/* … */], weakVs: [/* … */], mustWith: [], stats: null },
+    jungle: { goodVs: [/* … */], stats: null },
+    top: { goodVs: [/* … */], stats: { /* … */ } },
   },
 });
 ```
@@ -77,10 +73,15 @@ export const poppy = createChampion({
 Reguli de formatare, la fel în toate fișierele:
 
 - **Ordinea câmpurilor:** identitate (`id`, `name`, `image`, `roles`, `damageProfile`) → compoziție (`synergyWith`, `offers`, `needs`, `weaknesses`, `playerScaling`, `carryProfile` dacă e explicit) → `stats` → `roleData`.
-- **`roleData` are exact cheile din `roles`, în aceeași ordine.** Într-un rol: `goodVs`, `weakVs`, `mustWith`, `stats`, apoi `profile` (opțional).
+- **`roleData` are exact cheile din `roles`, în aceeași ordine.** Într-un rol: `goodVs`, `mustWith` (opțional, doar dacă există), `stats`, apoi `profile` (opțional).
+- **Nu se scrie `weakVs`** (e generat automat, vezi mai jos) și **nici `mustWith: []`**. Validatorul dă eroare la ambele.
 - `synergyWith` e global pe campion, nu pe rol.
 
-## Matchup-uri (`roleData[rol].goodVs` / `weakVs`)
+## Matchup-uri (`roleData[rol].goodVs`)
+
+**Se scrie doar „pe cine bat eu”.** `weakVs` (pe cine pierd) e generat automat din `goodVs`-ul celorlalți: `A:rolA goodVs B` → `B weakVs A` (cu `vsRole` = rolA). Ca să spui că X pierde contra lui Y, scrii `goodVs X` **în fișierul lui Y**.
+
+Ca să vezi listele efective ale unui campion (pe cine bate, de cine e bătut și din ce fișier vine fiecare relație): `npm run matchups -- <id> [rol]`. Combinațiile fără niciun counter (blind pick-uri perfect sigure pentru engine): `npm run matchups -- --uncountered`.
 
 O relație: `{ championId, level, phase, vsRole?, note? }`. `level` și `phase` sunt obligatorii.
 
@@ -88,7 +89,7 @@ La fiecare relație pune două întrebări: **„cât de tare?” → `level`** 
 
 ### `level`: cât de tare
 
-| level | goodVs (noi câștigăm) | weakVs (noi pierdem) |
+| level | goodVs (noi câștigăm) | weakVs generat (adversarul pierde) |
 |---|---|---|
 | **3** | **Hard counter**: îl bate mereu, indiferent de context | **Hard countered**: pierde mereu |
 | **2** | **Counter**: îl bate, dar adversarul se poate juca dacă echipa îi acoperă slăbiciunile | **Countered**: pierde, dar poate câștiga dacă echipa îi acoperă slăbiciunile |
@@ -104,24 +105,21 @@ La fiecare relație pune două întrebări: **„cât de tare?” → `level`** 
 
 ### Exemplu: câștigă pe linie, pierde late
 
+Se scrie ca **două `goodVs`, în două fișiere**:
+
 ```ts
-top: {
-  goodVs: [
-    { championId: "kayle", level: 2, phase: "lane" },   // o domină pe linie...
-  ],
-  weakVs: [
-    { championId: "kayle", level: 2, phase: "late" },   // ...dar Kayle scalează și câștigă late
-  ],
-  mustWith: [],
-  stats: null,
-},
+// poppy.ts, top: o domină pe Kayle pe linie...
+goodVs: [{ championId: "kayle", level: 2, phase: "lane" }]
+
+// kayle.ts, top: ...dar Kayle scalează și câștigă late
+goodVs: [{ championId: "poppy", level: 2, phase: "late" }]
 ```
 
 ### Reguli
 
-- **Scrie fiecare relație o singură dată.** `A weakVs B {level, phase}` generează automat `B goodVs A {level, phase}` (și invers). O intrare explicită pe partea cealaltă câștigă, dar dacă `level` sau `phase` diferă e eroare de validare.
-- **Același inamic în `goodVs` și `weakVs`** pe același rol e permis doar cu faze opuse: `lane` într-o listă și `late` în cealaltă. Cu `all` nu poate apărea în ambele.
-- **Același inamic nu apare de două ori în aceeași listă** pe același rol.
+- **Fiecare relație se scrie o singură dată**, în fișierul celui care câștigă.
+- **Contradicție:** `A goodVs B` și `B goodVs A` pe roluri care se întâlnesc e permis doar cu faze opuse: `lane` într-un fișier și `late` în celălalt. Cu `all` sau cu aceeași fază în ambele sensuri e eroare.
+- **Același inamic nu apare de două ori în `goodVs`** pe același rol (cu același `vsRole`).
 - **`level: 1` vine aproape mereu cu `phase: "all"`.** `lane`/`late` sunt permise, dar validatorul dă warning.
 - **`vsRole` lipsă** = matchup de linie: același rol ca al tău. Pentru `adc`/`support` = botlane 2v2 (inamicul pe adc **sau** support). Pune `vsRole` doar pentru cazuri cross-role reale.
 - `note` e recomandat la `level` 3 și la `level` 2 cu `phase: "all"`.
@@ -150,11 +148,15 @@ Formatul vechi (notă 1–5, din DRAFT_REWORK) a fost înlocuit de `level` + `ph
 
 Combinațiile noi, imposibile înainte (de exemplu un hard counter doar pe linie, `level 3, lane`), se scriu direct.
 
-## `mustWith` (`roleData[rol].mustWith`)
+## `mustWith` (`roleData[rol].mustWith`, opțional)
 
+- **Direcțional:** „campionul X e construit în jurul lui Y”. `kogmaw.ts` (adc) are `mustWith: ["lulu"]`: Kog'Maw primul → Lulu e forțată; Lulu prima **nu** forțează Kog'Maw (Lulu nu are nevoie de Kog'Maw).
+- **Se scrie doar când există.** Lipsă = fără partener; nu scrie `mustWith: []`.
+- **Perechile reciproce** se scriu în **ambele** fișiere (Xayah ↔ Rakan: `xayah.ts` adc → `rakan`, `rakan.ts` support → `xayah`).
 - Doar id-uri, fără notă; ordinea = preferința.
+- `npm run validate:matchups` listează toate perechile, marcate „reciproc” sau „într-un sens”.
 - Pe `adc` partenerul trebuie să aibă rolul `support` (și invers).
-- **Botlane = override:** dacă echipa are deja ancora pe adc/support, următorul pick e partenerul eligibil. Eligibil = liber, rolul complementar liber, iar jucătorul de pe acel rol are grad **≥ C** pe partener. Pe alte roluri e un bonus mare, nu override.
+- **Botlane = override:** dacă echipa are deja ancora pe adc/support, următorul pick e partenerul eligibil din `mustWith`-ul ancorei. Eligibil = liber, rolul complementar liber, iar jucătorul de pe acel rol are grad **≥ C** pe partener. Pe alte roluri e un bonus mare, nu override.
 - **Atenție la mastery:** dacă un jucător are override-uri în `championMasteryOverrides.ts`, orice campion lipsă din lista lui contează ca **F**. Partenerii trebuie trecuți acolo, altfel combo-ul nu se declanșează niciodată.
 - Perechile slabe (bonus mic, nu „must”) merg în `synergyWith`, nu în `mustWith`.
 
@@ -180,8 +182,6 @@ Profilul (`ChampionRoleProfile`) descrie cum se joacă un campion pe un rol: tag
 ```ts
 support: {
   goodVs: [/* … */],
-  weakVs: [/* … */],
-  mustWith: [],
   stats: null,
   profile: {
     tags: ["ranged", "warden", "peel", "anti-dive", "front-to-back"],
@@ -240,7 +240,7 @@ profile: {
 
 **Rol nou pentru un campion existent**
 1. Adaugă rolul în `roles` **și** cheia în `roleData`, în același fișier, pe aceeași poziție.
-2. Completează `goodVs` / `weakVs` / `mustWith` pentru rolul nou (pot fi goale) și `stats: null`. `profile` doar dacă derivarea automată nu e suficientă.
+2. Completează `goodVs` pentru rolul nou (poate fi gol) și `stats: null`. `mustWith` doar dacă există o pereche strictă; `profile` doar dacă derivarea automată nu e suficientă. Pe cine pierde rolul nou se scrie ca `goodVs` în fișierele adversarilor.
 3. Verifică mastery-ul jucătorilor de pe acel rol în `championMasteryOverrides.ts`.
 
 **Campion nou**
@@ -253,7 +253,10 @@ profile: {
 **După orice modificare de date**
 
 ```bash
-npm run validate:matchups          # structura roleData, level/phase, contradicții, mustWith, profile + acoperire
+npm run validate:matchups          # structura roleData, level/phase, contradicții, mustWith (+ perechi), profile + acoperire
+npm run matchups -- jax            # Bate / E bătut de (cu fișierul sursă) / mustWith / synergyWith, toate rolurile
+npm run matchups -- jax top        # un singur rol
+npm run matchups -- --uncountered  # campion × rol fără niciun counter, după presence (lista de lucru)
 npx tsc --noEmit
 npm run lint
 npx tsx scripts/draft-scenarios.ts # comportamentul mustWith / matchup în draft
