@@ -64,6 +64,7 @@ let draftEdgeWins = 0;
 const counterScoreDiffs: number[] = [];
 const games: unknown[] = [];
 const mustWith = { locks: 0, botPairs: 0, otherPairs: 0, ownPartnerBans: 0 };
+const bluePhaseWins = { early: 0, mid: 0, late: 0 };
 
 const started = Date.now();
 for (let index = 0; index < gameCount; index += 1) {
@@ -111,6 +112,9 @@ for (let index = 0; index < gameCount; index += 1) {
   const { evaluationBlue, evaluationRed } = evaluateDraftGame(resolved, series, save);
   const winner = simulation.winnerSide;
   if (winner === "blue") blueWins += 1;
+  for (const phase of ["early", "mid", "late"] as const) {
+    if (simulation.bluePhaseScores.phases[phase].phaseTotal > simulation.redPhaseScores.phases[phase].phaseTotal) bluePhaseWins[phase] += 1;
+  }
   for (const assignments of [resolved.assignmentsBlue, resolved.assignmentsRed]) {
     for (const pair of getCompletedMustWithPairs(assignments)) {
       if (pair.isBotPair) mustWith.botPairs += 1;
@@ -151,6 +155,11 @@ const report = {
     blue: +(blueWins / Math.max(1, games.length)).toFixed(3),
     sideWithEvaluatorCounterEdge: +(evalEdgeWins / Math.max(1, evalEdgeGames)).toFixed(3),
     sideWithDraftCounterEdge: +(draftEdgeWins / Math.max(1, draftEdgeGames)).toFixed(3),
+    bluePhase: {
+      early: +(bluePhaseWins.early / Math.max(1, games.length)).toFixed(3),
+      mid: +(bluePhaseWins.mid / Math.max(1, games.length)).toFixed(3),
+      late: +(bluePhaseWins.late / Math.max(1, games.length)).toFixed(3),
+    },
   },
   mustWith,
 };
