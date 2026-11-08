@@ -188,7 +188,11 @@ export type DraftCandidateBreakdown = {
   reassignment?: { championId: string; fromRole: Role; toRole: Role; playerId: string | null; grade: string | null }[];
   /** Anti-sinergiile candidatului cu pick-urile proprii (`badSynergyWith`, pentru explainer). */
   badSynergies?: { partnerId: string; level: BadSynergyLevel; note: string }[];
-  /** Include, pe lângă cele vechi: "mustwith-lock", "combo-potential", "mustwith-deny". */
+  /**
+   * Include, pe lângă cele vechi: "mustwith-lock", "mustwith-deny", "bad-synergy";
+   * DRAFT_THINKING: "breaks-own-pick", "mastery-f", "mastery-d", "forced-off-pool",
+   * "duo-plan", "duo-fallback", "orphan-anchor".
+   */
   reasonTags?: string[];
   explanation?: string[];
 };

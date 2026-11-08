@@ -24,4 +24,27 @@ export const DRAFT_THINKING_CONFIG = {
     /** §1.4 — pick propriu mutat pe un grad mai mic cu ≥ 2 trepte: × trepte. */
     reassignDropPenalty: 0.8,
   },
+
+  // §2 — duo-uri bot
+  duo: {
+    /** Primul pick de bot din cel mai bun duo disponibil. */
+    bestMustWithBonus: 3.0,
+    bestSynergyBonus: 1.5,
+    /** Candidatul e în alt duo valid. */
+    otherDuoBonus: 1.0,
+    /** Ancoră mustWith fără partener eligibil (banat, luat, jucătorul < C). */
+    orphanAnchorPenalty: 2.0,
+    orphanSelfSufficientPenalty: 0.75,
+    /** §2.3 — partener synergy ≥ 4 pentru o ancoră deja luată, fără partener mustWith. */
+    fallbackPartnerBonus: 2.5,
+    /** … plus atât pe fiecare treaptă de grad peste C (ordonați după grad). */
+    fallbackGradeStep: 0.15,
+    /** Scorul duo-ului: GRADE_RANK adc + support + meta mediu × metaWeight + mustWith. */
+    metaWeight: 0.3,
+    mustWithScoreBonus: 2,
+    /** §2.4 — cel mai bun duo propriu e protejat la ban în faza 1 dacă e cu atât peste al doilea. */
+    protectMargin: 2,
+    /** §2.4 — userul „joacă des” un duo: fiecare campion luat de cel puțin atâtea ori. */
+    userDuoMinPicks: 2,
+  },
 } as const;

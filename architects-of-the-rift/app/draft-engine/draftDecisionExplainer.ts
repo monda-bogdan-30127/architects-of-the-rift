@@ -27,6 +27,12 @@ function explainMustWith(breakdown: DraftCandidateBreakdown): string[] {
     );
   }
   if (tags.has("combo-potential")) lines.push("combo potential: partener mustWith eligibil pe botlane");
+  // DRAFT_THINKING §2: liniile concrete (duo, ancoră orfană, fallback) sunt în `explanation`.
+  for (const tag of ["duo-plan", "orphan-anchor", "duo-fallback"]) {
+    if (!tags.has(tag)) continue;
+    const line = breakdown.explanation?.find((entry) => entry.includes("Duo:") || entry.includes("→") || entry.includes("evitat"));
+    if (line && !lines.includes(line)) lines.push(line);
+  }
   if (tags.has("mustwith-partner")) lines.push("mustWith: completează perechea unui pick propriu");
   if (tags.has("mustwith-deny")) {
     lines.push(

@@ -27,6 +27,15 @@ import {
   type LockedRoles,
 } from "./draftRoleResolver";
 import { getBestOpenRoleGradeRank, getMasteryGate, getReassignmentCheck } from "./draftMasteryGate";
+import {
+  getBotDuoState,
+  getDuoFallbackBonus,
+  getDuoPickBonus,
+  getEnemyDuoDenyBonus,
+  type BotDuoOption,
+  type BotDuoState,
+} from "./botDuoPlan";
+import { getUserPickCounts } from "./userDraftMemory";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import {
   getUserBanTargetBias,
@@ -51,7 +60,6 @@ import {
 import {
   MUSTWITH_CONFIG,
   getAllEligiblePartners,
-  getComboPotentialBonus,
   getMustWithDenyBonus,
   getNonBotMustWithBonus,
   getNonBotOverride,
@@ -443,6 +451,14 @@ type MustWithTurnState = {
   enemyPartners: EligiblePartner[];
   /** §5.4: excepția care poate depăși partenerul non-bot (null = nicio excepție). */
   nonBotOverride: string | null;
+  /** DRAFT_THINKING §2 — duo-urile bot ale ambelor echipe. */
+  ownDuo: BotDuoState;
+  enemyDuo: BotDuoState;
+  /** Override-ul de botlane (§5.2) există pe tura asta? (fallback-ul §2.3 doar fără el) */
+  hasMustWithLock: boolean;
+  /** §2.4 — deny pe noul duo al inamicului: inamicul e AI sau userul joacă des duo-ul. */
+  isEnemyDuoRelevant: (duo: BotDuoOption) => boolean;
+  bans: string[];
 };
 
 const mustWithStateCache = new Map<string, MustWithTurnState>();
@@ -488,12 +504,23 @@ function getCachedMustWithState(
     ...(isAiSide(series, enemySide) ? { lockedRoles: getLockedRoles(game, enemySide) } : {}),
   };
   const ownPartners = getAllEligiblePartners(own);
+  const bans = [...game.bansBlue, ...game.bansRed];
   const state: MustWithTurnState = {
     own,
     ownPartners,
     enemy,
     enemyPartners: getAllEligiblePartners(enemy),
     nonBotOverride: ownPartners.some((partner) => !partner.isBotPair) ? getNonBotOverride(own, enemy) : null,
+    ownDuo: getBotDuoState(own, bans),
+    enemyDuo: getBotDuoState(enemy, bans),
+    hasMustWithLock: resolveMustWithLock(own) !== null,
+    isEnemyDuoRelevant: (duo) => {
+      if (isAiSide(series, enemySide)) return true;
+      const counts = getUserPickCounts();
+      const min = DRAFT_THINKING_CONFIG.duo.userDuoMinPicks;
+      return (counts[duo.adcId] ?? 0) >= min && (counts[duo.supportId] ?? 0) >= min;
+    },
+    bans,
   };
 
   if (mustWithStateCache.size > 200) mustWithStateCache.clear();
@@ -1068,10 +1095,20 @@ function scorePickCandidate(
   const compSafe = canFit && compGate > -2.0 && offMetaPenalty < 8;
 
   // Botlane-ul (5.2) e override în chooseAiAction; aici rămân bonusurile.
-  // 5.3: primul pick de bot care are un partener mustWith eligibil.
-  const comboPotential = compSafe
-    ? getComboPotentialBonus(candidate, projected.projectedRole, mustWithState.own)
-    : { bonus: 0, partner: null };
+  // DRAFT_THINKING §2.2: primul pick de bot = planul de duo (înlocuiește combo potential 5.3).
+  // Penalizarea de ancoră orfană se aplică oricum; bonusul doar dacă pick-ul e comp-safe.
+  const duoPickRaw = canFit
+    ? getDuoPickBonus(candidate, projected.projectedRole, mustWithState.own, mustWithState.ownDuo, mustWithState.bans)
+    : { bonus: 0, tag: null, line: null };
+  const duoPick = duoPickRaw.bonus > 0 && !compSafe ? { bonus: 0, tag: null, line: null } : duoPickRaw;
+  // §2.3: ancora bot e luată, dar partenerul mustWith nu mai e eligibil → partener synergy.
+  const duoFallback = compSafe
+    ? getDuoFallbackBonus(candidate, projected.projectedRole, mustWithState.own, mustWithState.hasMustWithLock)
+    : { bonus: 0, anchorId: null, line: null };
+  // §2.4: inamicul și-a pierdut duo-ul principal printr-un ban → deny pe noul lui duo.
+  const duoDeny = compSafe
+    ? getEnemyDuoDenyBonus(candidate, mustWithState.enemyDuo, false, mustWithState.isEnemyDuoRelevant)
+    : 0;
   // 5.4: partenerul unei ancore non-bot proprii.
   const nonBotMustWith = compSafe
     ? getNonBotMustWithBonus(candidate, mustWithState.own, mustWithState.ownPartners, mustWithState.nonBotOverride)
@@ -1080,7 +1117,7 @@ function scorePickCandidate(
   const mustWithDeny = compSafe
     ? getMustWithDenyBonus(candidate, mustWithState.enemy, false, mustWithState.enemyPartners)
     : { bonus: 0, partner: null };
-  const mustWithBonus = comboPotential.bonus + nonBotMustWith.bonus + mustWithDeny.bonus;
+  const mustWithBonus = duoPick.bonus + duoFallback.bonus + nonBotMustWith.bonus + Math.max(mustWithDeny.bonus, duoDeny);
 
   const userBias = getUserPickPreferenceBias(
     candidate,
@@ -1139,6 +1176,8 @@ function scorePickCandidate(
     ...(projectedPlayerId && (masteryGate.blocked || masteryGate.soft) && masteryGate.grade
       ? [describeMasteryBlock(projectedPlayerId, candidate.id, masteryGate.grade)]
       : []),
+    ...(duoPick.line ? [duoPick.line] : []),
+    ...(duoFallback.line ? [duoFallback.line] : []),
     ...badSynergies.map(describeBadSynergy),
   ];
 
@@ -1182,9 +1221,10 @@ function scorePickCandidate(
       ...(masteryGate.blocked ? ["mastery-f"] : []),
       ...(masteryGate.soft ? ["mastery-d"] : []),
       ...(badSynergies.length ? ["bad-synergy"] : []),
-      ...(comboPotential.bonus > 0 ? ["combo-potential"] : []),
+      ...(duoPick.tag ? [duoPick.tag] : []),
+      ...(duoFallback.bonus > 0 ? ["duo-fallback"] : []),
       ...(nonBotMustWith.bonus > 0 ? ["mustwith-partner"] : []),
-      ...(mustWithDeny.bonus > 0 ? ["mustwith-deny"] : []),
+      ...(mustWithDeny.bonus > 0 || duoDeny > 0 ? ["mustwith-deny"] : []),
       canFit ? "valid-role-map" : "invalid-role-map",
       candidate.roles.length >= 2 ? "flex" : "single-role",
       projected.projectedRole ?? "unassigned",
@@ -1601,12 +1641,11 @@ function scoreBanCandidate(
   // ─── MUSTWITH BAN (§5.5) ──────────────────────────────────────────────────
   const mustWithBanState = getCachedMustWithState(series, game, step.side, save);
   // Deny: inamicul are ancora (ex. Rakan) → ban pe partenerul lui liber (Xayah).
-  const mustWithBanBonus = getMustWithDenyBonus(
-    candidate,
-    mustWithBanState.enemy,
-    true,
-    mustWithBanState.enemyPartners
-  ).bonus;
+  const mustWithBanBonus = Math.max(
+    getMustWithDenyBonus(candidate, mustWithBanState.enemy, true, mustWithBanState.enemyPartners).bonus,
+    // §2.4: deny-ul se mută pe noul cel mai bun duo al inamicului.
+    getEnemyDuoDenyBonus(candidate, mustWithBanState.enemyDuo, true, mustWithBanState.isEnemyDuoRelevant)
+  );
   // Nu-ți bana niciodată partenerul eligibil al unui campion deja luat.
   const ownMustWithBanBlock = isProtectedOwnPartner(
     candidate.id,
@@ -1790,8 +1829,13 @@ export function chooseAiAction(
   }
 
   // §5.5: nu-ți bana partenerul eligibil al unui campion deja luat.
-  if (step.action === "ban" && ownPartnerIds.size > 0) {
-    const banPool = pool.filter((champion) => !ownPartnerIds.has(champion.id));
+  // DRAFT_THINKING §2.4: în faza 1 nu-ți bana nici membrii celui mai bun duo propriu (clar peste al doilea).
+  const protectedBanIds = new Set([
+    ...ownPartnerIds,
+    ...(step.action === "ban" && game.phaseIndex < 6 ? mustWithState.ownDuo.protectedIds : []),
+  ]);
+  if (step.action === "ban" && protectedBanIds.size > 0) {
+    const banPool = pool.filter((champion) => !protectedBanIds.has(champion.id));
     if (banPool.length) pool = banPool;
   }
 

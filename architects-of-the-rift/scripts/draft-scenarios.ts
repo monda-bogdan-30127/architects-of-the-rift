@@ -18,6 +18,7 @@ import {
 } from "@/app/draft-engine/draftEngine";
 import { chooseAiAction, getPickCandidatePool, scoreDraftCandidate } from "@/app/draft-engine/draftAI";
 import { hasThinPool } from "@/app/draft-engine/draftMasteryGate";
+import { getBotDuoState } from "@/app/draft-engine/botDuoPlan";
 import { getMetaPriorityScore } from "@/app/draft-engine/draftEvaluator";
 import type {
   ActiveDraftSeries,
@@ -427,8 +428,10 @@ for (const support of [SUP_RAKAN_OK, SUP_MULTI]) {
   const banDeny = banBreakdown.reasonTags?.includes("mustwith-deny") ?? false;
   check(
     "9. Inamicul are Xayah → deny pe Rakan (ban +2.0 / pick +1.5)",
-    pickDeny && banDeny && banBreakdown.mustWithBonus === 2 && (pickBreakdown.mustWithBonus ?? 0) >= 1.5,
-    `pick: tag=${pickDeny}, bonus mustWith ${pickBreakdown.mustWithBonus}; ban (${getCurrentStep(banGame)?.label}): tag=${banDeny}, bonus ${banBreakdown.mustWithBonus}`,
+    // DRAFT_THINKING §2.2: pentru albaștri Rakan e și ancoră orfană (Xayah e luată) → −2 peste deny-ul de +1.5.
+    pickDeny && banDeny && banBreakdown.mustWithBonus === 2 &&
+      (pickBreakdown.mustWithBonus ?? 0) - (pickBreakdown.reasonTags?.includes("orphan-anchor") ? -2 : 0) >= 1.5,
+    `pick: tag=${pickDeny}, bonus mustWith ${pickBreakdown.mustWithBonus}${pickBreakdown.reasonTags?.includes("orphan-anchor") ? " (deny +1.5, orfan −2)" : ""}; ban (${getCurrentStep(banGame)?.label}): tag=${banDeny}, bonus ${banBreakdown.mustWithBonus}`,
   );
 }
 
@@ -452,7 +455,11 @@ function firstPickThenR2(id: string, roster: Partial<Record<Role, string>>, firs
   const { log } = runDraft({
     series: newSeries(id, BLUE, RED),
     save: makeSave({ [RED]: roster }),
-    forced: [{ side: "red", action: "pick", nth: 1, championId: first }],
+    // B1 forțat neutru: altfel planul de duo al albaștrilor poate lua chiar campionul testat.
+    forced: [
+      { side: "blue", action: "pick", nth: 1, championId: "ahri" },
+      { side: "red", action: "pick", nth: 1, championId: first },
+    ],
     stop: (entries) => Boolean(nthPick(entries, "red", 2)),
   });
   return nthPick(log, "red", 2);
@@ -620,6 +627,87 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     "15. Campion SS în afara top 50 → scorat",
     pool.some((c) => c.id === found!.championId),
     `${found.playerId} (${found.role}) SS pe ${found.championId}, rang prioritate ${byPriority.findIndex((c) => c.id === found!.championId) + 1}; în pool: ${pool.some((c) => c.id === found!.championId)} (${pool.length} candidați)`,
+  );
+}
+
+// ─── 16–18. Duo-uri bot (DRAFT_THINKING §2) ──────────────────────────────────
+{
+  // 16. Rakan banat în faza 1; ADC-ul are Xayah A și Kai'Sa A, supportul Nautilus B →
+  //     primul pick de bot nu e Xayah (ancoră orfană), ci din cel mai bun duo rămas.
+  const adc = findPlayer("xayah", 4, 6, "adc", [], (id) => RANK[grade(id, "kaisa")] >= 4);
+  const support = findPlayer("nautilus", 3, 6, "support", [adc]);
+  const save = makeSave({ [RED]: { adc, support } });
+  const bans = ["rakan", "azir", "vi", "sejuani", "jayce", "ksante"];
+  const series = newSeries("s16", BLUE, RED);
+  const r1Game: DraftGameState = { ...series.games[0], bansBlue: bans.slice(0, 3), bansRed: bans.slice(3), picksBlue: ["ahri"], phaseIndex: 7 };
+  const xayah = scoreDraftCandidate(champions.find((c) => c.id === "xayah")!, getCurrentStep(r1Game)!, r1Game, series, save);
+  const { log } = runDraft({
+    series, save, bans,
+    stop: (entries) => entries.some((entry) => entry.side === "red" && entry.action === "pick" && ["adc", "support"].includes(entry.breakdown?.projectedRole ?? "")),
+  });
+  const firstBot = log.find((entry) => entry.side === "red" && entry.action === "pick" && ["adc", "support"].includes(entry.breakdown?.projectedRole ?? ""));
+  check(
+    "16. Rakan banat → primul pick de bot nu e Xayah (orphan-anchor)",
+    hasTag(xayah, "orphan-anchor") && Boolean(firstBot) && firstBot!.championId !== "xayah",
+    `Xayah: „${xayah.explanation?.find((line) => line.includes("evitat")) ?? ""}”; primul bot roșu: ${firstBot?.label} ${firstBot?.championId} (${firstBot?.breakdown?.projectedRole}) ${hasTag(firstBot?.breakdown, "duo-plan") ? "duo-plan" : ""} „${firstBot?.breakdown?.explanation?.find((line) => line.includes("Duo") || line.includes("→")) ?? ""}” [${adc}: Xayah ${grade(adc, "xayah")}, Kai'Sa ${grade(adc, "kaisa")}; ${support}: Nautilus ${grade(support, "nautilus")}]`,
+  );
+}
+{
+  // 17. B3 Xayah, Rakan banat în faza 2 → B4 = un support cu synergyWith ≥ 4 cu Xayah, grad ≥ C (duo-fallback).
+  const fallbackSupports = champions
+    .filter((c) => c.roles.includes("support"))
+    .filter((c) => (c.synergyWith.find((s) => s.championId === "xayah")?.score ?? 0) >= 4 ||
+      (champions.find((x) => x.id === "xayah")!.synergyWith.find((s) => s.championId === c.id)?.score ?? 0) >= 4)
+    .map((c) => c.id);
+  // Supportul cu cel mai bun grad pe un partener synergy al lui Xayah.
+  const bestRank = (playerId: string) => Math.max(...fallbackSupports.map((id) => RANK[grade(playerId, id)]));
+  const support = teamPlayers
+    .filter((p) => p.role === "support")
+    .sort((a, b) => bestRank(b.id) - bestRank(a.id) || a.id.localeCompare(b.id))[0].id;
+  const adc = findPlayer("xayah", 2, 6, "adc", [support]);
+  const save = makeSave({ [BLUE]: { adc, support } });
+  const series = newSeries("s17", BLUE, RED);
+  const game: DraftGameState = {
+    ...series.games[0],
+    bansBlue: ["azir", "jayce", "ksante", "rakan"], bansRed: ["vi", "sejuani", "orianna", "gnar"],
+    picksBlue: ["ambessa", "xin-zhao", "xayah"], pickRolesBlue: { ambessa: "top", "xin-zhao": "jungle", xayah: "adc" },
+    // Fără Kalista la roșii: altfel Renata e și deny (Kalista → Renata), alt motiv decât cel testat.
+    picksRed: ["rumble", "wukong", "syndra", "jinx"], phaseIndex: 17,
+  };
+  const step = getCurrentStep(game)!;
+  const choice = getAiChoice(series, game, step, save);
+  check(
+    "17. B3 Xayah, Rakan banat în faza 2 → B4 partener synergy (duo-fallback)",
+    Boolean(choice) && fallbackSupports.includes(choice!.championId) && hasTag(choice, "duo-fallback"),
+    `${step.label}=${choice?.championId} (${choice?.projectedRole}) „${choice?.explanation?.find((line) => line.includes("synergy")) ?? ""}”; candidați synergy: ${fallbackSupports.map((id) => `${id}:${grade(support, id)}`).join(", ")} [${support}]`,
+  );
+}
+{
+  // 18. În faza 1 de ban, AI-ul nu-și banează membrii celui mai bun duo propriu (clar peste al doilea).
+  let violations = 0;
+  let protectedSeen = 0;
+  const pairs: [string, string][] = [["geng", "t1"], ["hle", "kt"], ["blg", "jdg"], ["g2", "fnc"], ["tes", "al"]];
+  for (const [blue, red] of pairs) {
+    const save = makeSave();
+    const series = newSeries(`s18-${blue}`, blue, red);
+    let game = series.games[0];
+    for (let index = 0; index < 6; index += 1) {
+      const step = getCurrentStep(game)!;
+      const side = step.side;
+      const teamSlug = side === "blue" ? blue : red;
+      const ctx = { ownPicks: [] as string[], roster: save.updatedTeamRosters[teamSlug] ?? {}, unavailable: new Set([...game.bansBlue, ...game.bansRed]), lockedRoles: {} };
+      const protectedIds = getBotDuoState(ctx, [...game.bansBlue, ...game.bansRed]).protectedIds;
+      protectedSeen += protectedIds.length ? 1 : 0;
+      const choice = getAiChoice(series, game, step, save);
+      if (!choice) break;
+      if (protectedIds.includes(choice.championId)) violations += 1;
+      game = commitActionToGame(game, choice.championId, side, "ban");
+    }
+  }
+  check(
+    "18. Faza 1: nu se banează membrii celui mai bun duo propriu",
+    violations === 0 && protectedSeen > 0,
+    `${violations} ban-uri pe duo-ul protejat; ture cu duo protejat: ${protectedSeen}/${pairs.length * 6}`,
   );
 }
 
