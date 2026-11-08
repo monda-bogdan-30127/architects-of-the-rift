@@ -1,5 +1,5 @@
 import type { FullMatchSimulationResult } from "./matchSimulationTypes";
-import type { Champion, MatchupLevel, MatchupPhase, Role } from "@/app/types/champion";
+import type { BadSynergyLevel, Champion, MatchupLevel, MatchupPhase, Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
 import type { Team } from "@/app/types/team";
 import type { CompAttribute } from "@/app/types/compAttributes";
@@ -178,6 +178,8 @@ export type DraftCandidateBreakdown = {
   mustWithLock?: { anchorId: string; partnerId: string; grade: string | null };
   /** Bonusurile mustWith adunate în scor (combo potential, non-bot, deny). */
   mustWithBonus?: number;
+  /** Anti-sinergiile candidatului cu pick-urile proprii (`badSynergyWith`, pentru explainer). */
+  badSynergies?: { partnerId: string; level: BadSynergyLevel; note: string }[];
   /** Include, pe lângă cele vechi: "mustwith-lock", "combo-potential", "mustwith-deny". */
   reasonTags?: string[];
   explanation?: string[];

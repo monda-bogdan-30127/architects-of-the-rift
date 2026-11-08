@@ -59,7 +59,7 @@ import {
   type EligiblePartner,
   type MustWithTeamContext,
 } from "./mustWithPriority";
-import { describeMustWithLock } from "./draftDecisionExplainer";
+import { describeBadSynergy, describeMustWithLock } from "./draftDecisionExplainer";
 import {
   derivePlayerArchetypeAffinity,
   derivePlayerAdaptationProfile,
@@ -70,7 +70,7 @@ import { getDraftPhase, getPhaseBias } from "./draftPhase";
 import { getDraftIntent } from "./draftIntentSystem";
 import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
-import { getTotalBadSynergy } from "./badSynergy";
+import { getBadSynergy, getTotalBadSynergy } from "./badSynergy";
 import { getTrapBanReduction, getTrapCounterBonus } from "./trapDraftSystem";
 import { chooseDraftPlan, getPlanAlignmentBonus, type DraftPlan } from "./draftPlanSystem";
 import { getSideAwareBonus, getFlexAmbiguityBonus } from "./sideAwareDraftSystem";
@@ -853,6 +853,10 @@ function scorePickCandidate(
   );
 
   const compSynergy = getCompSynergyScore(ownState.picks, candidate);
+  const badSynergies = ownState.picks.flatMap((pickedId) => {
+    const relation = getBadSynergy(candidate.id, pickedId);
+    return relation ? [{ partnerId: pickedId, level: relation.level, note: relation.note }] : [];
+  });
   const needFill = getNeedFillScore(ownState.picks, candidate);
   const counterResult = getCounterValueScore({
     enemyPicks: enemyState.picks,
@@ -1116,7 +1120,9 @@ function scorePickCandidate(
     counterpickPreservationBonus,
     matchupDetails: counterResult.details,
     mustWithBonus,
+    ...(badSynergies.length ? { badSynergies, explanation: badSynergies.map(describeBadSynergy) } : {}),
     reasonTags: [
+      ...(badSynergies.length ? ["bad-synergy"] : []),
       ...(comboPotential.bonus > 0 ? ["combo-potential"] : []),
       ...(nonBotMustWith.bonus > 0 ? ["mustwith-partner"] : []),
       ...(mustWithDeny.bonus > 0 ? ["mustwith-deny"] : []),

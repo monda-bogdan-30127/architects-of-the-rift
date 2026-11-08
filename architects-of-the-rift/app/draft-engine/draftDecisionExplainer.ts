@@ -38,6 +38,15 @@ function explainMustWith(breakdown: DraftCandidateBreakdown): string[] {
   return lines;
 }
 
+/** „Anti-sinergie cu Pyke (Pyke roamează, Kog'Maw rămâne singur în lane, fără peel)”, din `note`. */
+export function describeBadSynergy(entry: { partnerId: string; note: string }): string {
+  return `Anti-sinergie cu ${championName(entry.partnerId)} (${entry.note})`;
+}
+
+function explainBadSynergy(breakdown: DraftCandidateBreakdown): string[] {
+  return (breakdown.badSynergies ?? []).map(describeBadSynergy);
+}
+
 /** Cele mai importante două matchup-uri ale candidatului, în cuvinte („Counter pe linie vs Jax”). */
 function explainMatchups(breakdown: DraftCandidateBreakdown): string[] {
   return [...(breakdown.matchupDetails ?? [])]
@@ -72,6 +81,7 @@ export function explainDraftCandidate(breakdown: DraftCandidateBreakdown): strin
 
   return [
     ...explainMustWith(breakdown),
+    ...explainBadSynergy(breakdown),
     ...explainMatchups(breakdown),
     ...reasons.map(({ label, value }) => `${label}: ${value >= 0 ? "+" : ""}${value.toFixed(1)}`),
   ];

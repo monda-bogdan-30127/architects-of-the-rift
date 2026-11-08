@@ -12,6 +12,7 @@ import { derivePlayerAdaptationProfile, derivePlayerArchetypeAffinity, derivePla
 import { evaluateInteractionScore, evaluateRuleSynergy } from "./profileRuleEvaluator";
 import { getMatchupValueVsTeam, getTeamPhaseWeights } from "./matchupScoring";
 import { MUSTWITH_CONFIG, getCompletedMustWithPairs, hadAvailableUnusedPartner } from "./mustWithPriority";
+import { getBadSynergyPenalty } from "./badSynergy";
 import { resolveRoleAssignments } from "./draftRoleResolver";
 import { evaluateTeamIdentity } from "./teamIdentitySystem";
 import { evaluateSimulationReadiness } from "./simulationReadinessSystem";
@@ -157,6 +158,9 @@ function getNeedRequirement(priority: 1 | 2 | 3) {
   return 3;
 }
 
+/** Factorul perechilor din `synergyWith` în evaluator; anti-sinergiile folosesc același factor. */
+const BAD_PAIR_SYNERGY_FACTOR = 0.35;
+
 function evaluatePairSynergy(
   allyChampionIds: string[],
   enemyChampionIds: string[],
@@ -169,7 +173,13 @@ function evaluatePairSynergy(
   const enemyChampions = enemyChampionIds.map(getChampionById).filter((champion): champion is Champion => Boolean(champion));
   for (const champion of allyChampions) {
     for (const relation of champion.synergyWith) {
-      if (allyChampionIds.includes(relation.championId)) score += (relation.score ?? 3) * 0.35;
+      if (allyChampionIds.includes(relation.championId)) score += (relation.score ?? 3) * BAD_PAIR_SYNERGY_FACTOR;
+    }
+  }
+  // Anti-sinergiile (`badSynergyWith`) din draftul final: fiecare pereche o dată, același factor ca synergyWith.
+  for (let i = 0; i < allyChampionIds.length; i += 1) {
+    for (let j = i + 1; j < allyChampionIds.length; j += 1) {
+      score -= getBadSynergyPenalty(allyChampionIds[i], allyChampionIds[j]) * BAD_PAIR_SYNERGY_FACTOR;
     }
   }
 
