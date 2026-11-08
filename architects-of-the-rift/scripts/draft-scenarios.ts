@@ -741,6 +741,55 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
   );
 }
 
+// ─── 20. Identitate împărțită (DRAFT_THINKING §5.2) ───────────────────────────
+{
+  // Comp de engage (Xin + K'Sante) → un pick de poke (Jayce) o împarte: `split-identity`.
+  // (Lucian / Milio din exemplul spec-ului: în date trag spre pick / protect-carry, compatibile cu
+  // teamfight-ul lui Xin + K'Sante, deci fără split — afișate doar pentru referință.)
+  const series = newSeries("s20", BLUE, RED);
+  const save = makeSave();
+  const game: DraftGameState = {
+    ...series.games[0],
+    bansBlue: ["azir", "orianna", "rumble"], bansRed: ["vi", "sejuani", "taliyah"],
+    picksBlue: ["xin-zhao", "ksante"], pickRolesBlue: { "xin-zhao": "jungle", ksante: "top" },
+    picksRed: ["ahri", "jinx", "nautilus"], phaseIndex: 10,
+  };
+  const step = getCurrentStep(game)!;
+  const score = (id: string) => scoreDraftCandidate(champions.find((c) => c.id === id)!, step, game, series, save);
+  const jayce = score("jayce");
+  const lucian = score("lucian");
+  const milio = score("milio");
+  const line = (entry: DraftCandidateBreakdown) => entry.explanation?.find((text) => text.includes("ar amesteca")) ?? "—";
+  check(
+    "20. Xin + K'Sante (engage) → Jayce (poke): split-identity",
+    hasTag(jayce, "split-identity"),
+    `Jayce: „${line(jayce)}”; Lucian split=${hasTag(lucian, "split-identity")}, Milio split=${hasTag(milio, "split-identity")}; identitate: ${jayce.identity?.dominant ?? "—"}`,
+  );
+}
+
+// ─── 21. Win condition (DRAFT_THINKING §5.3) ──────────────────────────────────
+{
+  // Kog'Maw (hard-protect) + Ornn → win condition Kog'Maw; Lulu (peel) îl susține, Aphelios (al doilea hard-protect) e penalizat.
+  const series = newSeries("s21", BLUE, RED);
+  const save = makeSave();
+  const game: DraftGameState = {
+    ...series.games[0],
+    bansBlue: ["azir", "jayce", "ksante"], bansRed: ["vi", "sejuani", "orianna"],
+    picksBlue: ["kogmaw", "ornn"], pickRolesBlue: { kogmaw: "adc", ornn: "top" },
+    picksRed: ["ahri", "nocturne", "rell"], phaseIndex: 10,
+  };
+  const step = getCurrentStep(game)!;
+  const score = (id: string) => scoreDraftCandidate(champions.find((c) => c.id === id)!, step, game, series, save);
+  const lulu = score("lulu");
+  const aphelios = score("aphelios");
+  const has = (entry: DraftCandidateBreakdown, text: string) => Boolean(entry.explanation?.some((line) => line.includes(text)));
+  check(
+    "21. Win condition Kog'Maw → Lulu susține, Aphelios penalizat",
+    lulu.winCondition?.championId === "kogmaw" && has(lulu, "Susține win condition") && has(aphelios, "carry de protejat"),
+    `win condition: ${lulu.winCondition?.championId} (${lulu.winCondition?.kind}); Lulu: „${lulu.explanation?.find((line) => line.includes("win condition")) ?? "—"}”; Aphelios: „${aphelios.explanation?.find((line) => line.includes("protejat")) ?? "—"}”`,
+  );
+}
+
 // ─── Raport ──────────────────────────────────────────────────────────────────
 for (const result of results) {
   console.log(`${result.pass ? "PASS" : "FAIL"}  ${result.name}\n      ${result.detail}`);

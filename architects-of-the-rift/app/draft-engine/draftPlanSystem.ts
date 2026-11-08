@@ -285,11 +285,17 @@ export function chooseDraftPlan(args: {
     : false;
   const anchorWeight = aiPicks.length ? (anchorIsPriority ? PLAN.priorityAnchorWeight : PLAN.anchorWeight) : 0;
   const getAnchorFit = (plan: DraftPlanType) => {
-    const fits = aiPicks
-      .map((id) => champions.find((entry) => entry.id === id))
-      .filter((champion): champion is Champion => Boolean(champion))
-      .map((champion) => getCandidateIdentityFit(champion, roleOf(champion.id), plan));
-    const average = fits.length ? fits.reduce((sum, fit) => sum + fit, 0) / fits.length : 0;
+    let total = 0;
+    let weight = 0;
+    aiPicks.forEach((id, index) => {
+      const champion = champions.find((entry) => entry.id === id);
+      if (!champion) return;
+      // Priority pick-ul (primul) contează de `priorityPickFitWeight` ori: draftul se construiește în jurul lui.
+      const pickWeight = index === 0 && anchorIsPriority ? PLAN.priorityPickFitWeight : 1;
+      total += getCandidateIdentityFit(champion, roleOf(champion.id), plan) * pickWeight;
+      weight += pickWeight;
+    });
+    const average = weight ? total / weight : 0;
     return clamp((average + 3) / 6, 0, 1);
   };
 

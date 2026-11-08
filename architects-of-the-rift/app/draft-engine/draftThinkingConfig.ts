@@ -75,6 +75,8 @@ export const DRAFT_THINKING_CONFIG = {
     anchorWeight: 0.45,
     /** … când primul pick propriu e priority pick. */
     priorityAnchorWeight: 0.6,
+    /** În media fit-ului pe pick-uri, priority pick-ul contează de atâtea ori. */
+    priorityPickFitWeight: 2,
     /** Priority pick: meta de la atât în sus (sau SS/S, sau favorit de sezon). */
     priorityMetaMin: 7.5,
     /** Planul se blochează după atâtea pick-uri proprii. */
@@ -94,5 +96,26 @@ export const DRAFT_THINKING_CONFIG = {
     ] as [string, string][],
     /** split: runnerUp ≥ splitRatio × dominant. */
     splitRatio: 0.8,
+    /** Compoziția devine split cu candidatul: pick-ul propriu 2 / 3–5. */
+    splitPenalty: 2.0,
+    splitPenaltyLate: 2.75,
+    /** §5.1 — coerența: fit × factor × strength × commitment, în clamp. */
+    coherenceFitFactor: 0.75,
+    coherenceClamp: [-4, 3.5] as [number, number],
+  },
+
+  // §5.3 — win condition (winCondition.ts)
+  winCondition: {
+    /** Candidatul satisface o nevoie (prioritate ≥ 2) a win condition-ului cu o ofertă ≥ 3. */
+    enableBonus: 1.5,
+    minNeedPriority: 2,
+    minOfferStrength: 3,
+    /** Al doilea carry hard-protect fără protecție în echipă. */
+    secondHardProtectPenalty: 1.5,
+    /** Protecție (peel + antiDive + disengage pe pick-urile proprii) sub care echipa „nu are protecție”. */
+    minProtectionSupply: 4,
+    /** Contribuția la alegerea win condition-ului, peste fit: carry / carry hard-protect (oricare identitate). */
+    carryBonus: 1,
+    hardProtectBonus: 1.5,
   },
 } as const;

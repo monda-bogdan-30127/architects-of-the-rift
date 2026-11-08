@@ -28,6 +28,7 @@ import {
 } from "./draftRoleResolver";
 import { getBestOpenRoleGradeRank, getMasteryGate, getReassignmentCheck } from "./draftMasteryGate";
 import { getCandidateIdentityFit, readCompIdentity } from "./compIdentity";
+import { getWinCondition, getWinConditionEffect } from "./winCondition";
 import {
   getBotDuoState,
   getDuoFallbackBonus,
@@ -782,8 +783,40 @@ function getWinConditionCoherenceScore(
   const identity = readCompIdentity(ownPicks, ownAssignments);
   if (!identity.dominant) return 0; // No clear identity yet
 
+  // §5.1: efectul crește cu cât identitatea e mai clară și spre ultimele pick-uri.
+  const cohesion = DRAFT_THINKING_CONFIG.cohesion;
+  const commitment = DRAFT_THINKING_CONFIG.plan.commitmentByPick[Math.min(4, ownPicks.length)];
   const fit = getCandidateIdentityFit(candidate, projectedRole, identity.dominant);
-  return clamp(fit * 0.75, -3, 3);
+  return clamp(fit * cohesion.coherenceFitFactor * identity.strength * commitment, cohesion.coherenceClamp[0], cohesion.coherenceClamp[1]);
+}
+
+/**
+ * §5.2 — compoziția nu era împărțită, dar devine (două identități incompatibile,
+ * aproape egale) cu candidatul → penalizare și explicație.
+ */
+function getSplitIdentityPenalty(
+  ownPicks: string[],
+  candidate: Champion,
+  roster: Partial<Record<Role, string>>,
+  lockedRoles: LockedRoles
+): { penalty: number; line: string | null } {
+  if (ownPicks.length === 0) return { penalty: 0, line: null };
+  const before = readCompIdentity(ownPicks, resolveRoleAssignments(ownPicks, roster, lockedRoles));
+  if (before.split) return { penalty: 0, line: null };
+  const afterRoles = resolveRoleAssignments([...ownPicks, candidate.id], roster, lockedRoles);
+  const after = readCompIdentity([...ownPicks, candidate.id], afterRoles);
+  if (!after.split || !after.dominant || !after.runnerUp) return { penalty: 0, line: null };
+
+  const cohesion = DRAFT_THINKING_CONFIG.cohesion;
+  const penalty = ownPicks.length + 1 <= 2 ? cohesion.splitPenalty : cohesion.splitPenaltyLate;
+  const role = (ROLE_ORDER.find((entry) => afterRoles[entry] === candidate.id) ?? null) as Role | null;
+  const candidateSide =
+    getCandidateIdentityFit(candidate, role, after.dominant) >= getCandidateIdentityFit(candidate, role, after.runnerUp)
+      ? after.dominant
+      : after.runnerUp;
+  const compSide = candidateSide === after.dominant ? after.runnerUp : after.dominant;
+  const anchor = getChampionById(ownPicks[0])?.name ?? ownPicks[0];
+  return { penalty, line: `${candidate.name} ar amesteca ${candidateSide} în comp-ul de ${compSide} (${anchor})` };
 }
 
 function scorePickCandidate(
@@ -938,6 +971,12 @@ function scorePickCandidate(
     resolveRoleAssignments(ownState.picks, roster, lockedRoles)
   );
   const proPickTiming = getProPickTimingBonus(candidate, game, step.side, projected.projectedRole);
+  // §5.2 / §5.3: identitate împărțită și win condition.
+  const splitIdentity = getSplitIdentityPenalty(ownState.picks, candidate, roster, lockedRoles);
+  const ownRolesNow = resolveRoleAssignments(ownState.picks, roster, lockedRoles);
+  const ownIdentity = readCompIdentity(ownState.picks, ownRolesNow);
+  const winCondition = getWinCondition(ownState.picks, ownRolesNow, ownIdentity, roster);
+  const winConditionEffect = getWinConditionEffect(candidate, winCondition, ownState.picks);
 
   const adaptivePriority = getAdaptivePriorityBonus({
     candidate,
@@ -1146,7 +1185,9 @@ function scorePickCandidate(
     carryNeedPenalty -
     invalidRolePenalty -
     reassignment.penalty -          // §1.4: pick propriu mutat pe D / grad mult mai mic
-    masteryGate.penalty;            // §1.5: D pe jucătorul proiectat
+    masteryGate.penalty -           // §1.5: D pe jucătorul proiectat
+    splitIdentity.penalty +         // §5.2: identitate împărțită
+    winConditionEffect.bonus;       // §5.3: susține / încarcă win condition-ul
 
   const explanation = [
     ...reassignment.entries.map((entry) => describeReassignment(candidate.id, entry, reassignment.breaksOwnPick)),
@@ -1156,6 +1197,8 @@ function scorePickCandidate(
     ...(draftPlan?.anchorChampionId && planAlignment !== 0
       ? [describePlanAnchor(draftPlan.type, draftPlan.anchorChampionId, step.side, draftPlan.lockedAtPick)]
       : []),
+    ...(splitIdentity.line ? [splitIdentity.line] : []),
+    ...(winConditionEffect.line ? [winConditionEffect.line] : []),
     ...(duoPick.line ? [duoPick.line] : []),
     ...(duoFallback.line ? [duoFallback.line] : []),
     ...badSynergies.map(describeBadSynergy),
@@ -1196,12 +1239,17 @@ function scorePickCandidate(
     ...(badSynergies.length ? { badSynergies } : {}),
     ...(reassignment.entries.length ? { reassignment: reassignment.entries } : {}),
     planAlignment,
+    ...(ownIdentity.dominant
+      ? { identity: { dominant: ownIdentity.dominant, fit: getCandidateIdentityFit(candidate, projected.projectedRole, ownIdentity.dominant) } }
+      : {}),
+    ...(winCondition ? { winCondition } : {}),
     ...(draftPlan
       ? { plan: { type: draftPlan.type, anchorChampionId: draftPlan.anchorChampionId, lockedAtPick: draftPlan.lockedAtPick } }
       : {}),
     ...(explanation.length ? { explanation } : {}),
     reasonTags: [
       ...(reassignment.breaksOwnPick ? ["breaks-own-pick"] : []),
+      ...(splitIdentity.penalty > 0 ? ["split-identity"] : []),
       ...(masteryGate.blocked ? ["mastery-f"] : []),
       ...(masteryGate.soft ? ["mastery-d"] : []),
       ...(badSynergies.length ? ["bad-synergy"] : []),
