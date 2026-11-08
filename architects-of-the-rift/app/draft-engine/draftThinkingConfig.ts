@@ -69,6 +69,21 @@ export const DRAFT_THINKING_CONFIG = {
     fullStrengthSignal: 7,
   },
 
+  // §4 — planul ancorat pe priority pick
+  plan: {
+    /** Ponderea potrivirii pick-urilor proprii cu planul (≥ 1 pick propriu). */
+    anchorWeight: 0.45,
+    /** … când primul pick propriu e priority pick. */
+    priorityAnchorWeight: 0.6,
+    /** Priority pick: meta de la atât în sus (sau SS/S, sau favorit de sezon). */
+    priorityMetaMin: 7.5,
+    /** Planul se blochează după atâtea pick-uri proprii. */
+    lockAfterOwnPicks: 3,
+    /** Multiplicatorul alinierii cu planul pe pick-ul propriu 1..5. */
+    commitmentByPick: [1.0, 1.0, 1.1, 1.25, 1.4],
+    alignmentClamp: [-5, 4] as [number, number],
+  },
+
   // §5 — coeziune (perechile incompatibile sunt folosite deja de `readCompIdentity().split`)
   cohesion: {
     incompatiblePairs: [

@@ -19,6 +19,7 @@ import {
 import { chooseAiAction, getPickCandidatePool, scoreDraftCandidate } from "@/app/draft-engine/draftAI";
 import { hasThinPool } from "@/app/draft-engine/draftMasteryGate";
 import { getBotDuoState } from "@/app/draft-engine/botDuoPlan";
+import { isPriorityPick } from "@/app/draft-engine/draftPlanSystem";
 import { getMetaPriorityScore } from "@/app/draft-engine/draftEvaluator";
 import type {
   ActiveDraftSeries,
@@ -711,6 +712,32 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     "18. Faza 1: nu se banează membrii celui mai bun duo propriu",
     violations === 0 && protectedSeen > 0,
     `${violations} ban-uri pe duo-ul protejat; ture cu duo protejat: ${protectedSeen}/${pairs.length * 6}`,
+  );
+}
+
+// ─── 19. Plan ancorat pe priority pick (DRAFT_THINKING §4) ───────────────────
+{
+  // B1 Vi (priority pick) → planul devine dive sau pick, nu se schimbă după pick-ul 3, B4/B5 aliniate.
+  const bans = ["azir", "jayce", "sejuani", "ksante", "orianna", "rumble"];
+  const { log } = runDraft({
+    series: newSeries("s19", BLUE, RED),
+    save: makeSave(),
+    bans,
+    forced: [{ side: "blue", action: "pick", nth: 1, championId: "vi" }],
+  });
+  const bluePicks = log.filter((entry) => entry.side === "blue" && entry.action === "pick");
+  const plans = bluePicks.slice(1).map((entry) => entry.breakdown?.plan?.type ?? "—");
+  const [, b2, b3, b4, b5] = bluePicks;
+  const lockedSame = b3?.breakdown?.plan?.type === b4?.breakdown?.plan?.type && b4?.breakdown?.plan?.type === b5?.breakdown?.plan?.type;
+  const anchored = bluePicks.slice(1).every((entry) => entry.breakdown?.plan?.anchorChampionId === "vi");
+  const viPriority = isPriorityPick("vi", "jungle", makeSave().updatedTeamRosters[BLUE] ?? {});
+  check(
+    "19. B1 Vi → plan dive/pick, blocat după pick 3, B4/B5 aliniate",
+    // Înainte, de la pick-ul 5 alinierea era mereu 0; acum planul rămâne activ și blocat (o aliniere 0 = fit 0).
+    plans.every((type) => type === "dive" || type === "pick") && lockedSame && anchored &&
+      b4?.breakdown?.plan?.lockedAtPick === 3 && b5?.breakdown?.plan?.lockedAtPick === 3 &&
+      ((b4?.breakdown?.planAlignment ?? 0) !== 0 || (b5?.breakdown?.planAlignment ?? 0) !== 0),
+    `Vi priority=${viPriority}; plan B2..B5: ${plans.join(", ")}; ancoră vi: ${anchored}; aliniere B4 ${b4?.breakdown?.planAlignment?.toFixed(2)}, B5 ${b5?.breakdown?.planAlignment?.toFixed(2)}; pick-uri: ${bluePicks.map((entry) => entry.championId).join(", ")}; „${b2?.breakdown?.explanation?.find((line) => line.startsWith("Plan:")) ?? ""}”`,
   );
 }
 

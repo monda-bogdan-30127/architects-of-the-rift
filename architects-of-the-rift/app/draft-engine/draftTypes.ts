@@ -184,6 +184,9 @@ export type DraftCandidateBreakdown = {
   mustWithLock?: { anchorId: string; partnerId: string; grade: string | null };
   /** Bonusurile mustWith adunate în scor (combo potential, non-bot, deny). */
   mustWithBonus?: number;
+  /** DRAFT_THINKING §4 — alinierea cu planul (× angajamentul pe pick) și planul folosit. */
+  planAlignment?: number;
+  plan?: { type: string; anchorChampionId?: string; lockedAtPick?: number };
   /** §1.4 — pick-uri proprii pe care candidatul le-ar muta pe alt rol. */
   reassignment?: { championId: string; fromRole: Role; toRole: Role; playerId: string | null; grade: string | null }[];
   /** Anti-sinergiile candidatului cu pick-urile proprii (`badSynergyWith`, pentru explainer). */

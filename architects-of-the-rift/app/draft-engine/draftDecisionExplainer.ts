@@ -54,6 +54,12 @@ export function describeReassignment(
   return `${championName(candidateId)} ar muta ${championName(entry.championId)} pe ${entry.toRole}${who}${rejected ? " — respins" : ""}`;
 }
 
+/** „Plan: dive, construit în jurul lui Vi (B1)” (DRAFT_THINKING §4). */
+export function describePlanAnchor(planType: string, anchorId: string, side: "blue" | "red", lockedAtPick?: number): string {
+  const locked = lockedAtPick ? ", blocat" : "";
+  return `Plan: ${planType}, construit în jurul lui ${championName(anchorId)} (${side === "blue" ? "B1" : "R1"}${locked})`;
+}
+
 /** „Zeus nu joacă Poppy (F) — exclus” (§1.5). */
 export function describeMasteryBlock(playerId: string, championId: string, grade: string): string {
   return grade === "F"

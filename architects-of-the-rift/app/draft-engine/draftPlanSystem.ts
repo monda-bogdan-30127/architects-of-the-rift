@@ -29,6 +29,9 @@ import { getChampionRoleProfile } from "./championProfileSystem";
 import { getCandidateIdentityFit, getIdentityTags, readCompIdentity, type CompIdentity } from "./compIdentity";
 import { getMetaPriorityScore, getComfortScore } from "./draftEvaluator";
 import { getPlayerChampionHistoryMetrics } from "./playerHistoryEvaluator";
+import { resolveRoleAssignments } from "./draftRoleResolver";
+import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
+import { getChampionGrade } from "@/app/utils/championMasteryUtils";
 
 const playersById = new Map(players.map((p) => [p.id, p]));
 
@@ -57,7 +60,36 @@ export type DraftPlan = {
   type: DraftPlanType;
   confidence: number; // 0-1: how strongly to enforce this plan
   reasoning: string[];
+  /** DRAFT_THINKING §4: primul pick propriu, în jurul căruia e construit planul. */
+  anchorChampionId?: string;
+  /** Primul pick propriu a fost un priority pick (ancora cântărește mai mult). */
+  anchorIsPriority?: boolean;
+  /** Planul e blocat de la acest pick propriu încolo (3). */
+  lockedAtPick?: number;
 };
+
+const PLAN = DRAFT_THINKING_CONFIG.plan;
+
+/**
+ * §4.2 — primul pick propriu e „priority pick”: meta ≥ 7.5, jucătorul are SS/S pe el,
+ * sau e un favorit de sezon al echipei (`isSeasonFavorite`, din §7).
+ */
+export function isPriorityPick(
+  championId: string,
+  role: Role | null,
+  roster: Partial<Record<Role, string>>,
+  isSeasonFavorite: (championId: string) => boolean = () => false
+): boolean {
+  const champion = champions.find((entry) => entry.id === championId);
+  if (!champion) return false;
+  if (getMetaPriorityScore(champion, role) >= PLAN.priorityMetaMin) return true;
+  const player = role && roster[role] ? playersById.get(roster[role]!) : undefined;
+  if (player) {
+    const grade = getChampionGrade(player, championId);
+    if (grade === "SS" || grade === "S") return true;
+  }
+  return isSeasonFavorite(championId);
+}
 
 // ─── Plan scoring ────────────────────────────────────────────────────────────
 
@@ -232,11 +264,34 @@ export function chooseDraftPlan(args: {
   aiRoster: Partial<Record<Role, string>>;
   userRoster: Partial<Record<Role, string>>;
   save: DraftSave | null;
+  /** §4.2 — planul calculat la pick-ul anterior; după al 3-lea pick propriu rămâne acesta. */
+  lockedPlan?: DraftPlan | null;
+  isSeasonFavorite?: (championId: string) => boolean;
 }): DraftPlan | null {
-  // Only pick plan during early draft (pick phase 1)
-  // If picks already made, use existing plan from game state
   const aiPicks = args.side === "blue" ? args.game.picksBlue : args.game.picksRed;
-  if (aiPicks.length >= 3) return null; // Plan should be decided by pick 3
+  // §4.2: după al 3-lea pick propriu planul e blocat (înainte: null de aici încolo).
+  if (aiPicks.length >= PLAN.lockAfterOwnPicks && args.lockedPlan) {
+    return { ...args.lockedPlan, lockedAtPick: args.lockedPlan.lockedAtPick ?? PLAN.lockAfterOwnPicks };
+  }
+
+  // §4.2: cu ≥ 1 pick propriu, planul se ancorează pe ce am luat (media fit-ului pe pick-uri).
+  const lockedRoles = (args.side === "blue" ? args.game.pickRolesBlue : args.game.pickRolesRed) ?? {};
+  const ownRoles = aiPicks.length ? resolveRoleAssignments(aiPicks, args.aiRoster, lockedRoles) : {};
+  const roleOf = (championId: string) =>
+    (ROLE_ORDER.find((role) => ownRoles[role] === championId) ?? null) as Role | null;
+  const anchorId = aiPicks[0];
+  const anchorIsPriority = anchorId
+    ? isPriorityPick(anchorId, roleOf(anchorId), args.aiRoster, args.isSeasonFavorite)
+    : false;
+  const anchorWeight = aiPicks.length ? (anchorIsPriority ? PLAN.priorityAnchorWeight : PLAN.anchorWeight) : 0;
+  const getAnchorFit = (plan: DraftPlanType) => {
+    const fits = aiPicks
+      .map((id) => champions.find((entry) => entry.id === id))
+      .filter((champion): champion is Champion => Boolean(champion))
+      .map((champion) => getCandidateIdentityFit(champion, roleOf(champion.id), plan));
+    const average = fits.length ? fits.reduce((sum, fit) => sum + fit, 0) / fits.length : 0;
+    return clamp((average + 3) / 6, 0, 1);
+  };
 
   // Available champions (not banned, not picked)
   const unavailable = new Set([
@@ -257,25 +312,29 @@ export function chooseDraftPlan(args: {
     const userWeakness = getUserWeaknessBonus(plan, args.userRoster);
 
     // Weighted score
-    const score =
+    const baseScore =
       metaCoverage * 0.35 +    // Access to OP champions is biggest factor
       rosterFit * 0.30 +       // Team must be able to execute the plan
       seriesAdapt * 0.20 +     // Adaptation between games matters
       userWeakness * 0.15;     // Exploit user weaknesses where possible
+    // §4.2: ancora ia `anchorWeight`, restul ponderilor se scalează ca suma să rămână 1.
+    const anchorFit = anchorWeight > 0 ? getAnchorFit(plan) : 0;
+    const score = baseScore * (1 - anchorWeight) + anchorFit * anchorWeight;
 
     scored.push({
       plan,
       score,
-      breakdown: { metaCoverage, rosterFit, seriesAdapt, userWeakness },
+      breakdown: { metaCoverage, rosterFit, seriesAdapt, userWeakness, anchorFit },
     });
   }
 
   scored.sort((a, b) => b.score - a.score);
 
-  // Pick from top 2 with some randomness (so AI isn't 100% deterministic)
+  // 0 pick-uri proprii: top 2 cu randomness (70/30), ca AI-ul să nu fie 100% determinist.
+  // §4.2: după primul pick propriu, fără randomness — planul urmează ancora.
   const seed = `${args.series.seriesId}:${args.series.currentGameNumber}:${args.side}:plan-select`;
   const roll = hashString(seed) % 100;
-  const chosen = roll < 70 ? scored[0] : scored[1] ?? scored[0];
+  const chosen = aiPicks.length ? scored[0] : roll < 70 ? scored[0] : scored[1] ?? scored[0];
 
   if (!chosen || chosen.score < 0.25) return null; // No good plan
 
@@ -285,10 +344,14 @@ export function chooseDraftPlan(args: {
   if (chosen.breakdown.seriesAdapt >= 0.25) reasoning.push("counter-adaptation from previous game");
   if (chosen.breakdown.userWeakness >= 0.2) reasoning.push("exploits user champion weaknesses");
 
+  if (anchorId && chosen.breakdown.anchorFit >= 0.6) reasoning.push(`built around ${anchorId}`);
+
   return {
     type: chosen.plan,
     confidence: clamp(chosen.score, 0, 1),
     reasoning,
+    ...(anchorId ? { anchorChampionId: anchorId, anchorIsPriority } : {}),
+    ...(aiPicks.length >= PLAN.lockAfterOwnPicks ? { lockedAtPick: PLAN.lockAfterOwnPicks } : {}),
   };
 }
 
@@ -306,15 +369,13 @@ export function getPlanAlignmentBonus(
   pickNumber: number
 ): number {
   if (!plan) return 0;
-  if (pickNumber >= 5) return 0; // Plan enforcement fades late in draft
 
   const fit = scoreChampionForPlan(candidate, role, plan.type);
 
-  // Fit range typically -3 to +5
-  // Convert to pick score modifier scaled by plan confidence
-  // High confidence + good fit = +3 bonus
-  // High confidence + bad fit = -4 penalty
-  const alignment = fit * 0.7 * plan.confidence;
+  // §4.2: angajamentul față de plan crește spre ultimele pick-uri (înainte: 0 de la pick 5),
+  // exact când ultimele pick-uri pot rupe identitatea.
+  const commitment = PLAN.commitmentByPick[Math.max(0, Math.min(PLAN.commitmentByPick.length - 1, pickNumber - 1))];
+  const alignment = fit * 0.7 * plan.confidence * commitment;
 
-  return clamp(alignment, -4, 3);
+  return clamp(alignment, PLAN.alignmentClamp[0], PLAN.alignmentClamp[1]);
 }

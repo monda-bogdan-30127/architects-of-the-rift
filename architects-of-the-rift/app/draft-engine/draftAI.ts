@@ -76,6 +76,7 @@ import {
   describeForcedOffPool,
   describeMasteryBlock,
   describeMustWithLock,
+  describePlanAnchor,
   describeReassignment,
 } from "./draftDecisionExplainer";
 import {
@@ -139,6 +140,8 @@ function clamp(value: number, min: number, max: number) {
 }
 
 const planCache: Map<string, DraftPlan | null> = new Map();
+/** Ultimul plan calculat înainte de blocare (§4.2), per serie:joc:side. */
+const lastPlanBeforeLock: Map<string, DraftPlan | null> = new Map();
 
 function getCachedPlan(args: {
   side: Side;
@@ -146,7 +149,12 @@ function getCachedPlan(args: {
   series: ActiveDraftSeries;
   save: DraftSave | null;
 }): DraftPlan | null {
-  const cacheKey = `${args.series.seriesId}:g${args.series.currentGameNumber}:${args.side}`;
+  // DRAFT_THINKING §4.2: planul se recalculează după fiecare pick propriu și se blochează
+  // după al 3-lea (de acolo toate pick-urile citesc aceeași intrare).
+  const ownPickCount = getOwnState(args.game, args.side).picks.length;
+  const lockAt = DRAFT_THINKING_CONFIG.plan.lockAfterOwnPicks;
+  const baseKey = `${args.series.seriesId}:g${args.series.currentGameNumber}:${args.side}`;
+  const cacheKey = `${baseKey}:p${Math.min(ownPickCount, lockAt)}`;
   if (planCache.has(cacheKey)) return planCache.get(cacheKey) ?? null;
 
   const aiTeamSlug = getTeamSlugForSide(args.series, args.side);
@@ -161,8 +169,12 @@ function getCachedPlan(args: {
     aiRoster,
     userRoster,
     save: args.save,
+    lockedPlan: ownPickCount >= lockAt ? lastPlanBeforeLock.get(baseKey) ?? null : null,
   });
 
+  if (ownPickCount < lockAt) lastPlanBeforeLock.set(baseKey, plan);
+  if (planCache.size > 500) planCache.clear();
+  if (lastPlanBeforeLock.size > 500) lastPlanBeforeLock.clear();
   planCache.set(cacheKey, plan);
   return plan;
 }
@@ -1141,6 +1153,9 @@ function scorePickCandidate(
     ...(projectedPlayerId && (masteryGate.blocked || masteryGate.soft) && masteryGate.grade
       ? [describeMasteryBlock(projectedPlayerId, candidate.id, masteryGate.grade)]
       : []),
+    ...(draftPlan?.anchorChampionId && planAlignment !== 0
+      ? [describePlanAnchor(draftPlan.type, draftPlan.anchorChampionId, step.side, draftPlan.lockedAtPick)]
+      : []),
     ...(duoPick.line ? [duoPick.line] : []),
     ...(duoFallback.line ? [duoFallback.line] : []),
     ...badSynergies.map(describeBadSynergy),
@@ -1180,6 +1195,10 @@ function scorePickCandidate(
     mustWithBonus,
     ...(badSynergies.length ? { badSynergies } : {}),
     ...(reassignment.entries.length ? { reassignment: reassignment.entries } : {}),
+    planAlignment,
+    ...(draftPlan
+      ? { plan: { type: draftPlan.type, anchorChampionId: draftPlan.anchorChampionId, lockedAtPick: draftPlan.lockedAtPick } }
+      : {}),
     ...(explanation.length ? { explanation } : {}),
     reasonTags: [
       ...(reassignment.breaksOwnPick ? ["breaks-own-pick"] : []),
