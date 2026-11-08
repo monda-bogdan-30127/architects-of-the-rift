@@ -225,6 +225,8 @@ export type DraftCandidateBreakdown = {
    */
   reasonTags?: string[];
   explanation?: string[];
+  /** Locul alegerii în lista de candidați valizi, sortată (0 = primul). Lipsă la acțiunile forțate. */
+  choiceRank?: number;
 };
 
 export type DraftAiConfig = {

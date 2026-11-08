@@ -44,3 +44,6 @@ next-env.d.ts
 scripts/.snapshot-*.json
 scripts/.matchup-values-*.json
 scripts/.profiles-*.json
+
+# calibrare draft (scripts/draft-calibration.ts --out)
+scripts/.calibration/

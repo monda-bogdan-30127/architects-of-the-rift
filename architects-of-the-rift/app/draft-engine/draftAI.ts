@@ -1971,6 +1971,28 @@ export function getPickCandidatePool(
   return filteredPool;
 }
 
+// ─── Observator de decizii (harness: scripts/draft-trace.ts, draft-calibration.ts) ──
+export type DraftDecisionObservation = {
+  step: DraftStep;
+  game: DraftGameState;
+  series: ActiveDraftSeries;
+  /** Toți candidații scorați, sortați (gol pentru acțiunile forțate înainte de scorare). */
+  ranked: DraftCandidateBreakdown[];
+  chosen: DraftCandidateBreakdown | null;
+};
+let decisionObserver: ((observation: DraftDecisionObservation) => void) | null = null;
+/** Doar pentru harness: nu schimbă decizia, primește lista scorată după fiecare acțiune AI. */
+export function setDraftDecisionObserver(observer: ((observation: DraftDecisionObservation) => void) | null) {
+  decisionObserver = observer;
+}
+
+/** `choiceRank` = locul alegerii în lista sortată (0 = primul); lipsă la acțiunile forțate. */
+function withChoiceRank(chosen: DraftCandidateBreakdown | null, ranked: DraftCandidateBreakdown[]) {
+  if (!chosen) return null;
+  const index = ranked.indexOf(chosen);
+  return index >= 0 ? { ...chosen, choiceRank: index } : chosen;
+}
+
 export function chooseAiAction(
   pool: Champion[],
   step: DraftStep,
@@ -1978,6 +2000,21 @@ export function chooseAiAction(
   series: ActiveDraftSeries,
   save: DraftSave | null,
   config: DraftAiConfig = DEFAULT_AI_CONFIG
+): DraftCandidateBreakdown | null {
+  const ranked: DraftCandidateBreakdown[] = [];
+  const chosen = chooseAiActionInner(pool, step, game, series, save, config, ranked);
+  decisionObserver?.({ step, game, series, ranked, chosen });
+  return chosen;
+}
+
+function chooseAiActionInner(
+  pool: Champion[],
+  step: DraftStep,
+  game: DraftGameState,
+  series: ActiveDraftSeries,
+  save: DraftSave | null,
+  config: DraftAiConfig,
+  rankedOut: DraftCandidateBreakdown[]
 ): DraftCandidateBreakdown | null {
   if (!pool.length) return null;
 
@@ -2045,6 +2082,7 @@ export function chooseAiAction(
       if (Math.abs(primary) > 0.01) return primary;
       return applyRealisticPickTiebreaker(a, b);
     });
+  rankedOut.push(...ranked);
 
   if (step.action === "pick") {
     let valid = ranked.filter((entry) => !isBlockedPick(entry));
@@ -2078,12 +2116,12 @@ export function chooseAiAction(
       return withMustWithLock(top, nonBotPartner);
     }
 
-    return chooseFromAdaptiveShortlist(valid, seed) ?? null;
+    return withChoiceRank(chooseFromAdaptiveShortlist(valid, seed) ?? null, valid);
   }
 
   const banSeed = `${series.seriesId}:${series.currentGameNumber}:${game.phaseIndex}:ban:${step.side}`;
   const banShortlist = ranked.slice(0, 3);
   const banHash = banSeed.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return banShortlist[banHash % banShortlist.length] ?? ranked[0] ?? null;
+  return withChoiceRank(banShortlist[banHash % banShortlist.length] ?? ranked[0] ?? null, ranked);
 
 }
