@@ -6,6 +6,7 @@ export const tristana = createChampion({
   image: "/champions/tristana.png",
   roles: ["adc", "mid", "top"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "leona", score: 5 },

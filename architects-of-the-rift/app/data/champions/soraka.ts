@@ -6,6 +6,7 @@ export const soraka = createChampion({
   image: "/champions/soraka.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "jinx", score: 5 },

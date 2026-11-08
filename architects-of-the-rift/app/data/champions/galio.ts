@@ -6,6 +6,7 @@ export const galio = createChampion({
   image: "/champions/galio.png",
   roles: ["mid", "top"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "nocturne", score: 4 },

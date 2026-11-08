@@ -6,6 +6,7 @@ export const syndra = createChampion({
   image: "/champions/syndra.png",
   roles: ["mid", "adc"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "sejuani", score: 4 },

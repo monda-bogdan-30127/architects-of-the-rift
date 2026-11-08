@@ -6,6 +6,7 @@ export const wukong = createChampion({
   image: "/champions/wukong.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "orianna", score: 4 },

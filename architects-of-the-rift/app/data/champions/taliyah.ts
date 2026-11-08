@@ -6,6 +6,7 @@ export const taliyah = createChampion({
   image: "/champions/taliyah.png",
   roles: ["mid", "adc"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "pantheon", score: 4 },

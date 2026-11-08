@@ -6,6 +6,7 @@ export const gangplank = createChampion({
   image: "/champions/gangplank.png",
   roles: ["top"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   offers: [
     { type: "waveclear", strength: 4 },

@@ -6,6 +6,7 @@ export const morgana = createChampion({
   image: "/champions/morgana.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "caitlyn", score: 5 },

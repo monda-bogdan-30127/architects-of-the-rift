@@ -6,6 +6,7 @@ export const poppy = createChampion({
   image: "/champions/poppy.png",
   roles: ["support", "jungle", "top"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "sivir", score: 4 },

@@ -6,6 +6,7 @@ export const akshan = createChampion({
   image: "/champions/akshan.png",
   roles: ["mid", "top"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   offers: [
     { type: "sideLanePressure", strength: 4 },

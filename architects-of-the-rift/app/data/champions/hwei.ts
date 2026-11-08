@@ -6,6 +6,7 @@ export const hwei = createChampion({
   image: "/champions/hwei.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "jarvan-iv", score: 5 },

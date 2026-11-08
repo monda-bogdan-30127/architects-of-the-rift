@@ -6,6 +6,7 @@ export const pantheon = createChampion({
   image: "/champions/pantheon.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "twisted-fate", score: 4 },

@@ -6,6 +6,7 @@ export const kaisa = createChampion({
   image: "/champions/kai'sa.png",
   roles: ["adc"],
   damageProfile: ["AD", "AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "nautilus", score: 5 },

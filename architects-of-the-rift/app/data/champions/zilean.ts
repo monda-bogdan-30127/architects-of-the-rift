@@ -6,6 +6,7 @@ export const zilean = createChampion({
   image: "/champions/zilean.png",
   roles: ["support", "mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "olaf", score: 5 },

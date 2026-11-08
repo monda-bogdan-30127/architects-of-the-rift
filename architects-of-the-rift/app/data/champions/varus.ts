@@ -6,6 +6,7 @@ export const varus = createChampion({
   image: "/champions/varus.png",
   roles: ["adc"],
   damageProfile: ["AD", "AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "nautilus", score: 4 },

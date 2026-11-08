@@ -6,6 +6,7 @@ export const katarina = createChampion({
   image: "/champions/katarina.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   offers: [
     { type: "backlineAccess", strength: 5 },

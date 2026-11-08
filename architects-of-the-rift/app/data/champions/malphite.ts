@@ -6,6 +6,7 @@ export const malphite = createChampion({
   image: "/champions/malphite.png",
   roles: ["jungle", "top"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "yasuo", score: 4 },

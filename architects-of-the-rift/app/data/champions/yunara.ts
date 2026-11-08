@@ -6,6 +6,7 @@ export const yunara = createChampion({
   image: "/champions/yunara.png",
   roles: ["adc"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "lulu", score: 5 },

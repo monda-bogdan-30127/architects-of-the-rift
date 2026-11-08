@@ -6,6 +6,7 @@ export const gwen = createChampion({
   image: "/champions/gwen.png",
   roles: ["top"],
   damageProfile: ["AP", "TRUE"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "sejuani", score: 4 },

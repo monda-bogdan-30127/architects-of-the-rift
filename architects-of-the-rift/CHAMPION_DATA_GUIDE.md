@@ -38,6 +38,7 @@ export const poppy = createChampion({
   image: "/champions/poppy.png",
   roles: ["support", "jungle", "top"],
   damageProfile: ["AD"],
+  attackType: "melee",              // "melee" | "ranged": atacul de bază
 
   synergyWith: [
     { championId: "sivir", score: 4 },
@@ -79,10 +80,11 @@ export const poppy = createChampion({
 
 Reguli de formatare, la fel în toate fișierele:
 
-- **Ordinea câmpurilor:** identitate (`id`, `name`, `image`, `roles`, `damageProfile`) → compoziție (`synergyWith`, `badSynergyWith` dacă există, `offers`, `needs`, `weaknesses`, `playerScaling`, `carryProfile` dacă e explicit) → `stats` → `roleData`.
+- **Ordinea câmpurilor:** identitate (`id`, `name`, `image`, `roles`, `damageProfile`, `attackType`) → compoziție (`synergyWith`, `badSynergyWith` dacă există, `offers`, `needs`, `weaknesses`, `playerScaling`, `carryProfile` dacă e explicit) → `stats` → `roleData`.
 - **`roleData` are exact cheile din `roles`, în aceeași ordine.** Într-un rol: `goodVs`, `mustWith` (opțional, doar dacă există), `stats`, apoi `profile` (opțional).
 - **Nu se scrie `weakVs`** (e generat automat, vezi mai jos) și **nici `mustWith: []`**. Validatorul dă eroare la ambele.
 - `synergyWith` e global pe campion, nu pe rol.
+- `attackType` (`"melee"` / `"ranged"`) e range-ul atacului de bază și dă tag-ul `melee` / `ranged` din profilul derivat. La formele schimbătoare (Jayce, Nidalee, Elise, Gnar, Kayle) se trece forma dominantă în pro. Dacă scrii `tags` într-un `profile` manual, tag-ul de range trebuie să fie același.
 
 ## Matchup-uri (`roleData[rol].goodVs`)
 
@@ -294,7 +296,7 @@ profile: {
 3. Verifică mastery-ul jucătorilor de pe acel rol în `championMasteryOverrides.ts`.
 
 **Campion nou**
-1. Creează `app/data/champions/<id>.ts` după formatul de mai sus, cu câte o intrare în `roleData` pentru fiecare rol.
+1. Creează `app/data/champions/<id>.ts` după formatul de mai sus (inclusiv `attackType`), cu câte o intrare în `roleData` pentru fiecare rol.
 2. În `app/data/champions/index.ts`: adaugă importul **și** campionul în `baseChampions`, pe poziția dorită. Ordinea influențează tie-break-urile din draft.
 3. Adaugă imaginea în `public/champions/<id>.png`.
 4. Adaugă gradele de mastery în `championMasteryOverrides.ts` (manual sau cu scriptul Python de mai jos).

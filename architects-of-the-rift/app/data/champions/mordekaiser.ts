@@ -6,6 +6,7 @@ export const mordekaiser = createChampion({
   image: "/champions/mordekaiser.png",
   roles: ["top"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "jarvan-iv", score: 5 },

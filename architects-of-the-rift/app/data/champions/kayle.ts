@@ -6,6 +6,7 @@ export const kayle = createChampion({
   image: "/champions/kayle.png",
   roles: ["top"],
   damageProfile: ["AD", "AP", "TRUE"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "ivern", score: 5 },

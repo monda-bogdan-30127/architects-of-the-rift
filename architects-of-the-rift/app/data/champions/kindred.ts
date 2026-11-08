@@ -6,6 +6,7 @@ export const kindred = createChampion({
   image: "/champions/kindred.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "galio", score: 5 },

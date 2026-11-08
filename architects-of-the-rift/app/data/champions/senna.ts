@@ -6,6 +6,7 @@ export const senna = createChampion({
   image: "/champions/senna.png",
   roles: ["support", "adc"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "nautilus", score: 5 },

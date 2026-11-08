@@ -6,6 +6,7 @@ export const nidalee = createChampion({
   image: "/champions/nidalee.png",
   roles: ["jungle"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   // Foste mustWith: sinergii de dive / early, nu dependențe (DRAFT_REWORK §2.5, META_2026 §6.1).
   synergyWith: [

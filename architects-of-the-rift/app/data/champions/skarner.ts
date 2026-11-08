@@ -6,6 +6,7 @@ export const skarner = createChampion({
   image: "/champions/skarner.png",
   roles: ["jungle"],
   damageProfile: ["AD", "AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "seraphine", score: 5 },

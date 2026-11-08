@@ -6,6 +6,7 @@ export const sylas = createChampion({
   image: "/champions/sylas.png",
   roles: ["mid", "jungle"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "sejuani", score: 4 },

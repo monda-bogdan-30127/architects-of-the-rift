@@ -6,6 +6,7 @@ export const nautilus = createChampion({
   image: "/champions/nautilus.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "kaisa", score: 4 },

@@ -6,6 +6,7 @@ export const pyke = createChampion({
   image: "/champions/pyke.png",
   roles: ["support"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "mel", score: 3 },

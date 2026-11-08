@@ -6,6 +6,7 @@ export const aurelionSol = createChampion({
   image: "/champions/aurelion-sol.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "jarvan-iv", score: 5 },

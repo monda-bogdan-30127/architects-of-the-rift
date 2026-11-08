@@ -6,6 +6,7 @@ export const orianna = createChampion({
   image: "/champions/orianna.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "vi", score: 5 },

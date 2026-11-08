@@ -6,6 +6,7 @@ export const thresh = createChampion({
   image: "/champions/thresh.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "draven", score: 5 },

@@ -6,6 +6,7 @@ export const yone = createChampion({
   image: "/champions/yone.png",
   roles: ["mid", "top"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "malphite", score: 5 },

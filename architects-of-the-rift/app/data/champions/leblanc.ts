@@ -6,6 +6,7 @@ export const leblanc = createChampion({
   image: "/champions/leblanc.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "nocturne", score: 4 },

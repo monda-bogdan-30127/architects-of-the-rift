@@ -6,6 +6,7 @@ export const xerath = createChampion({
   image: "/champions/xerath.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   offers: [
     { type: "poke", strength: 5 },

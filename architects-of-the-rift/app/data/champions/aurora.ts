@@ -6,6 +6,7 @@ export const aurora = createChampion({
   image: "/champions/aurora.png",
   roles: ["mid", "top"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "jarvan-iv", score: 4 },

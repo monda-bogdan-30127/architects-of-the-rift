@@ -6,6 +6,7 @@ export const ryze = createChampion({
   image: "/champions/ryze.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "pantheon", score: 5 },

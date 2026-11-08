@@ -6,6 +6,7 @@ export const kled = createChampion({
   image: "/champions/kled.png",
   roles: ["top"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "twisted-fate", score: 5 },

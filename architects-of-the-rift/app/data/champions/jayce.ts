@@ -6,6 +6,7 @@ export const jayce = createChampion({
   image: "/champions/jayce.png",
   roles: ["top", "jungle"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "nidalee", score: 4 },

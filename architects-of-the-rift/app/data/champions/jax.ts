@@ -6,6 +6,7 @@ export const jax = createChampion({
   image: "/champions/jax.png",
   roles: ["top"],
   damageProfile: ["AD", "AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "sejuani", score: 4 },     // melee proc + lockdown

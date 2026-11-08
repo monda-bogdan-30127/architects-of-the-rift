@@ -6,6 +6,7 @@ export const ezreal = createChampion({
   image: "/champions/ezreal.png",
   roles: ["adc"],
   damageProfile: ["AD", "AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "karma", score: 5 },

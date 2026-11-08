@@ -6,6 +6,7 @@ export const milio = createChampion({
   image: "/champions/milio.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "jinx", score: 5 },

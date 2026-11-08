@@ -6,6 +6,7 @@ export const sett = createChampion({
   image: "/champions/sett.png",
   roles: ["top"],
   damageProfile: ["AD", "TRUE"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "sejuani", score: 5 },

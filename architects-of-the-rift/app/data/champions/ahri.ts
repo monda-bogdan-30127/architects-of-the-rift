@@ -6,6 +6,7 @@ export const ahri = createChampion({
   image: "/champions/ahri.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "vi", score: 4 },

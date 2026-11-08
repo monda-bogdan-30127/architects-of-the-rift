@@ -6,6 +6,7 @@ export const viego = createChampion({
   image: "/champions/viego.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "galio", score: 5 },

@@ -6,6 +6,7 @@ export const cassiopeia = createChampion({
   image: "/champions/cassiopeia.png",
   roles: ["mid", "adc"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "skarner", score: 4 },

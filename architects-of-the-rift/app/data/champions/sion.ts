@@ -6,6 +6,7 @@ export const sion = createChampion({
   image: "/champions/sion.png",
   roles: ["top"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "pantheon", score: 4 },

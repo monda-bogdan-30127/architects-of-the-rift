@@ -6,6 +6,7 @@ export const vayne = createChampion({
   image: "/champions/vayne.png",
   roles: ["adc", "top"],
   damageProfile: ["AD", "TRUE"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "lulu", score: 5 },

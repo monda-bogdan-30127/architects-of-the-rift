@@ -6,6 +6,7 @@ export const hecarim = createChampion({
   image: "/champions/hecarim.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   offers: [
     { type: "engage", strength: 4 },

@@ -6,6 +6,7 @@ export const quinn = createChampion({
   image: "/champions/quinn.png",
   roles: ["top"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "thresh", score: 5 },

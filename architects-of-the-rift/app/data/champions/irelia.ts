@@ -6,6 +6,7 @@ export const irelia = createChampion({
   image: "/champions/irelia.png",
   roles: ["top", "mid"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "sejuani", score: 5 },

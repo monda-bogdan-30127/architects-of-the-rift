@@ -6,6 +6,7 @@ export const samira = createChampion({
   image: "/champions/samira.png",
   roles: ["adc"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "alistar", score: 4 },

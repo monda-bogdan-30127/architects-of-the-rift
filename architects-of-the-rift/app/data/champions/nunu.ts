@@ -6,6 +6,7 @@ export const nunu = createChampion({
   image: "/champions/nunu.png",
   roles: ["jungle"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "yasuo", score: 5 },

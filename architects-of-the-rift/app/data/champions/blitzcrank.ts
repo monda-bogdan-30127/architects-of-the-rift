@@ -6,6 +6,7 @@ export const blitzcrank = createChampion({
   image: "/champions/blitzcrank.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "draven", score: 5 },

@@ -6,6 +6,7 @@ export const drMundo = createChampion({
   image: "/champions/dr.-mundo.png",
   roles: ["jungle", "top"],
   damageProfile: ["AD", "AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "nami", score: 4 },

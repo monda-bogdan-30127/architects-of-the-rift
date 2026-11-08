@@ -6,6 +6,7 @@ export const missFortune = createChampion({
   image: "/champions/miss-fortune.png",
   roles: ["adc"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "leona", score: 5 },

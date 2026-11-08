@@ -6,6 +6,7 @@ export const yuumi = createChampion({
   image: "/champions/yuumi.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "zeri", score: 5 },

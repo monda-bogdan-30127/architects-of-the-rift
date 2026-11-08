@@ -6,6 +6,7 @@ export const olaf = createChampion({
   image: "/champions/olaf.png",
   roles: ["top"],
   damageProfile: ["AD", "TRUE"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "yuumi", score: 5 },

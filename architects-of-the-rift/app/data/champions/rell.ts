@@ -6,6 +6,7 @@ export const rell = createChampion({
   image: "/champions/rell.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "kaisa", score: 4 },

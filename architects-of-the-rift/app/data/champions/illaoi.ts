@@ -6,6 +6,7 @@ export const illaoi = createChampion({
   image: "/champions/illaoi.png",
   roles: ["top"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   offers: [
     { type: "sideLanePressure", strength: 5 },

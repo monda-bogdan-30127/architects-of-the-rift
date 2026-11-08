@@ -6,6 +6,7 @@ export const darius = createChampion({
   image: "/champions/darius.png",
   roles: ["top"],
   damageProfile: ["AD", "TRUE"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "sejuani", score: 5 },

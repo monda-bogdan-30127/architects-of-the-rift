@@ -6,6 +6,7 @@ export const rumble = createChampion({
   image: "/champions/rumble.png",
   roles: ["top", "mid"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "jarvan-iv", score: 4 },
@@ -100,7 +101,7 @@ export const rumble = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["ranged", "ap", "zone-control", "teamfight", "lane-priority"],
+        tags: ["melee", "ap", "zone-control", "teamfight", "lane-priority"],
         abilities: [
           { key: "q", name: "Flamespitter", effects: [{ type: "dps", subtype: "close-range-cone", strength: 8, reliability: 8, priority: 8 }] },
           { key: "e", name: "Electro Harpoon", effects: [{ type: "slow", strength: 6, reliability: 8, priority: 6 }, { type: "poke", strength: 5, reliability: 7, priority: 5 }] },

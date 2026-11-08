@@ -6,6 +6,7 @@ export const udyr = createChampion({
   image: "/champions/udyr.png",
   roles: ["top", "jungle"],
   damageProfile: ["AD", "AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "seraphine", score: 5 },

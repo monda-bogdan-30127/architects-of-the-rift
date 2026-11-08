@@ -6,6 +6,7 @@ export const zeri = createChampion({
   image: "/champions/zeri.png",
   roles: ["adc"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "lulu", score: 5 },

@@ -6,6 +6,7 @@ export const lulu = createChampion({
   image: "/champions/lulu.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "kogmaw", score: 4 },

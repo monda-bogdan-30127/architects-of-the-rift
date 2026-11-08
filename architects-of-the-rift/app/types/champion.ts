@@ -356,12 +356,17 @@ export type ChampionRoleProfile = {
   };
 };
 
+/** Range-ul atacului de bază (forme schimbătoare: forma dominantă în pro). */
+export type AttackType = "melee" | "ranged";
+
 export type Champion = {
   id: string;
   name: string;
   image: string;
   roles: Role[];
   damageProfile: DamageType[];
+  /** Atacul de bază: dă tag-ul `melee` / `ranged` din profilul derivat. */
+  attackType: AttackType;
   stats: ChampionStats;
   synergyWith: ChampionRelation[];
   /** Anti-sinergii specifice perechii (global, nu pe rol). Citite doar prin `badSynergy.ts`. */

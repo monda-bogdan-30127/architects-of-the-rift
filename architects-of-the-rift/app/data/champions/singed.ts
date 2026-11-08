@@ -6,6 +6,7 @@ export const singed = createChampion({
   image: "/champions/singed.png",
   roles: ["top"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   offers: [
     { type: "sideLanePressure", strength: 4 },

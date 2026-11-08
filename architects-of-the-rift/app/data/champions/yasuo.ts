@@ -6,6 +6,7 @@ export const yasuo = createChampion({
   image: "/champions/yasuo.png",
   roles: ["mid", "top"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "malphite", score: 5 },

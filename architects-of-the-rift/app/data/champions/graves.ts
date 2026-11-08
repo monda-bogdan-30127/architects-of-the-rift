@@ -6,6 +6,7 @@ export const graves = createChampion({
   image: "/champions/graves.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "renekton", score: 5 },

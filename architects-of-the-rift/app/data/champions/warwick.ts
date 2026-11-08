@@ -6,6 +6,7 @@ export const warwick = createChampion({
   image: "/champions/warwick.png",
   roles: ["top", "jungle"],
   damageProfile: ["AD", "AP"],
+  attackType: "melee",
 
   offers: [
     { type: "pick", strength: 4 },

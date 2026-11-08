@@ -6,6 +6,7 @@ export const bard = createChampion({
   image: "/champions/bard.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "ezreal", score: 4 },

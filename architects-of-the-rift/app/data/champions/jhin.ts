@@ -6,6 +6,7 @@ export const jhin = createChampion({
   image: "/champions/jhin.png",
   roles: ["adc"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "karma", score: 3 },

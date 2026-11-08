@@ -6,6 +6,7 @@ export const kayn = createChampion({
   image: "/champions/kayn.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   offers: [
     { type: "backlineAccess", strength: 5 },

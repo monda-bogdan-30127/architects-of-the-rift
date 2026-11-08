@@ -6,6 +6,7 @@ export const renataGlasc = createChampion({
   image: "/champions/renata-glasc.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "aphelios", score: 5 },

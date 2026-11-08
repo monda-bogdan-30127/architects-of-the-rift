@@ -6,6 +6,7 @@ export const naafiri = createChampion({
   image: "/champions/naafiri.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "galio", score: 4 },

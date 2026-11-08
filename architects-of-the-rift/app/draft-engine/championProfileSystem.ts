@@ -43,8 +43,8 @@ function lanePressureValue(champion: Champion, role: Role) {
 
 function toTags(champion: Champion, role: Role): string[] {
   const tags = new Set<string>(champion.championTags ?? []);
-  if (role === "adc" || offer(champion, "poke") >= 3) tags.add("ranged");
-  if (!tags.has("ranged")) tags.add("melee");
+  // Din date (`attackType`), nu din rol / poke: Syndra, Karthus etc. sunt ranged fără să aibă poke.
+  tags.add(champion.attackType === "ranged" ? "ranged" : "melee");
   if (offer(champion, "frontline") >= 3) tags.add("frontline");
   if (offer(champion, "engage") >= 3) tags.add("engage");
   if (offer(champion, "dive") >= 3 || offer(champion, "backlineAccess") >= 3) tags.add("dive");

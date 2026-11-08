@@ -6,6 +6,7 @@ export const xinZhao = createChampion({
   image: "/champions/xin-zhao.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "sivir", score: 4 },

@@ -6,6 +6,7 @@ export const kalista = createChampion({
   image: "/champions/kalista.png",
   roles: ["adc"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "leona", score: 3 },

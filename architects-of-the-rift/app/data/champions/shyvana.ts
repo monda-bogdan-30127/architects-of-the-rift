@@ -6,6 +6,7 @@ export const shyvana = createChampion({
   image: "/champions/shyvana.png",
   roles: ["jungle"],
   damageProfile: ["AD", "AP"],
+  attackType: "melee",
 
   offers: [
     { type: "scaling", strength: 4 },

@@ -6,6 +6,7 @@ export const lillia = createChampion({
   image: "/champions/lillia.png",
   roles: ["jungle"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   offers: [
     { type: "sustainedDamage", strength: 4 },

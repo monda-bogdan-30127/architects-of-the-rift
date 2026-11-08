@@ -6,6 +6,7 @@ export const nami = createChampion({
   image: "/champions/nami.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "lucian", score: 5 },

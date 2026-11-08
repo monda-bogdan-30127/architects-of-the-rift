@@ -6,6 +6,7 @@ export const braum = createChampion({
   image: "/champions/braum.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "lucian", score: 5 },
@@ -66,7 +67,7 @@ export const braum = createChampion({
       ],
       stats: null,
       profile: {
-        tags: ["ranged", "warden", "peel", "anti-dive", "front-to-back"],
+        tags: ["melee", "warden", "peel", "anti-dive", "front-to-back"],
         abilities: [
           { key: "passive", name: "Concussive Blows", effects: [{ type: "mark", subtype: "ally-proc-cc", strength: 9, reliability: 9, priority: 9 }] },
           { key: "e", name: "Unbreakable", effects: [{ type: "projectile-block", strength: 10, reliability: 9, priority: 10 }, { type: "anti-engage", strength: 8, reliability: 8, priority: 8 }] },

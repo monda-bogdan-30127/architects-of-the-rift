@@ -6,6 +6,7 @@ export const fiddlesticks = createChampion({
   image: "/champions/fiddlesticks.png",
   roles: ["jungle"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   offers: [
     { type: "engage", strength: 4 },

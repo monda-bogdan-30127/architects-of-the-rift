@@ -6,6 +6,7 @@ export const shaco = createChampion({
   image: "/champions/shaco.png",
   roles: ["jungle"],
   damageProfile: ["AD", "AP"],
+  attackType: "melee",
 
   offers: [
     { type: "pick", strength: 4 },

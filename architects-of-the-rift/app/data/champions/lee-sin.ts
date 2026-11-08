@@ -6,6 +6,7 @@ export const leeSin = createChampion({
   image: "/champions/lee-sin.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "leblanc", score: 5 },

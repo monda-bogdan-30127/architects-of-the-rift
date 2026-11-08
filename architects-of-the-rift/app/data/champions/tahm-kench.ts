@@ -6,6 +6,7 @@ export const tahmKench = createChampion({
   image: "/champions/tahm-kench.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "senna", score: 5 },

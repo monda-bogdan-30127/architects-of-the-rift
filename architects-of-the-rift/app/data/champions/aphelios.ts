@@ -6,6 +6,7 @@ export const aphelios = createChampion({
   image: "/champions/aphelios.png",
   roles: ["adc"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "thresh", score: 4 },

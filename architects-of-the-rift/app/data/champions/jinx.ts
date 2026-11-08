@@ -6,6 +6,7 @@ export const jinx = createChampion({
   image: "/champions/jinx.png",
   roles: ["adc"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "lulu", score: 5 },

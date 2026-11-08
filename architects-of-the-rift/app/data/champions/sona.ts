@@ -6,6 +6,7 @@ export const sona = createChampion({
   image: "/champions/sona.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   offers: [
     { type: "scaling", strength: 4 },

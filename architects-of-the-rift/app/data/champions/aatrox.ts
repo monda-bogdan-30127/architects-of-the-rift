@@ -6,6 +6,7 @@ export const aatrox = createChampion({
   image: "/champions/aatrox.png",
   roles: ["jungle", "top"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "galio", score: 5 },

@@ -6,6 +6,7 @@ export const gragas = createChampion({
   image: "/champions/gragas.png",
   roles: ["top"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "yasuo", score: 5 },

@@ -6,6 +6,7 @@ export const corki = createChampion({
   image: "/champions/corki.png",
   roles: ["adc"],
   damageProfile: ["AD", "TRUE"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "nami", score: 5 },

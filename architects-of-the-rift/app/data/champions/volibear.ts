@@ -6,6 +6,7 @@ export const volibear = createChampion({
   image: "/champions/volibear.png",
   roles: ["jungle", "top"],
   damageProfile: ["AD", "AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "orianna", score: 5 },

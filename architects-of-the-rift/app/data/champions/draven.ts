@@ -6,6 +6,7 @@ export const draven = createChampion({
   image: "/champions/draven.png",
   roles: ["adc"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "nautilus", score: 5 },

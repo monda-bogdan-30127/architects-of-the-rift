@@ -6,6 +6,7 @@ export const garen = createChampion({
   image: "/champions/garen.png",
   roles: ["top"],
   damageProfile: ["AD", "TRUE"],
+  attackType: "melee",
 
   offers: [
     { type: "sideLanePressure", strength: 4 },

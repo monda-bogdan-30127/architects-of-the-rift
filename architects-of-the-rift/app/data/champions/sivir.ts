@@ -6,6 +6,7 @@ export const sivir = createChampion({
   image: "/champions/sivir.png",
   roles: ["adc"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "xin-zhao", score: 4 },

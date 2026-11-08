@@ -6,6 +6,7 @@ export const vi = createChampion({
   image: "/champions/vi.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "ahri", score: 4 },

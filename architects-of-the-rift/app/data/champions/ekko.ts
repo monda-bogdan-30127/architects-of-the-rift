@@ -6,6 +6,7 @@ export const ekko = createChampion({
   image: "/champions/ekko.png",
   roles: ["mid", "jungle"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   offers: [
     { type: "pick", strength: 4 },

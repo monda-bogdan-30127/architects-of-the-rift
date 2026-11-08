@@ -6,6 +6,7 @@ export const anivia = createChampion({
   image: "/champions/anivia.png",
   roles: ["mid", "support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "poppy", score: 4 },

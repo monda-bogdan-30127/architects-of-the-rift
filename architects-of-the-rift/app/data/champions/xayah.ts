@@ -6,6 +6,7 @@ export const xayah = createChampion({
   image: "/champions/xayah.png",
   roles: ["adc"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "nautilus", score: 4 },

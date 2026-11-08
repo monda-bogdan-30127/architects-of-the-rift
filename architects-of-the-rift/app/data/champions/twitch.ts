@@ -6,6 +6,7 @@ export const twitch = createChampion({
   image: "/champions/twitch.png",
   roles: ["adc"],
   damageProfile: ["AD", "AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "janna", score: 5 },

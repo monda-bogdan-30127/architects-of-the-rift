@@ -6,6 +6,7 @@ export const brand = createChampion({
   image: "/champions/brand.png",
   roles: ["jungle"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   offers: [
     { type: "sustainedDamage", strength: 5 },

@@ -6,6 +6,7 @@ export const twistedFate = createChampion({
   image: "/champions/twisted-fate.png",
   roles: ["mid", "top"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "camille", score: 5 },

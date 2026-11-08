@@ -6,6 +6,7 @@ export const viktor = createChampion({
   image: "/champions/viktor.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "jarvan-iv", score: 4 },

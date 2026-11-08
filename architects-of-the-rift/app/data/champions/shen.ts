@@ -6,6 +6,7 @@ export const shen = createChampion({
   image: "/champions/shen.png",
   roles: ["support", "top"],
   damageProfile: ["AD", "AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "nocturne", score: 5 },

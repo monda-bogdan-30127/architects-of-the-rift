@@ -142,6 +142,8 @@ export function getDuoPickBonus(
   ctx: MustWithTeamContext,
   state: BotDuoState,
   bans: readonly string[],
+  /** Pick-urile inamicului: dacă el a luat partenerul, candidatul e deny, nu ancoră orfană. */
+  enemyPicks: readonly string[] = [],
 ): DuoPickResult {
   const none: DuoPickResult = { bonus: 0, tag: null, line: null };
   if (candidateRole !== "adc" && candidateRole !== "support") return none;
@@ -155,7 +157,9 @@ export function getDuoPickBonus(
   }
   // Ancoră orfană: are mustWith pe rolul bot, dar niciun partener eligibil — înaintea
   // „alt duo valid”: Xayah fără Rakan nu e un plan, chiar dacă merge cu Nautilus.
-  if (getMustWith(candidate.id, candidateRole).length) {
+  // Excepție: partenerul a fost luat chiar de inamic (ex. ei au Xayah) → Rakan rămâne deny (§2.4 / 5.5).
+  const partnerTakenByEnemy = getMustWith(candidate.id, candidateRole).some((id) => enemyPicks.includes(id));
+  if (getMustWith(candidate.id, candidateRole).length && !partnerTakenByEnemy) {
     const partners = getEligiblePartners(candidate.id, candidateRole, {
       ...ctx,
       ownPicks: [...ctx.ownPicks, candidate.id],

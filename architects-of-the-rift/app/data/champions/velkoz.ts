@@ -6,6 +6,7 @@ export const velkoz = createChampion({
   image: "/champions/vel'koz.png",
   roles: ["mid", "support"],
   damageProfile: ["AP", "TRUE"],
+  attackType: "ranged",
 
   offers: [
     { type: "poke", strength: 5 },

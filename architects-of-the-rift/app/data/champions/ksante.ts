@@ -6,6 +6,7 @@ export const ksante = createChampion({
   image: "/champions/k'sante.png",
   roles: ["top", "mid"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "milio", score: 4 },

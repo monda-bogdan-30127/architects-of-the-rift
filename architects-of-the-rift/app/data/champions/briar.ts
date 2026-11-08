@@ -6,6 +6,7 @@ export const briar = createChampion({
   image: "/champions/briar.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   offers: [
     { type: "dive", strength: 4 },

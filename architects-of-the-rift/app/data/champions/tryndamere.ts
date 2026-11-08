@@ -6,6 +6,7 @@ export const tryndamere = createChampion({
   image: "/champions/tryndamere.png",
   roles: ["top"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   offers: [
     { type: "splitpush", strength: 5 },

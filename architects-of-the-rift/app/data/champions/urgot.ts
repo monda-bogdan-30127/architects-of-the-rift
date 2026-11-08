@@ -6,6 +6,7 @@ export const urgot = createChampion({
   image: "/champions/urgot.png",
   roles: ["top"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "skarner", score: 5 },

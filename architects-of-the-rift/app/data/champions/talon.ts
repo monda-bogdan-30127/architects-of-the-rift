@@ -6,6 +6,7 @@ export const talon = createChampion({
   image: "/champions/talon.png",
   roles: ["mid", "jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   offers: [
     { type: "roamPressure", strength: 5 },

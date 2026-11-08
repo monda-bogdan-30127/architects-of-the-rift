@@ -6,6 +6,7 @@ export const vex = createChampion({
   image: "/champions/vex.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "jarvan-iv", score: 5 },

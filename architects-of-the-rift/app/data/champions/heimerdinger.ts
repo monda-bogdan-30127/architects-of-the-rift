@@ -6,6 +6,7 @@ export const heimerdinger = createChampion({
   image: "/champions/heimerdinger.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "ezreal", score: 4 },

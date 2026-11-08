@@ -6,6 +6,7 @@ export const lissandra = createChampion({
   image: "/champions/lissandra.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "jarvan-iv", score: 5 },

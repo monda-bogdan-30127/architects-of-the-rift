@@ -6,6 +6,7 @@ export const kennen = createChampion({
   image: "/champions/kennen.png",
   roles: ["top"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "amumu", score: 5 },

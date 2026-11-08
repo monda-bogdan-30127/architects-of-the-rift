@@ -6,6 +6,7 @@ export const swain = createChampion({
   image: "/champions/swain.png",
   roles: ["mid", "top"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "amumu", score: 5 },

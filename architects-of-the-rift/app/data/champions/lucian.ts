@@ -6,6 +6,7 @@ export const lucian = createChampion({
   image: "/champions/lucian.png",
   roles: ["adc"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "nami", score: 5 },

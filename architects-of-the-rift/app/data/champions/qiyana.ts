@@ -6,6 +6,7 @@ export const qiyana = createChampion({
   image: "/champions/qiyana.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "twisted-fate", score: 5 },

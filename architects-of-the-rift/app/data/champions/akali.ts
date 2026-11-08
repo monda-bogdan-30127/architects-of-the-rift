@@ -6,6 +6,7 @@ export const akali = createChampion({
   image: "/champions/akali.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "jarvan-iv", score: 4 },

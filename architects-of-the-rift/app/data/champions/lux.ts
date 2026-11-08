@@ -6,6 +6,7 @@ export const lux = createChampion({
   image: "/champions/lux.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "caitlyn", score: 5 },

@@ -6,6 +6,7 @@ export const reksai = createChampion({
   image: "/champions/rek'sai.png",
   roles: ["top"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "taliyah", score: 5 },

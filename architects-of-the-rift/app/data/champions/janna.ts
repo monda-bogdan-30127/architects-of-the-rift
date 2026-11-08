@@ -6,6 +6,7 @@ export const janna = createChampion({
   image: "/champions/janna.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "corki", score: 5 },     // extrem de mare winrate (probabil sample mic dar clar best)

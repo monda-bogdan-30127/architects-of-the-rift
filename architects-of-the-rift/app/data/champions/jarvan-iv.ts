@@ -6,6 +6,7 @@ export const jarvanIv = createChampion({
   image: "/champions/jarvan-iv.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "orianna", score: 4 },

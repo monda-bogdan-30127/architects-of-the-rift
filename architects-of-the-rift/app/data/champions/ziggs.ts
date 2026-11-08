@@ -6,6 +6,7 @@ export const ziggs = createChampion({
   image: "/champions/ziggs.png",
   roles: ["adc", "mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "jarvan-iv", score: 5 },

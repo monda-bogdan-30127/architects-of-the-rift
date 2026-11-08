@@ -6,6 +6,7 @@ export const alistar = createChampion({
   image: "/champions/alistar.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "kaisa", score: 4 },

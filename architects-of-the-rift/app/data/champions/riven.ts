@@ -6,6 +6,7 @@ export const riven = createChampion({
   image: "/champions/riven.png",
   roles: ["top"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "nidalee", score: 5 },

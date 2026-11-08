@@ -6,6 +6,7 @@ export const masterYi = createChampion({
   image: "/champions/master-yi.png",
   roles: ["jungle"],
   damageProfile: ["AD", "TRUE"],
+  attackType: "melee",
 
   offers: [
     { type: "sustainedDamage", strength: 5 },

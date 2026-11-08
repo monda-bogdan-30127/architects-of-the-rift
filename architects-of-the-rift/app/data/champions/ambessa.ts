@@ -6,6 +6,7 @@ export const ambessa = createChampion({
   image: "/champions/ambessa.png",
   roles: ["top", "jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "orianna", score: 4 },

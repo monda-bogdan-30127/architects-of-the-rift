@@ -6,6 +6,7 @@ export const chogath = createChampion({
   image: "/champions/cho'gath.png",
   roles: ["top", "jungle", "mid"],
   damageProfile: ["AP", "TRUE"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "janna", score: 4 },

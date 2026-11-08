@@ -6,6 +6,7 @@ export const locke = createChampion({
   image: "/champions/locke.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "jarvan-iv", score: 5 },

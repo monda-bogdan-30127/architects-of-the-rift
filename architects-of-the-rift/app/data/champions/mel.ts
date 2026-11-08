@@ -6,6 +6,7 @@ export const mel = createChampion({
   image: "/champions/mel.png",
   roles: ["mid", "adc"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "ornn", score: 4 },

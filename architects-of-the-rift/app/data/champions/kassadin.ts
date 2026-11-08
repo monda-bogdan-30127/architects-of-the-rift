@@ -6,6 +6,7 @@ export const kassadin = createChampion({
   image: "/champions/kassadin.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "sejuani", score: 5 },

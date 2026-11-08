@@ -6,6 +6,7 @@ export const amumu = createChampion({
   image: "/champions/amumu.png",
   roles: ["jungle"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   offers: [
     { type: "engage", strength: 5 },

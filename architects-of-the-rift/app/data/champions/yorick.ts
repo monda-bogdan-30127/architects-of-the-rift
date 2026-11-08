@@ -6,6 +6,7 @@ export const yorick = createChampion({
   image: "/champions/yorick.png",
   roles: ["top"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "maokai", score: 5 },

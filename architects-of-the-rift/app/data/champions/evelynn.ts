@@ -6,6 +6,7 @@ export const evelynn = createChampion({
   image: "/champions/evelynn.png",
   roles: ["jungle"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   offers: [
     { type: "pick", strength: 5 },

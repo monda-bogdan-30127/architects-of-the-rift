@@ -6,6 +6,7 @@ export const fizz = createChampion({
   image: "/champions/fizz.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   offers: [
     { type: "burstDamage", strength: 5 },

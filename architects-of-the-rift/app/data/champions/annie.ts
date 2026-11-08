@@ -6,6 +6,7 @@ export const annie = createChampion({
   image: "/champions/annie.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "nocturne", score: 4 },

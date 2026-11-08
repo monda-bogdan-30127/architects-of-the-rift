@@ -6,6 +6,7 @@ export const trundle = createChampion({
   image: "/champions/trundle.png",
   roles: ["jungle", "top"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "anivia", score: 5 },

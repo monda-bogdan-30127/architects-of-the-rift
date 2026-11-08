@@ -6,6 +6,7 @@ export const sejuani = createChampion({
   image: "/champions/sejuani.png",
   roles: ["jungle"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "yasuo", score: 5 },

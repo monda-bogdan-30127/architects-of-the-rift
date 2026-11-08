@@ -6,6 +6,7 @@ export const azir = createChampion({
   image: "/champions/azir.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "maokai", score: 3 },

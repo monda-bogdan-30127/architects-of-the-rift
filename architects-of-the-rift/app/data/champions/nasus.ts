@@ -6,6 +6,7 @@ export const nasus = createChampion({
   image: "/champions/nasus.png",
   roles: ["top", "jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   offers: [
     { type: "sideLanePressure", strength: 4 },

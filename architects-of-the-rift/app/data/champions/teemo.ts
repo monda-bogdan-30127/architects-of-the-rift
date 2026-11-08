@@ -6,6 +6,7 @@ export const teemo = createChampion({
   image: "/champions/teemo.png",
   roles: ["top"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   offers: [
     { type: "zoneControl", strength: 4 },

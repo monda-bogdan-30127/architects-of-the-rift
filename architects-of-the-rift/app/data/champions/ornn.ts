@@ -6,6 +6,7 @@ export const ornn = createChampion({
   image: "/champions/ornn.png",
   roles: ["top"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "pantheon", score: 4 },

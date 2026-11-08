@@ -6,6 +6,7 @@ export const zyra = createChampion({
   image: "/champions/zyra.png",
   roles: ["support", "jungle"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   offers: [
     { type: "zoneControl", strength: 5 },

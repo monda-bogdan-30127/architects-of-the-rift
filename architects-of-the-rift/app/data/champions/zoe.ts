@@ -6,6 +6,7 @@ export const zoe = createChampion({
   image: "/champions/zoe.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "nidalee", score: 5 },

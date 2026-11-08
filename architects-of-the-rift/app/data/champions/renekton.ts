@@ -6,6 +6,7 @@ export const renekton = createChampion({
   image: "/champions/renekton.png",
   roles: ["top"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "nidalee", score: 4 },

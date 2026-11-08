@@ -6,6 +6,7 @@ export const nilah = createChampion({
   image: "/champions/nilah.png",
   roles: ["adc"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "senna", score: 5 },

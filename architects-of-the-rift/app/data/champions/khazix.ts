@@ -6,6 +6,7 @@ export const khazix = createChampion({
   image: "/champions/kha'zix.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "pyke", score: 5 },

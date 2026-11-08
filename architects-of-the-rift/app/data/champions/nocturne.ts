@@ -6,6 +6,7 @@ export const nocturne = createChampion({
   image: "/champions/nocturne.png",
   roles: ["jungle"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "orianna", score: 5 },

@@ -6,6 +6,7 @@ export const kogmaw = createChampion({
   image: "/champions/kog'maw.png",
   roles: ["adc", "mid"],
   damageProfile: ["AD", "AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "nami", score: 5 },

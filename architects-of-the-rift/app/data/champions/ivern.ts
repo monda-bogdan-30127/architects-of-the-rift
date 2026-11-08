@@ -6,6 +6,7 @@ export const ivern = createChampion({
   image: "/champions/ivern.png",
   roles: ["jungle"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "yone", score: 5 },

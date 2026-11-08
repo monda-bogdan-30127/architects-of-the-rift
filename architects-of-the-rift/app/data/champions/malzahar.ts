@@ -6,6 +6,7 @@ export const malzahar = createChampion({
   image: "/champions/malzahar.png",
   roles: ["mid"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "gangplank", score: 5 },

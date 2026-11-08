@@ -6,6 +6,7 @@ export const rammus = createChampion({
   image: "/champions/rammus.png",
   roles: ["jungle"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   offers: [
     { type: "frontline", strength: 5 },

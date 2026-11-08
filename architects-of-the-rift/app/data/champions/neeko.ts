@@ -6,6 +6,7 @@ export const neeko = createChampion({
   image: "/champions/neeko.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "caitlyn", score: 3 },

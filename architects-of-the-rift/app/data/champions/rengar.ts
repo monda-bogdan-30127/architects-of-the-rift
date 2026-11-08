@@ -6,6 +6,7 @@ export const rengar = createChampion({
   image: "/champions/rengar.png",
   roles: ["jungle", "top"],
   damageProfile: ["AD"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "ivern", score: 5 },

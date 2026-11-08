@@ -6,6 +6,7 @@ export const maokai = createChampion({
   image: "/champions/maokai.png",
   roles: ["jungle", "support"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "miss-fortune", score: 5 },

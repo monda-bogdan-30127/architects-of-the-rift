@@ -6,6 +6,7 @@ export const gnar = createChampion({
   image: "/champions/gnar.png",
   roles: ["top"],
   damageProfile: ["AD"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "lee-sin", score: 3 },

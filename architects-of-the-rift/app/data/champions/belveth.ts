@@ -6,6 +6,7 @@ export const belveth = createChampion({
   image: "/champions/bel'veth.png",
   roles: ["jungle"],
   damageProfile: ["AD", "TRUE"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "rumble", score: 5 },

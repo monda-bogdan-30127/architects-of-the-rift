@@ -6,6 +6,7 @@ export const diana = createChampion({
   image: "/champions/diana.png",
   roles: ["jungle", "mid"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "yasuo", score: 5 },

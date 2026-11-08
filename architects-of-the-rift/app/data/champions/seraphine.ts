@@ -6,6 +6,7 @@ export const seraphine = createChampion({
   image: "/champions/seraphine.png",
   roles: ["support", "adc"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "ashe", score: 5 },

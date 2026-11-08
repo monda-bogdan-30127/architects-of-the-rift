@@ -428,10 +428,10 @@ for (const support of [SUP_RAKAN_OK, SUP_MULTI]) {
   const banDeny = banBreakdown.reasonTags?.includes("mustwith-deny") ?? false;
   check(
     "9. Inamicul are Xayah → deny pe Rakan (ban +2.0 / pick +1.5)",
-    // DRAFT_THINKING §2.2: pentru albaștri Rakan e și ancoră orfană (Xayah e luată) → −2 peste deny-ul de +1.5.
-    pickDeny && banDeny && banBreakdown.mustWithBonus === 2 &&
-      (pickBreakdown.mustWithBonus ?? 0) - (pickBreakdown.reasonTags?.includes("orphan-anchor") ? -2 : 0) >= 1.5,
-    `pick: tag=${pickDeny}, bonus mustWith ${pickBreakdown.mustWithBonus}${pickBreakdown.reasonTags?.includes("orphan-anchor") ? " (deny +1.5, orfan −2)" : ""}; ban (${getCurrentStep(banGame)?.label}): tag=${banDeny}, bonus ${banBreakdown.mustWithBonus}`,
+    // Xayah e luată de inamic → Rakan e deny, nu ancoră orfană (fără −2).
+    pickDeny && banDeny && banBreakdown.mustWithBonus === 2 && (pickBreakdown.mustWithBonus ?? 0) >= 1.5 &&
+      !pickBreakdown.reasonTags?.includes("orphan-anchor"),
+    `pick: tag=${pickDeny}, bonus mustWith ${pickBreakdown.mustWithBonus}, orfan=${pickBreakdown.reasonTags?.includes("orphan-anchor") ?? false}; ban (${getCurrentStep(banGame)?.label}): tag=${banDeny}, bonus ${banBreakdown.mustWithBonus}`,
   );
 }
 

@@ -6,6 +6,7 @@ export const karthus = createChampion({
   image: "/champions/karthus.png",
   roles: ["jungle"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   offers: [
     { type: "scaling", strength: 5 },

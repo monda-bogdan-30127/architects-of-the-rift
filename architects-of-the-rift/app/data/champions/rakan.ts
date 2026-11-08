@@ -6,6 +6,7 @@ export const rakan = createChampion({
   image: "/champions/rakan.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "ranged",
 
   synergyWith: [
     { championId: "kaisa", score: 4 },

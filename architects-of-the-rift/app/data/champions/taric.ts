@@ -6,6 +6,7 @@ export const taric = createChampion({
   image: "/champions/taric.png",
   roles: ["support"],
   damageProfile: ["AP"],
+  attackType: "melee",
 
   synergyWith: [
     { championId: "lucian", score: 5 },
