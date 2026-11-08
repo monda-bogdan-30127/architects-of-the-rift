@@ -272,6 +272,17 @@ export default function DraftPage() {
     series && resultsGameNumber !== null ? series.games.find((g) => g.number === resultsGameNumber) ?? null : null;
   const resultsSimulation: DraftSimulationResult | null =
     resultsGame?.completed && resultsGame.simulation ? resultsGame.simulation : null;
+  // DRAFT_THINKING §8: raportul pe piloni al echipei userului din jocul afișat (side-urile se schimbă între jocuri).
+  const resultsUserSide: Side | null = resultsSimulation && draftSave?.controlledTeamSlug
+    ? resultsSimulation.blueTeamSlug === draftSave.controlledTeamSlug
+      ? "blue"
+      : resultsSimulation.redTeamSlug === draftSave.controlledTeamSlug
+        ? "red"
+        : null
+    : null;
+  const resultsPillarReport = resultsGame && resultsUserSide
+    ? (resultsUserSide === "blue" ? resultsGame.pillarReportBlue : resultsGame.pillarReportRed) ?? null
+    : null;
 
   const filteredChampions = useMemo(() =>
     [...champions]
@@ -656,6 +667,7 @@ export default function DraftPage() {
         simulation={resultsSimulation}
         onPrimaryAction={() => { setResultsGameNumber(null); if (resultsSeriesFinished) router.push("/gameplay-dashboard"); }}
         primaryLabel={resultsSeriesFinished ? "BACK TO DASHBOARD" : "GO NEXT GAME"}
+        pillarReport={resultsPillarReport}
         isSeriesComplete={resultsSeriesFinished}
         seriesMvpName={
           resultsSeriesFinished

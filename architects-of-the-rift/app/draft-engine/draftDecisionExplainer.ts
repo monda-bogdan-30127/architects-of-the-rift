@@ -1,5 +1,5 @@
 import { championsById } from "@/app/data/champions";
-import type { DraftCandidateBreakdown, TeamDraftEvaluation } from "./draftTypes";
+import type { DraftCandidateBreakdown, DraftPillarReport, TeamDraftEvaluation } from "./draftTypes";
 import { describeMatchup } from "./matchupGrades";
 
 function championName(championId: string) {
@@ -128,16 +128,36 @@ export function explainDraftCandidate(breakdown: DraftCandidateBreakdown): strin
     ["threat value", breakdown.threatValue ?? 0],
   ]);
 
+  // DRAFT_THINKING §9: liniile concrete ale tag-urilor noi (mastery, duo, plan, split, tunnel vision,
+  // linii pierdute, sezon) stau deja în `explanation`, scrise de draftAI — le refolosim, fără duplicate.
+  const lines = [...explainMustWith(breakdown), ...explainBadSynergy(breakdown)];
+  for (const line of breakdown.explanation ?? []) if (!lines.includes(line)) lines.push(line);
   return [
-    ...explainMustWith(breakdown),
-    ...explainBadSynergy(breakdown),
+    ...lines,
     ...explainMatchups(breakdown),
     ...reasons.map(({ label, value }) => `${label}: ${value >= 0 ? "+" : ""}${value.toFixed(1)}`),
   ];
 }
 
-export function summarizeTeamDraftEvaluation(evaluation: TeamDraftEvaluation): string[] {
+/** Etichetele pilonilor din raport (§8), în ordinea din UI. */
+export const PILLAR_LABELS: { key: keyof DraftPillarReport; label: string }[] = [
+  { key: "priority", label: "Priority picks" },
+  { key: "cohesion", label: "Coeziune" },
+  { key: "matchups", label: "Matchup-uri" },
+  { key: "mastery", label: "Mastery" },
+  { key: "seasonPrep", label: "Pregătire de sezon" },
+];
+
+export function summarizeTeamDraftEvaluation(evaluation: TeamDraftEvaluation, report?: DraftPillarReport | null): string[] {
   const notes: string[] = [];
+  // §8: cu raportul pe piloni, notele vin din el (nu se duplică).
+  if (report) {
+    for (const { key, label } of PILLAR_LABELS) {
+      notes.push(`${label} ${report[key].grade}${report[key].notes[0] ? `: ${report[key].notes[0]}` : ""}`);
+    }
+    notes.push(`power: ${evaluation.draftPower.toFixed(1)}`);
+    return notes;
+  }
   notes.push(`identity: ${evaluation.compIdentity}`);
   notes.push(`power: ${evaluation.draftPower.toFixed(1)}`);
   if (evaluation.simulationRisks?.length) {

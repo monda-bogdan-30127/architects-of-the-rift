@@ -1,10 +1,11 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import { teams } from "@/app/data/teams";
-import type { DraftSimulationResult } from "@/app/draft-engine/draftTypes";
+import type { DraftPillarReport, DraftSimulationResult, PillarGrade } from "@/app/draft-engine/draftTypes";
+import { PILLAR_LABELS } from "@/app/draft-engine/draftDecisionExplainer";
 import PlayerResultRow from "./PlayerResultRow";
 
 const teamsBySlug = new Map(teams.map((team) => [team.slug, team]));
@@ -31,6 +32,16 @@ type Props = {
    * 3. Tiebreak: highest average score across the series
    */
   seriesMvpName?: string;
+  /** DRAFT_THINKING §8 — raportul pe piloni al echipei userului (după lock-in). */
+  pillarReport?: DraftPillarReport | null;
+  pillarTeamName?: string;
+};
+
+const PILLAR_GRADE_COLORS: Record<PillarGrade, string> = {
+  A: "var(--success)",
+  B: "var(--primary)",
+  C: "var(--warning)",
+  D: "var(--danger)",
 };
 
 export default function MatchResultsDialog({
@@ -40,7 +51,10 @@ export default function MatchResultsDialog({
   primaryLabel,
   isSeriesComplete = false,
   seriesMvpName,
+  pillarReport,
+  pillarTeamName,
 }: Props) {
+  const [showPillarDetails, setShowPillarDetails] = useState(false);
   useEffect(() => {
     if (!open) return;
 
@@ -182,6 +196,48 @@ export default function MatchResultsDialog({
             </div>
           </section>
         </div>
+
+        {/* ─── Draft pe piloni (§8) ────────────────────────────────── */}
+        {pillarReport && (
+          <section className="flex flex-col gap-[10px] self-stretch">
+            <div className="flex items-center justify-between self-stretch">
+              <p className="body-small text-[var(--text-secondary)]">
+                Draft{pillarTeamName ? ` — ${pillarTeamName}` : ""}
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowPillarDetails((value) => !value)}
+                className="body-small text-[var(--primary)]"
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+              >
+                {showPillarDetails ? "ascunde detaliile" : "vezi detalii"}
+              </button>
+            </div>
+            <div className="h-px self-stretch bg-[var(--border-default)]" />
+            <div className="flex flex-col gap-[8px] self-stretch">
+              {PILLAR_LABELS.map(({ key, label }) => {
+                const pillar = pillarReport[key];
+                const notes = showPillarDetails ? pillar.notes : pillar.notes.slice(0, 1);
+                return (
+                  <div key={key} className="flex items-start gap-[12px] self-stretch">
+                    <span className="body-small w-[150px] shrink-0 text-[var(--text-primary)]">{label}</span>
+                    <span
+                      className="body-small w-[24px] shrink-0 text-center font-bold"
+                      style={{ color: PILLAR_GRADE_COLORS[pillar.grade] }}
+                    >
+                      {pillar.grade}
+                    </span>
+                    <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
+                      {notes.map((note) => (
+                        <span key={note} className="body-small text-[var(--text-secondary)]">{note}</span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* ─── Action ─────────────────────────────────────────────── */}
         <div className="flex justify-center self-stretch">

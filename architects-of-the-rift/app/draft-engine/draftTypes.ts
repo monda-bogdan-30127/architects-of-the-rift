@@ -23,6 +23,22 @@ export type DraftStep = {
   action: DraftAction;
 };
 
+/** DRAFT_THINKING §8 — raportul de draft pe piloni. */
+export type PillarGrade = "A" | "B" | "C" | "D";
+export type DraftPillar = { grade: PillarGrade; notes: string[] };
+export type DraftPillarReport = {
+  /** Priority pick-uri luate / lăsate. */
+  priority: DraftPillar;
+  /** Identitate, split, win condition. */
+  cohesion: DraftPillar;
+  /** Bilanțul liniilor + comp counter + tunnel vision. */
+  matchups: DraftPillar;
+  /** Gradele pe jucători, F / D, reasignări. */
+  mastery: DraftPillar;
+  /** Răspunsul la favoriții de sezon ai adversarului. */
+  seasonPrep: DraftPillar;
+};
+
 export type DraftGameState = {
   number: number;
   phaseIndex: number;
@@ -40,6 +56,9 @@ export type DraftGameState = {
    */
   pickRolesBlue: Partial<Record<string, Role>>;
   pickRolesRed: Partial<Record<string, Role>>;
+  /** §8 — calculat la încheierea jocului (opțional: salvările vechi nu-l au). */
+  pillarReportBlue?: DraftPillarReport;
+  pillarReportRed?: DraftPillarReport;
   evaluationBlue?: TeamDraftEvaluation;
   evaluationRed?: TeamDraftEvaluation;
   simulation?: DraftSimulationResult;

@@ -20,6 +20,7 @@ import {
   REQUIRED_PICKS_PER_SIDE,
 } from "./draftTypes";
 import { chooseAiAction } from "./draftAI";
+import { buildDraftPillarReport } from "./draftPillarReport";
 import { evaluateTeamDraft } from "./draftEvaluator";
 import { assignmentsCoverPicks, mapPicksToRoleOrder, resolveRoleAssignments } from "./draftRoleResolver";
 import { simulateFullMatch } from "./matchSimulator";
@@ -412,6 +413,13 @@ export function completeCurrentGame(
   if (!currentGame) return series;
 
   const resolvedGame = resolveFinishedDraftAssignments(currentGame, series, save);
+  // DRAFT_THINKING §8: raportul pe piloni, înainte de simulare (memoria sezonului nu include încă jocul curent).
+  const pillarRosters = {
+    blue: getTeamRosterFromSources({ teamSlug: series.blueTeamSlug, save }),
+    red: getTeamRosterFromSources({ teamSlug: series.redTeamSlug, save }),
+  };
+  const pillarReportBlue = buildDraftPillarReport(resolvedGame, "blue", series, save, pillarRosters);
+  const pillarReportRed = buildDraftPillarReport(resolvedGame, "red", series, save, pillarRosters);
   const simulation = simulateDraftResult(resolvedGame, series, save);
   const { evaluationBlue, evaluationRed } = evaluateDraftGame(resolvedGame, series, save);
   const completedGame: DraftGameState = {
@@ -420,6 +428,8 @@ export function completeCurrentGame(
     winnerSide: simulation.winnerSide,
     evaluationBlue,
     evaluationRed,
+    pillarReportBlue,
+    pillarReportRed,
     simulation,
   };
 

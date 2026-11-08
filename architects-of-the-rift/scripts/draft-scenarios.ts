@@ -13,6 +13,7 @@ import type { Role } from "@/app/types/champion";
 import {
   commitActionToGame,
   createInitialSeries,
+  resolveFinishedDraftAssignments,
   getAiChoice,
   getCurrentStep,
 } from "@/app/draft-engine/draftEngine";
@@ -24,6 +25,7 @@ import { getCandidateIdentityFit } from "@/app/draft-engine/compIdentity";
 import { setTeamSeasonStoreOverride, type TeamSeasonStore } from "@/app/draft-engine/teamSeasonStorage";
 import { getSeasonChampionThreat, getSeasonCounters } from "@/app/draft-engine/seasonThreatSystem";
 import { getSeriesAwareBanBonus } from "@/app/draft-engine/draftSeriesMemory";
+import { buildDraftPillarReport } from "@/app/draft-engine/draftPillarReport";
 import { getMetaPriorityScore } from "@/app/draft-engine/draftEvaluator";
 import type {
   ActiveDraftSeries,
@@ -891,6 +893,33 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     "25. Series memory: doar pick-urile câștigătorului primesc bonus de ban",
     winnerPick > 0 && loserPick === 0,
     `bonus ban Ahri (câștigător) ${winnerPick}, Syndra (a pierdut) ${loserPick}`,
+  );
+}
+
+// ─── 26. Raportul de draft pe piloni (DRAFT_THINKING §8) ──────────────────────
+{
+  const series = newSeries("s26", BLUE, RED);
+  const save = makeSave();
+  const { game } = runDraft({ series, save });
+  const resolved = resolveFinishedDraftAssignments(game, series, save);
+  const rosters = { blue: save.updatedTeamRosters[BLUE] ?? {}, red: save.updatedTeamRosters[RED] ?? {} };
+  const blue = buildDraftPillarReport(resolved, "blue", series, save, rosters);
+  const pillars = ["priority", "cohesion", "matchups", "mastery", "seasonPrep"] as const;
+  const complete = pillars.every((key) => ["A", "B", "C", "D"].includes(blue[key].grade) && blue[key].notes.length > 0);
+
+  // Același draft, dar topul albaștrilor pe un campion F → mastery D cu nota „X pe Y (F)”.
+  const topPlayer = playersById.get(rosters.blue.top!)!;
+  const fTop = champions.find((c) => c.roles.includes("top") && getChampionGrade(topPlayer, c.id) === "F" && !resolved.picksRed.includes(c.id))!;
+  const withF: DraftGameState = {
+    ...resolved,
+    picksBlue: resolved.picksBlue.map((id) => (id === resolved.assignmentsBlue.top ? fTop.id : id)),
+    assignmentsBlue: { ...resolved.assignmentsBlue, top: fTop.id },
+  };
+  const blueF = buildDraftPillarReport(withF, "blue", series, save, rosters);
+  check(
+    "26. Raport pe piloni: 5 piloni cu note; F pe top → mastery D",
+    complete && blueF.mastery.grade === "D" && blueF.mastery.notes.some((note) => note.includes("(F)")),
+    pillars.map((key) => `${key} ${blue[key].grade}: ${blue[key].notes[0]}`).join(" | ") + ` || cu F: mastery ${blueF.mastery.grade} „${blueF.mastery.notes[0]}”`,
   );
 }
 
