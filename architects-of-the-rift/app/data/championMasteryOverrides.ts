@@ -1,11 +1,11 @@
 // Champion Mastery Overrides
 // ─────────────────────────────────────────────────────────────────────────────
 // GRADE SCALE:
-//   SS  Arguably #1 worldwide on this champion, with multi-tournament evidence.
+//   SS  Arguably #1 worldwide on this champion; requires OVR >= 85, except Baus-Sion.
 //       Extremely rare; NEVER assigned just from pick rate, a recent 100% win rate,
 //       or an iconic one-off. Comparisons use competitive history + 2026 form.
-//   S   Signature / internationally elite on this champion (not necessarily #1).
-//   A   Demonstrated pro-grade comfort on this champion.
+//   S   Signature / internationally elite; only allowed for OVR > 80.
+//   A   Demonstrated pro-grade comfort; capped by OVR according to rules below.
 //   B   Competent professional option; not a signature pick.
 //   C   Situational / insufficient 2026 evidence; NOT proof of poor mechanics.
 //   D   Outside the plausible pro pool; estimate, not proof of inability.
@@ -21,8 +21,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { ChampionMasteryOverrides } from "../types/championMastery";
+import type { Player, PlayerStats } from "../types/player";
+import { players } from "./players";
 
-export const championMasteryOverrides: ChampionMasteryOverrides = {
+/**
+ * Historical/editorial grades; the exported table below is capped against OVR.
+ * Keep this table focused on 2026 Summer champion comfort, NOT generic champion meta.
+ */
+const championMasterySourceOverrides: ChampionMasteryOverrides = {
 
     // ─────────────────────────────────────────────────────────────────────────
     // LCK
@@ -789,7 +795,7 @@ export const championMasteryOverrides: ChampionMasteryOverrides = {
         zac: "D",
     },
     chovy: {
-        ahri: "SS",
+        ahri: "A",
         galio: "S",
         taliyah: "A",
         yone: "A",
@@ -1850,7 +1856,7 @@ export const championMasteryOverrides: ChampionMasteryOverrides = {
         zac: "D",
     },
     baus: {
-        sion: "S",
+        sion: "SS",
         chogath: "A",
         gragas: "A",
         jax: "B",
@@ -7108,3 +7114,155 @@ export const championMasteryOverrides: ChampionMasteryOverrides = {
         zilean: "D",
     },
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OVR MASTERY BUDGET — the active exported table uses these rules.
+//
+//  OVR <= 59:   max 0 A, no S or SS
+//  OVR 60–64:   max 1 A, no S or SS
+//  OVR 65–69:   max 2 A, no S or SS
+//  OVR 70–74:   max 4 A, no S or SS
+//  OVR 75–80:   max 5 A, no S or SS (80 is NOT "over 80")
+//  OVR 81–84:   S allowed; SS forbidden except Baus / Sion
+//  OVR 85+:     S and SS eligible, but only if backed by source grades.
+//
+// "Max" is NOT a quota: never promote a B to A just to fill a slot.
+// Non-elite grades B/C/D are deliberately untouched.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type MasteryGrade = "SS" | "S" | "A" | "B" | "C" | "D";
+type PlayerMasteries = Record<string, MasteryGrade>;
+
+type OvrProfile = Pick<Player, "id" | "bestChampions" | "stats">;
+
+/**
+ * Match the six-stat weighted mean used by calculateRosterPoints in playerUtils,
+ * but keep the result on the 0–100 OVR scale rather than reducing it to 1–10.
+ * If the UI changes its OVR formula, update this function as well.
+ */
+export function calculateMasteryOvr(stats: PlayerStats): number {
+    const ovr = (
+        stats.mec * 1.2 +
+        stats.mac * 1.1 +
+        stats.tfg * 1.2 +
+        stats.clt * 1.0 +
+        stats.con * 1.1 +
+        stats.iq * 1.0
+    ) / 6.6;
+    return Math.max(0, Math.min(100, Math.round(ovr)));
+}
+
+export function masteryABudget(overall: number): number {
+    if (overall < 60) return 0;
+    if (overall < 65) return 1;
+    if (overall < 70) return 2;
+    if (overall < 75) return 4;
+    if (overall <= 80) return 5;
+    return Number.POSITIVE_INFINITY; // no A cap requested for 81+ OVR
+}
+
+/**
+ * Only downgrades: retains champion ordering and never fabricates A/S/SS.
+ * Priority when A slots are scarce:
+ *  1) a former SS/S demoted due to OVR;
+ *  2) existing A listed in player's bestChampions;
+ *  3) other existing A, in source order.
+ * A is downgraded to B if it falls outside the allowed quota.
+ * Unchanged B/C/D never become A, S or SS.
+ */
+export function capPlayerMasteriesByOvr(
+    playerId: string,
+    overall: number,
+    masteries: PlayerMasteries,
+    bestChampions: readonly string[] = [],
+): PlayerMasteries {
+    if (!Number.isFinite(overall)) {
+        throw new Error(`OVR invalid pentru jucatorul ${playerId}`);
+    }
+
+    const ovr = Math.round(overall);
+    const result: PlayerMasteries = { ...masteries };
+    const originalEntries = Object.entries(masteries);
+    const bestRank = new Map(bestChampions.map((champion, idx) => [champion, idx]));
+    const isBausSion = (champion: string) => playerId.toLowerCase() === "baus" && champion === "sion";
+
+    // Stage 1: enforce the S / SS gates, with exactly one named exception.
+    for (const [champion, original] of originalEntries) {
+        if (isBausSion(champion)) {
+            result[champion] = "SS";
+        } else if (original === "SS" && ovr < 85) {
+            result[champion] = ovr > 80 ? "S" : "A";
+        } else if (original === "S" && ovr <= 80) {
+            result[champion] = "A";
+        }
+    }
+
+    // Stage 2: apply the A budget without promoting anyone to fill the slots.
+    const budget = masteryABudget(ovr);
+    const eligible = originalEntries
+        .map(([champion, original], sourceIndex) => ({
+            champion,
+            original,
+            sourceIndex,
+            isBest: bestRank.has(champion),
+            bestIndex: bestRank.get(champion) ?? Number.POSITIVE_INFINITY,
+        }))
+        .filter((entry) => result[entry.champion] === "A")
+        .sort((a, b) => {
+            const tier = (grade: MasteryGrade) => grade === "SS" ? 3 : grade === "S" ? 2 : 1;
+            const tierDiff = tier(b.original) - tier(a.original);
+            if (tierDiff !== 0) return tierDiff;
+            if (a.isBest !== b.isBest) return a.isBest ? -1 : 1;
+            if (a.bestIndex !== b.bestIndex) return a.bestIndex - b.bestIndex;
+            return a.sourceIndex - b.sourceIndex;
+        });
+
+    eligible.slice(budget).forEach(({ champion }) => {
+        result[champion] = "B";
+    });
+    return result;
+}
+
+/** Apply the rules across a whole roster, using the current roster ratings. */
+export function buildOvrCappedMasteries(
+    roster: readonly OvrProfile[],
+    source: ChampionMasteryOverrides = championMasterySourceOverrides,
+): ChampionMasteryOverrides {
+    const playerById = new Map(roster.map((player) => [player.id.toLowerCase(), player]));
+    const output: Record<string, PlayerMasteries> = {};
+
+    for (const [playerId, raw] of Object.entries(source)) {
+        const player = playerById.get(playerId.toLowerCase());
+        if (!player) {
+            // Free agents or future custom players without a roster record:
+            // no invented OVR. Use getPlayerMasteriesForOvr once an OVR exists.
+            output[playerId] = { ...(raw as PlayerMasteries) };
+            if (playerId === "baus") output[playerId].sion = "SS";
+            continue;
+        }
+        output[playerId] = capPlayerMasteriesByOvr(
+            playerId,
+            calculateMasteryOvr(player.stats),
+            raw as PlayerMasteries,
+            player.bestChampions,
+        );
+    }
+    return output as ChampionMasteryOverrides;
+}
+
+/**
+ * Use when a career-mode player's OVR changes. The static export below reflects
+ * the base roster only; for upgraded/declining players pass the actual OVR here.
+ */
+export function getPlayerMasteriesForOvr(
+    playerId: string,
+    currentOverall: number,
+    bestChampions: readonly string[] = [],
+): PlayerMasteries {
+    const raw = championMasterySourceOverrides[playerId] as PlayerMasteries | undefined;
+    if (!raw) return {};
+    return capPlayerMasteriesByOvr(playerId, currentOverall, raw, bestChampions);
+}
+
+/** Backwards-compatible export consumed by the existing simulator. */
+export const championMasteryOverrides: ChampionMasteryOverrides = buildOvrCappedMasteries(players);
