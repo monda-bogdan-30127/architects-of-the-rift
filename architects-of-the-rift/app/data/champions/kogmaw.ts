@@ -15,6 +15,10 @@ export const kogmaw = createChampion({
     { championId: "tahm-kench", score: 3 },
   ],
 
+  badSynergyWith: [
+    { championId: "pyke", level: 5, note: "Pyke roamează, Kog'Maw rămâne singur în lane, fără peel" },
+  ],
+
   offers: [
     { type: "sustainedDamage", strength: 5 },
     { type: "scaling", strength: 5 },

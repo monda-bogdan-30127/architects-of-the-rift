@@ -18,6 +18,10 @@ export const vayne = createChampion({
     { championId: "karma", score: 3 },
   ],
 
+  badSynergyWith: [
+    { championId: "pyke", level: 4, note: "Pyke roamează, Vayne are nevoie de farm și protecție în lane" },
+  ],
+
   offers: [
     { type: "sustainedDamage", strength: 4 },
     { type: "scaling", strength: 4 },

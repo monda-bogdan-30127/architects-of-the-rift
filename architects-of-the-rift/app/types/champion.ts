@@ -36,6 +36,20 @@ export type ChampionRelation = {
   score?: number;
 };
 
+/**
+ * Cât de tare e anti-sinergia: 5 = se anulează reciproc, 4 = conflict major de plan,
+ * 3 = conflict clar, 2 = ușor incompatibil, 1 = mic minus. Vezi `draft-engine/badSynergy.ts`.
+ */
+export type BadSynergyLevel = 1 | 2 | 3 | 4 | 5;
+
+/** Anti-sinergie specifică perechii; simetrică, scrisă într-un singur fișier. */
+export type BadSynergyRelation = {
+  championId: string;
+  level: BadSynergyLevel;
+  /** Motivul concret, o propoziție. */
+  note: string;
+};
+
 /** Cât de tare: 3 = hard counter, 2 = counter (condiționat), 1 = skill matchup. Vezi `draft-engine/matchupGrades.ts`. */
 export type MatchupLevel = 1 | 2 | 3;
 /** Când: "lane" = lane phase, "late" = din mid game încolo, "all" = tot jocul. */
@@ -350,6 +364,8 @@ export type Champion = {
   damageProfile: DamageType[];
   stats: ChampionStats;
   synergyWith: ChampionRelation[];
+  /** Anti-sinergii specifice perechii (global, nu pe rol). Citite doar prin `badSynergy.ts`. */
+  badSynergyWith?: BadSynergyRelation[];
   offers: ChampionOffer[];
   needs: ChampionNeed[];
   weaknesses: ChampionWeakness[];

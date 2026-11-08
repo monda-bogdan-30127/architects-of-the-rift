@@ -70,7 +70,7 @@ import { getDraftPhase, getPhaseBias } from "./draftPhase";
 import { getDraftIntent } from "./draftIntentSystem";
 import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
-import { getTotalBadSynergy } from "./badSynergyData";
+import { getTotalBadSynergy } from "./badSynergy";
 import { getTrapBanReduction, getTrapCounterBonus } from "./trapDraftSystem";
 import { chooseDraftPlan, getPlanAlignmentBonus, type DraftPlan } from "./draftPlanSystem";
 import { getSideAwareBonus, getFlexAmbiguityBonus } from "./sideAwareDraftSystem";

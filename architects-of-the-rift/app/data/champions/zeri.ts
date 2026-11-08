@@ -18,6 +18,10 @@ export const zeri = createChampion({
     { championId: "sejuani", score: 3 },
   ],
 
+  badSynergyWith: [
+    { championId: "rell", level: 2, note: "Zeri vrea un shell de enchanter cu shield-uri, Rell nu oferă așa ceva" },
+  ],
+
   offers: [
     { type: "sustainedDamage", strength: 5 },
     { type: "scaling", strength: 5 },

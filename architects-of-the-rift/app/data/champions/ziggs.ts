@@ -18,6 +18,10 @@ export const ziggs = createChampion({
     { championId: "orianna", score: 3 },
   ],
 
+  badSynergyWith: [
+    { championId: "lulu", level: 3, note: "Buff-urile Lului (W, E) sunt pentru auto-attackeri, Ziggs e mage" },
+  ],
+
   offers: [
     { type: "poke", strength: 4 },
     { type: "scaling", strength: 4 },

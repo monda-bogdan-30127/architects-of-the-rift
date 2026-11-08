@@ -20,6 +20,10 @@ export const yunara = createChampion({
     { championId: "thresh", score: 3 },
   ],
 
+  badSynergyWith: [
+    { championId: "seraphine", level: 3, note: "Seraphine nu dă peel sau engage pentru un hyper-carry on-hit ca Yunara" },
+  ],
+
   offers: [
     { type: "sustainedDamage", strength: 5 },
     { type: "scaling", strength: 5 },

@@ -18,6 +18,10 @@ export const kalista = createChampion({
     { championId: "thresh", score: 3 },
   ],
 
+  badSynergyWith: [
+    { championId: "nami", level: 2, note: "R-ul Kalistei aruncă suportul, Nami n-are engage de livrat" },
+  ],
+
   offers: [
     { type: "earlyPrio", strength: 5 },
     { type: "objectiveControl", strength: 4 },

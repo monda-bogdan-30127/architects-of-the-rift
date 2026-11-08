@@ -17,6 +17,12 @@ export const kaisa = createChampion({
     { championId: "wukong", score: 3 },
   ],
 
+  badSynergyWith: [
+    { championId: "lulu", level: 3, note: "Kai'Sa vrea engage pentru all-in și R; Lulu nu oferă engage sau follow-up" },
+    { championId: "karma", level: 3, note: "Kai'Sa vrea engage pentru all-in și R; Karma nu oferă engage sau follow-up" },
+    { championId: "seraphine", level: 3, note: "Kai'Sa vrea engage pentru all-in și R; Seraphine nu oferă engage sau follow-up" },
+  ],
+
   offers: [
     { type: "dive", strength: 4 },
     { type: "backlineAccess", strength: 4 },
