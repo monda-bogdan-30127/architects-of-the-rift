@@ -60,6 +60,21 @@ export function describePlanAnchor(planType: string, anchorId: string, side: "bl
   return `Plan: ${planType}, construit în jurul lui ${championName(anchorId)} (${side === "blue" ? "B1" : "R1"}${locked})`;
 }
 
+/** DRAFT_THINKING §7.4: „Ban Olaf: G2 are 6–1 cu el în sezon”. */
+export function describeSeasonBan(teamName: string, championId: string, wins: number, games: number): string {
+  return `Ban ${championName(championId)}: ${teamName} are ${wins}–${games - wins} cu el în sezon`;
+}
+
+/** „Lăsăm Olaf liber: avem Poppy (A) ca răspuns”. */
+export function describeSeasonPlan(championId: string, counterId: string, grade: string | undefined): string {
+  return `Lăsăm ${championName(championId)} liber: avem ${championName(counterId)}${grade ? ` (${grade})` : ""} ca răspuns`;
+}
+
+/** „Counter la Olaf-ul lor (6–1 în sezon)”. */
+export function describeSeasonCounter(championId: string, wins: number, games: number): string {
+  return `Counter la ${championName(championId)}-ul lor (${wins}–${games - wins} în sezon)`;
+}
+
 /** „Zeus nu joacă Poppy (F) — exclus” (§1.5). */
 export function describeMasteryBlock(playerId: string, championId: string, grade: string): string {
   return grade === "F"

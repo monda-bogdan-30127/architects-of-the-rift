@@ -4,6 +4,11 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
+/** Pick-urile echipei care a câștigat jocul. */
+function getWinnerPicks(draftGame: ActiveDraftSeries["games"][number]) {
+  return draftGame.winnerSide === "blue" ? draftGame.picksBlue : draftGame.picksRed;
+}
+
 export function getSeriesAwareBanBonus(candidateId: string, side: Side, series: ActiveDraftSeries) {
   const enemyTeamSlug = side === "blue" ? series.redTeamSlug : series.blueTeamSlug;
   let bonus = 0;
@@ -13,7 +18,8 @@ export function getSeriesAwareBanBonus(candidateId: string, side: Side, series: 
       ? draftGame.simulation.blueTeamSlug
       : draftGame.simulation.redTeamSlug;
     if (winnerTeamSlug !== enemyTeamSlug) continue;
-    if (draftGame.picksBlue.includes(candidateId) || draftGame.picksRed.includes(candidateId)) {
+    // DRAFT_THINKING §7.5: doar pick-urile echipei câștigătoare (înainte: și ale celei care a pierdut).
+    if (getWinnerPicks(draftGame).includes(candidateId)) {
       bonus += 1.25;
     }
   }
@@ -27,7 +33,7 @@ export function getSeriesComfortRepeatThreat(candidateId: string, side: Side, se
     if (!draftGame.completed || !draftGame.winnerSide || !draftGame.simulation) continue;
     const enemyWon = (draftGame.winnerSide === "blue" ? draftGame.simulation.blueTeamSlug : draftGame.simulation.redTeamSlug) === enemyTeamSlug;
     if (!enemyWon) continue;
-    if (draftGame.picksBlue.includes(candidateId) || draftGame.picksRed.includes(candidateId)) threat += 0.8;
+    if (getWinnerPicks(draftGame).includes(candidateId)) threat += 0.8;
   }
   return clamp(threat, 0, 3.2);
 }

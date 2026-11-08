@@ -14,6 +14,7 @@ import type { Champion, Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
 import type { ChampionMasteryGrade } from "@/app/types/championMastery";
 import { getChampionGrade } from "@/app/utils/championMasteryUtils";
+import { getSeasonFavorites } from "@/app/draft-engine/seasonThreatSystem";
 
 const CHAMPION_CARD_SIZE = 86;
 const CHAMPION_CARD_GAP = 5;
@@ -372,6 +373,12 @@ export default function DraftPage() {
   const currentAssignmentsBlue = getDisplayAssignments(currentGame.assignmentsBlue, currentGame.picksBlue);
   const currentAssignmentsRed = getDisplayAssignments(currentGame.assignmentsRed, currentGame.picksRed);
 
+  // DRAFT_THINKING §7.6: scouting înainte de primul ban — favoriții de sezon ai adversarului (read-only).
+  const scoutedTeam = userSide === "blue" ? redTeam : blueTeam;
+  const seasonScouting = currentGame.phaseIndex === 0 && scoutedTeam.slug
+    ? getSeasonFavorites(scoutedTeam.slug, getTeamRosterFromSources({ team: scoutedTeam, save: draftSave }), 3)
+    : [];
+
   const previewAssignmentsBlue = selectedChampionId && isUserTurn && currentStep?.action === "pick" && currentStep.side === "blue"
     ? assignChampionToRoleMap(currentAssignmentsBlue, selectedChampionId)
     : currentAssignmentsBlue;
@@ -543,6 +550,40 @@ export default function DraftPage() {
               />
             </div>
           </div>
+
+          {/* Favoriții sezonului (scouting, doar înainte de primul ban) */}
+          {seasonScouting.length > 0 && (
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "6px 14px",
+              padding: "7px 14px",
+              borderBottom: "1px solid var(--divider)",
+              flexShrink: 0,
+            }}>
+              <span className="label" style={{ fontSize: "9px", color: "var(--text-muted)", letterSpacing: "0.12em" }}>
+                FAVORIȚII SEZONULUI — {scoutedTeam.abbreviation}
+              </span>
+              {seasonScouting.map((favorite) => {
+                const champion = getChampionById(favorite.championId);
+                const player = favorite.playerId ? players.find((entry) => entry.id === favorite.playerId) : null;
+                return (
+                  <span key={favorite.championId} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    {champion?.image && (
+                      <Image src={champion.image} alt={champion.name} width={18} height={18} style={{ objectFit: "cover", borderRadius: "2px" }} />
+                    )}
+                    <span style={{ fontSize: "10px", fontFamily: '"Spiegel", sans-serif', fontWeight: 700, color: "var(--text-primary)" }}>
+                      {champion?.name ?? favorite.championId}
+                    </span>
+                    <span style={{ fontSize: "10px", fontFamily: '"Spiegel", sans-serif', color: "var(--text-secondary)" }}>
+                      {favorite.wins}–{favorite.games - favorite.wins}{player ? ` · ${player.name}` : ""}
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
 
           {/* Champion grid */}
           <div className="draft-scroll" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "10px 14px 14px" }}>

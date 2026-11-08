@@ -5,6 +5,7 @@ import type {
 } from "./playerHistoryTypes";
 import type { PlayerSeasonStore, PlayerGameLog } from "./playerSeasonStorage";
 import type { ActiveDraftSeries } from "./draftTypes";
+import type { TeamChampionLine, TeamSeasonRecord, TeamSeasonStore } from "./teamSeasonStorage";
 
 export const RIFT_STORAGE_VERSION_KEY = "rift-storage-version";
 export const RIFT_STORAGE_VERSION = 2;
@@ -16,6 +17,7 @@ const SERIES_SAVE_KEY = "rift-series-state";
 const ACTIVE_DRAFT_SERIES_KEY = "rift-active-series-draft";
 const PLAYER_SPIRIT_KEY = "rift-player-spirit";
 const SPIRIT_ACCUMULATOR_KEY = "rift-spirit-accumulator";
+const TEAM_SEASON_KEY = "rift-team-season-champions";
 
 /**
  * Seria de draft salvată: completează câmpurile adăugate după ce a fost scrisă
@@ -114,6 +116,38 @@ export function normalizePlayerSeasonStore(raw: unknown): PlayerSeasonStore {
   return { logs };
 }
 
+const finiteCount = (value: unknown) => (typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0);
+
+/** DRAFT_THINKING §7.2 — store-ul de sezon pe echipă (`rift-team-season-champions`). */
+export function normalizeTeamSeasonStore(raw: unknown): TeamSeasonStore {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const store: TeamSeasonStore = {};
+  for (const [teamSlug, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!value || typeof value !== "object") continue;
+    const record = value as Partial<TeamSeasonRecord>;
+    const champions: Record<string, TeamChampionLine> = {};
+    for (const [championId, line] of Object.entries(record.champions ?? {})) {
+      if (!line || typeof line !== "object") continue;
+      const entry = line as Partial<TeamChampionLine>;
+      const byRole: TeamChampionLine["byRole"] = {};
+      for (const [role, count] of Object.entries(entry.byRole ?? {})) byRole[role as keyof typeof byRole] = finiteCount(count);
+      champions[championId] = {
+        games: finiteCount(entry.games),
+        wins: finiteCount(entry.wins),
+        byRole,
+        recentResults: Array.isArray(entry.recentResults) ? entry.recentResults.filter((result) => result === 0 || result === 1).slice(-5) : [],
+      };
+    }
+    const identities: TeamSeasonRecord["identities"] = {};
+    for (const [identity, stats] of Object.entries(record.identities ?? {})) {
+      if (!stats || typeof stats !== "object") continue;
+      identities[identity as keyof typeof identities] = { games: finiteCount(stats.games), wins: finiteCount(stats.wins) };
+    }
+    store[teamSlug] = { games: finiteCount(record.games), wins: finiteCount(record.wins), champions, identities };
+  }
+  return store;
+}
+
 function normalizeJsonAtKey<T>(storage: Storage, key: string, normalizer: (raw: unknown) => T) {
   const raw = storage.getItem(key);
   if (!raw) return;
@@ -143,6 +177,7 @@ export function migrateAllRiftStorage() {
 
   normalizeJsonAtKey(storage, PLAYER_HISTORY_KEY, normalizePlayerHistoryStore);
   normalizeJsonAtKey(storage, PLAYER_SEASON_STATS_KEY, normalizePlayerSeasonStore);
+  normalizeJsonAtKey(storage, TEAM_SEASON_KEY, normalizeTeamSeasonStore);
 
   validateJsonAtKey(storage, SAVE_KEY);
   validateJsonAtKey(storage, SERIES_SAVE_KEY);

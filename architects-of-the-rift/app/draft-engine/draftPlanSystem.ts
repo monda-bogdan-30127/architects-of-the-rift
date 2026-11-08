@@ -32,6 +32,7 @@ import { getPlayerChampionHistoryMetrics } from "./playerHistoryEvaluator";
 import { resolveRoleAssignments } from "./draftRoleResolver";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { getChampionGrade } from "@/app/utils/championMasteryUtils";
+import { getSeasonEnemyIdentityFactor } from "./seasonThreatSystem";
 
 const playersById = new Map(players.map((p) => [p.id, p]));
 
@@ -267,6 +268,8 @@ export function chooseDraftPlan(args: {
   /** §4.2 — planul calculat la pick-ul anterior; după al 3-lea pick propriu rămâne acesta. */
   lockedPlan?: DraftPlan | null;
   isSeasonFavorite?: (championId: string) => boolean;
+  /** §7.4 — identitatea cu cel mai bun winrate a adversarului în sezon. */
+  seasonEnemyBestIdentity?: CompIdentity | null;
 }): DraftPlan | null {
   const aiPicks = args.side === "blue" ? args.game.picksBlue : args.game.picksRed;
   // §4.2: după al 3-lea pick propriu planul e blocat (înainte: null de aici încolo).
@@ -335,13 +338,18 @@ export function chooseDraftPlan(args: {
       ? clamp((COMP_COUNTER_MATRIX[plan][enemyIdentity.dominant] * enemyIdentity.strength + 1) / 2, 0, 1)
       : 0;
     const enemyWeight = enemyIdentity.dominant ? DRAFT_THINKING_CONFIG.compCounter.planWeight : 0;
+    // §7.4: planurile care bat identitatea preferată a adversarului în sezon.
+    const seasonEnemyIdentity = getSeasonEnemyIdentityFactor(plan, args.seasonEnemyBestIdentity ?? null);
+    const seasonWeight = args.seasonEnemyBestIdentity ? DRAFT_THINKING_CONFIG.season.planWeight : 0;
     const score =
-      (baseScore * (1 - anchorWeight) + anchorFit * anchorWeight) * (1 - enemyWeight) + enemyCompMatchup * enemyWeight;
+      ((baseScore * (1 - anchorWeight) + anchorFit * anchorWeight) * (1 - enemyWeight) + enemyCompMatchup * enemyWeight) *
+        (1 - seasonWeight) +
+      seasonEnemyIdentity * seasonWeight;
 
     scored.push({
       plan,
       score,
-      breakdown: { metaCoverage, rosterFit, seriesAdapt, userWeakness, anchorFit, enemyCompMatchup },
+      breakdown: { metaCoverage, rosterFit, seriesAdapt, userWeakness, anchorFit, enemyCompMatchup, seasonEnemyIdentity },
     });
   }
 

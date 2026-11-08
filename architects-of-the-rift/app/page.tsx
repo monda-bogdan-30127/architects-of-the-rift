@@ -40,6 +40,7 @@ export default function HomePage() {
     localStorage.removeItem("rift-player-kda-stats");
     localStorage.removeItem("rift-player-mvp-stats");
     localStorage.removeItem("rift-series-mvp-progress");
+    localStorage.removeItem("rift-team-season-champions"); // DRAFT_THINKING §7: favoriții de sezon pe echipă
 
     router.push("/select-region");
   };

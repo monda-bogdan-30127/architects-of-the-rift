@@ -11,6 +11,7 @@ import {
 } from "./draftEngine";
 import { beginPlayerHistoryBatch, flushPlayerHistoryBatch } from "./playerHistoryStorage";
 import { beginPlayerSeasonBatch, flushPlayerSeasonBatch } from "./playerSeasonStorage";
+import { beginTeamSeasonBatch, flushTeamSeasonBatch } from "./teamSeasonStorage";
 
 export function simulateAiVsAiSeries(
   series: ActiveDraftSeries,
@@ -26,6 +27,7 @@ export function simulateAiVsAiSeries(
 
   beginPlayerSeasonBatch();
   beginPlayerHistoryBatch();
+  beginTeamSeasonBatch();
 
   try {
     while (!seriesIsFinished(workingSeries)) {
@@ -61,6 +63,7 @@ export function simulateAiVsAiSeries(
       workingSeries = advanceSeries(workingSeries);
     }
   } finally {
+    flushTeamSeasonBatch();
     flushPlayerHistoryBatch();
     flushPlayerSeasonBatch();
   }

@@ -128,6 +128,33 @@ export const DRAFT_THINKING_CONFIG = {
     explainMin: 0.5,
   },
 
+  // §7 — memoria sezonului (teamSeasonStorage.ts, seasonThreatSystem.ts)
+  season: {
+    /** Sub atâtea jocuri cu campionul, amenințarea echipei e 0. */
+    minGames: 3,
+    /** De la această amenințare: ban sau plan. */
+    threatThreshold: 5.5,
+    /** Amenințarea jucătorului (`getEnemySeasonSignatureThreat`) × factor. */
+    playerThreatFactor: 0.8,
+    /** Counter-ul nostru pentru „plan”: jucătorul îl are la ≥ B. */
+    counterMinGradeRank: 3,
+    /**
+     * Ban: + min(threat × banWeight, banCap); nu se adună peste mastery / target ban (max).
+     * Spec: 0.45 / 3.5 — prea puțin: un 6–1 (amenințare 5.5) rămânea cu ~4 puncte sub al 3-lea ban meta.
+     */
+    banWeight: 1.4,
+    banCap: 8,
+    /** Pick: counter pregătit (campionul lor e liber) / pedepsit (l-au luat). */
+    counterReadyBonus: 1.0,
+    counterPunishBonus: 2.0,
+    /** Plan: identitatea cu cel mai bun winrate a inamicului în sezon (minim atâtea jocuri). */
+    planWeight: 0.15,
+    identityMinGames: 4,
+    /** Campionii noștri de sezon: + min(threat × ownComfortWeight, ownComfortCap). */
+    ownComfortWeight: 0.2,
+    ownComfortCap: 1.5,
+  },
+
   // §5.3 — win condition (winCondition.ts)
   winCondition: {
     /** Candidatul satisface o nevoie (prioritate ≥ 2) a win condition-ului cu o ofertă ≥ 3. */

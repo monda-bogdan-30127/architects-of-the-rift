@@ -21,6 +21,9 @@ import { hasThinPool } from "@/app/draft-engine/draftMasteryGate";
 import { getBotDuoState } from "@/app/draft-engine/botDuoPlan";
 import { getPlanAlignmentBonus, isPriorityPick, type DraftPlanType } from "@/app/draft-engine/draftPlanSystem";
 import { getCandidateIdentityFit } from "@/app/draft-engine/compIdentity";
+import { setTeamSeasonStoreOverride, type TeamSeasonStore } from "@/app/draft-engine/teamSeasonStorage";
+import { getSeasonChampionThreat, getSeasonCounters } from "@/app/draft-engine/seasonThreatSystem";
+import { getSeriesAwareBanBonus } from "@/app/draft-engine/draftSeriesMemory";
 import { getMetaPriorityScore } from "@/app/draft-engine/draftEvaluator";
 import type {
   ActiveDraftSeries,
@@ -813,6 +816,81 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     "22. Comp counter care pierde linia → tunnel-vision",
     hasTag(camille, "tunnel-vision") && (camille.compCounterValue ?? 0) < 0.5,
     `Camille: compCounterValue ${camille.compCounterValue?.toFixed(2)}, „${camille.explanation?.find((line) => line.includes("pierde linia")) ?? "—"}”`,
+  );
+}
+
+// ─── 23–25. Memoria sezonului (DRAFT_THINKING §7) ─────────────────────────────
+{
+  // Fixtură: roșii (t1) au Olaf 6–1 pe top în sezon (singura înfrângere prima) → amenințare ≈ 5.5.
+  const olafSeason = (): TeamSeasonStore => ({
+    [RED]: {
+      games: 7, wins: 6,
+      champions: { olaf: { games: 7, wins: 6, byRole: { top: 7 }, recentResults: [1, 1, 1, 1, 1] } },
+      identities: {},
+    },
+  });
+  const bluePhaseOneBans = (save: DraftSave, id: string) => {
+    const { log } = runDraft({ series: newSeries(id, BLUE, RED), save, bans: [], stop: (entries) => entries.length >= 6 });
+    return log.filter((entry) => entry.side === "blue" && entry.action === "ban");
+  };
+  const openSet = new Set<string>();
+  const topWith = (want: "none" | "good") =>
+    teamPlayers.find((p) => {
+      const { counterIds, counterGrades } = getSeasonCounters("olaf", "top", { top: p.id }, openSet);
+      if (want === "none") return p.role === "top" && counterIds.length === 0 && !hasThinPool(p, "top");
+      return p.role === "top" && counterIds.some((id) => RANK[counterGrades[id]] >= 4);
+    })?.id;
+
+  setTeamSeasonStoreOverride(olafSeason());
+  const threat = getSeasonChampionThreat(RED, "olaf", baseRosters[RED]).threat;
+
+  // 23. Fără counter ≥ B pe top → Olaf în primele 3 ban-uri.
+  const noCounterTop = topWith("none");
+  const bansA = noCounterTop ? bluePhaseOneBans(makeSave({ [BLUE]: { top: noCounterTop } }), "s23") : [];
+  const olafBan = bansA.find((entry) => entry.championId === "olaf");
+  check(
+    "23. Sezon: Olaf 6–1, fără counter → ban în faza 1",
+    Boolean(noCounterTop) && Boolean(olafBan) && hasTag(olafBan?.breakdown, "season-ban"),
+    `amenințare ${threat.toFixed(2)}; top ${noCounterTop}: ban-uri albaștri ${bansA.map((entry) => entry.championId).join(", ")}; „${olafBan?.breakdown?.explanation?.[0] ?? "—"}”`,
+  );
+
+  // 24. Avem un counter A pe top → Olaf nu e banat; dacă îl iau, counter-ul primește `season-counter`.
+  setTeamSeasonStoreOverride(olafSeason());
+  const counterTop = topWith("good");
+  const saveB = makeSave({ [BLUE]: { top: counterTop ?? "" } });
+  const bansB = counterTop ? bluePhaseOneBans(saveB, "s24") : [];
+  const { counterIds, counterGrades } = getSeasonCounters("olaf", "top", { top: counterTop ?? "" }, openSet);
+  const counterId = counterIds.find((id) => RANK[counterGrades[id]] >= 4) ?? counterIds[0];
+  const series24 = newSeries("s24b", BLUE, RED);
+  const game24: DraftGameState = {
+    ...series24.games[0],
+    bansBlue: ["azir", "jayce", "orianna"], bansRed: ["vi", "sejuani", "rumble"],
+    picksBlue: ["ahri"], picksRed: ["olaf"], pickRolesRed: { olaf: "top" }, phaseIndex: 9,
+  };
+  const counter = counterId ? scoreDraftCandidate(champions.find((c) => c.id === counterId)!, getCurrentStep(game24)!, game24, series24, saveB) : null;
+  check(
+    "24. Sezon: avem counter A → Olaf liber; luat de ei → season-counter",
+    Boolean(counterTop) && !bansB.some((entry) => entry.championId === "olaf") && hasTag(counter, "season-counter"),
+    `top ${counterTop}: ${counterId} (${counterGrades[counterId ?? ""] ?? "?"}); ban-uri albaștri ${bansB.map((entry) => entry.championId).join(", ")}; „${counter?.explanation?.find((line) => line.startsWith("Counter la")) ?? "—"}”`,
+  );
+  setTeamSeasonStoreOverride(null);
+}
+{
+  // 25. Series memory: un campion jucat de echipa care a PIERDUT nu mai primește bonus de ban.
+  const series = newSeries("s25", BLUE, RED);
+  const game1: DraftGameState = {
+    ...series.games[0], completed: true, winnerSide: "blue",
+    picksBlue: ["ahri", "vi", "jinx", "nautilus", "gnar"], picksRed: ["syndra", "sejuani", "kalista", "rell", "ksante"],
+    simulation: { blueTeamSlug: BLUE, redTeamSlug: RED } as never,
+  };
+  // Jocul 2: echipele schimbă partea; roșii (BLUE din jocul 1) au câștigat — pentru albaștri, inamicul = câștigătorul.
+  const series2: ActiveDraftSeries = { ...series, currentGameNumber: 2, blueTeamSlug: RED, redTeamSlug: BLUE, games: [game1] };
+  const winnerPick = getSeriesAwareBanBonus("ahri", "blue", series2);
+  const loserPick = getSeriesAwareBanBonus("syndra", "blue", series2);
+  check(
+    "25. Series memory: doar pick-urile câștigătorului primesc bonus de ban",
+    winnerPick > 0 && loserPick === 0,
+    `bonus ban Ahri (câștigător) ${winnerPick}, Syndra (a pierdut) ${loserPick}`,
   );
 }
 

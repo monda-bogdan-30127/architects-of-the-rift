@@ -94,6 +94,7 @@ import {
   getPlayerChampionMatchupHistoryBonus,
 } from "./playerHistoryEvaluator";
 import { updatePlayerHistoryFromResolvedGame } from "./playerHistoryStorage";
+import { recordTeamSeasonGames } from "./teamSeasonStorage";
 import { recordGames } from "./playerSeasonStorage";
 import {
   computeLaneSnowball,
@@ -1305,6 +1306,22 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     playerScores: playerScores.map((entry) => ({ playerId: entry.playerId, score: entry.score })),
     gameNumber: input.game.number,
   });
+
+  // DRAFT_THINKING §7.2: statisticile de sezon pe echipă (toate meciurile, user și AI vs AI).
+  recordTeamSeasonGames([
+    {
+      teamSlug: gameTeamSlugs.blueTeamSlug,
+      assignments: assignmentsBlue,
+      won: finalWinnerSide === "blue",
+      compIdentity: blueDraftEval.compIdentity,
+    },
+    {
+      teamSlug: gameTeamSlugs.redTeamSlug,
+      assignments: assignmentsRed,
+      won: finalWinnerSide === "red",
+      compIdentity: redDraftEval.compIdentity,
+    },
+  ]);
 
   // Record KDAs to localStorage for roster page display
   recordGameKdas(

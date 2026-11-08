@@ -31,6 +31,14 @@ import { getCandidateIdentityFit, readCompIdentity } from "./compIdentity";
 import { getWinCondition, getWinConditionEffect } from "./winCondition";
 import { getCompCounterValue, getEnemyIdentityBanBonus, getLosingLanesEffect } from "./compCounter";
 import {
+  getSeasonBestIdentity,
+  getSeasonChampionThreat,
+  getSeasonCounters,
+  getSeasonThreatResponse,
+  isSeasonFavorite,
+  type SeasonThreatResponse,
+} from "./seasonThreatSystem";
+import {
   getBotDuoState,
   getDuoFallbackBonus,
   getDuoPickBonus,
@@ -80,6 +88,9 @@ import {
   describeMustWithLock,
   describePlanAnchor,
   describeReassignment,
+  describeSeasonBan,
+  describeSeasonCounter,
+  describeSeasonPlan,
 } from "./draftDecisionExplainer";
 import {
   derivePlayerArchetypeAffinity,
@@ -171,6 +182,9 @@ function getCachedPlan(args: {
     userRoster,
     save: args.save,
     lockedPlan: ownPickCount >= lockAt ? lastPlanBeforeLock.get(baseKey) ?? null : null,
+    // §7: un favorit de sezon al echipei contează ca priority pick; planul ține cont de stilul de sezon al lor.
+    isSeasonFavorite: (championId) => isSeasonFavorite(aiTeamSlug, championId, aiRoster),
+    seasonEnemyBestIdentity: getSeasonBestIdentity(userTeamSlug),
   });
 
   if (ownPickCount < lockAt) lastPlanBeforeLock.set(baseKey, plan);
@@ -539,6 +553,52 @@ function getCachedMustWithState(
 
   if (mustWithStateCache.size > 200) mustWithStateCache.clear();
   mustWithStateCache.set(key, state);
+  return state;
+}
+
+// ─── MEMORIA SEZONULUI (DRAFT_THINKING §7) ───────────────────────────────────
+type SeasonTurnState = {
+  enemyTeamName: string;
+  responses: SeasonThreatResponse[];
+  /** Counteri pregătiți pentru favoriții lor încă liberi: counterId → favoritul. */
+  ready: Map<string, string>;
+  /** Counteri pentru favoriții pe care i-au luat deja: counterId → favoritul + W–L. */
+  punish: Map<string, { championId: string; wins: number; games: number; threat: number }>;
+};
+
+const seasonStateCache = new Map<string, SeasonTurnState>();
+
+function getCachedSeasonState(series: ActiveDraftSeries, game: DraftGameState, side: Side, save: DraftSave | null): SeasonTurnState {
+  const enemySide: Side = side === "blue" ? "red" : "blue";
+  const enemyTeamSlug = getTeamSlugForSide(series, enemySide);
+  const ownRoster = getTeamRosterFromSources({ teamSlug: getTeamSlugForSide(series, side), save });
+  const enemyRoster = getTeamRosterFromSources({ teamSlug: enemyTeamSlug, save });
+  const key = [series.seriesId, series.currentGameNumber, side, game.phaseIndex, game.picksBlue.join(","), game.picksRed.join(","), game.bansBlue.join(","), game.bansRed.join(",")].join("|");
+  const cached = seasonStateCache.get(key);
+  if (cached) return cached;
+
+  const unavailable = getUnavailableChampionIds(series, game);
+  const responses = getSeasonThreatResponse({ enemyTeamSlug, enemyRoster, ownRoster, unavailable });
+  const ready = new Map<string, string>();
+  for (const response of responses) {
+    if (response.kind !== "plan") continue;
+    for (const counterId of response.counterIds) if (!ready.has(counterId)) ready.set(counterId, response.championId);
+  }
+  const punish = new Map<string, { championId: string; wins: number; games: number; threat: number }>();
+  const enemyPicks = getOwnState(game, enemySide).picks;
+  const enemyAssignments = resolveRoleAssignments(enemyPicks, enemyRoster, isAiSide(series, enemySide) ? getLockedRoles(game, enemySide) : undefined);
+  for (const championId of enemyPicks) {
+    const threat = getSeasonChampionThreat(enemyTeamSlug, championId, enemyRoster);
+    if (threat.threat < DRAFT_THINKING_CONFIG.season.threatThreshold) continue;
+    const role = (ROLE_ORDER.find((entry) => enemyAssignments[entry] === championId) ?? threat.role) as Role | null;
+    for (const counterId of getSeasonCounters(championId, role, ownRoster, unavailable).counterIds) {
+      if (!punish.has(counterId)) punish.set(counterId, { championId, wins: threat.wins, games: threat.games, threat: threat.threat });
+    }
+  }
+  const team = teams.find((entry) => entry.slug === enemyTeamSlug);
+  const state: SeasonTurnState = { enemyTeamName: team?.abbreviation ?? team?.name ?? enemyTeamSlug, responses, ready, punish };
+  if (seasonStateCache.size > 200) seasonStateCache.clear();
+  seasonStateCache.set(key, state);
   return state;
 }
 
@@ -971,6 +1031,15 @@ function scorePickCandidate(
     resolveRoleAssignments(ownState.picks, roster, lockedRoles)
   );
   const proPickTiming = getProPickTimingBonus(candidate, game, step.side, projected.projectedRole);
+  // §7.4: memoria sezonului — counter pregătit / pedepsit, propriii favoriți de sezon.
+  const seasonState = getCachedSeasonState(series, game, step.side, save);
+  const seasonPunish = seasonState.punish.get(candidate.id) ?? null;
+  const seasonReady = !seasonPunish && seasonState.ready.has(candidate.id);
+  const ownSeasonThreat = getSeasonChampionThreat(teamSlug, candidate.id, roster).threat;
+  const seasonPickBonus =
+    (seasonPunish ? DRAFT_THINKING_CONFIG.season.counterPunishBonus : 0) +
+    (seasonReady ? DRAFT_THINKING_CONFIG.season.counterReadyBonus : 0) +
+    Math.min(ownSeasonThreat * DRAFT_THINKING_CONFIG.season.ownComfortWeight, DRAFT_THINKING_CONFIG.season.ownComfortCap);
   // §5.2 / §5.3: identitate împărțită și win condition.
   const splitIdentity = getSplitIdentityPenalty(ownState.picks, candidate, roster, lockedRoles);
   const ownRolesNow = resolveRoleAssignments(ownState.picks, roster, lockedRoles);
@@ -1208,7 +1277,8 @@ function scorePickCandidate(
     reassignment.penalty -          // §1.4: pick propriu mutat pe D / grad mult mai mic
     masteryGate.penalty -           // §1.5: D pe jucătorul proiectat
     splitIdentity.penalty +         // §5.2: identitate împărțită
-    winConditionEffect.bonus;       // §5.3: susține / încarcă win condition-ul
+    winConditionEffect.bonus +      // §5.3: susține / încarcă win condition-ul
+    seasonPickBonus;                // §7.4: counter de sezon / favoriții noștri
 
   const explanation = [
     ...reassignment.entries.map((entry) => describeReassignment(candidate.id, entry, reassignment.breaksOwnPick)),
@@ -1220,6 +1290,7 @@ function scorePickCandidate(
       : []),
     ...(splitIdentity.line ? [splitIdentity.line] : []),
     ...compCounter.lines,
+    ...(seasonPunish ? [describeSeasonCounter(seasonPunish.championId, seasonPunish.wins, seasonPunish.games)] : []),
     ...(losingLanes.line ? [losingLanes.line] : []),
     ...(winConditionEffect.line ? [winConditionEffect.line] : []),
     ...(duoPick.line ? [duoPick.line] : []),
@@ -1267,6 +1338,7 @@ function scorePickCandidate(
       ? { identity: { dominant: ownIdentity.dominant, fit: getCandidateIdentityFit(candidate, projected.projectedRole, ownIdentity.dominant) } }
       : {}),
     ...(winCondition ? { winCondition } : {}),
+    ...(seasonPunish ? { seasonThreat: { championId: seasonPunish.championId, threat: seasonPunish.threat, kind: "counter" as const } } : {}),
     ...(draftPlan
       ? { plan: { type: draftPlan.type, anchorChampionId: draftPlan.anchorChampionId, lockedAtPick: draftPlan.lockedAtPick } }
       : {}),
@@ -1275,6 +1347,7 @@ function scorePickCandidate(
       ...(reassignment.breaksOwnPick ? ["breaks-own-pick"] : []),
       ...(splitIdentity.penalty > 0 ? ["split-identity"] : []),
       ...(compCounter.tunnelVision ? ["tunnel-vision"] : []),
+      ...(seasonPunish ? ["season-counter"] : []),
       ...(losingLanes.tag ? [losingLanes.tag] : []),
       ...(masteryGate.blocked ? ["mastery-f"] : []),
       ...(masteryGate.soft ? ["mastery-d"] : []),
@@ -1599,6 +1672,22 @@ function scoreBanCandidate(
   const ownRoster = getTeamRosterFromSources({ teamSlug: ownTeamSlug, save });
 
   // Enemy has SS/S on this champion → ban pressure
+  // DRAFT_THINKING §7.4: favoriții de sezon ai adversarului — ban dacă n-avem răspuns, altfel îi lăsăm.
+  const seasonBanState = getCachedSeasonState(series, game, step.side, save);
+  const seasonResponse = seasonBanState.responses.find(
+    (response) => response.kind !== "ignore" && response.championId === candidate.id
+  );
+  const seasonBan =
+    seasonResponse?.kind === "ban"
+      ? Math.min(seasonResponse.threat * DRAFT_THINKING_CONFIG.season.banWeight, DRAFT_THINKING_CONFIG.season.banCap)
+      : 0;
+  const seasonBanLine =
+    seasonResponse?.kind === "ban"
+      ? describeSeasonBan(seasonBanState.enemyTeamName, candidate.id, seasonResponse.wins, seasonResponse.games)
+      : seasonResponse?.kind === "plan"
+        ? describeSeasonPlan(candidate.id, seasonResponse.counterIds[0], seasonResponse.counterGrades[seasonResponse.counterIds[0]])
+        : null;
+
   const enemyMasteryBan = getEnemyMasteryBanBonus({
     candidate,
     enemyRoster,
@@ -1748,9 +1837,9 @@ function scoreBanCandidate(
     protectOwnCompBonus +          // DRAFT FINAL FIX 3
     mustWithBanBonus +
     ownMustWithBanBlock +
-    enemyMasteryBan.bonus +
+    // §7.4: banul de sezon nu se adună peste mastery / target ban pentru același campion: se ia maximul.
+    Math.max(enemyMasteryBan.bonus + targetBan.bonus, seasonBan) +
     ownMasteryProtect.penalty +
-    targetBan.bonus +
     predictiveBan.bonus +
     (candidate.roles.length >= 2 ? 0.8 : 0);
 
@@ -1770,7 +1859,12 @@ function scoreBanCandidate(
     planType: "deny-signature",
     historyBias: userBias,
     mustWithBonus: mustWithBanBonus + ownMustWithBanBlock,
+    ...(seasonBanLine ? { explanation: [seasonBanLine] } : {}),
+    ...(seasonResponse && seasonResponse.kind !== "ignore"
+      ? { seasonThreat: { championId: candidate.id, threat: seasonResponse.threat, kind: seasonResponse.kind } }
+      : {}),
     reasonTags: [
+      ...(seasonBan > 0 ? ["season-ban"] : []),
       userBias > 1 || signatureBonus > 2 ? "user-pattern" : "meta-ban",
       candidate.roles.length >= 2 ? "flex" : "single-role",
       ...(mustWithBanBonus > 0 ? ["mustwith-deny"] : []),
@@ -1931,6 +2025,17 @@ export function chooseAiAction(
       .sort((a, b) => b.priority - a.priority);
 
     filteredPool = cheapRanked.slice(0, 30).map((e) => e.champion);
+
+    // DRAFT_THINKING §7.4: favoriții de sezon ai adversarului (de banat sau nu) intră mereu în pool-ul de ban.
+    const seasonIds = new Set(
+      getCachedSeasonState(series, game, step.side, save).responses.flatMap((response) =>
+        response.kind === "ignore" ? [] : [response.championId]
+      )
+    );
+    const banIncluded = new Set(filteredPool.map((champion) => champion.id));
+    for (const champion of pool) {
+      if (seasonIds.has(champion.id) && !banIncluded.has(champion.id)) filteredPool.push(champion);
+    }
   }
 
   const ranked = filteredPool
