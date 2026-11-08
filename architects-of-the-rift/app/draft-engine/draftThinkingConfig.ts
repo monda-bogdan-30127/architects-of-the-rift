@@ -104,6 +104,30 @@ export const DRAFT_THINKING_CONFIG = {
     coherenceClamp: [-4, 3.5] as [number, number],
   },
 
+  // §6 — comp counter + anti tunnel vision (compCounter.ts)
+  compCounter: {
+    /** Doar cu atâtea pick-uri inamice. */
+    minEnemyPicks: 2,
+    /** matrice × strength-ul identității inamice × weight. */
+    weight: 1.5,
+    /** Candidatul contrează comp-ul, dar pierde linia: × factor și −penalty. */
+    tunnelVisionFactor: 0.25,
+    tunnelVisionPenalty: 1.0,
+    /** Bilanțul liniilor (early) sub care „pierdem liniile”. */
+    losingLanesThreshold: -3,
+    losingLanesPenalty: 1.25,
+    /** Bilanț negativ și candidatul câștigă linia. */
+    balancingBonus: 0.75,
+    /** Ponderea `enemyCompMatchup` în alegerea planului (≥ 2 pick-uri inamice). */
+    planWeight: 0.2,
+    /** Ban: fit pe identitatea inamică × (banBase + avantajul lor pe matrice) × strength × banWeight. */
+    banBase: 0.5,
+    banWeight: 0.6,
+    banCap: 2.5,
+    /** Linie de explicație de la atâta valoare. */
+    explainMin: 0.5,
+  },
+
   // §5.3 — win condition (winCondition.ts)
   winCondition: {
     /** Candidatul satisface o nevoie (prioritate ≥ 2) a win condition-ului cu o ofertă ≥ 3. */

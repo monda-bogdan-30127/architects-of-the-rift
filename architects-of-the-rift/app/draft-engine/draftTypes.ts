@@ -189,6 +189,8 @@ export type DraftCandidateBreakdown = {
   plan?: { type: string; anchorChampionId?: string; lockedAtPick?: number };
   /** §3 / §5 — identitatea dominantă a pick-urilor proprii și potrivirea candidatului (−3..+3). */
   identity?: { dominant: string; fit: number };
+  /** §6 — comp counter (matrice × strength, după tunnel vision). */
+  compCounterValue?: number;
   /** §5.3 — win condition-ul compoziției proprii. */
   winCondition?: { championId: string; role: Role; kind: string };
   /** §1.4 — pick-uri proprii pe care candidatul le-ar muta pe alt rol. */

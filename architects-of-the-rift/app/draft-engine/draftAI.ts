@@ -29,6 +29,7 @@ import {
 import { getBestOpenRoleGradeRank, getMasteryGate, getReassignmentCheck } from "./draftMasteryGate";
 import { getCandidateIdentityFit, readCompIdentity } from "./compIdentity";
 import { getWinCondition, getWinConditionEffect } from "./winCondition";
+import { getCompCounterValue, getEnemyIdentityBanBonus, getLosingLanesEffect } from "./compCounter";
 import {
   getBotDuoState,
   getDuoFallbackBonus,
@@ -92,14 +93,13 @@ import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSer
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
 import { getBadSynergy, getTotalBadSynergy } from "./badSynergy";
 import { getTrapBanReduction, getTrapCounterBonus } from "./trapDraftSystem";
-import { chooseDraftPlan, getPlanAlignmentBonus, type DraftPlan } from "./draftPlanSystem";
+import { chooseDraftPlan, getPlanAlignmentBonus, type DraftPlan, type DraftPlanType } from "./draftPlanSystem";
 import { getSideAwareBonus, getFlexAmbiguityBonus } from "./sideAwareDraftSystem";
 import {
   getPlanAdaptiveBanBonus,
   getContestedPickUrgency,
   getUserFavoriteBanBonus,
   deduceUserPlan,
-  getCounterToUserPlanBonus,
 } from "./advancedDraftReading";
 import { evaluateRuleSynergy } from "./profileRuleEvaluator";
 import { getPlayerChampionMatchupDraftBias } from "./playerHistoryEvaluator";
@@ -1030,9 +1030,29 @@ function scorePickCandidate(
     currentPickNumber: getCurrentPickNumberForSide(game, step.side),
   });
 
-  // UPGRADE 13: Counter user's deduced plan
-  const userDeducedPlan = deduceUserPlan(game, step.side === "blue" ? "red" : "blue");
-  const counterUserPlanBonus = getCounterToUserPlanBonus(candidate, userDeducedPlan);
+  // DRAFT_THINKING §6: comp counter (înlocuiește counterUserPlanBonus; și AI vs AI), fără tunnel vision,
+  // plus bilanțul liniilor („still losing matchups”).
+  const enemySideForComp: Side = step.side === "blue" ? "red" : "blue";
+  const enemyAssignmentsForComp = resolveRoleAssignments(
+    enemyState.picks,
+    enemyRosterForAdv,
+    isAiSide(series, enemySideForComp) ? getLockedRoles(game, enemySideForComp) : undefined
+  );
+  const ownAssignmentsWithCandidate = resolveRoleAssignments([...ownState.picks, candidate.id], roster, lockedRoles);
+  const compCounter = getCompCounterValue({
+    candidate,
+    role: projected.projectedRole,
+    ownPicks: ownState.picks,
+    ownAssignmentsWithCandidate,
+    enemyPicks: enemyState.picks,
+    enemyAssignments: enemyAssignmentsForComp,
+  });
+  const losingLanes = getLosingLanesEffect({
+    candidate,
+    role: projected.projectedRole,
+    ownAssignments: ownAssignmentsWithCandidate,
+    enemyAssignments: enemyAssignmentsForComp,
+  });
 
   // DRAFT FINAL FIX 1: evaluateRuleSynergy — rich synergy rules
   // "Sejuani + 2 melee = bonus", "Zeri without protection = don't pick"
@@ -1170,7 +1190,8 @@ function scorePickCandidate(
     sideAware +
     flexAmbiguity +
     contestedUrgency +
-    counterUserPlanBonus +
+    compCounter.value +            // §6.1 / §6.2: comp counter (redus la tunnel vision)
+    losingLanes.bonus +            // §6.3: liniile pierdute
     ruleSynergyBonus +             // DRAFT FINAL FIX 1
     matchupHistoryBias +           // DRAFT FINAL FIX 2
     compGate +
@@ -1198,6 +1219,8 @@ function scorePickCandidate(
       ? [describePlanAnchor(draftPlan.type, draftPlan.anchorChampionId, step.side, draftPlan.lockedAtPick)]
       : []),
     ...(splitIdentity.line ? [splitIdentity.line] : []),
+    ...compCounter.lines,
+    ...(losingLanes.line ? [losingLanes.line] : []),
     ...(winConditionEffect.line ? [winConditionEffect.line] : []),
     ...(duoPick.line ? [duoPick.line] : []),
     ...(duoFallback.line ? [duoFallback.line] : []),
@@ -1239,6 +1262,7 @@ function scorePickCandidate(
     ...(badSynergies.length ? { badSynergies } : {}),
     ...(reassignment.entries.length ? { reassignment: reassignment.entries } : {}),
     planAlignment,
+    ...(compCounter.ours && compCounter.theirs ? { compCounterValue: compCounter.value } : {}),
     ...(ownIdentity.dominant
       ? { identity: { dominant: ownIdentity.dominant, fit: getCandidateIdentityFit(candidate, projected.projectedRole, ownIdentity.dominant) } }
       : {}),
@@ -1250,6 +1274,8 @@ function scorePickCandidate(
     reasonTags: [
       ...(reassignment.breaksOwnPick ? ["breaks-own-pick"] : []),
       ...(splitIdentity.penalty > 0 ? ["split-identity"] : []),
+      ...(compCounter.tunnelVision ? ["tunnel-vision"] : []),
+      ...(losingLanes.tag ? [losingLanes.tag] : []),
       ...(masteryGate.blocked ? ["mastery-f"] : []),
       ...(masteryGate.soft ? ["mastery-d"] : []),
       ...(badSynergies.length ? ["bad-synergy"] : []),
@@ -1651,6 +1677,21 @@ function scoreBanCandidate(
   // UPGRADE 13: Ban bonus for champions that counter AI's plan
   const planAdaptiveBanBonus = getPlanAdaptiveBanBonus(candidate, aiBanPlan);
 
+  // DRAFT_THINKING §6.1 (ban): campionii care ar întări cel mai mult identitatea inamicului.
+  // Cu ≥ 2 pick-uri: identitatea din pick-uri; altfel, la user, planul dedus din ban-urile lui.
+  const enemyBanSide: Side = step.side === "blue" ? "red" : "blue";
+  const enemyBanIdentity: { dominant: DraftPlanType | null; strength: number } =
+    enemyState.picks.length >= DRAFT_THINKING_CONFIG.compCounter.minEnemyPicks
+      ? readCompIdentity(enemyState.picks)
+      : !isAiSide(series, enemyBanSide)
+        ? { dominant: deduceUserPlan(game, enemyBanSide), strength: 0.5 }
+        : { dominant: null, strength: 0 };
+  const identityBanBonus = getEnemyIdentityBanBonus(
+    candidate,
+    enemyBanIdentity,
+    ownState.picks.length ? readCompIdentity(ownState.picks).dominant : aiBanPlan?.type ?? null
+  );
+
   // UPGRADE 13: Preemptive ban on user-favorite OP champions
   const userFavoriteBan = getUserFavoriteBanBonus(candidate, series);
 
@@ -1702,6 +1743,7 @@ function scoreBanCandidate(
     comfortRepeatThreat +
     trapBanReduction +
     planAdaptiveBanBonus +
+    identityBanBonus +             // §6.1: întărește identitatea inamicului
     userFavoriteBan +
     protectOwnCompBonus +          // DRAFT FINAL FIX 3
     mustWithBanBonus +

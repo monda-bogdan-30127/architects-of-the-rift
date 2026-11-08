@@ -19,7 +19,8 @@ import {
 import { chooseAiAction, getPickCandidatePool, scoreDraftCandidate } from "@/app/draft-engine/draftAI";
 import { hasThinPool } from "@/app/draft-engine/draftMasteryGate";
 import { getBotDuoState } from "@/app/draft-engine/botDuoPlan";
-import { isPriorityPick } from "@/app/draft-engine/draftPlanSystem";
+import { getPlanAlignmentBonus, isPriorityPick, type DraftPlanType } from "@/app/draft-engine/draftPlanSystem";
+import { getCandidateIdentityFit } from "@/app/draft-engine/compIdentity";
 import { getMetaPriorityScore } from "@/app/draft-engine/draftEvaluator";
 import type {
   ActiveDraftSeries,
@@ -731,13 +732,17 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
   const lockedSame = b3?.breakdown?.plan?.type === b4?.breakdown?.plan?.type && b4?.breakdown?.plan?.type === b5?.breakdown?.plan?.type;
   const anchored = bluePicks.slice(1).every((entry) => entry.breakdown?.plan?.anchorChampionId === "vi");
   const viPriority = isPriorityPick("vi", "jungle", makeSave().updatedTeamRosters[BLUE] ?? {});
+  const lockedType = (b5?.breakdown?.plan?.type ?? "dive") as DraftPlanType;
+  const fitting = champions.find((c) => getCandidateIdentityFit(c, c.roles[0], lockedType) >= 2)!;
+  const pick5Alignment = getPlanAlignmentBonus(fitting, fitting.roles[0], { type: lockedType, confidence: 1, reasoning: [] }, 5);
   check(
     "19. B1 Vi → plan dive/pick, blocat după pick 3, B4/B5 aliniate",
-    // Înainte, de la pick-ul 5 alinierea era mereu 0; acum planul rămâne activ și blocat (o aliniere 0 = fit 0).
+    // Înainte, de la pick-ul 5 alinierea era mereu 0; acum planul rămâne activ și blocat. Pick-urile alese pot
+    // avea fit 0 (aliniere 0), deci verificăm direct: pe pick-ul 5, un campion cu fit ≠ 0 are aliniere ≠ 0.
     plans.every((type) => type === "dive" || type === "pick") && lockedSame && anchored &&
       b4?.breakdown?.plan?.lockedAtPick === 3 && b5?.breakdown?.plan?.lockedAtPick === 3 &&
-      ((b4?.breakdown?.planAlignment ?? 0) !== 0 || (b5?.breakdown?.planAlignment ?? 0) !== 0),
-    `Vi priority=${viPriority}; plan B2..B5: ${plans.join(", ")}; ancoră vi: ${anchored}; aliniere B4 ${b4?.breakdown?.planAlignment?.toFixed(2)}, B5 ${b5?.breakdown?.planAlignment?.toFixed(2)}; pick-uri: ${bluePicks.map((entry) => entry.championId).join(", ")}; „${b2?.breakdown?.explanation?.find((line) => line.startsWith("Plan:")) ?? ""}”`,
+      typeof b5?.breakdown?.planAlignment === "number" && pick5Alignment !== 0,
+    `Vi priority=${viPriority}; plan B2..B5: ${plans.join(", ")}; ancoră vi: ${anchored}; aliniere B4 ${b4?.breakdown?.planAlignment?.toFixed(2)}, B5 ${b5?.breakdown?.planAlignment?.toFixed(2)}, pick 5 cu ${fitting.id}: ${pick5Alignment.toFixed(2)}; pick-uri: ${bluePicks.map((entry) => entry.championId).join(", ")}; „${b2?.breakdown?.explanation?.find((line) => line.startsWith("Plan:")) ?? ""}”`,
   );
 }
 
@@ -787,6 +792,27 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     "21. Win condition Kog'Maw → Lulu susține, Aphelios penalizat",
     lulu.winCondition?.championId === "kogmaw" && has(lulu, "Susține win condition") && has(aphelios, "carry de protejat"),
     `win condition: ${lulu.winCondition?.championId} (${lulu.winCondition?.kind}); Lulu: „${lulu.explanation?.find((line) => line.includes("win condition")) ?? "—"}”; Aphelios: „${aphelios.explanation?.find((line) => line.includes("protejat")) ?? "—"}”`,
+  );
+}
+
+// ─── 22. Tunnel vision (DRAFT_THINKING §6.2) ──────────────────────────────────
+{
+  // Albaștrii: Vi + Nocturne (dive) contra poke (Jayce / Xerath / Ziggs). Camille ar face comp-ul dive
+  // (bate poke), dar pierde linia vs Jayce → bonus redus, `tunnel-vision`.
+  const series = newSeries("s22", BLUE, RED);
+  const save = makeSave();
+  const game: DraftGameState = {
+    ...series.games[0],
+    bansBlue: ["azir", "orianna", "rumble"], bansRed: ["sejuani", "ksante", "taliyah"],
+    picksBlue: ["vi", "nocturne"], pickRolesBlue: { vi: "jungle", nocturne: "mid" },
+    picksRed: ["jayce", "xerath", "ziggs"], pickRolesRed: { jayce: "top", xerath: "mid", ziggs: "adc" },
+    phaseIndex: 10,
+  };
+  const camille = scoreDraftCandidate(champions.find((c) => c.id === "camille")!, getCurrentStep(game)!, game, series, save);
+  check(
+    "22. Comp counter care pierde linia → tunnel-vision",
+    hasTag(camille, "tunnel-vision") && (camille.compCounterValue ?? 0) < 0.5,
+    `Camille: compCounterValue ${camille.compCounterValue?.toFixed(2)}, „${camille.explanation?.find((line) => line.includes("pierde linia")) ?? "—"}”`,
   );
 }
 

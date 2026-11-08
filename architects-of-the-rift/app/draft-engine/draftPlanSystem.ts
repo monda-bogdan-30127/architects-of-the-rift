@@ -26,7 +26,7 @@ import type { Champion, Role } from "@/app/types/champion";
 import type { ActiveDraftSeries, DraftGameState, DraftSave, Side } from "./draftTypes";
 import { ROLE_ORDER } from "./draftTypes";
 import { getChampionRoleProfile } from "./championProfileSystem";
-import { getCandidateIdentityFit, getIdentityTags, readCompIdentity, type CompIdentity } from "./compIdentity";
+import { COMP_COUNTER_MATRIX, getCandidateIdentityFit, getIdentityTags, readCompIdentity, type CompIdentity } from "./compIdentity";
 import { getMetaPriorityScore, getComfortScore } from "./draftEvaluator";
 import { getPlayerChampionHistoryMetrics } from "./playerHistoryEvaluator";
 import { resolveRoleAssignments } from "./draftRoleResolver";
@@ -284,6 +284,11 @@ export function chooseDraftPlan(args: {
     ? isPriorityPick(anchorId, roleOf(anchorId), args.aiRoster, args.isSeasonFavorite)
     : false;
   const anchorWeight = aiPicks.length ? (anchorIsPriority ? PLAN.priorityAnchorWeight : PLAN.anchorWeight) : 0;
+  const enemyPicks = args.side === "blue" ? args.game.picksRed : args.game.picksBlue;
+  const enemyIdentity =
+    enemyPicks.length >= DRAFT_THINKING_CONFIG.compCounter.minEnemyPicks
+      ? readCompIdentity(enemyPicks)
+      : { dominant: null, strength: 0 };
   const getAnchorFit = (plan: DraftPlanType) => {
     let total = 0;
     let weight = 0;
@@ -325,12 +330,18 @@ export function chooseDraftPlan(args: {
       userWeakness * 0.15;     // Exploit user weaknesses where possible
     // §4.2: ancora ia `anchorWeight`, restul ponderilor se scalează ca suma să rămână 1.
     const anchorFit = anchorWeight > 0 ? getAnchorFit(plan) : 0;
-    const score = baseScore * (1 - anchorWeight) + anchorFit * anchorWeight;
+    // §6.1: cu ≥ 2 pick-uri inamice, cât de bine bate planul identitatea lor (0..1).
+    const enemyCompMatchup = enemyIdentity.dominant
+      ? clamp((COMP_COUNTER_MATRIX[plan][enemyIdentity.dominant] * enemyIdentity.strength + 1) / 2, 0, 1)
+      : 0;
+    const enemyWeight = enemyIdentity.dominant ? DRAFT_THINKING_CONFIG.compCounter.planWeight : 0;
+    const score =
+      (baseScore * (1 - anchorWeight) + anchorFit * anchorWeight) * (1 - enemyWeight) + enemyCompMatchup * enemyWeight;
 
     scored.push({
       plan,
       score,
-      breakdown: { metaCoverage, rosterFit, seriesAdapt, userWeakness, anchorFit },
+      breakdown: { metaCoverage, rosterFit, seriesAdapt, userWeakness, anchorFit, enemyCompMatchup },
     });
   }
 
