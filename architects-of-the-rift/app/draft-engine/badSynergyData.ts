@@ -28,7 +28,9 @@ export const BAD_SYNERGIES: BadSynergyEntry[] = [
   { championIds: ["jhin", "braum"], score: 2.5 },
   { championIds: ["ziggs", "lulu"], score: 3.0 },
   // Jhin + Lulu: Jhin is a carry, Lulu scales with carries — but Jhin doesn't want shields at range
-  { championIds: ["jhin", "lulu"], score: 2.0 },
+  { championIds: ["kaisa", "lulu"], score: 3.0 },
+  { championIds: ["kaisa", "karma"], score: 3.0 },
+  { championIds: ["kaisa", "seraphine"], score: 3.0 },
 
   // Kogmaw + Pyke: Pyke is a roamer, abandons Kog
   { championIds: ["kog-maw", "pyke"], score: 4.0 },
