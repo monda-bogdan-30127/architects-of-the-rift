@@ -1,5 +1,5 @@
 export type TeamIdentity = {
-  preferredStyles: Array<"front-to-back" | "pick" | "dive" | "poke" | "teamfight" | "balanced">;
+  preferredStyles: Array<"front-to-back" | "pick" | "dive" | "poke" | "teamfight" | "protect-carry" | "balanced">;
   preferredTags: string[];
   avoidTags?: string[];
   riskLevel: number;

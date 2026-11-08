@@ -27,6 +27,7 @@ import {
   type LockedRoles,
 } from "./draftRoleResolver";
 import { getBestOpenRoleGradeRank, getMasteryGate, getReassignmentCheck } from "./draftMasteryGate";
+import { getCandidateIdentityFit, readCompIdentity } from "./compIdentity";
 import {
   getBotDuoState,
   getDuoFallbackBonus,
@@ -753,65 +754,24 @@ function getComboDependencyPenalty(
   return clamp(penalty, 0, 8);
 }
 
+/**
+ * Coerența candidatului cu identitatea emergentă a compoziției (DRAFT_THINKING §3):
+ * aceeași sursă ca planul și evaluatorul (`readCompIdentity` + `getCandidateIdentityFit`);
+ * acoperă toate cele 6 identități, inclusiv teamfight și protect-carry.
+ */
 function getWinConditionCoherenceScore(
   ownPicks: string[],
   candidate: Champion,
-  projectedRole: Role | null
+  projectedRole: Role | null,
+  ownAssignments?: Partial<Record<Role, string>>
 ): number {
   if (ownPicks.length < 2) return 0; // Too early to have a clear identity
 
-  // Build current comp identity from existing picks
-  const existingOffers: Record<string, number> = {};
-  for (const pickedId of ownPicks) {
-    const picked = getChampionById(pickedId);
-    if (!picked) continue;
-    for (const offer of picked.offers) {
-      existingOffers[offer.type] = (existingOffers[offer.type] ?? 0) + offer.strength;
-    }
-  }
+  const identity = readCompIdentity(ownPicks, ownAssignments);
+  if (!identity.dominant) return 0; // No clear identity yet
 
-  // Detect emerging identity
-  const diveSignal = (existingOffers["dive"] ?? 0) + (existingOffers["backlineAccess"] ?? 0) + (existingOffers["engage"] ?? 0);
-  const pokeSignal = (existingOffers["poke"] ?? 0) + (existingOffers["siege"] ?? 0) + (existingOffers["waveclear"] ?? 0);
-  const pickSignal = (existingOffers["pick"] ?? 0) + (existingOffers["reliableCC"] ?? 0) + (existingOffers["roamPressure"] ?? 0);
-  const frontToBackSignal = (existingOffers["frontline"] ?? 0) + (existingOffers["peel"] ?? 0) + (existingOffers["sustainedDamage"] ?? 0);
-
-  const signals = [
-    { id: "dive", value: diveSignal },
-    { id: "poke", value: pokeSignal },
-    { id: "pick", value: pickSignal },
-    { id: "front-to-back", value: frontToBackSignal },
-  ].sort((a, b) => b.value - a.value);
-
-  const dominant = signals[0];
-  if (!dominant || dominant.value < 6) return 0; // No clear identity yet
-
-  // Check how well the candidate fits the dominant identity
-  const candidateOffers = new Set(candidate.offers.map((o) => String(o.type)));
-  const candidateProfile = getChampionRoleProfile(candidate, projectedRole);
-  const candidateTags = new Set(candidateProfile?.tags ?? []);
-
-  let coherence = 0;
-
-  switch (dominant.id) {
-    case "dive":
-      if (candidateTags.has("dive") || candidateTags.has("engage") || candidateTags.has("follow-up")) coherence += 2.0;
-      if (candidateOffers.has("poke") && !candidateTags.has("dive")) coherence -= 1.5; // poke in dive = bad
-      break;
-    case "poke":
-      if (candidateOffers.has("poke") || candidateOffers.has("siege") || candidateOffers.has("waveclear")) coherence += 2.0;
-      if (candidateTags.has("dive") && !candidateOffers.has("poke")) coherence -= 1.5; // dive piece in poke = bad
-      break;
-    case "pick":
-      if (candidateTags.has("pick") || candidateOffers.has("reliableCC") || candidateOffers.has("roamPressure")) coherence += 1.8;
-      break;
-    case "front-to-back":
-      if (candidateTags.has("frontline") || candidateTags.has("peel") || candidateOffers.has("sustainedDamage")) coherence += 1.8;
-      if (candidateTags.has("dive") && !candidateTags.has("frontline")) coherence -= 1.2;
-      break;
-  }
-
-  return clamp(coherence, -3, 3);
+  const fit = getCandidateIdentityFit(candidate, projectedRole, identity.dominant);
+  return clamp(fit * 0.75, -3, 3);
 }
 
 function scorePickCandidate(
@@ -959,7 +919,12 @@ function scorePickCandidate(
   const offMetaPenalty = getOffMetaPenalty(candidate, series, projected.projectedRole);
   const archetypeAffinity = getArchetypeAffinityScore(roster, projected.projectedRole, candidate);
   const comboDependencyPenalty = getComboDependencyPenalty(ownState.picks, candidate, projected.projectedRole);
-  const winConditionCoherence = getWinConditionCoherenceScore(ownState.picks, candidate, projected.projectedRole);
+  const winConditionCoherence = getWinConditionCoherenceScore(
+    ownState.picks,
+    candidate,
+    projected.projectedRole,
+    resolveRoleAssignments(ownState.picks, roster, lockedRoles)
+  );
   const proPickTiming = getProPickTimingBonus(candidate, game, step.side, projected.projectedRole);
 
   const adaptivePriority = getAdaptivePriorityBonus({

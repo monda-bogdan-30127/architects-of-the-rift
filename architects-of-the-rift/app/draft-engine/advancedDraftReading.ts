@@ -20,6 +20,7 @@ import type { ActiveDraftSeries, DraftGameState, Side } from "./draftTypes";
 import { getChampionById, getMetaPriorityScore } from "./draftEvaluator";
 import { getChampionRoleProfile } from "./championProfileSystem";
 import type { DraftPlan, DraftPlanType } from "./draftPlanSystem";
+import { COMP_COUNTER_MATRIX, COMP_IDENTITIES, getCandidateIdentityFit, readCompIdentity } from "./compIdentity";
 import { getUserPickCounts } from "./userDraftMemory";
 import { clamp, seededNoise } from "./matchSimulationUtils";
 
@@ -106,21 +107,9 @@ export function getContestedPickUrgency(args: {
   if (metaPriority >= 8) contestedScore += 1.2;
   else if (metaPriority >= 7) contestedScore += 0.6;
 
-  // Factor 3: Fits AI plan = AI really wants it
-  if (plan) {
-    const profile = getChampionRoleProfile(candidate);
-    const tags = new Set(profile?.tags ?? []);
-    const planDesiredTags: Record<DraftPlanType, string[]> = {
-      "dive":          ["dive", "engage", "follow-up"],
-      "poke":          ["poke", "zone-control", "disengage"],
-      "pick":          ["pick", "burst", "reliableCC"],
-      "front-to-back": ["frontline", "peel", "dps"],
-      "teamfight":     ["engage", "frontline", "follow-up"],
-      "protect-carry": ["peel", "warden", "dps"],
-    };
-    const desired = planDesiredTags[plan.type] ?? [];
-    const matches = desired.filter((t) => tags.has(t)).length;
-    if (matches >= 2) contestedScore += 1.0 * plan.confidence;
+  // Factor 3: Fits AI plan = AI really wants it (fit din compIdentity.ts, DRAFT_THINKING §3)
+  if (plan && getCandidateIdentityFit(candidate, null, plan.type) >= 2) {
+    contestedScore += 1.0 * plan.confidence;
   }
 
   return clamp(contestedScore, 0, 3);
@@ -173,6 +162,11 @@ export function deduceUserPlan(
   game: DraftGameState,
   userSide: Side
 ): DraftPlanType | null {
+  // DRAFT_THINKING §3: cu ≥ 2 pick-uri, identitatea vine din ce a luat (aceeași sursă ca restul draftului);
+  // ban-urile rămân semnal doar pentru 0–1 pick-uri.
+  const userPicks = userSide === "blue" ? game.picksBlue : game.picksRed;
+  if (userPicks.length >= 2) return readCompIdentity(userPicks).dominant;
+
   const userBans = userSide === "blue" ? game.bansBlue : game.bansRed;
   if (userBans.length < 2) return null;
 
@@ -224,28 +218,14 @@ export function getCounterToUserPlanBonus(
 ): number {
   if (!deducedUserPlan) return 0;
 
-  const profile = getChampionRoleProfile(candidate);
-  if (!profile) return 0;
-  const tags = new Set(profile.tags ?? []);
-
-  // Counter tags per deduced user plan
-  const counterTags: Record<DraftPlanType, string[]> = {
-    "dive":          ["peel", "warden", "enchanter", "disengage", "anti-dive"],
-    "poke":          ["dive", "engage", "gap-closer"],
-    "pick":          ["warden", "peel", "group-up"],
-    "front-to-back": ["dive", "backlineAccess", "burst"],
-    "teamfight":     ["pick", "poke"],
-    "protect-carry": ["dive", "pick", "burst"],
-  };
-
-  const counters = counterTags[deducedUserPlan] ?? [];
-  let matches = 0;
-  for (const tag of counters) {
-    if (tags.has(tag)) matches += 1;
+  // DRAFT_THINKING §3 / §6.1: candidatul întărește o identitate care o bate pe a userului.
+  let best = 0;
+  for (const identity of COMP_IDENTITIES) {
+    const edge = COMP_COUNTER_MATRIX[identity][deducedUserPlan];
+    if (edge <= 0) continue;
+    best = Math.max(best, edge * getCandidateIdentityFit(candidate, null, identity));
   }
-
-  if (matches === 0) return 0;
-  return clamp(matches * 0.9, 0, 2.5);
+  return clamp(best * 0.9, 0, 2.5);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

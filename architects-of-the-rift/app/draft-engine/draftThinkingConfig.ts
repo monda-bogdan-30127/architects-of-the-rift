@@ -47,4 +47,37 @@ export const DRAFT_THINKING_CONFIG = {
     /** §2.4 — userul „joacă des” un duo: fiecare campion luat de cel puțin atâtea ori. */
     userDuoMinPicks: 2,
   },
+
+  // §3 — identitatea compoziției (compIdentity.ts)
+  identity: {
+    /** Ponderea fit-ului de tag-uri (pe campion) în semnal, față de `offers`. */
+    tagWeight: 0.5,
+    /** Tag evitat: −atât la fit-ul de tag-uri. */
+    avoidTagWeight: 1.2,
+    /**
+     * `offers` din identitate la fit-ul unui candidat: × strength. 0 = fit-ul e doar pe tag-uri
+     * (ca vechiul `scoreChampionForPlan`); cu 0.25 distribuția se muta spre pick/dive (calibrare §3).
+     */
+    fitOfferWeight: 0,
+    /** protect-carry: bonus brut dacă echipa are un carry `hard-protect`. */
+    hardProtectCarryBonus: 4,
+    /** Semnal = brut (scalat la 5 pick-uri) / signalScale (mediana unei comp finale ≈ 5). */
+    signalScale: 5,
+    /** Sub acest semnal: identitate neclară („balanced”) = vechiul prag de 7 brut pe 5 pick-uri. */
+    threshold: 1.4,
+    /** Semnalul la care `strength` ajunge la maxim (cu un dominant clar). */
+    fullStrengthSignal: 7,
+  },
+
+  // §5 — coeziune (perechile incompatibile sunt folosite deja de `readCompIdentity().split`)
+  cohesion: {
+    incompatiblePairs: [
+      ["dive", "poke"],
+      ["dive", "protect-carry"],
+      ["pick", "front-to-back"],
+      ["poke", "teamfight"],
+    ] as [string, string][],
+    /** split: runnerUp ≥ splitRatio × dominant. */
+    splitRatio: 0.8,
+  },
 } as const;

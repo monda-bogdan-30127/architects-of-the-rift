@@ -122,7 +122,7 @@ export type TeamDraftEvaluation = {
   carryProtectionPenalty: number;
   executionDifficultyPenalty: number;
   rosterExecutionScore: number;
-  compIdentity: "front-to-back" | "pick" | "dive" | "poke" | "teamfight" | "balanced";
+  compIdentity: "front-to-back" | "pick" | "dive" | "poke" | "teamfight" | "protect-carry" | "balanced";
   draftPower: number;
   missingNeeds: NeedStatus[];
   topStrengths: Array<{ type: CompAttribute; value: number }>;

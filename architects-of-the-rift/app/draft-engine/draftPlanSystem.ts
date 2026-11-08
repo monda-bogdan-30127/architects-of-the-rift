@@ -26,6 +26,7 @@ import type { Champion, Role } from "@/app/types/champion";
 import type { ActiveDraftSeries, DraftGameState, DraftSave, Side } from "./draftTypes";
 import { ROLE_ORDER } from "./draftTypes";
 import { getChampionRoleProfile } from "./championProfileSystem";
+import { getCandidateIdentityFit, getIdentityTags, readCompIdentity, type CompIdentity } from "./compIdentity";
 import { getMetaPriorityScore, getComfortScore } from "./draftEvaluator";
 import { getPlayerChampionHistoryMetrics } from "./playerHistoryEvaluator";
 
@@ -46,13 +47,11 @@ function hashString(s: string): number {
 
 // ─── Plan types ──────────────────────────────────────────────────────────────
 
-export type DraftPlanType =
-  | "dive"
-  | "poke"
-  | "pick"
-  | "front-to-back"
-  | "teamfight"
-  | "protect-carry";
+/**
+ * Planul AI = o identitate de compoziție (DRAFT_THINKING §3: aceleași valori ca
+ * `CompIdentity`). Nu e `DraftPlanType` din draftTypes.ts (secure-power, protect-blind…).
+ */
+export type DraftPlanType = CompIdentity;
 
 export type DraftPlan = {
   type: DraftPlanType;
@@ -60,53 +59,15 @@ export type DraftPlan = {
   reasoning: string[];
 };
 
-// Which tags a plan wants from its champions
-const PLAN_DESIRED_TAGS: Record<DraftPlanType, string[]> = {
-  "dive":            ["dive", "engage", "follow-up", "burst", "backlineAccess"],
-  "poke":            ["poke", "zone-control", "disengage", "waveclear", "ranged"],
-  "pick":            ["pick", "burst", "reliableCC", "roamPressure"],
-  "front-to-back":   ["frontline", "peel", "dps", "sustainedDamage", "warden"],
-  "teamfight":       ["engage", "follow-up", "frontline", "peel", "dps"],
-  "protect-carry":   ["peel", "warden", "enchanter", "frontline", "dps", "anti-dive"],
-};
-
-// Which tags a plan AVOIDS (negative match)
-const PLAN_AVOID_TAGS: Record<DraftPlanType, string[]> = {
-  "dive":            ["poke", "warden"],
-  "poke":            ["dive", "melee"],
-  "pick":            ["warden"],
-  "front-to-back":   ["dive", "burst"],
-  "teamfight":       [],
-  "protect-carry":   ["dive", "poke"],
-};
-
 // ─── Plan scoring ────────────────────────────────────────────────────────────
 
-/**
- * Score how well a single champion fits a plan.
- * Positive = good fit, negative = bad fit.
- */
+/** Cât de bine se potrivește un campion cu planul (−3..+3) — o singură sursă: compIdentity.ts. */
 function scoreChampionForPlan(
   champion: Champion,
   role: Role | null,
   plan: DraftPlanType
 ): number {
-  const profile = role ? getChampionRoleProfile(champion, role) : getChampionRoleProfile(champion);
-  if (!profile) return 0;
-
-  const tags = new Set(profile.tags ?? []);
-  const desired = PLAN_DESIRED_TAGS[plan];
-  const avoided = PLAN_AVOID_TAGS[plan];
-
-  let score = 0;
-  for (const tag of desired) {
-    if (tags.has(tag)) score += 1;
-  }
-  for (const tag of avoided) {
-    if (tags.has(tag)) score -= 1.2;
-  }
-
-  return score;
+  return getCandidateIdentityFit(champion, role, plan);
 }
 
 /**
@@ -212,24 +173,7 @@ function getSeriesAdaptationBonus(plan: DraftPlanType, series: ActiveDraftSeries
  */
 function guessPlanFromPicks(picks: string[]): DraftPlanType | null {
   if (picks.length < 3) return null;
-
-  const plans: DraftPlanType[] = ["dive", "poke", "pick", "front-to-back", "teamfight", "protect-carry"];
-  let bestPlan: DraftPlanType | null = null;
-  let bestScore = -Infinity;
-
-  for (const plan of plans) {
-    let total = 0;
-    for (const id of picks) {
-      const champ = champions.find((c) => c.id === id);
-      if (champ) total += scoreChampionForPlan(champ, null, plan);
-    }
-    if (total > bestScore) {
-      bestScore = total;
-      bestPlan = plan;
-    }
-  }
-
-  return bestScore >= 4 ? bestPlan : null;
+  return readCompIdentity(picks).dominant;
 }
 
 /**
@@ -267,7 +211,7 @@ function getUserWeaknessBonus(
       // If weak champion is counter-able by this plan's tags, bonus
       const weakProfile = getChampionRoleProfile(weakChamp, role);
       const weakTags = new Set(weakProfile?.tags ?? []);
-      const planDesired = PLAN_DESIRED_TAGS[plan];
+      const planDesired = getIdentityTags(plan).desired;
 
       // Example: user bad at Zeri (ranged/self-sufficient) → dive plan exploits
       if (weakTags.has("ranged") && planDesired.includes("dive")) bonus += 0.1;

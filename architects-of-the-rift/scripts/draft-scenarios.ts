@@ -686,7 +686,10 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
   // 18. În faza 1 de ban, AI-ul nu-și banează membrii celui mai bun duo propriu (clar peste al doilea).
   let violations = 0;
   let protectedSeen = 0;
-  const pairs: [string, string][] = [["geng", "t1"], ["hle", "kt"], ["blg", "jdg"], ["g2", "fnc"], ["tes", "al"]];
+  // Toate echipele, în perechi: destule ture în care cel mai bun duo e clar peste al doilea.
+  const slugs = teams.map((team) => team.slug ?? team.id);
+  const pairs: [string, string][] = [];
+  for (let index = 0; index + 1 < slugs.length; index += 2) pairs.push([slugs[index], slugs[index + 1]]);
   for (const [blue, red] of pairs) {
     const save = makeSave();
     const series = newSeries(`s18-${blue}`, blue, red);

@@ -14,6 +14,7 @@ import { getMatchupValueVsTeam, getTeamPhaseWeights } from "./matchupScoring";
 import { MUSTWITH_CONFIG, getCompletedMustWithPairs, hadAvailableUnusedPartner } from "./mustWithPriority";
 import { getBadSynergyPenalty } from "./badSynergy";
 import { resolveRoleAssignments } from "./draftRoleResolver";
+import { readCompIdentity } from "./compIdentity";
 import { evaluateTeamIdentity } from "./teamIdentitySystem";
 import { evaluateSimulationReadiness } from "./simulationReadinessSystem";
 import {
@@ -47,10 +48,6 @@ const PROTECTION_ATTRIBUTES = ["peel", "antiDive", "disengage", "frontline"];
 const ANTI_DIVE_ATTRIBUTES = ["antiDive", "peel", "disengage", "frontline"];
 const PRIMARY_ENGAGE_ATTRIBUTES = ["engage", "pick"];
 const FOLLOW_UP_ATTRIBUTES = ["followUp", "burstDamage"];
-const POKE_ATTRIBUTES = ["poke", "siege", "waveclear"];
-const DIVE_ATTRIBUTES = ["dive", "backlineAccess", "engage", "roamPressure"];
-const PICK_ATTRIBUTES = ["pick", "reliableCC", "roamPressure", "burstDamage"];
-const TEAMFIGHT_ATTRIBUTES = ["engage", "followUp", "frontline", "peel"];
 const HARD_PROTECT_CARRY_IDS = new Set(["kogmaw", "jinx", "aphelios", "vayne", "yunara", "zeri"]);
 const RANGE_SAFE_IDS = new Set(["ezreal", "corki", "xayah", "zeri", "lucian", "sivir", "varus", "jinx", "kogmaw"]);
 
@@ -123,21 +120,12 @@ function evaluateDamageBalance(championIds: string[]) {
   return clamp(score, 0, 10);
 }
 
-function inferCompIdentity(vector: TeamCompVector): TeamDraftEvaluation["compIdentity"] {
-  const pickValue = PICK_ATTRIBUTES.reduce((sum, key) => sum + vectorValue(vector, key), 0);
-  const diveValue = DIVE_ATTRIBUTES.reduce((sum, key) => sum + vectorValue(vector, key), 0);
-  const pokeValue = POKE_ATTRIBUTES.reduce((sum, key) => sum + vectorValue(vector, key), 0);
-  const teamfightValue = TEAMFIGHT_ATTRIBUTES.reduce((sum, key) => sum + vectorValue(vector, key), 0);
-  const frontToBackValue = vectorValue(vector, "frontline") + vectorValue(vector, "peel") + vectorValue(vector, "disengage");
-  const ranked = [
-    { key: "front-to-back" as const, value: frontToBackValue },
-    { key: "pick" as const, value: pickValue },
-    { key: "dive" as const, value: diveValue },
-    { key: "poke" as const, value: pokeValue },
-    { key: "teamfight" as const, value: teamfightValue },
-  ].sort((a, b) => b.value - a.value);
-  if ((ranked[0]?.value ?? 0) < 7) return "balanced";
-  return ranked[0]?.key ?? "balanced";
+/** Identitatea finală — din `readCompIdentity` (DRAFT_THINKING §3), aceeași sursă ca draftul. */
+function inferCompIdentity(
+  championIds: string[],
+  assignments: Partial<Record<Role, string>>
+): TeamDraftEvaluation["compIdentity"] {
+  return readCompIdentity(championIds, assignments).dominant ?? "balanced";
 }
 
 function evaluateRoleCoverage(championIds: string[]) {
@@ -509,7 +497,7 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
   const shortRangePenalty = evaluateShortRangePenalty(context.championIds);
   const carryProtectionPenalty = evaluateCarryProtectionPenalty(context.championIds, vector);
   const executionDifficultyPenalty = evaluateExecutionDifficultyPenalty(context.championIds);
-  const compIdentity = inferCompIdentity(vector);
+  const compIdentity = inferCompIdentity(context.championIds, assignments);
   const accessScore = evaluateAccessScore(context.championIds);
   const threatScore = evaluateThreatScore(context.championIds);
   const roleProfileScore = getRoleProfileScore(context.championIds);

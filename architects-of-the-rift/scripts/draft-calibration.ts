@@ -63,6 +63,7 @@ let draftEdgeGames = 0;
 let draftEdgeWins = 0;
 const counterScoreDiffs: number[] = [];
 const games: unknown[] = [];
+const compIdentities: Record<string, number> = {};
 const mustWith = { locks: 0, botPairs: 0, otherPairs: 0, ownPartnerBans: 0 };
 const bluePhaseWins = { early: 0, mid: 0, late: 0 };
 
@@ -140,7 +141,12 @@ for (let index = 0; index < gameCount; index += 1) {
     winner,
     counterScoreBlue: evaluationBlue.counterScore,
     counterScoreRed: evaluationRed.counterScore,
+    compIdentityBlue: evaluationBlue.compIdentity,
+    compIdentityRed: evaluationRed.compIdentity,
   });
+  for (const identity of [evaluationBlue.compIdentity, evaluationRed.compIdentity]) {
+    compIdentities[identity] = (compIdentities[identity] ?? 0) + 1;
+  }
 }
 
 const report = {
@@ -162,6 +168,8 @@ const report = {
     },
   },
   mustWith,
+  /** Distribuția identității finale a compozițiilor (evaluator), pe echipe. */
+  compIdentities,
 };
 console.log(JSON.stringify(report, null, 2));
 if (outFile) writeFileSync(outFile, JSON.stringify({ report, games }, null, 2));
