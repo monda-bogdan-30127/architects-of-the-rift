@@ -32,6 +32,11 @@ for (const pair of result.mustWithPairs) {
   console.log(`  ${pair.anchor.padEnd(24)} → ${pair.partnerId.padEnd(16)} ${pair.reciprocal ? "reciproc" : "într-un sens"}`);
 }
 
+console.log(`\nINFO — anti-sinergii badSynergyWith (${result.badSynergyPairs.length}, simetrice; după level):`);
+for (const pair of result.badSynergyPairs) {
+  console.log(`  L${pair.level}  ${`${pair.ownerId} + ${pair.partnerId}`.padEnd(24)} ${pair.note}`);
+}
+
 const coverage = result.profileCoverage;
 console.log("\nINFO — profile manuale (roleData[rol].profile), per rol:");
 for (const [role, { withProfile, total }] of Object.entries(coverage.byRole)) {

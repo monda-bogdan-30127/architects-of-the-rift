@@ -9,6 +9,7 @@ Cum sunt organizate datele campionilor și cum le modifici de mână. Căile sun
 | Tot ce ține de un campion: identitate, compoziție, statistici globale, date pe rol | `app/data/champions/<id>.ts` — un fișier per campion |
 | Ordinea campionilor + post-procesarea (`carryProfileOverrides`, merge `synergyWith`) | `app/data/champions/index.ts` |
 | `createChampion`, `mergeWeaknesses` | `app/data/champions/_helpers.ts` |
+| Sinergii (`synergyWith`) și anti-sinergii (`badSynergyWith`): global pe campion, nu pe rol | în fișierul campionului; penalizarea pe `level` în `app/draft-engine/badSynergy.ts` |
 | Gradele de mastery ale jucătorilor (SS…F) | `app/data/championMasteryOverrides.ts` |
 | Corecții manuale ale profilului pe rol (abilități, threat, identitate pe faze…) | `roleData[rol].profile` în fișierul campionului |
 | Cum se derivă profilul automat | `app/draft-engine/championProfileSystem.ts` |
@@ -21,7 +22,8 @@ Engine-ul citește datele pe rol **doar** prin getter-e:
 
 - `getRoleMatchups` / `getMustWith` / `getMustWithPartners` din `app/draft-engine/championMatchups.ts`;
 - `getChampionStatsForRole` din `app/draft-engine/championRoleStatsSystem.ts`;
-- `getChampionRoleProfile` din `app/draft-engine/championProfileSystem.ts`.
+- `getChampionRoleProfile` din `app/draft-engine/championProfileSystem.ts`;
+- anti-sinergiile (`badSynergyWith`, global) prin `getBadSynergy` / `getTotalBadSynergy` din `app/draft-engine/badSynergy.ts`.
 
 Nimic altceva nu citește `champion.roleData` direct, cu excepția validatorului.
 
@@ -39,6 +41,11 @@ export const poppy = createChampion({
 
   synergyWith: [
     { championId: "sivir", score: 4 },
+  ],
+
+  // opțional, doar dacă există
+  badSynergyWith: [
+    { championId: "pyke", level: 3, note: "…" },
   ],
 
   offers: [
@@ -72,7 +79,7 @@ export const poppy = createChampion({
 
 Reguli de formatare, la fel în toate fișierele:
 
-- **Ordinea câmpurilor:** identitate (`id`, `name`, `image`, `roles`, `damageProfile`) → compoziție (`synergyWith`, `offers`, `needs`, `weaknesses`, `playerScaling`, `carryProfile` dacă e explicit) → `stats` → `roleData`.
+- **Ordinea câmpurilor:** identitate (`id`, `name`, `image`, `roles`, `damageProfile`) → compoziție (`synergyWith`, `badSynergyWith` dacă există, `offers`, `needs`, `weaknesses`, `playerScaling`, `carryProfile` dacă e explicit) → `stats` → `roleData`.
 - **`roleData` are exact cheile din `roles`, în aceeași ordine.** Într-un rol: `goodVs`, `mustWith` (opțional, doar dacă există), `stats`, apoi `profile` (opțional).
 - **Nu se scrie `weakVs`** (e generat automat, vezi mai jos) și **nici `mustWith: []`**. Validatorul dă eroare la ambele.
 - `synergyWith` e global pe campion, nu pe rol.
@@ -159,6 +166,49 @@ Combinațiile noi, imposibile înainte (de exemplu un hard counter doar pe linie
 - **Botlane = override:** dacă echipa are deja ancora pe adc/support, următorul pick e partenerul eligibil din `mustWith`-ul ancorei. Eligibil = liber, rolul complementar liber, iar jucătorul de pe acel rol are grad **≥ C** pe partener. Pe alte roluri e un bonus mare, nu override.
 - **Atenție la mastery:** dacă un jucător are override-uri în `championMasteryOverrides.ts`, orice campion lipsă din lista lui contează ca **F**. Partenerii trebuie trecuți acolo, altfel combo-ul nu se declanșează niciodată.
 - Perechile slabe (bonus mic, nu „must”) merg în `synergyWith`, nu în `mustWith`.
+
+## Anti-sinergii (`badSynergyWith`)
+
+Perechi de campioni care pierd valoare **împreună în aceeași echipă**, din cauza kit-urilor. Global pe campion (lângă `synergyWith`), nu pe rol. O relație: `{ championId, level, note }`, toate obligatorii.
+
+| level | Sens | Penalizare |
+|---|---|---|
+| **5** | **Se anulează reciproc**: kit-urile lucrează direct unul împotriva celuilalt | 4.0 |
+| **4** | **Conflict major de plan**: vor lucruri opuse de la joc (ex. support roamer + ADC care are nevoie de lane) | 3.5 |
+| **3** | **Conflict clar**: perechea pierde valoare vizibil, dar se poate juca | 3.0 |
+| **2** | **Ușor incompatibil**: o parte din valoarea unuia se pierde | 2.5 |
+| **1** | **Mic minus** | 2.0 |
+
+Penalizarea se scade din sinergia candidatului la pick (`getCompSynergyScore`, ×0.55). Valorile sunt în `BAD_SYNERGY_PENALTY` (`app/draft-engine/badSynergy.ts`).
+
+### Reguli
+
+- **Simetric, scris o singură dată**, ca la `goodVs`: perechea apare doar într-unul dintre cele două fișiere (pe botlane în fișierul ADC-ului, altfel al primului din pereche). Validatorul dă eroare dacă apare în ambele.
+- **Doar interacțiuni specifice perechii.** Probleme generice de compoziție (fără frontline, fără engage, double AP, prea mult scaling) **nu** se pun aici: le acoperă `offers` / `needs` și comp gate-ul.
+- **`note` obligatoriu**: o propoziție cu motivul concret.
+- **Nu în ambele liste**: același partener nu poate fi și în `synergyWith`, și în `badSynergyWith`.
+- `npm run validate:matchups` listează toate perechile, după `level`.
+
+### Exemple
+
+```ts
+// kogmaw.ts: Pyke pleacă din lane, Kog'Maw nu are cum să se apere singur
+badSynergyWith: [
+  { championId: "pyke", level: 5, note: "Pyke roamează, Kog'Maw rămâne singur în lane, fără peel" },
+],
+
+// kalista.ts: R-ul ei e valoros doar cu un support care are engage de livrat
+badSynergyWith: [
+  { championId: "nami", level: 2, note: "R-ul Kalistei aruncă suportul, Nami n-are engage de livrat" },
+],
+
+// ziggs.ts: buff-urile Lului se pierd pe un mage
+badSynergyWith: [
+  { championId: "lulu", level: 3, note: "Buff-urile Lului (W, E) sunt pentru auto-attackeri, Ziggs e mage" },
+],
+```
+
+Ce **nu** se scrie aici: Syndra + Lillia („fără frontline”) sau Kayle + Master Yi („double scaling”). Sunt probleme de compoziție, nu de pereche.
 
 ## Profil pe rol (`roleData[rol].profile`)
 
@@ -253,7 +303,7 @@ profile: {
 **După orice modificare de date**
 
 ```bash
-npm run validate:matchups          # structura roleData, level/phase, contradicții, mustWith (+ perechi), profile + acoperire
+npm run validate:matchups          # structura roleData, level/phase, contradicții, mustWith (+ perechi), badSynergyWith, profile + acoperire
 npm run matchups -- jax            # Bate / E bătut de (cu fișierul sursă) / mustWith / synergyWith, toate rolurile
 npm run matchups -- jax top        # un singur rol
 npm run matchups -- --uncountered  # campion × rol fără niciun counter, după presence (lista de lucru)

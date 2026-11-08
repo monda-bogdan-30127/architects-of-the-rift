@@ -19,6 +19,7 @@ import {
 } from "../draft-engine/championMatchups";
 import { MATCHUP_LEVELS, MATCHUP_PHASES, isMatchupLevel, isMatchupPhase } from "../draft-engine/matchupGrades";
 import { getChampionStatsForRole } from "../draft-engine/championRoleStatsSystem";
+import { getBadSynergyIssues, isBadSynergyLevel } from "../draft-engine/badSynergy";
 import type {
   Champion,
   ChampionRoleData,
@@ -53,6 +54,8 @@ export interface MatchupValidationResult {
    * partenerul are și el ancora în `mustWith` pe rolul complementar.
    */
   mustWithPairs: { anchor: string; partnerId: string; reciprocal: boolean }[];
+  /** Toate anti-sinergiile (`badSynergyWith`), după `level` descrescător. */
+  badSynergyPairs: { ownerId: string; partnerId: string; level: number; note: string }[];
   /** Acoperirea cu `profile` manual: per rol, plus lista celor fără, după `presence` descrescător. */
   profileCoverage: {
     byRole: Record<Role, { withProfile: number; total: number }>;
@@ -90,6 +93,7 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
   const warning = (key: string, message: string) => issues.push({ severity: "warning", key, message });
   const byId = new Map(champions.map((champion) => [champion.id, champion]));
   let explicitRelationCount = 0;
+  const badSynergyPairs: MatchupValidationResult["badSynergyPairs"] = [];
 
   // ── roleData: exact cheile din `roles` ───────────────────────────────────
   for (const owner of champions) {
@@ -103,6 +107,30 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
     }
     for (const [roleKey, entry] of Object.entries(owner.roleData ?? {})) {
       if (entry && isRole(roleKey)) validateRoleEntry(owner, roleKey, entry);
+    }
+    validateBadSynergy(owner);
+  }
+
+  // ── badSynergyWith (global pe campion) ───────────────────────────────────
+  function validateBadSynergy(owner: Champion) {
+    const seen = new Set<string>();
+    for (const relation of owner.badSynergyWith ?? []) {
+      const label = `badSynergyWith ${relation.championId}`;
+      const partner = byId.get(relation.championId);
+      if (!partner) error(owner.id, `${label}: campion inexistent`);
+      if (relation.championId === owner.id) error(owner.id, `${label}: self-reference`);
+      const level: unknown = relation.level;
+      if (!isBadSynergyLevel(level)) error(owner.id, `${label}: level ${String(level)} în afara 1..5`);
+      if (typeof relation.note !== "string" || relation.note.trim() === "") error(owner.id, `${label}: lipsește \`note\` (motivul concret)`);
+      if (seen.has(relation.championId)) error(owner.id, `${label}: duplicat`);
+      seen.add(relation.championId);
+      const inSynergy =
+        owner.synergyWith.some((entry) => entry.championId === relation.championId) ||
+        Boolean(partner?.synergyWith.some((entry) => entry.championId === owner.id));
+      if (inSynergy) error(owner.id, `${label}: perechea e și în synergyWith — alege una`);
+      if (partner && relation.championId !== owner.id && isBadSynergyLevel(level)) {
+        badSynergyPairs.push({ ownerId: owner.id, partnerId: relation.championId, level, note: relation.note });
+      }
     }
   }
 
@@ -195,6 +223,10 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
     for (const issue of getMatchupDerivationIssues()) {
       issues.push({ severity: issue.level, key: issue.key, message: issue.message });
     }
+    // Perechi badSynergyWith scrise în ambele fișiere (din indexul din badSynergy.ts).
+    for (const issue of getBadSynergyIssues()) {
+      issues.push({ severity: issue.level, key: issue.key, message: issue.message });
+    }
   }
 
   // ── Contradicții: același inamic în goodVs și weakVs efectiv ─────────────
@@ -277,6 +309,7 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
     levelPhaseCountsByRole,
     explicitRelationCount,
     mustWithPairs,
+    badSynergyPairs: badSynergyPairs.sort((a, b) => b.level - a.level || a.ownerId.localeCompare(b.ownerId)),
     profileCoverage: { byRole, missing },
   };
 }
