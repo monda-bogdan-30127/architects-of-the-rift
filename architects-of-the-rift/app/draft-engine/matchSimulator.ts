@@ -14,7 +14,7 @@ import {
   getChampionById,
   getPlayerById,
 } from "./draftEvaluator";
-import { resolveRoleAssignments } from "./draftRoleResolver";
+import { assignmentsCoverPicks, resolveRoleAssignments } from "./draftRoleResolver";
 import { ROLE_ORDER } from "./draftTypes";
 import type { MatchProfile, PhaseBreakdown, PlayerGameScore, TeamPhaseScores } from "./matchSimulationTypes";
 import { computeTendencyEvents } from "./tendencyEventSystem";
@@ -871,8 +871,13 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   const blueRoster = getTeamRoster(input.series.blueTeamSlug, input.save);
   const redRoster = getTeamRoster(input.series.redTeamSlug, input.save);
 
-  const assignmentsBlue = resolveRoleAssignments(input.game.picksBlue, blueRoster);
-  const assignmentsRed = resolveRoleAssignments(input.game.picksRed, redRoster);
+  // Rolurile hotărâte în draft (swap-urile userului, rolurile AI de la pick); altfel rezolvate cu rolurile blocate.
+  const assignmentsBlue = assignmentsCoverPicks(input.game.assignmentsBlue, input.game.picksBlue)
+    ? input.game.assignmentsBlue
+    : resolveRoleAssignments(input.game.picksBlue, blueRoster, input.game.pickRolesBlue);
+  const assignmentsRed = assignmentsCoverPicks(input.game.assignmentsRed, input.game.picksRed)
+    ? input.game.assignmentsRed
+    : resolveRoleAssignments(input.game.picksRed, redRoster, input.game.pickRolesRed);
 
   const blueChampionIds = Object.values(assignmentsBlue).filter(Boolean) as string[];
   const redChampionIds = Object.values(assignmentsRed).filter(Boolean) as string[];

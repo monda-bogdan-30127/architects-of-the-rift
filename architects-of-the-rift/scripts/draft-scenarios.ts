@@ -16,7 +16,9 @@ import {
   getAiChoice,
   getCurrentStep,
 } from "@/app/draft-engine/draftEngine";
-import { scoreDraftCandidate } from "@/app/draft-engine/draftAI";
+import { chooseAiAction, getPickCandidatePool, scoreDraftCandidate } from "@/app/draft-engine/draftAI";
+import { hasThinPool } from "@/app/draft-engine/draftMasteryGate";
+import { getMetaPriorityScore } from "@/app/draft-engine/draftEvaluator";
 import type {
   ActiveDraftSeries,
   DraftCandidateBreakdown,
@@ -103,7 +105,7 @@ function runDraft(args: {
       if (taken.includes(championId)) throw new Error(`forțare invalidă: ${championId} e deja luat/banat`);
     }
     log.push({ label: step.label, side: step.side, action: step.action, championId, breakdown });
-    game = commitActionToGame(game, championId, step.side, step.action);
+    game = commitActionToGame(game, championId, step.side, step.action, breakdown?.projectedRole);
     if (args.stop?.(log)) break;
   }
   return { game, log };
@@ -492,6 +494,132 @@ function firstPickThenR2(id: string, roster: Partial<Record<Role, string>>, firs
     "10d. Kog'Maw prima → R2 Lulu",
     r2?.championId === "lulu" && isLock(r2),
     `R2=${r2?.championId}, lock=${isLock(r2)} (support ${support}: Lulu ${grade(support, "lulu")})`,
+  );
+}
+
+// ─── 11–15. Champion mastery (DRAFT_THINKING §1) ─────────────────────────────
+// Jucătorii sunt aleși la rulare după grad; gradul nu depinde de slotul din roster.
+const RANK = { SS: 6, S: 5, A: 4, B: 3, C: 2, D: 1, F: 0 } as Record<string, number>;
+const teamPlayers = players.filter((p) => p.teamId !== "free-agent");
+/** Un jucător cu gradul pe campion în [min, max] și pool ne-subțire pe `poolRole`. */
+function findPlayer(
+  championId: string, min: number, max: number, poolRole: Role, exclude: string[] = [],
+  also: (playerId: string) => boolean = () => true,
+) {
+  const found = teamPlayers.find((p) => {
+    if (exclude.includes(p.id) || !also(p.id)) return false;
+    const rank = RANK[getChampionGrade(p, championId)];
+    return rank >= min && rank <= max && !hasThinPool(p, poolRole);
+  });
+  if (!found) throw new Error(`niciun jucător cu ${championId} în [${min}, ${max}]`);
+  return found.id;
+}
+const MASTERY_BANS = { bansBlue: ["azir", "jayce", "ksante"], bansRed: ["vi", "sejuani", "orianna"] };
+const hasTag = (entry: DraftCandidateBreakdown | null | undefined, tag: string) => Boolean(entry?.reasonTags?.includes(tag));
+const blockedPick = (entry: DraftCandidateBreakdown | null | undefined) =>
+  ["invalid-role-map", "breaks-own-pick", "mastery-f"].some((tag) => hasTag(entry, tag));
+
+// 11. Poppy luată pe support (A+), top și jungle au Poppy F → Braum (support pur) respins.
+{
+  const support = findPlayer("poppy", 4, 6, "support");
+  const top = findPlayer("poppy", 0, 0, "top", [support]);
+  const jungle = findPlayer("poppy", 0, 0, "jungle", [support, top]);
+  const save = makeSave({ [RED]: { support, top, jungle } });
+  const series = newSeries("s11", BLUE, RED);
+  const game: DraftGameState = {
+    ...series.games[0], ...MASTERY_BANS,
+    picksBlue: ["ahri"], picksRed: ["poppy"], pickRolesRed: { poppy: "support" }, phaseIndex: 8,
+  };
+  const step = getCurrentStep(game)!;
+  const braum = scoreDraftCandidate(champions.find((c) => c.id === "braum")!, step, game, series, save);
+  const choice = getAiChoice(series, game, step, save);
+  check(
+    "11. Poppy support (A+), top F → Braum respins, AI ia alt rol",
+    hasTag(braum, "breaks-own-pick") && choice !== null && choice.championId !== "braum" && !blockedPick(choice) && choice.projectedRole !== "support",
+    `Braum: ${braum.reasonTags?.filter((t) => t === "breaks-own-pick" || t === "invalid-role-map").join(",")} „${braum.explanation?.[0] ?? ""}”; R2=${choice?.championId} (${choice?.projectedRole}) [support ${support}: ${grade(support, "poppy")}, top ${top}: ${grade(top, "poppy")}]`,
+  );
+}
+
+// 12. Același caz, dar topul are Poppy ≥ C, cu ≥ 2 trepte sub support → Braum permis, Poppy mutată, penalizare.
+{
+  // Supportul trebuie să joace și Braum (≥ C), altfel Braum e oprit de gate-ul de mastery, nu de reasignare.
+  const support = findPlayer("poppy", 4, 6, "support", [], (id) => RANK[grade(id, "braum")] >= 2);
+  const supportRank = RANK[grade(support, "poppy")];
+  const top = findPlayer("poppy", 2, supportRank - 2, "top", [support]);
+  const jungle = findPlayer("poppy", 0, 0, "jungle", [support, top]);
+  const save = makeSave({ [RED]: { support, top, jungle } });
+  const series = newSeries("s12", BLUE, RED);
+  const game: DraftGameState = {
+    ...series.games[0], ...MASTERY_BANS,
+    picksBlue: ["ahri"], picksRed: ["poppy"], pickRolesRed: { poppy: "support" }, phaseIndex: 8,
+  };
+  const braum = scoreDraftCandidate(champions.find((c) => c.id === "braum")!, getCurrentStep(game)!, game, series, save);
+  const moved = braum.reassignment?.find((entry) => entry.championId === "poppy");
+  check(
+    "12. Poppy support, top ≥ C → Braum permis, Poppy pe top cu penalizare",
+    !blockedPick(braum) && moved?.toRole === "top" && Boolean(braum.explanation?.some((line) => line.includes("ar muta"))),
+    `Braum: ${blockedPick(braum) ? "blocat" : "permis"}, „${braum.explanation?.[0] ?? ""}” [support ${support}: ${grade(support, "poppy")}, top ${top}: ${grade(top, "poppy")}]`,
+  );
+}
+
+// 13–14: roșii au top / jungle / mid / adc blocate, rămâne support (R5).
+const R5_PICKS = { picksRed: ["gnar", "xin-zhao", "ahri", "jinx"], pickRolesRed: { gnar: "top", "xin-zhao": "jungle", ahri: "mid", jinx: "adc" } as Record<string, Role> };
+const R5_BLUE = ["rumble", "wukong", "syndra", "kalista", "rell"];
+const supportChampions = champions.filter((c) => c.roles.includes("support") && !R5_BLUE.includes(c.id));
+
+// 13. Cel mai meta support pe care supportul nostru îl are la F → nu e ales.
+{
+  const ranked = [...supportChampions].sort((a, b) => getMetaPriorityScore(b, "support") - getMetaPriorityScore(a, "support"));
+  let pickPlayer = "";
+  let opChampion = "";
+  for (const champion of ranked.slice(0, 5)) {
+    const player = teamPlayers.find((p) => p.role === "support" && getChampionGrade(p, champion.id) === "F" && !hasThinPool(p, "support"));
+    if (player) { pickPlayer = player.id; opChampion = champion.id; break; }
+  }
+  const save = makeSave({ [RED]: { support: pickPlayer } });
+  const series = newSeries("s13", BLUE, RED);
+  const game: DraftGameState = { ...series.games[0], ...MASTERY_BANS, picksBlue: R5_BLUE, ...R5_PICKS, phaseIndex: 19 };
+  const step = getCurrentStep(game)!;
+  const op = scoreDraftCandidate(champions.find((c) => c.id === opChampion)!, step, game, series, save);
+  const choice = getAiChoice(series, game, step, save);
+  check(
+    "13. Campion OP cu F pe singurul rol liber → nu e ales",
+    Boolean(opChampion) && hasTag(op, "mastery-f") && choice?.championId !== opChampion && grade(pickPlayer, choice?.championId ?? "") !== "F",
+    `${opChampion} (meta ${getMetaPriorityScore(champions.find((c) => c.id === opChampion)!, "support").toFixed(1)}, ${pickPlayer}: F) → tag mastery-f=${hasTag(op, "mastery-f")}; R5=${choice?.championId} (${grade(pickPlayer, choice?.championId ?? "")})`,
+  );
+
+  // 14. Ban-uri + fearless lasă pe support doar campioni F → se alege unul, `forced-off-pool`.
+  const onlyF = supportChampions.filter((c) => c.roles.length === 1 && grade(pickPlayer, c.id) === "F");
+  const forced = chooseAiAction(onlyF, step, game, series, save);
+  check(
+    "14. Doar campioni F rămași → forced-off-pool",
+    onlyF.length > 0 && hasTag(forced, "forced-off-pool"),
+    `pool ${onlyF.length} campioni F; R5=${forced?.championId}, „${forced?.explanation?.slice(-1)[0] ?? ""}”`,
+  );
+}
+
+// 15. Un campion SS al unui jucător, în afara top 50 după prioritate → intră în pool-ul scorat.
+{
+  const byPriority = [...champions].sort(
+    (a, b) => (b.stats?.prioScore ?? 0) + (b.stats?.presence ?? 0) * 0.5 - ((a.stats?.prioScore ?? 0) + (a.stats?.presence ?? 0) * 0.5),
+  );
+  const outside = new Set(byPriority.slice(50).map((c) => c.id));
+  let found: { playerId: string; role: Role; championId: string } | null = null;
+  for (const player of teamPlayers) {
+    const champion = champions.find((c) => outside.has(c.id) && c.roles.includes(player.role) && getChampionGrade(player, c.id) === "SS");
+    if (champion) { found = { playerId: player.id, role: player.role, championId: champion.id }; break; }
+  }
+  if (!found) throw new Error("niciun SS în afara top 50");
+  const save = makeSave({ [RED]: { [found.role]: found.playerId } });
+  const series = newSeries("s15", BLUE, RED);
+  const game: DraftGameState = { ...series.games[0], ...MASTERY_BANS, picksBlue: ["ahri"], picksRed: [], phaseIndex: 7 };
+  const step = getCurrentStep(game)!;
+  const available = champions.filter((c) => ![...MASTERY_BANS.bansBlue, ...MASTERY_BANS.bansRed, "ahri"].includes(c.id));
+  const pool = getPickCandidatePool(available, step, game, series, save);
+  check(
+    "15. Campion SS în afara top 50 → scorat",
+    pool.some((c) => c.id === found!.championId),
+    `${found.playerId} (${found.role}) SS pe ${found.championId}, rang prioritate ${byPriority.findIndex((c) => c.id === found!.championId) + 1}; în pool: ${pool.some((c) => c.id === found!.championId)} (${pool.length} candidați)`,
   );
 }
 

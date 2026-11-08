@@ -4,6 +4,7 @@ import type {
   PlayerHistoryStore,
 } from "./playerHistoryTypes";
 import type { PlayerSeasonStore, PlayerGameLog } from "./playerSeasonStorage";
+import type { ActiveDraftSeries } from "./draftTypes";
 
 export const RIFT_STORAGE_VERSION_KEY = "rift-storage-version";
 export const RIFT_STORAGE_VERSION = 2;
@@ -15,6 +16,21 @@ const SERIES_SAVE_KEY = "rift-series-state";
 const ACTIVE_DRAFT_SERIES_KEY = "rift-active-series-draft";
 const PLAYER_SPIRIT_KEY = "rift-player-spirit";
 const SPIRIT_ACCUMULATOR_KEY = "rift-spirit-accumulator";
+
+/**
+ * Seria de draft salvată: completează câmpurile adăugate după ce a fost scrisă
+ * (DRAFT_THINKING §1.2: `pickRolesBlue` / `pickRolesRed`, implicit `{}`).
+ */
+export function normalizeActiveDraftSeries(series: ActiveDraftSeries): ActiveDraftSeries {
+  return {
+    ...series,
+    games: (series.games ?? []).map((game) => ({
+      ...game,
+      pickRolesBlue: game.pickRolesBlue ?? {},
+      pickRolesRed: game.pickRolesRed ?? {},
+    })),
+  };
+}
 
 function localStorageSafe(): Storage | null {
   if (typeof window === "undefined") return null;

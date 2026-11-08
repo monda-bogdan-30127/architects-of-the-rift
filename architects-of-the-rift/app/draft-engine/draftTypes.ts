@@ -34,6 +34,12 @@ export type DraftGameState = {
   picksRed: string[];
   assignmentsBlue: Partial<Record<Role, string>>;
   assignmentsRed: Partial<Record<Role, string>>;
+  /**
+   * Rolul pentru care a fost luat fiecare pick (DRAFT_THINKING §1.2): championId → rol.
+   * AI: rolul proiectat la pick; user: slotul din ordinea pick-urilor (actualizat la swap).
+   */
+  pickRolesBlue: Partial<Record<string, Role>>;
+  pickRolesRed: Partial<Record<string, Role>>;
   evaluationBlue?: TeamDraftEvaluation;
   evaluationRed?: TeamDraftEvaluation;
   simulation?: DraftSimulationResult;
@@ -178,6 +184,8 @@ export type DraftCandidateBreakdown = {
   mustWithLock?: { anchorId: string; partnerId: string; grade: string | null };
   /** Bonusurile mustWith adunate în scor (combo potential, non-bot, deny). */
   mustWithBonus?: number;
+  /** §1.4 — pick-uri proprii pe care candidatul le-ar muta pe alt rol. */
+  reassignment?: { championId: string; fromRole: Role; toRole: Role; playerId: string | null; grade: string | null }[];
   /** Anti-sinergiile candidatului cu pick-urile proprii (`badSynergyWith`, pentru explainer). */
   badSynergies?: { partnerId: string; level: BadSynergyLevel; note: string }[];
   /** Include, pe lângă cele vechi: "mustwith-lock", "combo-potential", "mustwith-deny". */

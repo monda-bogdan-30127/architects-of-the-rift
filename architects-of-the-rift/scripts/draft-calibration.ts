@@ -104,7 +104,7 @@ for (let index = 0; index < gameCount; index += 1) {
       chosenCounter.push(choice.counterValue);
       draftCounter[step.side] += choice.counterValue - 5;
     }
-    game = commitActionToGame(game, choice.championId, step.side, step.action);
+    game = commitActionToGame(game, choice.championId, step.side, step.action, choice.projectedRole);
   }
 
   const resolved = resolveFinishedDraftAssignments(game, series, save);

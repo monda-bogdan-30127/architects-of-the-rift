@@ -27,6 +27,7 @@ import {
   canPickChampionIntoUniqueRoles,
   getOpenRolesForPickedChampions,
   resolveRoleAssignments,
+  type LockedRoles,
 } from "./draftRoleResolver";
 import type { ActiveDraftSeries, DraftGameState, Side } from "./draftTypes";
 import { isHardCounter } from "./matchupGrades";
@@ -71,6 +72,8 @@ export type MustWithTeamContext = {
   roster: Partial<Record<Role, string>>;
   /** Campioni indisponibili: ban-uri, pick-uri ale ambelor echipe, fearless. */
   unavailable: ReadonlySet<string>;
+  /** DRAFT_THINKING §1.2 — rolurile blocate la pick (doar pentru echipele AI). */
+  lockedRoles?: LockedRoles;
 };
 
 export type EligiblePartner = {
@@ -107,7 +110,7 @@ export function getTeamPicks(game: DraftGameState, side: Side) {
 
 /** Ancorele echipei: fiecare pick propriu cu rolul lui rezolvat. */
 function getOwnAnchors(ctx: MustWithTeamContext): { anchorId: string; anchorRole: Role }[] {
-  const assignments = resolveRoleAssignments([...ctx.ownPicks], ctx.roster);
+  const assignments = resolveRoleAssignments([...ctx.ownPicks], ctx.roster, ctx.lockedRoles);
   return (Object.entries(assignments) as [Role, string | undefined][])
     .filter((entry): entry is [Role, string] => Boolean(entry[1]))
     .map(([anchorRole, anchorId]) => ({ anchorId, anchorRole }));
@@ -128,7 +131,7 @@ export function getEligiblePartners(anchorId: string, anchorRole: Role, ctx: Mus
   const partners = getMustWithPartners(anchorId, anchorRole);
   if (partners.length === 0) return [];
 
-  const openRoles = getOpenRolesForPickedChampions([...ctx.ownPicks], ctx.roster);
+  const openRoles = getOpenRolesForPickedChampions([...ctx.ownPicks], ctx.roster, ctx.lockedRoles);
   const botComplement = getComplementaryBotRole(anchorRole);
   const eligible: EligiblePartner[] = [];
 
@@ -147,7 +150,7 @@ export function getEligiblePartners(anchorId: string, anchorRole: Role, ctx: Mus
     const grade = player ? getChampionGrade(player, partnerId) : null;
     // Fără jucător cunoscut pe rol nu se poate verifica mastery-ul → permisiv.
     if (grade && GRADE_RANK[grade] < MUSTWITH_CONFIG.minPartnerGradeRank) return;
-    if (!canPickChampionIntoUniqueRoles([...ctx.ownPicks], partnerId, ctx.roster)) return;
+    if (!canPickChampionIntoUniqueRoles([...ctx.ownPicks], partnerId, ctx.roster, ctx.lockedRoles)) return;
 
     eligible.push({
       anchorId,
@@ -191,7 +194,7 @@ export function getComboPotentialBonus(
   ctx: MustWithTeamContext,
 ): { bonus: number; partner: EligiblePartner | null } {
   if (!isBotRole(candidateRole)) return { bonus: 0, partner: null };
-  const openRoles = getOpenRolesForPickedChampions([...ctx.ownPicks], ctx.roster);
+  const openRoles = getOpenRolesForPickedChampions([...ctx.ownPicks], ctx.roster, ctx.lockedRoles);
   if (!openRoles.includes("adc") || !openRoles.includes("support")) return { bonus: 0, partner: null };
 
   const [partner] = getEligiblePartners(candidate.id, candidateRole, {
@@ -224,10 +227,10 @@ export function isExplicitBotPair(adcId: string | null | undefined, supportId: s
  * Întoarce motivul, sau null dacă nu există excepție.
  */
 export function getNonBotOverride(ctx: MustWithTeamContext, enemyCtx: MustWithTeamContext): string | null {
-  const openRoles = getOpenRolesForPickedChampions([...ctx.ownPicks], ctx.roster);
+  const openRoles = getOpenRolesForPickedChampions([...ctx.ownPicks], ctx.roster, ctx.lockedRoles);
   const isFree = (championId: string) => !ctx.unavailable.has(championId);
 
-  const enemyAssignments = resolveRoleAssignments([...enemyCtx.ownPicks], enemyCtx.roster);
+  const enemyAssignments = resolveRoleAssignments([...enemyCtx.ownPicks], enemyCtx.roster, enemyCtx.lockedRoles);
   for (const role of openRoles) {
     const enemyId = enemyAssignments[role];
     if (!enemyId) continue;

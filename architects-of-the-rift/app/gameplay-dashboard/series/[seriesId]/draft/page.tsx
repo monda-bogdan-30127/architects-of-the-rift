@@ -468,6 +468,7 @@ export default function DraftPage() {
           roster={getTeamRosterFromSources({ team: blueTeam, save: draftSave })}
           currentStep={currentStep}
           isUserTurn={isUserTurn}
+          showMasteryWarnings={userSide === "blue"}
         />
 
         <div style={{ width: "1px", background: "var(--divider)", flexShrink: 0 }} />
@@ -605,6 +606,7 @@ export default function DraftPage() {
           currentStep={currentStep}
           isUserTurn={isUserTurn}
           alignRight
+          showMasteryWarnings={userSide === "red"}
         />
       </div>
 
@@ -668,7 +670,7 @@ function BanSlot({ champion, isActive, size }: { champion: Champion | null; isAc
 function SidebarPanel({
   side, team, score, assignments, showSwap, openSwapRole,
   onSwapToggle, onSwapSelect, swapMenuContainerRef,
-  lockedChampionIds, roster, currentStep, isUserTurn, alignRight = false,
+  lockedChampionIds, roster, currentStep, isUserTurn, alignRight = false, showMasteryWarnings = false,
 }: {
   side: Side;
   team: { name: string; abbreviation: string; logo: string; slug?: string };
@@ -684,6 +686,8 @@ function SidebarPanel({
   currentStep?: DraftStep | null;
   isUserTurn?: boolean;
   alignRight?: boolean;
+  /** DRAFT_THINKING §1.6 — avertisment F / D pe sloturile userului (nu blochează). */
+  showMasteryWarnings?: boolean;
 }) {
   const swapButtonRefs = useRef<Partial<Record<Role, HTMLButtonElement | null>>>({});
   // Poziția e legată de rolul pentru care a fost măsurată: la închidere sau la
@@ -932,6 +936,30 @@ function SidebarPanel({
                       {champion.name}
                     </span>
                   )}
+
+                  {/* §1.6: jucătorul nu știe campionul (F / D) — doar avertisment */}
+                  {showMasteryWarnings && champion && roster?.[role] && (() => {
+                    const player = players.find((entry) => entry.id === roster[role]);
+                    const grade = player ? getChampionGrade(player, champion.id) : null;
+                    if (grade !== "F" && grade !== "D") return null;
+                    const text = grade === "F"
+                      ? `${player!.name} nu joacă ${champion.name} (F) — contribuție 0 în simulare`
+                      : `Grad D — performanță redusă`;
+                    return (
+                      <span title={text} style={{
+                        fontSize: "8px",
+                        fontFamily: '"Spiegel", sans-serif',
+                        fontWeight: 700,
+                        letterSpacing: "0.03em",
+                        color: grade === "F" ? "var(--danger)" : "var(--warning)",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}>
+                        {text}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

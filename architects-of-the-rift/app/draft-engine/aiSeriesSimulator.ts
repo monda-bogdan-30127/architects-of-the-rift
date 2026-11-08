@@ -43,7 +43,8 @@ export function simulateAiVsAiSeries(
           currentGame,
           aiChoice.championId,
           step.side,
-          step.action
+          step.action,
+          aiChoice.projectedRole
         );
       }
 

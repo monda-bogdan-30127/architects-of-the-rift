@@ -24,7 +24,10 @@ import {
   getOpenRolesForPickedChampions,
   getPreferredRolesForChampion,
   resolveRoleAssignments,
+  type LockedRoles,
 } from "./draftRoleResolver";
+import { getBestOpenRoleGradeRank, getMasteryGate, getReassignmentCheck } from "./draftMasteryGate";
+import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import {
   getUserBanTargetBias,
   getUserPickPreferenceBias,
@@ -59,7 +62,13 @@ import {
   type EligiblePartner,
   type MustWithTeamContext,
 } from "./mustWithPriority";
-import { describeBadSynergy, describeMustWithLock } from "./draftDecisionExplainer";
+import {
+  describeBadSynergy,
+  describeForcedOffPool,
+  describeMasteryBlock,
+  describeMustWithLock,
+  describeReassignment,
+} from "./draftDecisionExplainer";
 import {
   derivePlayerArchetypeAffinity,
   derivePlayerAdaptationProfile,
@@ -100,6 +109,21 @@ import {
 
 
 const playersById = new Map(players.map((player) => [player.id, player]));
+
+/** §1.2 — rolurile blocate la pick ale echipei (`{}` pentru salvări vechi). */
+function getLockedRoles(game: DraftGameState, side: Side): LockedRoles {
+  return (side === "blue" ? game.pickRolesBlue : game.pickRolesRed) ?? {};
+}
+
+/** Echipa e AI (nu userul)? Doar pentru AI folosim rolurile blocate ale adversarului. */
+function isAiSide(series: ActiveDraftSeries, side: Side) {
+  return series.userSide !== side;
+}
+
+/** Tag-uri care scot un candidat din pick (§1.4 / §1.5), pe lângă `invalid-role-map`. */
+const BLOCKING_PICK_TAGS = ["invalid-role-map", "breaks-own-pick", "mastery-f"];
+const isBlockedPick = (entry: DraftCandidateBreakdown) =>
+  BLOCKING_PICK_TAGS.some((tag) => entry.reasonTags?.includes(tag));
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -240,9 +264,10 @@ function getProjectedPlayerForRole(
 function getProjectedRoleAndPlayer(
   candidate: Champion,
   ownPicks: string[],
-  roster: Partial<Record<Role, string>>
+  roster: Partial<Record<Role, string>>,
+  lockedRoles?: LockedRoles
 ) {
-  const preferredRoles = getPreferredRolesForChampion(ownPicks, candidate.id, roster);
+  const preferredRoles = getPreferredRolesForChampion(ownPicks, candidate.id, roster, lockedRoles);
   const projectedRole = preferredRoles[0] ?? candidate.roles[0] ?? null;
   const projectedPlayer = projectedRole ? getProjectedPlayerForRole(roster, projectedRole) : null;
 
@@ -268,10 +293,11 @@ function getRoleCoverageUrgency(
   ownPicks: string[],
   candidate: Champion,
   projectedRole: Role | null,
-  roster: Partial<Record<Role, string>>
+  roster: Partial<Record<Role, string>>,
+  lockedRoles?: LockedRoles
 ) {
-  const openRolesBefore = getOpenRolesForPickedChampions(ownPicks, roster);
-  const openRolesAfter = getOpenRolesForPickedChampions([...ownPicks, candidate.id], roster);
+  const openRolesBefore = getOpenRolesForPickedChampions(ownPicks, roster, lockedRoles);
+  const openRolesAfter = getOpenRolesForPickedChampions([...ownPicks, candidate.id], roster, lockedRoles);
   const ownPickNumber = getCurrentPickNumberForSide(game, side);
 
   if (!projectedRole) return -8;
@@ -440,14 +466,27 @@ function getCachedMustWithState(
     game.bansRed.join(","),
     ROLE_ORDER.map((role) => ownRoster[role] ?? "").join(","),
     ROLE_ORDER.map((role) => enemyRoster[role] ?? "").join(","),
+    JSON.stringify(getLockedRoles(game, side)),
+    isAiSide(series, enemySide) ? JSON.stringify(getLockedRoles(game, enemySide)) : "user",
   ].join("|");
 
   const cached = mustWithStateCache.get(key);
   if (cached) return cached;
 
   const unavailable = getUnavailableChampionIds(series, game);
-  const own: MustWithTeamContext = { ownPicks: getOwnState(game, side).picks, roster: ownRoster, unavailable };
-  const enemy: MustWithTeamContext = { ownPicks: getOwnState(game, enemySide).picks, roster: enemyRoster, unavailable };
+  const own: MustWithTeamContext = {
+    ownPicks: getOwnState(game, side).picks,
+    roster: ownRoster,
+    unavailable,
+    lockedRoles: getLockedRoles(game, side),
+  };
+  // §1.2: rolurile blocate ale adversarului doar dacă e AI (intenția userului nu o știm).
+  const enemy: MustWithTeamContext = {
+    ownPicks: getOwnState(game, enemySide).picks,
+    roster: enemyRoster,
+    unavailable,
+    ...(isAiSide(series, enemySide) ? { lockedRoles: getLockedRoles(game, enemySide) } : {}),
+  };
   const ownPartners = getAllEligiblePartners(own);
   const state: MustWithTurnState = {
     own,
@@ -761,7 +800,8 @@ function scorePickCandidate(
   const teamSlug = getTeamSlugForSide(series, step.side);
   const roster = getTeamRosterFromSources({ teamSlug, save });
 
-  const canFit = canPickChampionIntoUniqueRoles(ownState.picks, candidate.id, roster);
+  const lockedRoles = getLockedRoles(game, step.side);
+  const canFit = canPickChampionIntoUniqueRoles(ownState.picks, candidate.id, roster, lockedRoles);
   const totalPicksSoFar = game.picksBlue.length + game.picksRed.length;
   const draftPhase = getDraftPhase(totalPicksSoFar + 1);
   const phaseBias = getPhaseBias(draftPhase);
@@ -771,7 +811,10 @@ function scorePickCandidate(
     counterWeight: config.counterWeight * phaseBias.counter,
     synergyWeight: config.synergyWeight * phaseBias.compIdentity,
   };
-  const projected = getProjectedRoleAndPlayer(candidate, ownState.picks, roster);
+  const projected = getProjectedRoleAndPlayer(candidate, ownState.picks, roster, lockedRoles);
+  // §1.4 / §1.5: reasignarea pick-urilor proprii + gate-ul de mastery pe candidat.
+  const reassignment = getReassignmentCheck(ownState.picks, candidate.id, roster, lockedRoles);
+  const masteryGate = getMasteryGate(projected.projectedPlayer, candidate.id, projected.projectedRole);
   // ── MASTERY: resolve top signature slot for this team (cached) ──────────
   const projectedPlayer = projected.projectedPlayer;
 
@@ -818,7 +861,8 @@ function scorePickCandidate(
     ownState.picks,
     candidate,
     projected.projectedRole,
-    roster
+    roster,
+    lockedRoles
   );
 
   const counterpickPreservationBase = getCounterpickPreservationBonus(
@@ -992,7 +1036,7 @@ function scorePickCandidate(
   let botLaneFitBonus = 0;
   if (projected.projectedRole === "support" || projected.projectedRole === "adc") {
     const currentPicks = [...ownState.picks, candidate.id];
-    const botAssignments = resolveRoleAssignments(currentPicks, roster);
+    const botAssignments = resolveRoleAssignments(currentPicks, roster, lockedRoles);
     const fitResult = getBotLaneArchetypeFit({
       championIds: currentPicks,
       championById: getChampionById,
@@ -1049,7 +1093,7 @@ function scorePickCandidate(
       ? 0
       : getUserPreferredOpenRoleBias(candidate, projected.projectedRole, step.side, series);
 
-  const invalidRolePenalty = canFit ? 0 : 100;
+  const invalidRolePenalty = canFit && !reassignment.breaksOwnPick && !masteryGate.blocked ? 0 : 100;
   const totalScore =
     metaPriority * adjustedConfig.metaWeight +
     comfortScore * adjustedConfig.comfortWeight +
@@ -1086,7 +1130,17 @@ function scorePickCandidate(
     offMetaPenalty -
     contestability -
     carryNeedPenalty -
-    invalidRolePenalty;
+    invalidRolePenalty -
+    reassignment.penalty -          // §1.4: pick propriu mutat pe D / grad mult mai mic
+    masteryGate.penalty;            // §1.5: D pe jucătorul proiectat
+
+  const explanation = [
+    ...reassignment.entries.map((entry) => describeReassignment(candidate.id, entry, reassignment.breaksOwnPick)),
+    ...(projectedPlayerId && (masteryGate.blocked || masteryGate.soft) && masteryGate.grade
+      ? [describeMasteryBlock(projectedPlayerId, candidate.id, masteryGate.grade)]
+      : []),
+    ...badSynergies.map(describeBadSynergy),
+  ];
 
   let planType: DraftCandidateBreakdown["planType"] = "stabilize-comp";
   if (counterpickPreservationBase >= 1.2) planType = "hide-solo-lane";
@@ -1120,8 +1174,13 @@ function scorePickCandidate(
     counterpickPreservationBonus,
     matchupDetails: counterResult.details,
     mustWithBonus,
-    ...(badSynergies.length ? { badSynergies, explanation: badSynergies.map(describeBadSynergy) } : {}),
+    ...(badSynergies.length ? { badSynergies } : {}),
+    ...(reassignment.entries.length ? { reassignment: reassignment.entries } : {}),
+    ...(explanation.length ? { explanation } : {}),
     reasonTags: [
+      ...(reassignment.breaksOwnPick ? ["breaks-own-pick"] : []),
+      ...(masteryGate.blocked ? ["mastery-f"] : []),
+      ...(masteryGate.soft ? ["mastery-d"] : []),
       ...(badSynergies.length ? ["bad-synergy"] : []),
       ...(comboPotential.bonus > 0 ? ["combo-potential"] : []),
       ...(nonBotMustWith.bonus > 0 ? ["mustwith-partner"] : []),
@@ -1198,12 +1257,13 @@ function getCounterProductiveBanPenalty(
   enemyPicks: string[],
   ownPicks: string[],
   ownRoster: Partial<Record<Role, string>>,
-  enemyRoster: Partial<Record<Role, string>>
+  enemyRoster: Partial<Record<Role, string>>,
+  ownLockedRoles?: LockedRoles
 ): number {
   if (enemyPicks.length === 0) return 0;
   // Rolul pe care l-am juca noi pe candidat; pick-urile inamicului îl countrează deja?
   const candidateRole =
-    getPreferredRolesForChampion(ownPicks, candidate.id, ownRoster)[0] ?? candidate.roles[0] ?? null;
+    getPreferredRolesForChampion(ownPicks, candidate.id, ownRoster, ownLockedRoles)[0] ?? candidate.roles[0] ?? null;
   // Negativ = penalizare la scorul de ban (nota 5 → nu-l bana deloc).
   return getCounterProductiveBanValue(candidate.id, candidateRole, enemyPicks, enemyRoster);
 }
@@ -1492,7 +1552,8 @@ function scoreBanCandidate(
     enemyState.picks,
     ownState.picks,
     ownRoster,
-    enemyRoster
+    enemyRoster,
+    getLockedRoles(game, step.side)
   );
 
   // FIX #3: bonus pentru ban-uri in faza 2 care distrug sinergia inamicului
@@ -1529,7 +1590,7 @@ function scoreBanCandidate(
     // Rolul probabil al candidatului dacă l-ar lua inamicul.
     const candidateEnemyRole =
       getPreferredRolesForChampion(enemyState.picks, candidate.id, enemyRoster)[0] ?? null;
-    const ownAssignments = resolveRoleAssignments(ownState.picks, ownRoster);
+    const ownAssignments = resolveRoleAssignments(ownState.picks, ownRoster, getLockedRoles(game, step.side));
     for (const [ownRole, ownPickId] of Object.entries(ownAssignments) as [Role, string | undefined][]) {
       if (!ownPickId) continue;
       protectOwnCompBonus += getProtectOwnPickBanValue(ownPickId, ownRole, candidate.id, candidateEnemyRole);
@@ -1647,6 +1708,62 @@ function applyRealisticPickTiebreaker(
   return 0;
 }
 
+/**
+ * Pool-ul de candidați scorați la pick (pre-filtru ieftin): top 50 după prioritate,
+ * partenerii mustWith eligibili, campionii B+ ai jucătorilor de pe rolurile libere;
+ * fără campionii pe care toți jucătorii de pe rolurile lor libere îi au la F (§1.5).
+ */
+export function getPickCandidatePool(
+  pool: Champion[],
+  step: DraftStep,
+  game: DraftGameState,
+  series: ActiveDraftSeries,
+  save: DraftSave | null,
+  ownPartnerIds: ReadonlySet<string> = new Set()
+): Champion[] {
+  // Pre-sort by cheap meta priority, keep top 50
+  const cheapRanked = [...pool]
+    .map((c) => ({
+      champion: c,
+      priority: (c.stats?.prioScore ?? 0) + (c.stats?.presence ?? 0) * 0.5,
+    }))
+    .sort((a, b) => b.priority - a.priority);
+
+  // Top 50 by priority + any champion from user's roster comfort pool
+  let filteredPool = cheapRanked.slice(0, 50).map((e) => e.champion);
+
+  // If filtered too aggressively and < 20 candidates, fall back to more
+  if (filteredPool.length < 20) {
+    filteredPool = cheapRanked.slice(0, 80).map((e) => e.champion);
+  }
+
+  // 4.3: partenerii mustWith eligibili nu sunt tăiați de pre-filtru.
+  const included = new Set(filteredPool.map((champion) => champion.id));
+  for (const champion of pool) {
+    if (ownPartnerIds.has(champion.id) && !included.has(champion.id)) {
+      filteredPool.push(champion);
+      included.add(champion.id);
+    }
+  }
+
+  // DRAFT_THINKING §1.5 pct. 3: campionii B+ ai jucătorilor de pe rolurile libere intră mereu;
+  // campionii pe care toți jucătorii de pe rolurile lor libere îi au la F ies (dacă rămâne ceva).
+  const ownPicks = getOwnState(game, step.side).picks;
+  const ownRoster = getTeamRosterFromSources({ teamSlug: getTeamSlugForSide(series, step.side), save });
+  const openRoles = getOpenRolesForPickedChampions(ownPicks, ownRoster, getLockedRoles(game, step.side));
+  const gradeById = new Map(pool.map((champion) => [champion.id, getBestOpenRoleGradeRank(champion.id, openRoles, ownRoster)]));
+  for (const champion of pool) {
+    if (included.has(champion.id)) continue;
+    if ((gradeById.get(champion.id)?.bestRank ?? -1) >= DRAFT_THINKING_CONFIG.mastery.rosterPoolMinRank) {
+      filteredPool.push(champion);
+      included.add(champion.id);
+    }
+  }
+  const playable = filteredPool.filter((champion) => !gradeById.get(champion.id)?.allBlocked);
+  if (playable.length) filteredPool = playable;
+  return filteredPool;
+}
+
 export function chooseAiAction(
   pool: Champion[],
   step: DraftStep,
@@ -1666,7 +1783,7 @@ export function chooseAiAction(
     const lockedCandidate = lock ? pool.find((champion) => champion.id === lock.partnerId) : undefined;
     if (lock && lockedCandidate) {
       const breakdown = scoreDraftCandidate(lockedCandidate, step, game, series, save, config);
-      if (!breakdown.reasonTags?.includes("invalid-role-map")) {
+      if (!isBlockedPick(breakdown)) {
         return withMustWithLock(breakdown, lock);
       }
     }
@@ -1685,27 +1802,7 @@ export function chooseAiAction(
   let filteredPool = pool;
 
   if (step.action === "pick") {
-    // Pre-sort by cheap meta priority, keep top 50
-    const cheapRanked = [...pool]
-      .map((c) => ({
-        champion: c,
-        priority: (c.stats?.prioScore ?? 0) + (c.stats?.presence ?? 0) * 0.5,
-      }))
-      .sort((a, b) => b.priority - a.priority);
-
-    // Top 50 by priority + any champion from user's roster comfort pool
-    filteredPool = cheapRanked.slice(0, 50).map((e) => e.champion);
-
-    // If filtered too aggressively and < 20 candidates, fall back to more
-    if (filteredPool.length < 20) {
-      filteredPool = cheapRanked.slice(0, 80).map((e) => e.champion);
-    }
-
-    // 4.3: partenerii mustWith eligibili nu sunt tăiați de pre-filtru.
-    const included = new Set(filteredPool.map((champion) => champion.id));
-    for (const champion of pool) {
-      if (ownPartnerIds.has(champion.id) && !included.has(champion.id)) filteredPool.push(champion);
-    }
+    filteredPool = getPickCandidatePool(pool, step, game, series, save, ownPartnerIds);
   } else {
     // Bans: only top 30 meta candidates matter
     const cheapRanked = [...pool]
@@ -1727,9 +1824,25 @@ export function chooseAiAction(
     });
 
   if (step.action === "pick") {
-    const valid = ranked.filter(
-      (entry) => !entry.reasonTags?.includes("invalid-role-map")
-    );
+    let valid = ranked.filter((entry) => !isBlockedPick(entry));
+
+    // §1.5: niciun candidat valid (ban-uri + fearless au golit pool-urile) → cel mai bun
+    // dintre cei excluși doar pentru mastery, marcat `forced-off-pool`.
+    if (!valid.length) {
+      const forced =
+        ranked.find((entry) => !entry.reasonTags?.includes("invalid-role-map") && !entry.reasonTags?.includes("breaks-own-pick")) ??
+        ranked.find((entry) => !entry.reasonTags?.includes("invalid-role-map"));
+      if (forced) {
+        return {
+          ...forced,
+          reasonTags: [...(forced.reasonTags ?? []), "forced-off-pool"],
+          explanation: [...(forced.explanation ?? []), describeForcedOffPool(forced.projectedPlayerId ?? null, forced.championId)],
+        };
+      }
+    }
+
+    // §1.5: un candidat cu D intră în shortlist doar dacă e pe primul loc.
+    valid = valid.filter((entry, index) => index === 0 || !entry.reasonTags?.includes("mastery-d"));
 
     const seed = `${series.seriesId}:${series.currentGameNumber}:${game.phaseIndex}:${step.side}`;
 

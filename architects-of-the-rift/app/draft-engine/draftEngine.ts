@@ -18,11 +18,10 @@ import {
   DRAFT_SEQUENCE,
   REQUIRED_BANS_PER_SIDE,
   REQUIRED_PICKS_PER_SIDE,
-  ROLE_ORDER,
 } from "./draftTypes";
 import { chooseAiAction } from "./draftAI";
 import { evaluateTeamDraft } from "./draftEvaluator";
-import { mapPicksToRoleOrder, resolveRoleAssignments } from "./draftRoleResolver";
+import { assignmentsCoverPicks, mapPicksToRoleOrder, resolveRoleAssignments } from "./draftRoleResolver";
 import { simulateFullMatch } from "./matchSimulator";
 import { recordCompletedUserDraftGame } from "./userDraftMemory";
 
@@ -99,6 +98,8 @@ export function createEmptyGame(number: number): DraftGameState {
     picksRed: [],
     assignmentsBlue: {},
     assignmentsRed: {},
+    pickRolesBlue: {},
+    pickRolesRed: {},
   };
 }
 
@@ -250,27 +251,11 @@ export function getTeamRosterFromSources({
   return {};
 }
 
-function normalizeAssignmentValues(assignments: Partial<Record<Role, string>>) {
-  return ROLE_ORDER.map((role) => assignments[role]).filter(Boolean) as string[];
-}
+const hasResolvedAssignmentsForPicks = assignmentsCoverPicks;
 
-function hasResolvedAssignmentsForPicks(
-  assignments: Partial<Record<Role, string>>,
-  picks: string[]
-) {
-  const assigned = normalizeAssignmentValues(assignments);
-  const cleanPicks = picks.slice(0, ROLE_ORDER.length).filter(Boolean);
-
-  if (assigned.length !== cleanPicks.length) return false;
-
-  const assignedSet = new Set(assigned);
-  if (assignedSet.size !== assigned.length) return false;
-
-  for (const championId of cleanPicks) {
-    if (!assignedSet.has(championId)) return false;
-  }
-
-  return true;
+/** Rolurile blocate la pick ale unei echipe (§1.2); `{}` pentru salvări vechi. */
+export function getPickRoles(game: DraftGameState, side: Side): Partial<Record<string, Role>> {
+  return (side === "blue" ? game.pickRolesBlue : game.pickRolesRed) ?? {};
 }
 
 function replaceAssignments(
@@ -286,9 +271,16 @@ export function commitActionToGame(
   game: DraftGameState,
   championId: string,
   side: Side,
-  action: DraftAction
+  action: DraftAction,
+  /** §1.2 — rolul pentru care e luat pick-ul (AI: `projectedRole`; user: slotul). */
+  role?: Role | null
 ): DraftGameState {
   const nextGame: DraftGameState = { ...game };
+
+  if (action === "pick" && role) {
+    if (side === "blue") nextGame.pickRolesBlue = { ...getPickRoles(game, "blue"), [championId]: role };
+    if (side === "red") nextGame.pickRolesRed = { ...getPickRoles(game, "red"), [championId]: role };
+  }
 
   if (action === "ban") {
     if (side === "blue") nextGame.bansBlue = [...game.bansBlue, championId];
@@ -320,13 +312,13 @@ export function resolveFinishedDraftAssignments(
     ? game.assignmentsBlue
     : series.userSide === "blue"
       ? mapPicksToRoleOrder(game.picksBlue)
-      : resolveRoleAssignments(game.picksBlue, blueRoster);
+      : resolveRoleAssignments(game.picksBlue, blueRoster, getPickRoles(game, "blue"));
 
   const assignmentsRed = hasResolvedAssignmentsForPicks(game.assignmentsRed, game.picksRed)
     ? game.assignmentsRed
     : series.userSide === "red"
       ? mapPicksToRoleOrder(game.picksRed)
-      : resolveRoleAssignments(game.picksRed, redRoster);
+      : resolveRoleAssignments(game.picksRed, redRoster, getPickRoles(game, "red"));
 
   return {
     ...game,
@@ -352,7 +344,10 @@ export function swapAssignedRoles(
   const nextAssignments = { ...userAssignments };
   nextAssignments[sourceRole] = targetChampion;
   nextAssignments[targetRole] = sourceChampion;
-  return replaceAssignments(game, side, nextAssignments);
+  // §1.2: rolurile blocate urmează swap-ul.
+  const pickRoles = { ...getPickRoles(game, side), [sourceChampion]: targetRole, [targetChampion]: sourceRole };
+  const swapped = replaceAssignments(game, side, nextAssignments);
+  return side === "blue" ? { ...swapped, pickRolesBlue: pickRoles } : { ...swapped, pickRolesRed: pickRoles };
 }
 
 export function evaluateDraftGame(

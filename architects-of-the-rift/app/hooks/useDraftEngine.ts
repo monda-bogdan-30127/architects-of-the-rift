@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { teams } from "@/app/data/teams";
 import type { Role } from "@/app/types/champion";
 import type { ActiveDraftSeries, DraftSave, Side } from "@/app/draft-engine/draftTypes";
-import { migrateAllRiftStorage } from "@/app/draft-engine/storageMigration";
+import { ROLE_ORDER } from "@/app/draft-engine/draftTypes";
+import { migrateAllRiftStorage, normalizeActiveDraftSeries } from "@/app/draft-engine/storageMigration";
 import { useIsClient } from "@/app/hooks/useClientStorage";
 import {
   ACTIVE_DRAFT_SERIES_KEY,
@@ -49,7 +50,7 @@ export function useDraftEngine(seriesId: string) {
     const savedActiveSeries = readJson<ActiveDraftSeries>(ACTIVE_DRAFT_SERIES_KEY);
     setSeries(
       savedActiveSeries && savedActiveSeries.seriesId === seriesId
-        ? savedActiveSeries
+        ? normalizeActiveDraftSeries(savedActiveSeries)
         : createInitialSeries(seriesId, save?.controlledTeamSlug ?? "")
     );
   }
@@ -118,7 +119,10 @@ export function useDraftEngine(seriesId: string) {
       const game = getCurrentGame(prev);
       if (!game) return prev;
 
-      const nextGame = commitActionToGame(game, championId, side, action);
+      // §1.2: rolul userului = slotul din ordinea pick-urilor (se mută la swap).
+      const ownPicks = side === "blue" ? game.picksBlue : game.picksRed;
+      const slotRole = action === "pick" ? ROLE_ORDER[ownPicks.length] ?? null : null;
+      const nextGame = commitActionToGame(game, championId, side, action, slotRole);
       return {
         ...prev,
         games: prev.games.map((entry) => (entry.number === game.number ? nextGame : entry)),
@@ -173,7 +177,13 @@ export function useDraftEngine(seriesId: string) {
         const game = getCurrentGame(prev);
         if (!game) return prev;
 
-        let nextGame = commitActionToGame(game, choice.championId, currentStep.side, currentStep.action);
+        let nextGame = commitActionToGame(
+          game,
+          choice.championId,
+          currentStep.side,
+          currentStep.action,
+          choice.projectedRole
+        );
         const nextStep = getCurrentStep(nextGame);
 
         if (!nextStep && nextGame.picksBlue.length === 5 && nextGame.picksRed.length === 5) {

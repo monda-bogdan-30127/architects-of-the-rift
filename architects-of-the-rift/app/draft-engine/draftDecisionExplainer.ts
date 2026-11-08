@@ -38,6 +38,28 @@ function explainMustWith(breakdown: DraftCandidateBreakdown): string[] {
   return lines;
 }
 
+/** „Braum ar muta Poppy pe top (Zeus: F) — respins” (DRAFT_THINKING §1.4). */
+export function describeReassignment(
+  candidateId: string,
+  entry: { championId: string; toRole: string; playerId: string | null; grade: string | null },
+  rejected: boolean,
+): string {
+  const who = entry.playerId ? ` (${entry.playerId}: ${entry.grade ?? "?"})` : "";
+  return `${championName(candidateId)} ar muta ${championName(entry.championId)} pe ${entry.toRole}${who}${rejected ? " — respins" : ""}`;
+}
+
+/** „Zeus nu joacă Poppy (F) — exclus” (§1.5). */
+export function describeMasteryBlock(playerId: string, championId: string, grade: string): string {
+  return grade === "F"
+    ? `${playerId} nu joacă ${championName(championId)} (F) — exclus`
+    : `${playerId} are ${championName(championId)} la grad ${grade} — penalizat`;
+}
+
+/** „Pool golit de ban-uri / fearless: Zeus pe Poppy (F), singura variantă” (§1.5). */
+export function describeForcedOffPool(playerId: string | null, championId: string): string {
+  return `Pool golit (ban-uri / fearless): ${playerId ?? "jucătorul"} pe ${championName(championId)} în afara pool-ului, singura variantă`;
+}
+
 /** „Anti-sinergie cu Pyke (Pyke roamează, Kog'Maw rămâne singur în lane, fără peel)”, din `note`. */
 export function describeBadSynergy(entry: { partnerId: string; note: string }): string {
   return `Anti-sinergie cu ${championName(entry.partnerId)} (${entry.note})`;
