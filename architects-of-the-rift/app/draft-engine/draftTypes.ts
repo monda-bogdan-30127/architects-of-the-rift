@@ -3,6 +3,7 @@ import type { BadSynergyLevel, Champion, MatchupLevel, MatchupPhase, Role } from
 import type { Player } from "@/app/types/player";
 import type { Team } from "@/app/types/team";
 import type { CompAttribute } from "@/app/types/compAttributes";
+import type { DraftPhaseId } from "./draftPhase";
 
 export type Side = "blue" | "red";
 export type DraftAction = "ban" | "pick";
@@ -227,7 +228,21 @@ export type DraftCandidateBreakdown = {
   explanation?: string[];
   /** Locul alegerii în lista de candidați valizi, sortată (0 = primul). Lipsă la acțiunile forțate. */
   choiceRank?: number;
+  /** DRAFT_REALISM §4.3 — subtotalul fiecărui bucket, înainte de ponderi. */
+  buckets?: Partial<Record<BucketId, number>>;
+  /** Ponderile folosite (totalul = Σ bucket × pondere). */
+  bucketWeights?: Partial<Record<BucketId, number>>;
+  phase?: DraftPhaseId;
+  /** Intențiile echipei la acest pas, sortate desc; primul = intenția principală (§7). */
+  intents?: { id: IntentId; urgency: number; reason?: string }[];
 };
+
+/** DRAFT_REALISM §4 — bucket-urile de pick / ban. */
+export type PickBucketId = "power" | "comp" | "counter" | "comfort" | "deny" | "info" | "style";
+export type BanBucketId = "power" | "target" | "protect" | "compDeny" | "predict" | "hygiene";
+export type BucketId = PickBucketId | BanBucketId;
+/** DRAFT_REALISM §7 — intențiile echipei. */
+export type IntentId = "secure-priority" | "deny" | "answer" | "build-identity" | "comfort" | "hide";
 
 export type DraftAiConfig = {
   metaWeight: number;

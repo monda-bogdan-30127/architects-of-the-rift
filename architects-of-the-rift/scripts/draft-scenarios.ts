@@ -17,7 +17,8 @@ import {
   getAiChoice,
   getCurrentStep,
 } from "@/app/draft-engine/draftEngine";
-import { chooseAiAction, getPickCandidatePool, scoreDraftCandidate } from "@/app/draft-engine/draftAI";
+import { getPickCandidatePool } from "@/app/draft-engine/draftAI";
+import { chooseAiAction, scoreDraftCandidate } from "@/app/draft-engine/draftDecision";
 import { hasThinPool } from "@/app/draft-engine/draftMasteryGate";
 import { getBotDuoState } from "@/app/draft-engine/botDuoPlan";
 import { getPlanAlignmentBonus, isPriorityPick, type DraftPlanType } from "@/app/draft-engine/draftPlanSystem";

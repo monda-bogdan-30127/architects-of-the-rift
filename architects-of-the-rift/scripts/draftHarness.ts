@@ -10,7 +10,7 @@ import {
   getAiChoice,
   getCurrentStep,
 } from "@/app/draft-engine/draftEngine";
-import { setDraftDecisionObserver, type DraftDecisionObservation } from "@/app/draft-engine/draftAI";
+import { setDraftDecisionObserver, type DraftDecisionObservation } from "@/app/draft-engine/draftDecision";
 import { getDraftPhaseId, type DraftPhaseId } from "@/app/draft-engine/draftPhase";
 import type {
   ActiveDraftSeries,

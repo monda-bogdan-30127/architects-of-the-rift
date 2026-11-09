@@ -19,7 +19,7 @@ import {
   REQUIRED_BANS_PER_SIDE,
   REQUIRED_PICKS_PER_SIDE,
 } from "./draftTypes";
-import { chooseAiAction } from "./draftAI";
+import { chooseAiAction } from "./draftDecision";
 import { buildDraftPillarReport } from "./draftPillarReport";
 import { evaluateTeamDraft } from "./draftEvaluator";
 import { assignmentsCoverPicks, mapPicksToRoleOrder, resolveRoleAssignments } from "./draftRoleResolver";

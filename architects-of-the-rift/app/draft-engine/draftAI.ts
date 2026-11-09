@@ -4,14 +4,16 @@ import type { Champion, Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
 import type {
   ActiveDraftSeries,
-  DraftAiConfig,
   DraftCandidateBreakdown,
   DraftGameState,
   DraftSave,
   DraftStep,
   Side,
 } from "./draftTypes";
-import { DEFAULT_AI_CONFIG, DRAFT_SEQUENCE, ROLE_ORDER } from "./draftTypes";
+import { DRAFT_SEQUENCE, ROLE_ORDER } from "./draftTypes";
+import type { BanBucketId, PickBucketId } from "./draftTypes";
+import type { DraftContext } from "./draftContext";
+import { sumBuckets, UNIT_BAN_WEIGHTS, UNIT_PICK_WEIGHTS, type BucketWeights } from "./draftBuckets";
 import {
   evaluateNeedStatuses,
   getChampionById,
@@ -28,7 +30,7 @@ import {
 } from "./draftRoleResolver";
 import { getBestOpenRoleGradeRank, getMasteryGate, getReassignmentCheck } from "./draftMasteryGate";
 import { getCandidateIdentityFit, readCompIdentity } from "./compIdentity";
-import { getWinCondition, getWinConditionEffect } from "./winCondition";
+import { getWinConditionEffect } from "./winCondition";
 import { getCompCounterValue, getEnemyIdentityBanBonus, getLosingLanesEffect } from "./compCounter";
 import {
   getSeasonBestIdentity,
@@ -53,8 +55,6 @@ import {
   getUserPickPreferenceBias,
   getUserPreferredOpenRoleBias,
 } from "./userDraftMemory";
-// FIX #1 — import shortlist pentru variatie draft AI
-import { chooseFromAdaptiveShortlist, roll } from "./draftVariationSystem";
 import { getChampionRoleProfile } from "./championProfileSystem";
 import { getChampionStatsForRole } from "./championRoleStatsSystem";
 import {
@@ -83,9 +83,7 @@ import {
 } from "./mustWithPriority";
 import {
   describeBadSynergy,
-  describeForcedOffPool,
   describeMasteryBlock,
-  describeMustWithLock,
   describePlanAnchor,
   describeReassignment,
   describeSeasonBan,
@@ -133,18 +131,18 @@ import {
 const playersById = new Map(players.map((player) => [player.id, player]));
 
 /** §1.2 — rolurile blocate la pick ale echipei (`{}` pentru salvări vechi). */
-function getLockedRoles(game: DraftGameState, side: Side): LockedRoles {
+export function getLockedRoles(game: DraftGameState, side: Side): LockedRoles {
   return (side === "blue" ? game.pickRolesBlue : game.pickRolesRed) ?? {};
 }
 
 /** Echipa e AI (nu userul)? Doar pentru AI folosim rolurile blocate ale adversarului. */
-function isAiSide(series: ActiveDraftSeries, side: Side) {
+export function isAiSide(series: ActiveDraftSeries, side: Side) {
   return series.userSide !== side;
 }
 
 /** Tag-uri care scot un candidat din pick (§1.4 / §1.5), pe lângă `invalid-role-map`. */
-const BLOCKING_PICK_TAGS = ["invalid-role-map", "breaks-own-pick", "mastery-f"];
-const isBlockedPick = (entry: DraftCandidateBreakdown) =>
+export const BLOCKING_PICK_TAGS = ["invalid-role-map", "breaks-own-pick", "mastery-f"];
+export const isBlockedPick = (entry: DraftCandidateBreakdown) =>
   BLOCKING_PICK_TAGS.some((tag) => entry.reasonTags?.includes(tag));
 
 function clamp(value: number, min: number, max: number) {
@@ -155,7 +153,7 @@ const planCache: Map<string, DraftPlan | null> = new Map();
 /** Ultimul plan calculat înainte de blocare (§4.2), per serie:joc:side. */
 const lastPlanBeforeLock: Map<string, DraftPlan | null> = new Map();
 
-function getCachedPlan(args: {
+export function getCachedPlan(args: {
   side: Side;
   game: DraftGameState;
   series: ActiveDraftSeries;
@@ -201,7 +199,7 @@ function getTeamSlugForSide(series: ActiveDraftSeries, side: Side) {
   return side === "blue" ? series.blueTeamSlug : series.redTeamSlug;
 }
 
-function getTeamRosterFromSources({
+export function getTeamRosterFromSources({
   teamSlug,
   save,
 }: {
@@ -228,10 +226,6 @@ function getOwnState(game: DraftGameState, side: Side) {
     bans: side === "blue" ? game.bansBlue : game.bansRed,
     assignments: side === "blue" ? game.assignmentsBlue : game.assignmentsRed,
   };
-}
-
-function getEnemyState(game: DraftGameState, side: Side) {
-  return getOwnState(game, side === "blue" ? "red" : "blue");
 }
 
 function getCurrentPickNumberForSide(game: DraftGameState, side: Side) {
@@ -472,7 +466,7 @@ function getCompSynergyScore(ownPicks: string[], candidate: Champion) {
 
 // ─── MUSTWITH STATE (DRAFT_REWORK §5) ────────────────────────────────────────
 // Partenerii eligibili ai ambelor echipe, calculați o singură dată pe tură.
-type MustWithTurnState = {
+export type MustWithTurnState = {
   own: MustWithTeamContext;
   ownPartners: EligiblePartner[];
   enemy: MustWithTeamContext;
@@ -491,7 +485,7 @@ type MustWithTurnState = {
 
 const mustWithStateCache = new Map<string, MustWithTurnState>();
 
-function getCachedMustWithState(
+export function getCachedMustWithState(
   series: ActiveDraftSeries,
   game: DraftGameState,
   side: Side,
@@ -557,7 +551,7 @@ function getCachedMustWithState(
 }
 
 // ─── MEMORIA SEZONULUI (DRAFT_THINKING §7) ───────────────────────────────────
-type SeasonTurnState = {
+export type SeasonTurnState = {
   enemyTeamName: string;
   responses: SeasonThreatResponse[];
   /** Counteri pregătiți pentru favoriții lor încă liberi: counterId → favoritul. */
@@ -568,7 +562,7 @@ type SeasonTurnState = {
 
 const seasonStateCache = new Map<string, SeasonTurnState>();
 
-function getCachedSeasonState(series: ActiveDraftSeries, game: DraftGameState, side: Side, save: DraftSave | null): SeasonTurnState {
+export function getCachedSeasonState(series: ActiveDraftSeries, game: DraftGameState, side: Side, save: DraftSave | null): SeasonTurnState {
   const enemySide: Side = side === "blue" ? "red" : "blue";
   const enemyTeamSlug = getTeamSlugForSide(series, enemySide);
   const ownRoster = getTeamRosterFromSources({ teamSlug: getTeamSlugForSide(series, side), save });
@@ -879,18 +873,16 @@ function getSplitIdentityPenalty(
   return { penalty, line: `${candidate.name} ar amesteca ${candidateSide} în comp-ul de ${compSide} (${anchor})` };
 }
 
-function scorePickCandidate(
+export function scorePickCandidate(
   candidate: Champion,
-  step: DraftStep,
-  game: DraftGameState,
-  series: ActiveDraftSeries,
-  save: DraftSave | null,
-  config: DraftAiConfig
+  ctx: DraftContext,
+  weights: BucketWeights = UNIT_PICK_WEIGHTS
 ): DraftCandidateBreakdown {
-  const ownState = getOwnState(game, step.side);
-  const enemyState = getEnemyState(game, step.side);
-  const teamSlug = getTeamSlugForSide(series, step.side);
-  const roster = getTeamRosterFromSources({ teamSlug, save });
+  const { step, game, series, config } = ctx;
+  const ownState = { picks: ctx.own.picks };
+  const enemyState = { picks: ctx.enemy.picks };
+  const teamSlug = ctx.own.teamSlug;
+  const roster = ctx.own.roster;
 
   const lockedRoles = getLockedRoles(game, step.side);
   const canFit = canPickChampionIntoUniqueRoles(ownState.picks, candidate.id, roster, lockedRoles);
@@ -918,8 +910,7 @@ function scorePickCandidate(
   });
 
   // ── MASTERY ADVANCED: clutch context + draft reading (cached per turn) ──
-  const enemyTeamSlugForAdv = getTeamSlugForSide(series, step.side === "blue" ? "red" : "blue");
-  const enemyRosterForAdv = getTeamRosterFromSources({ teamSlug: enemyTeamSlugForAdv, save });
+  const enemyRosterForAdv = ctx.enemy.roster;
   const advCtx = getCachedAdvancedContext({
     game,
     side: step.side,
@@ -972,7 +963,7 @@ function scorePickCandidate(
   );
   const counterpickPreservationBonus = counterpickPreservationBase - directLaneCounterPenalty;
 
-  const mustWithState = getCachedMustWithState(series, game, step.side, save);
+  const mustWithState = ctx.mustWith;
 
   const blindRiskPenalty = getBlindRiskPenalty(
     game,
@@ -1028,11 +1019,11 @@ function scorePickCandidate(
     ownState.picks,
     candidate,
     projected.projectedRole,
-    resolveRoleAssignments(ownState.picks, roster, lockedRoles)
+    ctx.own.assignments
   );
   const proPickTiming = getProPickTimingBonus(candidate, game, step.side, projected.projectedRole);
   // §7.4: memoria sezonului — counter pregătit / pedepsit, propriii favoriți de sezon.
-  const seasonState = getCachedSeasonState(series, game, step.side, save);
+  const seasonState = ctx.season;
   const seasonPunish = seasonState.punish.get(candidate.id) ?? null;
   const seasonReady = !seasonPunish && seasonState.ready.has(candidate.id);
   const ownSeasonThreat = getSeasonChampionThreat(teamSlug, candidate.id, roster).threat;
@@ -1042,9 +1033,8 @@ function scorePickCandidate(
     Math.min(ownSeasonThreat * DRAFT_THINKING_CONFIG.season.ownComfortWeight, DRAFT_THINKING_CONFIG.season.ownComfortCap);
   // §5.2 / §5.3: identitate împărțită și win condition.
   const splitIdentity = getSplitIdentityPenalty(ownState.picks, candidate, roster, lockedRoles);
-  const ownRolesNow = resolveRoleAssignments(ownState.picks, roster, lockedRoles);
-  const ownIdentity = readCompIdentity(ownState.picks, ownRolesNow);
-  const winCondition = getWinCondition(ownState.picks, ownRolesNow, ownIdentity, roster);
+  const ownIdentity = ctx.own.identity;
+  const winCondition = ctx.ownWinCondition;
   const winConditionEffect = getWinConditionEffect(candidate, winCondition, ownState.picks);
 
   const adaptivePriority = getAdaptivePriorityBonus({
@@ -1066,7 +1056,7 @@ function scorePickCandidate(
   });
 
   // UPGRADE 12: Draft plan alignment
-  const draftPlan = getCachedPlan({ side: step.side, game, series, save });
+  const draftPlan = ctx.plan;
   const planAlignment = getPlanAlignmentBonus(
     candidate,
     projected.projectedRole,
@@ -1101,12 +1091,7 @@ function scorePickCandidate(
 
   // DRAFT_THINKING §6: comp counter (înlocuiește counterUserPlanBonus; și AI vs AI), fără tunnel vision,
   // plus bilanțul liniilor („still losing matchups”).
-  const enemySideForComp: Side = step.side === "blue" ? "red" : "blue";
-  const enemyAssignmentsForComp = resolveRoleAssignments(
-    enemyState.picks,
-    enemyRosterForAdv,
-    isAiSide(series, enemySideForComp) ? getLockedRoles(game, enemySideForComp) : undefined
-  );
+  const enemyAssignmentsForComp = ctx.enemy.assignments;
   const ownAssignmentsWithCandidate = resolveRoleAssignments([...ownState.picks, candidate.id], roster, lockedRoles);
   const compCounter = getCompCounterValue({
     candidate,
@@ -1235,50 +1220,69 @@ function scorePickCandidate(
       ? 0
       : getUserPreferredOpenRoleBias(candidate, projected.projectedRole, step.side, series);
 
+  // DRAFT_REALISM §3.2: rol imposibil / pick propriu mutat pe F / F pe jucătorul proiectat → filtru
+  // (`isBlockedPick`). Penalizarea rămâne în scor doar ca să ordoneze fallback-ul `forced-off-pool`.
   const invalidRolePenalty = canFit && !reassignment.breaksOwnPick && !masteryGate.blocked ? 0 : 100;
-  const totalScore =
-    metaPriority * adjustedConfig.metaWeight +
-    comfortScore * adjustedConfig.comfortWeight +
-    playerFitScore * adjustedConfig.fitWeight +
-    compSynergy * adjustedConfig.synergyWeight +
-    needFill * adjustedConfig.needWeight +
-    counterValue * adjustedConfig.counterWeight +
-    identityBias +
-    flexBonus +
-    roleCoverage +
-    counterpickPreservationBonus +
-    userBias +
-    userRoleBias +
-    archetypeAffinity +
-    winConditionCoherence +
-    proPickTiming +
-    adaptivePriority +
-    botLaneFitBonus +
-    trapCounter +
-    planAlignment +
-    sideAware +
-    flexAmbiguity +
-    contestedUrgency +
-    compCounter.value +            // §6.1 / §6.2: comp counter (redus la tunnel vision)
-    losingLanes.bonus +            // §6.3: liniile pierdute
-    ruleSynergyBonus +             // DRAFT FINAL FIX 1
-    matchupHistoryBias +           // DRAFT FINAL FIX 2
-    compGate +
-    mustWithBonus +                // MUSTWITH: combo potential / non-bot partner / deny (§5)
-    masteryPickFinal.total +
-    predictiveCounter.bonus -
-    weaknessPenalty * adjustedConfig.weaknessWeight -
-    blindRiskPenalty -
-    comboDependencyPenalty -
-    offMetaPenalty -
-    contestability -
-    carryNeedPenalty -
-    invalidRolePenalty -
-    reassignment.penalty -          // §1.4: pick propriu mutat pe D / grad mult mai mic
-    masteryGate.penalty -           // §1.5: D pe jucătorul proiectat
-    splitIdentity.penalty +         // §5.2: identitate împărțită
-    winConditionEffect.bonus +      // §5.3: susține / încarcă win condition-ul
-    seasonPickBonus;                // §7.4: counter de sezon / favoriții noștri
+
+  // DRAFT_REALISM §4.1: termenii existenți, grupați pe bucket-uri; totalul = Σ bucket × pondere.
+  const seasonCounterBonus =
+    (seasonPunish ? DRAFT_THINKING_CONFIG.season.counterPunishBonus : 0) +
+    (seasonReady ? DRAFT_THINKING_CONFIG.season.counterReadyBonus : 0);
+  const seasonComfortBonus = seasonPickBonus - seasonCounterBonus;
+  const mustWithDenyValue = Math.max(mustWithDeny.bonus, duoDeny);
+  const buckets: Record<PickBucketId, number> = {
+    power:
+      metaPriority * adjustedConfig.metaWeight +
+      proPickTiming +
+      contestedUrgency -
+      offMetaPenalty,
+    comp:
+      compSynergy * adjustedConfig.synergyWeight +
+      needFill * adjustedConfig.needWeight +
+      archetypeAffinity +
+      winConditionCoherence +
+      planAlignment +
+      ruleSynergyBonus +             // DRAFT FINAL FIX 1
+      compGate +
+      botLaneFitBonus +
+      (mustWithBonus - mustWithDenyValue) + // duo plan / fallback / partener non-bot (§2, §5.4)
+      winConditionEffect.bonus -     // §5.3: susține / încarcă win condition-ul
+      splitIdentity.penalty -        // §5.2: identitate împărțită
+      weaknessPenalty * adjustedConfig.weaknessWeight -
+      comboDependencyPenalty -
+      carryNeedPenalty,
+    counter:
+      counterValue * adjustedConfig.counterWeight +
+      predictiveCounter.bonus +
+      trapCounter +
+      matchupHistoryBias +           // DRAFT FINAL FIX 2
+      compCounter.value +            // §6.1 / §6.2: comp counter (redus la tunnel vision)
+      losingLanes.bonus +            // §6.3: liniile pierdute
+      seasonCounterBonus,            // §7.4: counter de sezon (pregătit / pedepsit)
+    comfort:
+      comfortScore * adjustedConfig.comfortWeight +
+      playerFitScore * adjustedConfig.fitWeight +
+      masteryPickFinal.total +
+      seasonComfortBonus -           // §7.4: favoriții noștri de sezon
+      reassignment.penalty -         // §1.4: pick propriu mutat pe D / grad mult mai mic
+      masteryGate.penalty,           // §1.5: D pe jucătorul proiectat
+    deny:
+      mustWithDenyValue +            // §5.5 / §2.4: partenerul liber al ancorei lor
+      userBias,                      // ce îi place userului (adversarul), ca să i-l luăm
+    info:
+      flexBonus +
+      roleCoverage +
+      counterpickPreservationBonus +
+      sideAware +
+      flexAmbiguity +
+      userRoleBias -
+      blindRiskPenalty -
+      contestability,
+    style: identityBias,
+  };
+  // §11: `adaptivePriority` se șterge; până atunci stă în afara ponderilor.
+  const unweighted = adaptivePriority - invalidRolePenalty;
+  const totalScore = sumBuckets(buckets, weights) + unweighted;
 
   const explanation = [
     ...reassignment.entries.map((entry) => describeReassignment(candidate.id, entry, reassignment.breaksOwnPick)),
@@ -1333,6 +1337,9 @@ function scorePickCandidate(
     ...(badSynergies.length ? { badSynergies } : {}),
     ...(reassignment.entries.length ? { reassignment: reassignment.entries } : {}),
     planAlignment,
+    buckets,
+    bucketWeights: weights,
+    phase: ctx.phase,
     ...(compCounter.ours && compCounter.theirs ? { compCounterValue: compCounter.value } : {}),
     ...(ownIdentity.dominant
       ? { identity: { dominant: ownIdentity.dominant, fit: getCandidateIdentityFit(candidate, projected.projectedRole, ownIdentity.dominant) } }
@@ -1656,24 +1663,22 @@ function getProPickTimingBonus(
   return clamp(stealBonus, -2, 8);
 }
 
-function scoreBanCandidate(
+export function scoreBanCandidate(
   candidate: Champion,
-  step: DraftStep,
-  game: DraftGameState,
-  series: ActiveDraftSeries,
-  save: DraftSave | null
+  ctx: DraftContext,
+  weights: BucketWeights = UNIT_BAN_WEIGHTS
 ): DraftCandidateBreakdown {
-  const ownState = getOwnState(game, step.side);
-  const enemyState = getEnemyState(game, step.side);
-  const enemyTeamSlug = getTeamSlugForSide(series, step.side === "blue" ? "red" : "blue");
+  const { step, game, series, save } = ctx;
+  const ownState = { picks: ctx.own.picks };
+  const enemyState = { picks: ctx.enemy.picks };
+  const enemyTeamSlug = ctx.enemy.teamSlug;
   // ── MASTERY: enemy roster for ban pressure ──────────────────────────────
-  const enemyRoster = getTeamRosterFromSources({ teamSlug: enemyTeamSlug, save });
-  const ownTeamSlug = getTeamSlugForSide(series, step.side);
-  const ownRoster = getTeamRosterFromSources({ teamSlug: ownTeamSlug, save });
+  const enemyRoster = ctx.enemy.roster;
+  const ownRoster = ctx.own.roster;
 
   // Enemy has SS/S on this champion → ban pressure
   // DRAFT_THINKING §7.4: favoriții de sezon ai adversarului — ban dacă n-avem răspuns, altfel îi lăsăm.
-  const seasonBanState = getCachedSeasonState(series, game, step.side, save);
+  const seasonBanState = ctx.season;
   const seasonResponse = seasonBanState.responses.find(
     (response) => response.kind !== "ignore" && response.championId === candidate.id
   );
@@ -1761,7 +1766,7 @@ function scoreBanCandidate(
   const comfortRepeatThreat = getSeriesComfortRepeatThreat(candidate.id, step.side, series);
 
   // UPGRADE 13: Get AI plan to guide ban targeting
-  const aiBanPlan = getCachedPlan({ side: step.side, game, series, save });
+  const aiBanPlan = ctx.plan;
 
   // UPGRADE 13: Ban bonus for champions that counter AI's plan
   const planAdaptiveBanBonus = getPlanAdaptiveBanBonus(candidate, aiBanPlan);
@@ -1801,7 +1806,7 @@ function scoreBanCandidate(
   }
 
   // ─── MUSTWITH BAN (§5.5) ──────────────────────────────────────────────────
-  const mustWithBanState = getCachedMustWithState(series, game, step.side, save);
+  const mustWithBanState = ctx.mustWith;
   // Deny: inamicul are ancora (ex. Rakan) → ban pe partenerul lui liber (Xayah).
   const mustWithBanBonus = Math.max(
     getMustWithDenyBonus(candidate, mustWithBanState.enemy, true, mustWithBanState.enemyPartners).bonus,
@@ -1817,31 +1822,38 @@ function scoreBanCandidate(
     ? MUSTWITH_CONFIG.ownPartnerBanScore
     : 0;
 
-  // FIX A: Reduce metaPriority dominance, boost signature bans
-  const totalScore =
-    metaPriority * 0.95 +
-    enemyComfortPressure * 1.1 +
-    enemyCounterWindow +
-    userBias +
-    synergyCompletionBonus +
-    signatureBonus * 1.4 +
-    redundantBanPenalty +
-    counterProductiveBanPenalty -
-    banRepeatPenalty +
-    seriesAwareBan +
-    comfortRepeatThreat +
-    trapBanReduction +
-    planAdaptiveBanBonus +
-    identityBanBonus +             // §6.1: întărește identitatea inamicului
-    userFavoriteBan +
-    protectOwnCompBonus +          // DRAFT FINAL FIX 3
-    mustWithBanBonus +
-    ownMustWithBanBlock +
-    // §7.4: banul de sezon nu se adună peste mastery / target ban pentru același campion: se ia maximul.
-    Math.max(enemyMasteryBan.bonus + targetBan.bonus, seasonBan) +
-    ownMasteryProtect.penalty +
-    predictiveBan.bonus +
-    (candidate.roles.length >= 2 ? 0.8 : 0);
+  // DRAFT_REALISM §4.2: termenii existenți, grupați pe bucket-uri; `hygiene` e mereu × 1.
+  const buckets: Record<BanBucketId, number> = {
+    power: metaPriority * 0.95 + (candidate.roles.length >= 2 ? 0.8 : 0),
+    // Jucătorii lor. §7.4: banul de sezon nu se adună peste mastery / target ban: se ia maximul.
+    target:
+      enemyComfortPressure * 1.1 +
+      signatureBonus * 1.4 +
+      Math.max(enemyMasteryBan.bonus + targetBan.bonus, seasonBan) +
+      userFavoriteBan +
+      userBias +
+      seriesAwareBan +
+      comfortRepeatThreat,
+    // Pick-urile noastre.
+    protect:
+      protectOwnCompBonus +          // DRAFT FINAL FIX 3
+      counterProductiveBanPenalty +
+      ownMasteryProtect.penalty,
+    // Compoziția lor.
+    compDeny:
+      synergyCompletionBonus +
+      mustWithBanBonus +
+      planAdaptiveBanBonus +
+      identityBanBonus +             // §6.1: întărește identitatea inamicului
+      enemyCounterWindow,
+    predict: predictiveBan.bonus,
+    hygiene:
+      redundantBanPenalty -
+      banRepeatPenalty +
+      trapBanReduction +
+      ownMustWithBanBlock,
+  };
+  const totalScore = sumBuckets(buckets, weights);
 
 
   return {
@@ -1858,6 +1870,9 @@ function scoreBanCandidate(
     totalScore,
     planType: "deny-signature",
     historyBias: userBias,
+    buckets,
+    bucketWeights: weights,
+    phase: ctx.phase,
     mustWithBonus: mustWithBanBonus + ownMustWithBanBlock,
     ...(seasonBanLine ? { explanation: [seasonBanLine] } : {}),
     ...(seasonResponse && seasonResponse.kind !== "ignore"
@@ -1871,48 +1886,6 @@ function scoreBanCandidate(
       ...(ownMustWithBanBlock < 0 ? ["mustwith-protected"] : []),
     ],
   };
-}
-
-export function scoreDraftCandidate(
-  candidate: Champion,
-  step: DraftStep,
-  game: DraftGameState,
-  series: ActiveDraftSeries,
-  save: DraftSave | null,
-  config: DraftAiConfig = DEFAULT_AI_CONFIG
-): DraftCandidateBreakdown {
-  if (step.action === "ban") {
-    return scoreBanCandidate(candidate, step, game, series, save);
-  }
-
-  return scorePickCandidate(candidate, step, game, series, save, config);
-}
-
-function withMustWithLock(breakdown: DraftCandidateBreakdown, lock: EligiblePartner): DraftCandidateBreakdown {
-  const mustWithLock = { anchorId: lock.anchorId, partnerId: lock.partnerId, grade: lock.grade };
-  return {
-    ...breakdown,
-    mustWithLock,
-    reasonTags: [...(breakdown.reasonTags ?? []), "mustwith-lock"],
-    explanation: [...(breakdown.explanation ?? []), describeMustWithLock(mustWithLock, lock.isBotPair)],
-  };
-}
-
-function applyRealisticPickTiebreaker(
-  a: DraftCandidateBreakdown,
-  b: DraftCandidateBreakdown
-) {
-  const roleCoverageDiff = (b.planBias ?? 0) - (a.planBias ?? 0);
-  if (Math.abs(roleCoverageDiff) > 0.01) return roleCoverageDiff;
-
-  const counterPreservationDiff =
-    (b.counterpickPreservationBonus ?? 0) - (a.counterpickPreservationBonus ?? 0);
-  if (Math.abs(counterPreservationDiff) > 0.01) return counterPreservationDiff;
-
-  const flexDiff = (b.flexBonus ?? 0) - (a.flexBonus ?? 0);
-  if (Math.abs(flexDiff) > 0.01) return flexDiff;
-
-  return 0;
 }
 
 /**
@@ -1971,157 +1944,16 @@ export function getPickCandidatePool(
   return filteredPool;
 }
 
-// ─── Observator de decizii (harness: scripts/draft-trace.ts, draft-calibration.ts) ──
-export type DraftDecisionObservation = {
-  step: DraftStep;
-  game: DraftGameState;
-  series: ActiveDraftSeries;
-  /** Toți candidații scorați, sortați (gol pentru acțiunile forțate înainte de scorare). */
-  ranked: DraftCandidateBreakdown[];
-  chosen: DraftCandidateBreakdown | null;
-};
-let decisionObserver: ((observation: DraftDecisionObservation) => void) | null = null;
-/** Doar pentru harness: nu schimbă decizia, primește lista scorată după fiecare acțiune AI. */
-export function setDraftDecisionObserver(observer: ((observation: DraftDecisionObservation) => void) | null) {
-  decisionObserver = observer;
-}
-
-/** `choiceRank` = locul alegerii în lista sortată (0 = primul); lipsă la acțiunile forțate. */
-function withChoiceRank(chosen: DraftCandidateBreakdown | null, ranked: DraftCandidateBreakdown[]) {
-  if (!chosen) return null;
-  const index = ranked.indexOf(chosen);
-  return index >= 0 ? { ...chosen, choiceRank: index } : chosen;
-}
-
-export function chooseAiAction(
-  pool: Champion[],
-  step: DraftStep,
-  game: DraftGameState,
-  series: ActiveDraftSeries,
-  save: DraftSave | null,
-  config: DraftAiConfig = DEFAULT_AI_CONFIG
-): DraftCandidateBreakdown | null {
-  const ranked: DraftCandidateBreakdown[] = [];
-  const chosen = chooseAiActionInner(pool, step, game, series, save, config, ranked);
-  decisionObserver?.({ step, game, series, ranked, chosen });
-  return chosen;
-}
-
-function chooseAiActionInner(
-  pool: Champion[],
-  step: DraftStep,
-  game: DraftGameState,
-  series: ActiveDraftSeries,
-  save: DraftSave | null,
-  config: DraftAiConfig,
-  rankedOut: DraftCandidateBreakdown[]
-): DraftCandidateBreakdown | null {
-  if (!pool.length) return null;
-
-  const mustWithState = getCachedMustWithState(series, game, step.side, save);
-  const ownPartnerIds = new Set(mustWithState.ownPartners.map((partner) => partner.partnerId));
-
-  // §5.2 / 4.3: botlane mustWith = override, ÎNAINTE de pre-filtru și de shortlist.
-  if (step.action === "pick") {
-    const lock = resolveMustWithLock(mustWithState.own);
-    const lockedCandidate = lock ? pool.find((champion) => champion.id === lock.partnerId) : undefined;
-    if (lock && lockedCandidate) {
-      const breakdown = scoreDraftCandidate(lockedCandidate, step, game, series, save, config);
-      if (!isBlockedPick(breakdown)) {
-        return withMustWithLock(breakdown, lock);
-      }
-    }
-  }
-
-  // §5.5: nu-ți bana partenerul eligibil al unui campion deja luat.
-  // DRAFT_THINKING §2.4: în faza 1 nu-ți bana nici membrii celui mai bun duo propriu (clar peste al doilea).
-  const protectedBanIds = new Set([
-    ...ownPartnerIds,
-    ...(step.action === "ban" && game.phaseIndex < 6 ? mustWithState.ownDuo.protectedIds : []),
-  ]);
-  if (step.action === "ban" && protectedBanIds.size > 0) {
-    const banPool = pool.filter((champion) => !protectedBanIds.has(champion.id));
-    if (banPool.length) pool = banPool;
-  }
-
-  // UPGRADE 11 FIX 3: Pre-filter pool to speed up scoring.
-  // Full scoring is expensive (calls evaluateSimulationReadiness, etc per candidate).
-  // For picks: keep top ~50 by meta priority + any player comfort pick.
-  // For bans: keep top ~30 by meta priority + signature ban candidates.
-  let filteredPool = pool;
-
-  if (step.action === "pick") {
-    filteredPool = getPickCandidatePool(pool, step, game, series, save, ownPartnerIds);
-  } else {
-    // Bans: only top 30 meta candidates matter
-    const cheapRanked = [...pool]
-      .map((c) => ({
-        champion: c,
-        priority: (c.stats?.prioScore ?? 0) + (c.stats?.bans ?? 0) * 0.5,
-      }))
-      .sort((a, b) => b.priority - a.priority);
-
-    filteredPool = cheapRanked.slice(0, 30).map((e) => e.champion);
-
-    // DRAFT_THINKING §7.4: favoriții de sezon ai adversarului (de banat sau nu) intră mereu în pool-ul de ban.
-    const seasonIds = new Set(
-      getCachedSeasonState(series, game, step.side, save).responses.flatMap((response) =>
-        response.kind === "ignore" ? [] : [response.championId]
-      )
-    );
-    const banIncluded = new Set(filteredPool.map((champion) => champion.id));
-    for (const champion of pool) {
-      if (seasonIds.has(champion.id) && !banIncluded.has(champion.id)) filteredPool.push(champion);
-    }
-  }
-
-  const ranked = filteredPool
-    .map((candidate) => scoreDraftCandidate(candidate, step, game, series, save, config))
-    .sort((a, b) => {
-      const primary = b.totalScore - a.totalScore;
-      if (Math.abs(primary) > 0.01) return primary;
-      return applyRealisticPickTiebreaker(a, b);
-    });
-  rankedOut.push(...ranked);
-
-  if (step.action === "pick") {
-    let valid = ranked.filter((entry) => !isBlockedPick(entry));
-
-    // §1.5: niciun candidat valid (ban-uri + fearless au golit pool-urile) → cel mai bun
-    // dintre cei excluși doar pentru mastery, marcat `forced-off-pool`.
-    if (!valid.length) {
-      const forced =
-        ranked.find((entry) => !entry.reasonTags?.includes("invalid-role-map") && !entry.reasonTags?.includes("breaks-own-pick")) ??
-        ranked.find((entry) => !entry.reasonTags?.includes("invalid-role-map"));
-      if (forced) {
-        return {
-          ...forced,
-          reasonTags: [...(forced.reasonTags ?? []), "forced-off-pool"],
-          explanation: [...(forced.explanation ?? []), describeForcedOffPool(forced.projectedPlayerId ?? null, forced.championId)],
-        };
-      }
-    }
-
-    // §1.5: un candidat cu D intră în shortlist doar dacă e pe primul loc.
-    valid = valid.filter((entry, index) => index === 0 || !entry.reasonTags?.includes("mastery-d"));
-
-    const seed = `${series.seriesId}:${series.currentGameNumber}:${game.phaseIndex}:${step.side}`;
-
-    // §5.4: partener non-bot pe primul loc → ales cu nonBotLockChance (determinist).
-    const top = valid[0];
-    const nonBotPartner = top
-      ? mustWithState.ownPartners.find((partner) => !partner.isBotPair && partner.partnerId === top.championId)
-      : undefined;
-    if (top && nonBotPartner && roll(`${seed}:mustwith`) < MUSTWITH_CONFIG.nonBotLockChance) {
-      return withMustWithLock(top, nonBotPartner);
-    }
-
-    return withChoiceRank(chooseFromAdaptiveShortlist(valid, seed) ?? null, valid);
-  }
-
-  const banSeed = `${series.seriesId}:${series.currentGameNumber}:${game.phaseIndex}:ban:${step.side}`;
-  const banShortlist = ranked.slice(0, 3);
-  const banHash = banSeed.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return withChoiceRank(banShortlist[banHash % banShortlist.length] ?? ranked[0] ?? null, ranked);
-
+/**
+ * DRAFT_REALISM §3.2 — filtrul dur de pick, înaintea oricărui scor: rol imposibil
+ * (`invalid-role-map`), pick propriu mutat pe un jucător cu F (`breaks-own-pick`, §1.4),
+ * F pe jucătorul proiectat (`mastery-f`, §1.5). Aceleași verificări ca în `scorePickCandidate`.
+ */
+export function getPickHardFilter(candidate: Champion, ctx: DraftContext): "invalid-role-map" | "breaks-own-pick" | "mastery-f" | null {
+  const lockedRoles = getLockedRoles(ctx.game, ctx.side);
+  if (!canPickChampionIntoUniqueRoles(ctx.own.picks, candidate.id, ctx.own.roster, lockedRoles)) return "invalid-role-map";
+  if (getReassignmentCheck(ctx.own.picks, candidate.id, ctx.own.roster, lockedRoles).breaksOwnPick) return "breaks-own-pick";
+  const projected = getProjectedRoleAndPlayer(candidate, ctx.own.picks, ctx.own.roster, lockedRoles);
+  if (getMasteryGate(projected.projectedPlayer, candidate.id, projected.projectedRole).blocked) return "mastery-f";
+  return null;
 }
