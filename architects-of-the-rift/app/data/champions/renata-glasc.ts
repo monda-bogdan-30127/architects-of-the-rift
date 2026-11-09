@@ -67,6 +67,9 @@ export const renataGlasc = createChampion({
         { championId: "alistar", level: 2, phase: "all", note: "R întoarce engage-ul împotriva echipei care intră" },
         { championId: "rell", level: 2, phase: "all", note: "R întoarce engage-ul împotriva echipei care intră" },
       ],
+      
+      mustWith: ["renata-glasc"],
+
       stats: {
         picks: 16,
         bans: null,

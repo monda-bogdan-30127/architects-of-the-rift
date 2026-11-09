@@ -62,7 +62,6 @@ export const olaf = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "camille", level: 2, phase: "all", note: "R-ul ignoră stun-ul din E și R-ul Camillei" },
         { championId: "aatrox", level: 2, phase: "lane" },
         { championId: "ambessa", level: 2, phase: "lane" },
         { championId: "gwen", level: 2, phase: "lane" },

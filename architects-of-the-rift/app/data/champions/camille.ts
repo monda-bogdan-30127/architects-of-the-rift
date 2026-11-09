@@ -71,6 +71,7 @@ export const camille = createChampion({
         { championId: "renekton", level: 2, phase: "late" },
         { championId: "rumble", level: 2, phase: "late" },
         { championId: "sion", level: 2, phase: "late" },
+        { championId: "olaf", level: 2, phase: "all" },
         { championId: "aatrox", level: 1, phase: "all" },
         { championId: "riven", level: 1, phase: "all" },
       ],

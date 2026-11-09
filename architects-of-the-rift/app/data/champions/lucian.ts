@@ -11,7 +11,6 @@ export const lucian = createChampion({
   synergyWith: [
     { championId: "nami", score: 5 },
     { championId: "braum", score: 4 },
-    { championId: "milio", score: 4 },
     { championId: "nautilus", score: 4 },
     { championId: "karma", score: 3 },
     { championId: "lulu", score: 3 },
@@ -76,6 +75,7 @@ export const lucian = createChampion({
         { championId: "yunara", level: 2, phase: "lane" },
         { championId: "ezreal", level: 1, phase: "all" },
       ],
+      mustWith: ["milio"],
       stats: {
         picks: 16,
         bans: null,
