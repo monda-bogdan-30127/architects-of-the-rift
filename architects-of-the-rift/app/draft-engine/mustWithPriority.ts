@@ -48,7 +48,7 @@ export const MUSTWITH_CONFIG = {
    * o excepție permisă: counter nota 5 pe adversarul de linie sau pick SS
    * (`getNonBotOverride`). Rolul imposibil / compGate < -2 sunt deja în `compSafe`.
    */
-  nonBotBonus: 30,
+  nonBotBonus: 36,
   nonBotOverriddenBonus: 2.5,
   /** 5.4: șansa (deterministă) de a alege partenerul când e primul în clasament. */
   nonBotLockChance: 0.8,

@@ -30,6 +30,7 @@ import {
 import { UNIT_BAN_WEIGHTS, UNIT_PICK_WEIGHTS, type BucketWeights } from "./draftBuckets";
 import { MUSTWITH_CONFIG, resolveMustWithLock, type EligiblePartner } from "./mustWithPriority";
 import { describeForcedOffPool, describeMustWithLock } from "./draftDecisionExplainer";
+import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { chooseFromAdaptiveShortlist, roll } from "./draftVariationSystem";
 
 type Intent = NonNullable<DraftCandidateBreakdown["intents"]>[number];
@@ -92,8 +93,19 @@ export function evaluateIntents(_ctx: DraftContext): Intent[] {
   return [];
 }
 
+/** Ponderea fazei (§5) pentru fiecare bucket; intențiile (§7) și stilul (§8) se adaugă peste. */
+export function getPhaseWeights(ctx: DraftContext): BucketWeights {
+  const phases = DRAFT_THINKING_CONFIG.phases;
+  if (ctx.step.action === "ban") {
+    const phase = ctx.phase === "ban2" ? phases.ban.ban2 : phases.ban.ban1;
+    return { ...UNIT_BAN_WEIGHTS, ...phase };
+  }
+  const pickPhase = ctx.phase === "pick1-open" || ctx.phase === "pick1-close" || ctx.phase === "pick2" || ctx.phase === "last-pick" ? ctx.phase : "pick2";
+  return { ...UNIT_PICK_WEIGHTS, ...phases.pick[pickPhase] };
+}
+
 export function getBucketWeights(ctx: DraftContext, _intents: Intent[]): BucketWeights {
-  return ctx.step.action === "ban" ? { ...UNIT_BAN_WEIGHTS } : { ...UNIT_PICK_WEIGHTS };
+  return getPhaseWeights(ctx);
 }
 
 function withIntents(entry: DraftCandidateBreakdown, intents: Intent[]): DraftCandidateBreakdown {

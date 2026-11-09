@@ -2,6 +2,7 @@ import type { Champion, Role } from "@/app/types/champion";
 import { countOpenEnemyAnswers } from "./draftInformation";
 import { isExposedComboAnchor, type MustWithTeamContext } from "./mustWithPriority";
 import type { ActiveDraftSeries, DraftGameState, Side } from "./draftTypes";
+import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 
 const CONTESTABLE_IDS = new Set(["poppy", "jarvan-iv", "braum", "galio"]);
 
@@ -57,7 +58,8 @@ export function getContestabilityPenalty(args: {
 
   if (answerIds.length > 0) {
     const openAnswers = countOpenEnemyAnswers(game, series, answerIds);
-    penalty += openAnswers * (pickNumber <= 2 ? 0.38 : 0.22);
+    // DRAFT_REALISM §5.3: un singur coeficient; scăderea pe pick e ponderea `info` pe fază.
+    penalty += openAnswers * DRAFT_THINKING_CONFIG.phases.contestabilityAnswerWeight;
   }
 
   if (enemyChampionIds.length === 0 && candidate.id === "poppy") penalty += 0.9;

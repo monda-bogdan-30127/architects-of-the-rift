@@ -397,10 +397,10 @@ export function getPlanAlignmentBonus(
 
   const fit = scoreChampionForPlan(candidate, role, plan.type);
 
-  // §4.2: angajamentul față de plan crește spre ultimele pick-uri (înainte: 0 de la pick 5),
-  // exact când ultimele pick-uri pot rupe identitatea.
-  const commitment = PLAN.commitmentByPick[Math.max(0, Math.min(PLAN.commitmentByPick.length - 1, pickNumber - 1))];
-  const alignment = fit * 0.7 * plan.confidence * commitment;
+  // DRAFT_REALISM §5: angajamentul pe pick (fostul commitmentByPick) e acum ponderea `comp` pe fază;
+  // planul rămâne activ până la ultimul pick (`pickNumber` nu mai scalează).
+  void pickNumber;
+  const alignment = fit * 0.7 * plan.confidence;
 
   return clamp(alignment, PLAN.alignmentClamp[0], PLAN.alignmentClamp[1]);
 }

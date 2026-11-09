@@ -22,6 +22,7 @@ import type { Champion, Role } from "@/app/types/champion";
 import type { DraftGameState, Side } from "./draftTypes";
 import { getMetaPriorityScore } from "./draftEvaluator";
 import { getChampionStatsForRole } from "./championRoleStatsSystem";
+import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -57,9 +58,7 @@ export function getSideAwareBonus(args: {
     // ─── BLUE SIDE ─────────────────────────────────────────────────────
     // Blue pick 1 (B1): hardest decision — must be contested power pick
     if (ownPickNumber === 1) {
-      // Want high metaPriority (contested), moderate flex
-      if (metaPriority >= 7.5) bonus += 1.5;
-      if (metaPriority >= 8.5) bonus += 1.0; // Extra for top-tier picks
+      // DRAFT_REALISM §5.3: bonusul de meta la B1 e acum ponderea `power` în pick1-open.
       // Flex value helps hide role info
       if (isFlex) bonus += 0.8;
       // Penalty for easily-countered champions at B1
@@ -108,8 +107,7 @@ export function getSideAwareBonus(args: {
 
     // Red pick 5 (R5): ABSOLUTE LAST PICK — counter pick gold mine
     if (ownPickNumber === 5) {
-      // Pure counter picking — counter value is king here
-      bonus += counterValue * 0.35; // Can add up to +3.5 for perfect counter
+      // DRAFT_REALISM §5.3: counterValue × 0.35 e acum ponderea `counter` în last-pick.
       // Specialization rewarded (don't waste R5 on flex)
       if (!isFlex) bonus += 0.5;
     }
@@ -140,11 +138,9 @@ export function getFlexAmbiguityBonus(args: {
   const rolePickRate = candidate.stats?.presence ?? 0;
   if (rolePickRate < 5) return 0; // Not enough sample size
 
-  // Strong flex bonus early — maintains ambiguity
-  let bonus = 0;
-  if (ownPickNumber === 1) bonus += 1.4; // Biggest mind-game impact at B1/R1
-  if (ownPickNumber === 2) bonus += 0.9;
-  if (ownPickNumber === 3) bonus += 0.5;
+  // Flex bonus în primele 3 pick-uri proprii — păstrează ambiguitatea. Scăderea pe pick (1.4 / 0.9 / 0.5)
+  // e acum ponderea `info` pe fază (DRAFT_REALISM §5.3).
+  let bonus: number = DRAFT_THINKING_CONFIG.phases.flexAmbiguityBonus;
 
   // Extra bonus for 3-role flex (e.g. Gragas top/jg/mid)
   if (candidate.roles.length >= 3) bonus *= 1.25;

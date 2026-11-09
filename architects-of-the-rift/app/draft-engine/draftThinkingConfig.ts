@@ -81,8 +81,6 @@ export const DRAFT_THINKING_CONFIG = {
     priorityMetaMin: 7.5,
     /** Planul se blochează după atâtea pick-uri proprii. */
     lockAfterOwnPicks: 3,
-    /** Multiplicatorul alinierii cu planul pe pick-ul propriu 1..5. */
-    commitmentByPick: [1.0, 1.0, 1.1, 1.25, 1.4],
     alignmentClamp: [-5, 4] as [number, number],
   },
 
@@ -153,6 +151,24 @@ export const DRAFT_THINKING_CONFIG = {
     /** Campionii noștri de sezon: + min(threat × ownComfortWeight, ownComfortCap). */
     ownComfortWeight: 0.2,
     ownComfortCap: 1.5,
+  },
+
+  // DRAFT_REALISM §5 — ponderile bucket-urilor pe fază (după indexul din DRAFT_SEQUENCE).
+  // `style` rămâne 1 (stilul acționează pe ponderi din §8); `hygiene` e mereu × 1.
+  phases: {
+    pick: {
+      "pick1-open": { power: 1.3, comp: 0.6, counter: 0.4, comfort: 1.0, deny: 1.2, info: 1.2, style: 1 },
+      "pick1-close": { power: 1.1, comp: 0.9, counter: 0.7, comfort: 1.0, deny: 1.0, info: 1.1, style: 1 },
+      pick2: { power: 0.8, comp: 1.3, counter: 1.2, comfort: 1.0, deny: 0.7, info: 0.6, style: 1 },
+      "last-pick": { power: 0.6, comp: 1.2, counter: 1.6, comfort: 1.0, deny: 0.2, info: 0.1, style: 1 },
+    },
+    ban: {
+      ban1: { power: 1.2, target: 1.1, protect: 0.5, compDeny: 0.3, predict: 1.0, hygiene: 1 },
+      ban2: { power: 0.4, target: 1.0, protect: 1.4, compDeny: 1.5, predict: 1.2, hygiene: 1 },
+    },
+    /** §5.3 — fostele scalări pe pick înlocuite de ponderile de fază. */
+    flexAmbiguityBonus: 1.0,
+    contestabilityAnswerWeight: 0.32,
   },
 
   // §5.3 — win condition (winCondition.ts)

@@ -96,7 +96,6 @@ import {
 } from "./playerProfileSystem";
 import { getAdaptivePriorityBonus } from "./adaptivePrioritySystem";
 import { getContestabilityPenalty } from "./draftContestability";
-import { getDraftPhase, getPhaseBias } from "./draftPhase";
 import { getDraftIntent } from "./draftIntentSystem";
 import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
@@ -838,10 +837,10 @@ function getWinConditionCoherenceScore(
   if (!identity.dominant) return 0; // No clear identity yet
 
   // §5.1: efectul crește cu cât identitatea e mai clară și spre ultimele pick-uri.
+  // DRAFT_REALISM §5: angajamentul pe pick (commitmentByPick) e acum ponderea `comp` pe fază (+ discipline, §8).
   const cohesion = DRAFT_THINKING_CONFIG.cohesion;
-  const commitment = DRAFT_THINKING_CONFIG.plan.commitmentByPick[Math.min(4, ownPicks.length)];
   const fit = getCandidateIdentityFit(candidate, projectedRole, identity.dominant);
-  return clamp(fit * cohesion.coherenceFitFactor * identity.strength * commitment, cohesion.coherenceClamp[0], cohesion.coherenceClamp[1]);
+  return clamp(fit * cohesion.coherenceFitFactor * identity.strength, cohesion.coherenceClamp[0], cohesion.coherenceClamp[1]);
 }
 
 /**
@@ -887,14 +886,8 @@ export function scorePickCandidate(
   const lockedRoles = getLockedRoles(game, step.side);
   const canFit = canPickChampionIntoUniqueRoles(ownState.picks, candidate.id, roster, lockedRoles);
   const totalPicksSoFar = game.picksBlue.length + game.picksRed.length;
-  const draftPhase = getDraftPhase(totalPicksSoFar + 1);
-  const phaseBias = getPhaseBias(draftPhase);
-  const adjustedConfig = {
-    ...config,
-    metaWeight: config.metaWeight * phaseBias.metaWeight,
-    counterWeight: config.counterWeight * phaseBias.counter,
-    synergyWeight: config.synergyWeight * phaseBias.compIdentity,
-  };
+  // DRAFT_REALISM §5.3: scalarea pe fază (fostul getPhaseBias pe meta / counter / sinergie) e acum ponderea bucket-urilor.
+  const adjustedConfig = config;
   const projected = getProjectedRoleAndPlayer(candidate, ownState.picks, roster, lockedRoles);
   // §1.4 / §1.5: reasignarea pick-urilor proprii + gate-ul de mastery pe candidat.
   const reassignment = getReassignmentCheck(ownState.picks, candidate.id, roster, lockedRoles);
@@ -1245,7 +1238,8 @@ export function scorePickCandidate(
       ruleSynergyBonus +             // DRAFT FINAL FIX 1
       compGate +
       botLaneFitBonus +
-      (mustWithBonus - mustWithDenyValue) + // duo plan / fallback / partener non-bot (§2, §5.4)
+      duoPick.bonus +                // §2.2: planul de duo / ancoră orfană
+      duoFallback.bonus +            // §2.3: partener synergy după ancoră
       winConditionEffect.bonus -     // §5.3: susține / încarcă win condition-ul
       splitIdentity.penalty -        // §5.2: identitate împărțită
       weaknessPenalty * adjustedConfig.weaknessWeight -
@@ -1280,8 +1274,10 @@ export function scorePickCandidate(
       contestability,
     style: identityBias,
   };
-  // §11: `adaptivePriority` se șterge; până atunci stă în afara ponderilor.
-  const unweighted = adaptivePriority - invalidRolePenalty;
+  // În afara ponderilor: `adaptivePriority` (se șterge în §11) și partenerul non-bot mustWith (§5.4),
+  // care e un mecanism de lock (30 de puncte ca să iasă primul, apoi `nonBotLockChance` în chooseFinal),
+  // nu o preferință de compoziție: cu × comp (0.6 în pick1-open) partenerul pierdea locul 1.
+  const unweighted = adaptivePriority + nonBotMustWith.bonus - invalidRolePenalty;
   const totalScore = sumBuckets(buckets, weights) + unweighted;
 
   const explanation = [
@@ -1377,7 +1373,7 @@ export function scorePickCandidate(
       }).primary,
       offMetaPenalty >= 3 ? "off-meta" : "meta-ok",
       contestability >= 2 ? "high-contestability" : "safe-pick",
-      draftPhase,
+      ctx.phase,
     ],
   };
 }
