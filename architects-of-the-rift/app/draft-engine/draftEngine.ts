@@ -428,14 +428,16 @@ export function completeCurrentGame(
   const pillarReportRed = buildDraftPillarReport(resolvedGame, "red", series, save, pillarRosters);
   const simulation = simulateDraftResult(resolvedGame, series, save);
   const { evaluationBlue, evaluationRed } = evaluateDraftGame(resolvedGame, series, save);
+  // FEEDBACK_FIXES §5.1: „Draft edge” = scorul de draft din simulare, al nostru − al lor.
+  const draftEdgeBlue = Math.round((simulation.blueDraftScore - simulation.redDraftScore) * 10) / 10;
   const completedGame: DraftGameState = {
     ...resolvedGame,
     completed: true,
     winnerSide: simulation.winnerSide,
     evaluationBlue,
     evaluationRed,
-    pillarReportBlue,
-    pillarReportRed,
+    pillarReportBlue: { ...pillarReportBlue, draftEdge: draftEdgeBlue },
+    pillarReportRed: { ...pillarReportRed, draftEdge: -draftEdgeBlue },
     simulation,
   };
 

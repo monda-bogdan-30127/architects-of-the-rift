@@ -906,7 +906,7 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
   const resolved = resolveFinishedDraftAssignments(game, series, save);
   const rosters = { blue: save.updatedTeamRosters[BLUE] ?? {}, red: save.updatedTeamRosters[RED] ?? {} };
   const blue = buildDraftPillarReport(resolved, "blue", series, save, rosters);
-  const pillars = ["priority", "cohesion", "matchups", "mastery", "seasonPrep"] as const;
+  const pillars = ["composition", "lanes", "players", "preparation"] as const;
   const complete = pillars.every((key) => ["A", "B", "C", "D"].includes(blue[key].grade) && blue[key].notes.length > 0);
 
   // Același draft, dar topul albaștrilor pe un campion F → mastery D cu nota „X pe Y (F)”.
@@ -919,9 +919,9 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
   };
   const blueF = buildDraftPillarReport(withF, "blue", series, save, rosters);
   check(
-    "26. Raport pe piloni: 5 piloni cu note; F pe top → mastery D",
-    complete && blueF.mastery.grade === "D" && blueF.mastery.notes.some((note) => note.includes("(F)")),
-    pillars.map((key) => `${key} ${blue[key].grade}: ${blue[key].notes[0]}`).join(" | ") + ` || cu F: mastery ${blueF.mastery.grade} „${blueF.mastery.notes[0]}”`,
+    "26. Raport pe piloni: 4 piloni cu note; F pe top → players D",
+    complete && blueF.players.grade === "D" && blueF.players.notes.some((note) => note.includes("(F)")),
+    pillars.map((key) => `${key} ${blue[key].grade}: ${blue[key].notes[0]}`).join(" | ") + ` || cu F: players ${blueF.players.grade} „${blueF.players.notes[0]}”`,
   );
 }
 

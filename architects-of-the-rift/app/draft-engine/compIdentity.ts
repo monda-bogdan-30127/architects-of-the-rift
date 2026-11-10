@@ -116,6 +116,13 @@ function isIncompatible(a: CompIdentity, b: CompIdentity): boolean {
   );
 }
 
+/** Perechile de identități compatibile (FEEDBACK_FIXES §5.2): se întăresc reciproc. */
+export function isCompatible(a: CompIdentity, b: CompIdentity): boolean {
+  return DRAFT_THINKING_CONFIG.cohesion.compatiblePairs.some(
+    ([x, y]) => (x === a && y === b) || (x === b && y === a),
+  );
+}
+
 const vectorValue = (vector: Record<string, number>, key: string) => vector[key] ?? 0;
 
 /**
@@ -149,8 +156,19 @@ export function readCompIdentity(championIds: string[], roles?: Partial<Record<R
   const top = signals[first];
   const runner = signals[second];
   const dominant = top >= CONFIG.threshold ? first : null;
-  const clarity = top > 0 ? 1 - runner / top : 0;
-  const strength = Math.max(0, Math.min(1, (top / CONFIG.fullStrengthSignal) * (0.4 + 0.6 * clarity)));
+  // FEEDBACK_FIXES §5.2: identitățile compatibile se întăresc, nu se diluează. `clarity` se măsoară
+  // doar față de cea mai puternică identitate necompatibilă (sau neînrudită) cu dominantul.
+  const maxNonCompatible = Math.max(
+    0,
+    ...ranked.filter((identity) => identity !== first && !isCompatible(first, identity)).map((identity) => signals[identity]),
+  );
+  const clarity = top > 0 ? 1 - maxNonCompatible / top : 0;
+  const compatibleRunnerBonus =
+    runner >= CONFIG.threshold && isCompatible(first, second) ? CONFIG.compatibleRunnerBonus : 0;
+  const strength = Math.max(
+    0,
+    Math.min(1, (top / CONFIG.fullStrengthSignal) * (CONFIG.strengthBase + (1 - CONFIG.strengthBase) * clarity) + compatibleRunnerBonus),
+  );
   const split =
     dominant !== null &&
     runner >= CONFIG.threshold &&

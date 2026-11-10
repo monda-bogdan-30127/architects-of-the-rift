@@ -67,6 +67,10 @@ export const DRAFT_THINKING_CONFIG = {
     threshold: 1.4,
     /** Semnalul la care `strength` ajunge la maxim (cu un dominant clar). */
     fullStrengthSignal: 7,
+    /** FEEDBACK_FIXES §5.2: strength = (top / full) × (strengthBase + (1 − strengthBase) × clarity) + bonus. */
+    strengthBase: 0.5,
+    /** Runner-up compatibil cu dominantul și peste prag. */
+    compatibleRunnerBonus: 0.1,
   },
 
   // §4 — planul ancorat pe priority pick
@@ -91,6 +95,15 @@ export const DRAFT_THINKING_CONFIG = {
       ["dive", "protect-carry"],
       ["pick", "front-to-back"],
       ["poke", "teamfight"],
+    ] as [string, string][],
+    /** FEEDBACK_FIXES §5.2 — identități care se întăresc (clarity se măsoară fără ele). */
+    compatiblePairs: [
+      ["dive", "pick"],
+      ["dive", "teamfight"],
+      ["teamfight", "front-to-back"],
+      ["front-to-back", "protect-carry"],
+      ["teamfight", "protect-carry"],
+      ["pick", "poke"],
     ] as [string, string][],
     /** split: runnerUp ≥ splitRatio × dominant. */
     splitRatio: 0.8,
@@ -169,6 +182,35 @@ export const DRAFT_THINKING_CONFIG = {
     /** §5.3 — fostele scalări pe pick înlocuite de ponderile de fază. */
     flexAmbiguityBonus: 1.0,
     contestabilityAnswerWeight: 0.32,
+  },
+
+  // FEEDBACK_FIXES §5 — raportul de draft pe piloni (draftPillarReport.ts)
+  report: {
+    composition: {
+      /**
+       * Puncte din strength: ≥ [0] → 3, ≥ [1] → 2, ≥ [2] → 1, altfel 0 (fără dominant: 1).
+       * Spec: 0.55 / 0.35 / 0.2; cu noul strength (medie 0.60) dădea A 44%. Calibrare pe 600 de comp-uri:
+       * 0.67 / 0.42 / 0.2 → A 28.5% · B 40% · C 20.5% · D 11% (D nu coboară sub ~11% doar din aceste praguri).
+       */
+      strength: [0.67, 0.42, 0.2] as [number, number, number],
+      noDominantPoints: 1,
+      /** A ≥ [0] puncte, B ≥ [1], C ≥ [2], altfel D. */
+      grades: [4, 3, 2] as [number, number, number],
+      /**
+       * Frontline / engage / disengage din vectorul compoziției sub atât = „lipsește” (−1).
+       * Spec: pragul din getNeedRequirement(2) = 5; calibrare: cu 5, 41% din comp-uri n-aveau „frontline”
+       * și 36% nici engage nici disengage (un singur frontliner cu ofertă 4 nu ajungea). Cu 4: 18% / 5%.
+       */
+      baseNeedMin: 4,
+      /** „Damage pe un singur tip”: atâția campioni (din 5) cu același tip principal. */
+      singleDamageMin: 4,
+    },
+    preparation: {
+      /** handled / (handled + lost): A ≥ [0], B ≥ [1], C ≥ [2], altfel D. */
+      grades: [0.75, 0.5, 0.25] as [number, number, number],
+      /** Adversarul „vrea” campionul: un jucător pe un rol liber îl are la cel puțin acest grad (A). */
+      enemyWantMinRank: 4,
+    },
   },
 
   // §5.3 — win condition (winCondition.ts)

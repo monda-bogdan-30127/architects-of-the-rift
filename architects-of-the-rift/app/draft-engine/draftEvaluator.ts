@@ -140,7 +140,7 @@ function evaluateRoleCoverage(championIds: string[]) {
   return clamp(rawCoverage * 10, 0, 10);
 }
 
-function getNeedRequirement(priority: 1 | 2 | 3) {
+export function getNeedRequirement(priority: 1 | 2 | 3) {
   if (priority === 3) return 7;
   if (priority === 2) return 5;
   return 3;

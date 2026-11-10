@@ -5,7 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import { teams } from "@/app/data/teams";
 import type { DraftPillarReport, DraftSimulationResult, PillarGrade } from "@/app/draft-engine/draftTypes";
-import { PILLAR_LABELS } from "@/app/draft-engine/draftDecisionExplainer";
+import { PILLAR_LABELS, describeDraftEdge } from "@/app/draft-engine/draftDecisionExplainer";
 import PlayerResultRow from "./PlayerResultRow";
 
 const teamsBySlug = new Map(teams.map((team) => [team.slug, team]));
@@ -253,10 +253,19 @@ export default function MatchResultsDialog({
               </button>
             </div>
             <div className="h-px self-stretch bg-[var(--border-default)]" />
+            {/* Ce a contat efectiv în simulare: scorul de draft, al nostru − al lor. */}
+            {typeof pillarReport.draftEdge === "number" && (
+              <p
+                className="body-small font-bold"
+                style={{ color: pillarReport.draftEdge > 0.05 ? "var(--success)" : pillarReport.draftEdge < -0.05 ? "var(--danger)" : "var(--text-secondary)" }}
+              >
+                {describeDraftEdge(pillarReport.draftEdge)}
+              </p>
+            )}
             <div className="flex flex-col gap-[8px] self-stretch">
               {PILLAR_LABELS.map(({ key, label }) => {
                 const pillar = pillarReport[key];
-                const notes = showPillarDetails ? pillar.notes : pillar.notes.slice(0, 1);
+                const visible = showPillarDetails ? pillar.notes.length : Math.min(1, pillar.notes.length);
                 return (
                   <div key={key} className="flex items-start gap-[12px] self-stretch">
                     <span className="body-small w-[150px] shrink-0 text-[var(--text-primary)]">{label}</span>
@@ -267,9 +276,18 @@ export default function MatchResultsDialog({
                       {pillar.grade}
                     </span>
                     <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
-                      {notes.map((note) => (
-                        <span key={note} className="body-small text-[var(--text-secondary)]">{note}</span>
-                      ))}
+                      {pillar.notes.slice(0, visible).map((note, index) => {
+                        const reason = pillar.reasons?.[index];
+                        return (
+                          <div key={`${index}:${note}`} className="flex flex-col" title={reason ?? undefined}>
+                            <span className="body-small text-[var(--text-secondary)]">{note}</span>
+                            {/* §4.3: explicația matchup-ului, a doua linie mai mică (în detalii). */}
+                            {reason && showPillarDetails && (
+                              <span className="text-[11px] leading-tight text-[var(--text-muted)]">{reason}</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );

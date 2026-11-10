@@ -20,6 +20,7 @@ import {
 } from "@/app/draft-engine/draftEngine";
 import { getCompletedMustWithPairs, isExplicitBotPair } from "@/app/draft-engine/mustWithPriority";
 import { readCompIdentity } from "@/app/draft-engine/compIdentity";
+import { buildDraftPillarReport } from "@/app/draft-engine/draftPillarReport";
 import { hasThinPool } from "@/app/draft-engine/draftMasteryGate";
 import { DRAFT_PHASE_IDS, type DraftPhaseId } from "@/app/draft-engine/draftPhase";
 import { ROLE_ORDER, type Side } from "@/app/draft-engine/draftTypes";
@@ -86,6 +87,14 @@ type GameRecord = {
   assignmentsRed: Partial<Record<Role, string>>;
   compIdentityBlue: string;
   compIdentityRed: string;
+  /** `readCompIdentity` pe asignările finale (dominant + strength), per side. */
+  readingBlue: { dominant: string | null; strength: number; split: boolean };
+  readingRed: { dominant: string | null; strength: number; split: boolean };
+  /** Notele pe piloni (`buildDraftPillarReport`), per side. */
+  pillarsBlue: Record<string, string>;
+  pillarsRed: Record<string, string>;
+  /** Campioni asignați pe un rol care nu e în `roles` lor. */
+  offRole: string[];
   actions: CompactAction[];
 };
 
@@ -99,6 +108,7 @@ function intentOf(action: TracedAction): string | null {
   return action.chosen.reasonTags?.find((tag) => LEGACY_INTENTS.has(tag)) ?? null;
 }
 
+const roster = (slug: string) => save.updatedTeamRosters[teamsBySlug.get(slug)?.id ?? slug] ?? {};
 const started = Date.now();
 const records: GameRecord[] = [];
 const rawActions: TracedAction[][] = [];
@@ -111,6 +121,23 @@ for (const entry of schedule) {
   const series = newAiSeries(`cal${entry.pair}s${entry.seed}`, entry.blue, entry.red);
   const { game, actions } = runTracedDraft(series, save);
   const resolved = resolveFinishedDraftAssignments(game, series, save);
+  const pillarRosters = { blue: roster(entry.blue), red: roster(entry.red) };
+  const pillarGrades = (side: Side) =>
+    Object.fromEntries(
+      Object.entries(buildDraftPillarReport(resolved, side, series, save, pillarRosters)).map(([key, pillar]) => [key, (pillar as { grade: string }).grade]),
+    );
+  const reading = (picks: string[], assignments: Partial<Record<Role, string>>) => {
+    const value = readCompIdentity(picks, assignments);
+    return { dominant: value.dominant, strength: round4(value.strength), split: value.split };
+  };
+  const offRole: string[] = [];
+  for (const assignments of [resolved.assignmentsBlue, resolved.assignmentsRed]) {
+    for (const role of ROLE_ORDER) {
+      const championId = assignments[role];
+      const champion = championId ? championsById.get(championId) : undefined;
+      if (champion && !champion.roles.includes(role)) offRole.push(`${champion.id}:${role}`);
+    }
+  }
   const simulation = simulateDraftResult(resolved, series, save);
   const { evaluationBlue, evaluationRed } = evaluateDraftGame(resolved, series, save);
   if (simulation.winnerSide === "blue") blueWins += 1;
@@ -139,6 +166,11 @@ for (const entry of schedule) {
     assignmentsRed: resolved.assignmentsRed,
     compIdentityBlue: evaluationBlue.compIdentity,
     compIdentityRed: evaluationRed.compIdentity,
+    readingBlue: reading(resolved.picksBlue, resolved.assignmentsBlue),
+    readingRed: reading(resolved.picksRed, resolved.assignmentsRed),
+    pillarsBlue: pillarGrades("blue"),
+    pillarsRed: pillarGrades("red"),
+    offRole,
     actions: actions.map((action) => ({
       i: action.stepIndex,
       s: action.side,
@@ -173,7 +205,6 @@ function pearson(xs: number[], ys: number[]) {
   return dx && dy ? num / Math.sqrt(dx * dy) : 0;
 }
 
-const roster = (slug: string) => save.updatedTeamRosters[teamsBySlug.get(slug)?.id ?? slug] ?? {};
 
 // Mastery pe asignările finale.
 let totalPicks = 0;
@@ -317,8 +348,36 @@ const lowCreativity = Object.entries(rankByCreativity)
 
 const flexRate = (phase: DraftPhaseId) => pct(flexByPhase[phase]?.flex ?? 0, flexByPhase[phase]?.total ?? 0);
 
+const offRolePicks = records.reduce((sum, record) => sum + record.offRole.length, 0);
+
+// Identitate (readCompIdentity) și strength, pe echipe.
+const readings = records.flatMap((record) => [record.readingBlue, record.readingRed]);
+const readingDistribution: Record<string, number> = {};
+for (const entry of readings) readingDistribution[entry.dominant ?? "balanced"] = (readingDistribution[entry.dominant ?? "balanced"] ?? 0) + 1;
+const strengthBuckets = { "< 0.2": 0, "0.2–0.35": 0, "0.35–0.55": 0, "≥ 0.55": 0 };
+for (const entry of readings) {
+  const value = entry.strength;
+  if (value >= 0.55) strengthBuckets["≥ 0.55"] += 1;
+  else if (value >= 0.35) strengthBuckets["0.35–0.55"] += 1;
+  else if (value >= 0.2) strengthBuckets["0.2–0.35"] += 1;
+  else strengthBuckets["< 0.2"] += 1;
+}
+const strengthMean = mean(readings.map((entry) => entry.strength));
+
+// Notele pe piloni, pe echipe.
+const pillarDistribution: Record<string, Record<string, number>> = {};
+for (const record of records) {
+  for (const grades of [record.pillarsBlue, record.pillarsRed]) {
+    for (const [pillar, value] of Object.entries(grades)) {
+      const bucket = (pillarDistribution[pillar] ??= { A: 0, B: 0, C: 0, D: 0 });
+      bucket[value] = (bucket[value] ?? 0) + 1;
+    }
+  }
+}
+
 type Metric = { id: string; label: string; value: number; target: string; ok: boolean | null; format: "int" | "pct" | "num" };
 const metrics: Metric[] = [
+  { id: "offRole", label: "Campioni pe roluri care nu sunt în `roles`", value: offRolePicks, target: "0", ok: offRolePicks === 0, format: "int" },
   { id: "fPicks", label: "Pick-uri cu F (fără forced-off-pool / pool subțire)", value: fPicks, target: "0", ok: fPicks === 0, format: "int" },
   { id: "fThinPool", label: "Pick-uri cu F pe pool subțire (gate inactiv)", value: fThinPool, target: "raportat", ok: null, format: "int" },
   { id: "dPicks", label: "Pick-uri cu D", value: pct(dPicks, totalPicks), target: "< 3%", ok: pct(dPicks, totalPicks) < 0.03, format: "pct" },
@@ -423,6 +482,21 @@ const markdown = [
   "|---|---|",
   ...intentTable,
   "",
+  "## Identitate (readCompIdentity) și strength",
+  "",
+  `Identități: ${Object.entries(readingDistribution).sort((a, b) => b[1] - a[1]).map(([id, count]) => `${id} ${(pct(count, readings.length) * 100).toFixed(1)}%`).join(", ")}`,
+  "",
+  `Strength (medie ${strengthMean.toFixed(3)}): ${Object.entries(strengthBuckets).map(([label, count]) => `${label} ${(pct(count, readings.length) * 100).toFixed(1)}%`).join(" · ")}`,
+  "",
+  "## Note pe piloni",
+  "",
+  "| Pilon | A | B | C | D |",
+  "|---|---|---|---|---|",
+  ...Object.entries(pillarDistribution).map(([pillar, counts]) => {
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    return `| ${pillar} | ${["A", "B", "C", "D"].map((g) => `${(pct(counts[g] ?? 0, total) * 100).toFixed(1)}%`).join(" | ")} |`;
+  }),
+  "",
   "## Primul candidat ales, pe creativity",
   "",
   "| creativity | primul | acțiuni |",
@@ -442,7 +516,7 @@ const markdown = [
 console.log(markdown);
 if (outFile) {
   mkdirSync(dirname(outFile), { recursive: true });
-  const report = { games, seedsPerPair, metrics, compIdentities, mustWith, intentByPhase, rankByCreativity, identity };
+  const report = { games, seedsPerPair, metrics, compIdentities, mustWith, intentByPhase, rankByCreativity, identity, readingDistribution, strengthBuckets, strengthMean, pillarDistribution };
   writeFileSync(outFile, JSON.stringify({ report, games: records }));
   writeFileSync(outFile.replace(/\.json$/, "") + ".md", markdown);
 }

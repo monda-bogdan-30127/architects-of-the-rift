@@ -9,6 +9,7 @@ import { players } from "@/app/data/players";
 import { useDraftEngine } from "@/app/hooks/useDraftEngine";
 import { resolveFinishedDraftAssignments } from "@/app/draft-engine/draftEngine";
 import { resolveRoleAssignments } from "@/app/draft-engine/draftRoleResolver";
+import { isCurrentPillarReport } from "@/app/draft-engine/draftPillarReport";
 import MatchResultsDialog from "@/components/ui/MatchResultsDialog";
 import type { DraftGameState, DraftSave, DraftSimulationResult, DraftStep, Side } from "@/app/draft-engine/draftTypes";
 import type { Champion, Role } from "@/app/types/champion";
@@ -285,9 +286,11 @@ export default function DraftPage() {
         ? "red"
         : null
     : null;
-  const resultsPillarReport = resultsGame && resultsUserSide
+  // Rapoartele din salvările vechi au alți piloni (priority / cohesion / …): nu le afișăm.
+  const rawPillarReport = resultsGame && resultsUserSide
     ? (resultsUserSide === "blue" ? resultsGame.pillarReportBlue : resultsGame.pillarReportRed) ?? null
     : null;
+  const resultsPillarReport = isCurrentPillarReport(rawPillarReport) ? rawPillarReport : null;
 
   const filteredChampions = useMemo(() =>
     [...champions]

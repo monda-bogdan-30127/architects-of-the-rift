@@ -142,19 +142,26 @@ export function explainDraftCandidate(breakdown: DraftCandidateBreakdown): strin
   ];
 }
 
-/** Etichetele pilonilor din raport (§8), în ordinea din UI. */
-export const PILLAR_LABELS: { key: keyof DraftPillarReport; label: string }[] = [
-  { key: "priority", label: "Priority picks" },
-  { key: "cohesion", label: "Cohesion" },
-  { key: "matchups", label: "Matchups" },
-  { key: "mastery", label: "Mastery" },
-  { key: "seasonPrep", label: "Season prep" },
+/** Etichetele pilonilor din raport (FEEDBACK_FIXES §5.1), în ordinea din UI. */
+export const PILLAR_LABELS: { key: "composition" | "lanes" | "players" | "preparation"; label: string }[] = [
+  { key: "composition", label: "Composition" },
+  { key: "lanes", label: "Lanes" },
+  { key: "players", label: "Players" },
+  { key: "preparation", label: "Preparation" },
 ];
+
+/** „Draft edge: +0.4 (yours)” / „Draft edge: −0.6 (theirs)”: scorul de draft din simulare, al nostru − al lor. */
+export function describeDraftEdge(edge: number): string {
+  const sign = edge > 0 ? "+" : edge < 0 ? "−" : "±";
+  const owner = edge > 0.05 ? " (yours)" : edge < -0.05 ? " (theirs)" : " (even)";
+  return `Draft edge: ${sign}${Math.abs(edge).toFixed(1)}${owner}`;
+}
 
 export function summarizeTeamDraftEvaluation(evaluation: TeamDraftEvaluation, report?: DraftPillarReport | null): string[] {
   const notes: string[] = [];
   // §8: cu raportul pe piloni, notele vin din el (nu se duplică).
   if (report) {
+    if (typeof report.draftEdge === "number") notes.push(describeDraftEdge(report.draftEdge));
     for (const { key, label } of PILLAR_LABELS) {
       notes.push(`${label} ${report[key].grade}${report[key].notes[0] ? `: ${report[key].notes[0]}` : ""}`);
     }
