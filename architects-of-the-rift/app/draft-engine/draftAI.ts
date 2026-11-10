@@ -37,7 +37,6 @@ import {
   getSeasonChampionThreat,
   getSeasonCounters,
   getSeasonThreatResponse,
-  isSeasonFavorite,
   type SeasonThreatResponse,
 } from "./seasonThreatSystem";
 import {
@@ -179,8 +178,7 @@ export function getCachedPlan(args: {
     userRoster,
     save: args.save,
     lockedPlan: ownPickCount >= lockAt ? lastPlanBeforeLock.get(baseKey) ?? null : null,
-    // §7: un favorit de sezon al echipei contează ca priority pick; planul ține cont de stilul de sezon al lor.
-    isSeasonFavorite: (championId) => isSeasonFavorite(aiTeamSlug, championId, aiRoster),
+    // §7: planul ține cont de stilul de sezon al lor (favoritul de sezon nu mai face un priority pick, FEEDBACK_FIXES §11).
     seasonEnemyBestIdentity: getSeasonBestIdentity(userTeamSlug),
   });
 

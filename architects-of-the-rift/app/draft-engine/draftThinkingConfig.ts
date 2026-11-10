@@ -85,7 +85,7 @@ export const DRAFT_THINKING_CONFIG = {
     /** Ponderea potrivirii pick-urilor proprii cu planul (≥ 1 pick propriu). */
     anchorWeight: 0.45,
     /** … când primul pick propriu e priority pick. */
-    priorityAnchorWeight: 0.6,
+    priorityAnchorWeight: 0.45, // FEEDBACK_FIXES §11: = anchorWeight (fără boost suplimentar; era 0.6)
     /** În media fit-ului pe pick-uri, priority pick-ul contează de atâtea ori. */
     priorityPickFitWeight: 2,
     /** Priority pick: meta de la atât în sus (sau SS/S, sau favorit de sezon). */

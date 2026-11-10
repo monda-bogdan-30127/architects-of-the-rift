@@ -31,7 +31,6 @@ import { getMetaPriorityScore, getComfortScore } from "./draftEvaluator";
 import { getPlayerChampionHistoryMetrics } from "./playerHistoryEvaluator";
 import { resolveRoleAssignments } from "./draftRoleResolver";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
-import { getChampionGrade } from "@/app/utils/championMasteryUtils";
 import { getSeasonEnemyIdentityFactor } from "./seasonThreatSystem";
 
 const playersById = new Map(players.map((p) => [p.id, p]));
@@ -72,24 +71,13 @@ export type DraftPlan = {
 const PLAN = DRAFT_THINKING_CONFIG.plan;
 
 /**
- * §4.2 — primul pick propriu e „priority pick”: meta ≥ 7.5, jucătorul are SS/S pe el,
- * sau e un favorit de sezon al echipei (`isSeasonFavorite`, din §7).
+ * §4.2 / FEEDBACK_FIXES §11 — primul pick propriu e „priority pick” doar dacă e contestat: meta ≥ 7.5.
+ * Mastery-ul SS/S și favoritul de sezon țin de comfort (ce vrea echipa), nu de priority.
  */
-export function isPriorityPick(
-  championId: string,
-  role: Role | null,
-  roster: Partial<Record<Role, string>>,
-  isSeasonFavorite: (championId: string) => boolean = () => false
-): boolean {
+export function isPriorityPick(championId: string, role: Role | null): boolean {
   const champion = champions.find((entry) => entry.id === championId);
   if (!champion) return false;
-  if (getMetaPriorityScore(champion, role) >= PLAN.priorityMetaMin) return true;
-  const player = role && roster[role] ? playersById.get(roster[role]!) : undefined;
-  if (player) {
-    const grade = getChampionGrade(player, championId);
-    if (grade === "SS" || grade === "S") return true;
-  }
-  return isSeasonFavorite(championId);
+  return getMetaPriorityScore(champion, role) >= PLAN.priorityMetaMin;
 }
 
 // ─── Plan scoring ────────────────────────────────────────────────────────────
@@ -266,7 +254,6 @@ export function chooseDraftPlan(args: {
   save: DraftSave | null;
   /** §4.2 — planul calculat la pick-ul anterior; după al 3-lea pick propriu rămâne acesta. */
   lockedPlan?: DraftPlan | null;
-  isSeasonFavorite?: (championId: string) => boolean;
   /** §7.4 — identitatea cu cel mai bun winrate a adversarului în sezon. */
   seasonEnemyBestIdentity?: CompIdentity | null;
 }): DraftPlan | null {
@@ -283,7 +270,7 @@ export function chooseDraftPlan(args: {
     (ROLE_ORDER.find((role) => ownRoles[role] === championId) ?? null) as Role | null;
   const anchorId = aiPicks[0];
   const anchorIsPriority = anchorId
-    ? isPriorityPick(anchorId, roleOf(anchorId), args.aiRoster, args.isSeasonFavorite)
+    ? isPriorityPick(anchorId, roleOf(anchorId))
     : false;
   const anchorWeight = aiPicks.length ? (anchorIsPriority ? PLAN.priorityAnchorWeight : PLAN.anchorWeight) : 0;
   const enemyPicks = args.side === "blue" ? args.game.picksRed : args.game.picksBlue;

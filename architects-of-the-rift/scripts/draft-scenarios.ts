@@ -743,7 +743,7 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
   const [, b2, b3, b4, b5] = bluePicks;
   const lockedSame = b3?.breakdown?.plan?.type === b4?.breakdown?.plan?.type && b4?.breakdown?.plan?.type === b5?.breakdown?.plan?.type;
   const anchored = bluePicks.slice(1).every((entry) => entry.breakdown?.plan?.anchorChampionId === "vi");
-  const viPriority = isPriorityPick("vi", "jungle", makeSave().updatedTeamRosters[BLUE] ?? {});
+  const viPriority = isPriorityPick("vi", "jungle");
   const lockedType = (b5?.breakdown?.plan?.type ?? "dive") as DraftPlanType;
   const fitting = champions.find((c) => getCandidateIdentityFit(c, c.roles[0], lockedType) >= 2)!;
   const pick5Alignment = getPlanAlignmentBonus(fitting, fitting.roles[0], { type: lockedType, confidence: 1, reasoning: [] }, 5);
