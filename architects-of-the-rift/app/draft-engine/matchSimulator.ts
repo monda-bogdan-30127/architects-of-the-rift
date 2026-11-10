@@ -7,6 +7,7 @@ import type {
   DraftGameState,
   DraftSave,
   DraftSimulationResult,
+  Side,
 } from "./draftTypes";
 import {
   evaluatePlayerPower,
@@ -133,6 +134,16 @@ clearAdvancedContextCache();
 const teamsBySlug = new Map(teams.map((team) => [team.slug, team]));
 const playersById = new Map(players.map((player) => [player.id, player]));
 const championMap = new Map(champions.map((champion) => [champion.id, champion]));
+
+/** Echipa curentă a unui jucător (roster-ul din salvare, apoi echipa originală); null = necunoscută. */
+function resolvePlayerTeamSlug(playerId: string, save: DraftSave | null): string | null {
+  for (const [teamSlug, roster] of Object.entries(save?.updatedTeamRosters ?? {})) {
+    if (roster && Object.values(roster).includes(playerId)) return teamSlug;
+  }
+  if (save?.controlledTeamSlug && save.roster && Object.values(save.roster).includes(playerId)) return save.controlledTeamSlug;
+  const teamId = playersById.get(playerId)?.teamId;
+  return teams.find((team) => team.id === teamId)?.slug ?? null;
+}
 
 type MatchSimulationInput = {
   game: DraftGameState;
@@ -1342,14 +1353,18 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   const seriesComplete =
     seriesScore.blueWins >= winsToClinch || seriesScore.redWins >= winsToClinch;
 
+  // FEEDBACK_FIXES §2: echipa fiecărui jucător și a câștigătorului (side-urile se schimbă între jocuri).
+  const sideTeamSlug = (side: Side) => (side === "blue" ? gameTeamSlugs.blueTeamSlug : gameTeamSlugs.redTeamSlug);
   const seriesMvpPlayerId = trackSeriesGame(
     input.series.seriesId,
     {
       mvpPlayerId: mvp?.playerId ?? null,
-      playerScores: playerScores.map((p) => ({ playerId: p.playerId, score: p.score, side: p.side })),
+      playerScores: playerScores.map((p) => ({ playerId: p.playerId, score: p.score, side: p.side, teamSlug: sideTeamSlug(p.side) })),
       winnerSide: finalWinnerSide,
+      winnerTeamSlug: sideTeamSlug(finalWinnerSide),
     },
     seriesComplete,
+    (playerId) => resolvePlayerTeamSlug(playerId, input.save),
   );
 
   // ── SPIRIT: accumulate per-game data; flush to engine when series completes

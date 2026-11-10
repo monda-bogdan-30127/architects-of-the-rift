@@ -42,6 +42,7 @@ import { matchupPowerAgainst } from "@/app/draft-engine/matchSimulationUtils";
 import { getRoleMatchups } from "@/app/draft-engine/championMatchups";
 import { champions } from "@/app/data/champions";
 import { simulateAiVsAiSeries } from "@/app/draft-engine/aiSeriesSimulator";
+import { computeSeriesMvp, type SeriesGameSummary } from "@/app/draft-engine/mvpStorage";
 
 // ─── Infrastructură ──────────────────────────────────────────────────────────
 
@@ -972,6 +973,36 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     "F1. Serii AI vs AI simulate: roluri valide, userSide null, fără memorie de user",
     offRole.length === 0 && memoryWrites === 0 && nullUserSide === seriesCount,
     `${seriesCount} serii / ${gamesPlayed} jocuri; userSide null: ${nullUserSide}; roluri invalide: ${offRole.length}${offRole.length ? ` (${offRole.slice(0, 3).join("; ")})` : ""}; scrieri userDraftMemory: ${memoryWrites}`,
+  );
+}
+
+// ─── FEEDBACK_FIXES §2: Series MVP din echipa câștigătoare ─────────────────────
+{
+  // Echipa A (a1..a5) câștigă; B (b1..b5) are scoruri mai mari și un Game MVP. Side-urile se schimbă.
+  const team = (prefix: string) => [1, 2, 3, 4, 5].map((n) => `${prefix}${n}`);
+  const game = (aSide: Side, winner: "A" | "B", mvp: string, bScore: number, legacy = false): SeriesGameSummary => {
+    const bSide: Side = aSide === "blue" ? "red" : "blue";
+    const scores = [
+      ...team("a").map((playerId) => ({ playerId, score: playerId === "a1" ? 7 : 6, side: aSide, ...(legacy ? {} : { teamSlug: "A" }) })),
+      ...team("b").map((playerId) => ({ playerId, score: bScore, side: bSide, ...(legacy ? {} : { teamSlug: "B" }) })),
+    ];
+    const winnerSide = winner === "A" ? aSide : bSide;
+    return { mvpPlayerId: mvp, playerScores: scores, winnerSide, ...(legacy ? {} : { winnerTeamSlug: winner }) };
+  };
+  // Codul vechi (după side) ar fi dat b1: 1–1 pe side → „blue” → eligibili ambele echipe, b1 cu scor mai mare.
+  const twoZero = [game("blue", "A", "a1", 9), game("red", "A", "b1", 9)];
+  // 2–1: B câștigă jocul 2 cu un MVP b1 și scoruri mari peste tot.
+  const twoOne = [game("blue", "A", "a2", 9), game("red", "B", "b1", 10), game("blue", "A", "a1", 9)];
+  const legacy = [game("blue", "A", "a1", 9, true), game("red", "A", "a1", 9, true)];
+  const resolver = (playerId: string) => (playerId.startsWith("a") ? "A" : playerId.startsWith("b") ? "B" : null);
+  const mvp20 = computeSeriesMvp(twoZero);
+  const mvp21 = computeSeriesMvp(twoOne);
+  const mvpLegacy = computeSeriesMvp(legacy, resolver);
+  const mvpLegacyUnknown = computeSeriesMvp(legacy);
+  check(
+    "F2. Series MVP: mereu din echipa câștigătoare (side-uri inversate)",
+    mvp20?.startsWith("a") === true && mvp21?.startsWith("a") === true && mvpLegacy?.startsWith("a") === true && mvpLegacyUnknown === null,
+    `2–0: ${mvp20}, 2–1: ${mvp21}, vechi cu roster: ${mvpLegacy}, vechi fără echipă: ${mvpLegacyUnknown}`,
   );
 }
 

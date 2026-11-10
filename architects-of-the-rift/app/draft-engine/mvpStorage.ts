@@ -108,41 +108,59 @@ export function clearMvpStore(): void {
 export type SeriesGameSummary = {
   /** mvpPlayerId returned by simulateMatch for that game (may be null). */
   mvpPlayerId: string | null;
-  /** Per-player scores returned by simulateMatch for that game. */
-  playerScores: Array<{ playerId: string; score: number; side: "blue" | "red" }>;
+  /**
+   * Per-player scores returned by simulateMatch for that game.
+   * `teamSlug` = echipa jucătorului în acel joc (lipsă în intrările vechi).
+   */
+  playerScores: Array<{ playerId: string; score: number; side: "blue" | "red"; teamSlug?: string }>;
   /** Which side won this game. */
   winnerSide: "blue" | "red";
+  /** Echipa care a câștigat jocul (lipsă în intrările vechi). Side-urile se schimbă între jocuri. */
+  winnerTeamSlug?: string;
 };
+
+/** Echipa unui jucător pentru intrările vechi fără `teamSlug` (null = nu se știe). */
+export type PlayerTeamResolver = (playerId: string) => string | null;
 
 /**
  * Compute who should be Series MVP given the games of a series.
  *
- * Only players from the series-winning team are eligible.
+ * Only players from the series-winning TEAM are eligible (FEEDBACK_FIXES §2: echipele schimbă
+ * side-ul între jocuri, deci câștigătorul se decide după echipă, nu după side).
  *
  * Rules (in order):
  *   1. Player with most Game MVPs across the series wins.
  *   2. Tiebreak: highest aggregate score across all games.
- *   3. If still tied or no data: returns null.
+ *   3. If the winning team can't be determined, or no data: returns null (no MVP, not a wrong one).
  */
-export function computeSeriesMvp(games: SeriesGameSummary[]): string | null {
+export function computeSeriesMvp(games: SeriesGameSummary[], resolveTeam?: PlayerTeamResolver): string | null {
   if (!games || games.length === 0) return null;
 
-  // Determine which side won the series (most game wins)
-  let blueWins = 0;
-  let redWins = 0;
-  for (const game of games) {
-    if (game.winnerSide === "blue") blueWins++;
-    else redWins++;
-  }
-  const seriesWinningSide: "blue" | "red" = blueWins >= redWins ? "blue" : "red";
+  const teamOf = (entry: { playerId: string; teamSlug?: string }) => entry.teamSlug ?? resolveTeam?.(entry.playerId) ?? null;
 
-  // Collect IDs of players on the winning side across all games of the series
+  // Câștigătorul fiecărui joc, ca echipă (intrările vechi: echipa jucătorilor de pe side-ul câștigător).
+  const winsByTeam = new Map<string, number>();
+  for (const game of games) {
+    let winnerTeam = game.winnerTeamSlug ?? null;
+    if (!winnerTeam) {
+      for (const entry of game.playerScores ?? []) {
+        if (entry.side !== game.winnerSide) continue;
+        winnerTeam = teamOf(entry);
+        if (winnerTeam) break;
+      }
+    }
+    if (!winnerTeam) return null;
+    winsByTeam.set(winnerTeam, (winsByTeam.get(winnerTeam) ?? 0) + 1);
+  }
+  const ranking = [...winsByTeam.entries()].sort((a, b) => b[1] - a[1]);
+  if (ranking.length > 1 && ranking[0][1] === ranking[1][1]) return null;
+  const seriesWinningTeam = ranking[0][0];
+
+  // Jucătorii echipei câștigătoare, în toate jocurile seriei.
   const winningPlayerIds = new Set<string>();
   for (const game of games) {
     for (const entry of game.playerScores ?? []) {
-      if (entry.side === seriesWinningSide) {
-        winningPlayerIds.add(entry.playerId);
-      }
+      if (teamOf(entry) === seriesWinningTeam) winningPlayerIds.add(entry.playerId);
     }
   }
 
@@ -192,8 +210,8 @@ export function computeSeriesMvp(games: SeriesGameSummary[]): string | null {
  *
  * @returns the playerId that was awarded Series MVP, or null if none.
  */
-export function recordSeriesMvpFromGames(games: SeriesGameSummary[]): string | null {
-  const mvpId = computeSeriesMvp(games);
+export function recordSeriesMvpFromGames(games: SeriesGameSummary[], resolveTeam?: PlayerTeamResolver): string | null {
+  const mvpId = computeSeriesMvp(games, resolveTeam);
   if (mvpId) recordPlayerSeriesMvp(mvpId);
   return mvpId;
 }
@@ -234,6 +252,7 @@ export function trackSeriesGame(
   seriesId: string,
   game: SeriesGameSummary,
   seriesComplete: boolean,
+  resolveTeam?: PlayerTeamResolver,
 ): string | null {
   if (!seriesId) return null;
 
@@ -248,7 +267,7 @@ export function trackSeriesGame(
   }
 
   // Series done: compute + record + clear
-  const mvpId = recordSeriesMvpFromGames(games);
+  const mvpId = recordSeriesMvpFromGames(games, resolveTeam);
   delete store[seriesId];
   writeSeriesProgress(store);
   return mvpId;
