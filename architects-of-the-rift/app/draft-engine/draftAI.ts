@@ -1181,7 +1181,7 @@ export function scorePickCandidate(
   // DRAFT_THINKING §2.2: primul pick de bot = planul de duo (înlocuiește combo potential 5.3).
   // Penalizarea de ancoră orfană se aplică oricum; bonusul doar dacă pick-ul e comp-safe.
   const duoPickRaw = canFit
-    ? getDuoPickBonus(candidate, projected.projectedRole, mustWithState.own, mustWithState.ownDuo, mustWithState.bans, enemyState.picks)
+    ? getDuoPickBonus(candidate, projected.projectedRole, mustWithState.own, mustWithState.ownDuo, mustWithState.bans, enemyState.picks, ctx.botFocus)
     : { bonus: 0, tag: null, line: null };
   const duoPick = duoPickRaw.bonus > 0 && !compSafe ? { bonus: 0, tag: null, line: null } : duoPickRaw;
   // §2.3: ancora bot e luată, dar partenerul mustWith nu mai e eligibil → partener synergy.

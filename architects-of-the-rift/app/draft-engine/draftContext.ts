@@ -22,6 +22,7 @@ import {
   type SeasonTurnState,
 } from "./draftAI";
 import type { DraftPlan } from "./draftPlanSystem";
+import { getBotFocus, type BotFocus } from "./botDuoPlan";
 
 export type TeamDraftState = {
   side: Side;
@@ -67,6 +68,8 @@ export type DraftContext = {
   season: SeasonTurnState;
   plan: DraftPlan | null;
   ownWinCondition: WinCondition | null;
+  /** FEEDBACK_FIXES §10.3 — „jucăm prin bot?” (doar cu ambele roluri bot libere contează). */
+  botFocus: BotFocus;
   lookahead: DraftLookahead;
   seriesPressure: { eliminationGame: boolean; leading: boolean };
 };
@@ -152,6 +155,8 @@ export function buildDraftContext(
   if (cached && cached.config === config && cached.save === save && cached.series === series) return cached;
 
   const mustWith = getCachedMustWithState(series, game, side, save);
+  const plan = getCachedPlan({ side, game, series, save });
+  const ownWinCondition = getWinCondition(own.picks, own.assignments, own.identity, own.roster);
   const clutch = getClutchContext(series);
   const ownWins = countWins(series, side);
   const enemyWins = countWins(series, enemySide);
@@ -169,8 +174,15 @@ export function buildDraftContext(
     unavailable: mustWith.own.unavailable,
     mustWith,
     season: getCachedSeasonState(series, game, side, save),
-    plan: getCachedPlan({ side, game, series, save }),
-    ownWinCondition: getWinCondition(own.picks, own.assignments, own.identity, own.roster),
+    plan,
+    ownWinCondition,
+    botFocus: getBotFocus({
+      ctx: mustWith.own,
+      state: mustWith.ownDuo,
+      planType: plan?.type ?? null,
+      identity: own.identity.dominant,
+      winConditionRole: ownWinCondition?.role ?? null,
+    }),
     lookahead: getLookahead(game.phaseIndex, side),
     seriesPressure: {
       eliminationGame: side === "blue" ? clutch.blueAtElimination : clutch.redAtElimination,

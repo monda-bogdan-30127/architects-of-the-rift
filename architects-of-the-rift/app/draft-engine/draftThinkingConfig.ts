@@ -25,15 +25,20 @@ export const DRAFT_THINKING_CONFIG = {
     reassignDropPenalty: 0.8,
   },
 
-  // §2 — duo-uri bot
+  // §2 — duo-uri bot (FEEDBACK_FIXES §10: doar combo-urile tier 1–2, bonusuri după focusul pe bot)
   duo: {
-    /** Primul pick de bot din cel mai bun duo disponibil. */
-    bestMustWithBonus: 3.0,
-    bestSynergyBonus: 1.5,
-    /** Candidatul e în alt duo valid. */
-    otherDuoBonus: 1.0,
-    /** Ancoră mustWith fără partener eligibil (banat, luat, jucătorul < C). */
-    orphanAnchorPenalty: 2.0,
+    /**
+     * Primul pick de bot, după focus: cel mai bun combo tier 1 / tier 2, alt combo valid,
+     * ancoră orfană (penalizare, pozitivă aici).
+     */
+    focusBonus: {
+      bot: { bestTier1: 3.5, bestTier2: 2.5, otherCombo: 1.0, orphan: 3.0 },
+      neutral: { bestTier1: 2.5, bestTier2: 1.75, otherCombo: 0.75, orphan: 2.0 },
+      elsewhere: { bestTier1: 0, bestTier2: 0, otherCombo: 0, orphan: 0.75 },
+    },
+    /** „Jucăm prin bot” / „prio pe alte linii”: diferența de scor (scala duo-ului) față de celelalte roluri. */
+    focusMargin: 1.5,
+    /** Ancoră orfană care e un carry self-sufficient: penalizarea e cel mult atât. */
     orphanSelfSufficientPenalty: 0.75,
     /** §2.3 — partener synergy ≥ 4 pentru o ancoră deja luată, fără partener mustWith. */
     fallbackPartnerBonus: 2.5,
@@ -42,6 +47,8 @@ export const DRAFT_THINKING_CONFIG = {
     /** Scorul duo-ului: GRADE_RANK adc + support + meta mediu × metaWeight + mustWith. */
     metaWeight: 0.3,
     mustWithScoreBonus: 2,
+    /** Combo tier 2 (synergy 5) în scorul duo-ului. */
+    comboTier2ScoreBonus: 1,
     /** §2.4 — cel mai bun duo propriu e protejat la ban în faza 1 dacă e cu atât peste al doilea. */
     protectMargin: 2,
     /** §2.4 — userul „joacă des” un duo: fiecare campion luat de cel puțin atâtea ori. */

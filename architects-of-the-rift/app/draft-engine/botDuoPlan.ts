@@ -1,6 +1,8 @@
-// Duo-uri bot (DRAFT_THINKING §2): planul de duo înainte de primul pick de bot,
+// Duo-uri bot (DRAFT_THINKING §2, FEEDBACK_FIXES §10): planul de duo înainte de primul pick de bot,
 // fallback când partenerul mustWith al ancorei a fost banat, protecția la ban și
-// deny-ul pe noul duo al inamicului.
+// deny-ul pe noul duo al inamicului. Doar combo-urile (tier 1: mustWith, tier 2: synergy 5) sunt duo-uri;
+// perechile tier 3 (synergy 4) le tratează getBotLaneArchetypeFit ca orice pereche. Bonusurile depind
+// de focusul pe bot („jucăm prin bot” / neutru / prio pe alte linii).
 
 import { champions, championsById } from "@/app/data/champions";
 import { players } from "@/app/data/players";
@@ -12,7 +14,7 @@ import { getCarryArchetype } from "./draftArchetypes";
 import { getMetaPriorityScore } from "./draftEvaluator";
 import { getOpenRolesForPickedChampions, resolveRoleAssignments } from "./draftRoleResolver";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
-import { MUSTWITH_CONFIG, getEligiblePartners, type MustWithTeamContext } from "./mustWithPriority";
+import { MUSTWITH_CONFIG, getBotPairTier, getEligiblePartners, type MustWithTeamContext } from "./mustWithPriority";
 
 const DUO = DRAFT_THINKING_CONFIG.duo;
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -20,35 +22,35 @@ const playersById = new Map(players.map((player) => [player.id, player]));
 export type BotDuoOption = {
   adcId: string;
   supportId: string;
-  /** synergy = synergyWith ≥ explicitSynergyMinScore (în oricare fișier). */
-  kind: "mustWith" | "synergy";
+  /** §10.2 — 1 = mustWith (oricare sens), 2 = synergyWith 5 (oricare fișier). Tier 3 nu e duo. */
+  tier: 1 | 2;
   adcGrade: ChampionMasteryGrade | null;
   supportGrade: ChampionMasteryGrade | null;
   score: number;
 };
 
-type DuoCandidate = { adcId: string; supportId: string; kind: BotDuoOption["kind"] };
+type DuoCandidate = { adcId: string; supportId: string; tier: BotDuoOption["tier"] };
 
 let duoCandidates: DuoCandidate[] | null = null;
 
-/** Toate perechile adc–support posibile din date (static): mustWith în oricare sens, apoi synergy ≥ 4. */
+/** Toate combo-urile adc–support din date (static): tier 1 (mustWith) și tier 2 (synergy 5), din `getBotPairTier`. */
 function getDuoCandidates(): DuoCandidate[] {
   if (duoCandidates) return duoCandidates;
   const byKey = new Map<string, DuoCandidate>();
-  const add = (adcId: string, supportId: string, kind: DuoCandidate["kind"]) => {
+  const add = (adcId: string, supportId: string) => {
     if (!championsById[adcId]?.roles.includes("adc") || !championsById[supportId]?.roles.includes("support")) return;
-    if (adcId === supportId) return;
     const key = `${adcId}|${supportId}`;
-    const existing = byKey.get(key);
-    if (!existing || (existing.kind === "synergy" && kind === "mustWith")) byKey.set(key, { adcId, supportId, kind });
+    if (byKey.has(key)) return;
+    const tier = getBotPairTier(adcId, supportId);
+    if (tier === 1 || tier === 2) byKey.set(key, { adcId, supportId, tier });
   };
   for (const champion of champions) {
-    if (champion.roles.includes("adc")) for (const partner of getMustWith(champion.id, "adc")) add(champion.id, partner, "mustWith");
-    if (champion.roles.includes("support")) for (const partner of getMustWith(champion.id, "support")) add(partner, champion.id, "mustWith");
+    if (champion.roles.includes("adc")) for (const partner of getMustWith(champion.id, "adc")) add(champion.id, partner);
+    if (champion.roles.includes("support")) for (const partner of getMustWith(champion.id, "support")) add(partner, champion.id);
     for (const entry of champion.synergyWith) {
-      if ((entry.score ?? 0) < MUSTWITH_CONFIG.explicitSynergyMinScore) continue;
-      add(champion.id, entry.championId, "synergy");
-      add(entry.championId, champion.id, "synergy");
+      if ((entry.score ?? 0) < MUSTWITH_CONFIG.comboSynergyMinScore) continue;
+      add(champion.id, entry.championId);
+      add(entry.championId, champion.id);
     }
   }
   duoCandidates = [...byKey.values()];
@@ -76,7 +78,7 @@ export function getAvailableBotDuos(ctx: MustWithTeamContext): BotDuoOption[] {
   if (!bothBotRolesOpen(ctx)) return [];
   const taken = new Set([...ctx.unavailable, ...ctx.ownPicks]);
   const duos: BotDuoOption[] = [];
-  for (const { adcId, supportId, kind } of getDuoCandidates()) {
+  for (const { adcId, supportId, tier } of getDuoCandidates()) {
     if (taken.has(adcId) || taken.has(supportId)) continue;
     const adcGrade = rosterGrade(ctx.roster, "adc", adcId);
     const supportGrade = rosterGrade(ctx.roster, "support", supportId);
@@ -86,8 +88,8 @@ export function getAvailableBotDuos(ctx: MustWithTeamContext): BotDuoOption[] {
       (adcGrade ? GRADE_RANK[adcGrade] : GRADE_RANK.C) +
       (supportGrade ? GRADE_RANK[supportGrade] : GRADE_RANK.C) +
       meta * DUO.metaWeight +
-      (kind === "mustWith" ? DUO.mustWithScoreBonus : 0);
-    duos.push({ adcId, supportId, kind, adcGrade, supportGrade, score });
+      (tier === 1 ? DUO.mustWithScoreBonus : DUO.comboTier2ScoreBonus);
+    duos.push({ adcId, supportId, tier, adcGrade, supportGrade, score });
   }
   return duos.sort((a, b) => b.score - a.score || a.adcId.localeCompare(b.adcId) || a.supportId.localeCompare(b.supportId));
 }
@@ -116,6 +118,73 @@ export function getBotDuoState(ctx: MustWithTeamContext, bans: readonly string[]
 
 const name = (championId: string) => championsById[championId]?.name ?? championId;
 
+// ─── §10.3 Focusul pe bot ────────────────────────────────────────────────────
+export type BotFocus = "bot" | "neutral" | "elsewhere";
+
+/**
+ * Cele mai bune 2 opțiuni de pe rolurile libere non-bot, pe scala scorului de duo:
+ * grad (jucătorul de pe rol) × 2 campioni + meta medie × metaWeight. 1 rol liber → aceeași opțiune × 2.
+ */
+function getBestNonBotPairScore(ctx: MustWithTeamContext): number | null {
+  const open = getOpenRolesForPickedChampions([...ctx.ownPicks], ctx.roster, ctx.lockedRoles).filter((role) => role !== "adc" && role !== "support");
+  if (!open.length) return null;
+  const taken = new Set([...ctx.unavailable, ...ctx.ownPicks]);
+  const best = open
+    .map((role) => {
+      let top: { grade: number; meta: number } | null = null;
+      for (const champion of champions) {
+        if (taken.has(champion.id) || !champion.roles.includes(role)) continue;
+        const grade = rosterGrade(ctx.roster, role, champion.id);
+        if (!isPlayableGrade(grade)) continue;
+        const option = { grade: grade ? GRADE_RANK[grade] : GRADE_RANK.C, meta: getMetaPriorityScore(champion, role) };
+        if (!top || option.grade + option.meta * DUO.metaWeight > top.grade + top.meta * DUO.metaWeight) top = option;
+      }
+      return top;
+    })
+    .filter((entry): entry is { grade: number; meta: number } => Boolean(entry))
+    .sort((a, b) => b.grade + b.meta * DUO.metaWeight - (a.grade + a.meta * DUO.metaWeight));
+  if (!best.length) return null;
+  const [first, second = best[0]] = best;
+  return first.grade + second.grade + ((first.meta + second.meta) / 2) * DUO.metaWeight;
+}
+
+/**
+ * „Jucăm prin bot?” (doar cu ambele roluri bot libere):
+ *   bot       — plan / identitate protect-carry, win condition pe adc, sau cel mai bun combo (ambii ≥ B)
+ *               e cu ≥ focusMargin peste cele mai bune 2 opțiuni de pe celelalte roluri;
+ *   elsewhere — win condition pe top / jungle / mid, sau acele opțiuni sunt cu ≥ focusMargin peste combo;
+ *   neutral   — altfel.
+ */
+export function getBotFocus(args: {
+  ctx: MustWithTeamContext;
+  state: BotDuoState;
+  planType: string | null;
+  identity: string | null;
+  winConditionRole: Role | null;
+}): BotFocus {
+  if (!bothBotRolesOpen(args.ctx)) return "neutral";
+  const best = args.state.best;
+  const other = getBestNonBotPairScore(args.ctx);
+  const strongPlayers = Boolean(
+    best && [best.adcGrade, best.supportGrade].every((grade) => grade === null || GRADE_RANK[grade] >= GRADE_RANK.B),
+  );
+  if (
+    args.planType === "protect-carry" ||
+    args.identity === "protect-carry" ||
+    args.winConditionRole === "adc" ||
+    (best && strongPlayers && (other === null || best.score - other >= DUO.focusMargin))
+  ) {
+    return "bot";
+  }
+  if (
+    args.winConditionRole === "top" || args.winConditionRole === "jungle" || args.winConditionRole === "mid" ||
+    (best && other !== null && other - best.score >= DUO.focusMargin)
+  ) {
+    return "elsewhere";
+  }
+  return "neutral";
+}
+
 /** „Rakan banat → trecem pe Kai'Sa + Nautilus (A / B)” sau „Duo: Kai'Sa + Nautilus (A / B)”. */
 export function describeDuoPlan(state: BotDuoState, bans: readonly string[]): string | null {
   const best = state.best;
@@ -126,15 +195,15 @@ export function describeDuoPlan(state: BotDuoState, bans: readonly string[]): st
     const bannedMember = [lost.adcId, lost.supportId].find((id) => bans.includes(id));
     if (bannedMember) return `${name(bannedMember)} banned: going ${name(best.adcId)} + ${name(best.supportId)} (${grades})`;
   }
-  return `Duo: ${name(best.adcId)} + ${name(best.supportId)} (${grades})`;
+  return `Playing through bot: ${name(best.adcId)} + ${name(best.supportId)} (combo, ${grades})`;
 }
 
 export type DuoPickResult = { bonus: number; tag: "duo-plan" | "orphan-anchor" | null; line: string | null };
 
 /**
- * §2.2 — bonusul primului pick de bot (înlocuiește `getComboPotentialBonus`):
- * cel mai bun duo (mustWith +3 / synergy +1.5), alt duo valid +1, ancoră orfană −2
- * (−0.75 dacă e un carry self-sufficient).
+ * §2.2 / FEEDBACK_FIXES §10.4 — bonusul primului pick de bot, după focus (bot / neutral / elsewhere):
+ * cel mai bun combo tier 1 / tier 2, alt combo valid, ancoră orfană (mustWith fără partener și fără
+ * un combo tier 2 care să-i țină locul). Perechile tier 3 nu primesc nimic aici.
  */
 export function getDuoPickBonus(
   candidate: Champion,
@@ -144,20 +213,23 @@ export function getDuoPickBonus(
   bans: readonly string[],
   /** Pick-urile inamicului: dacă el a luat partenerul, candidatul e deny, nu ancoră orfană. */
   enemyPicks: readonly string[] = [],
+  focus: BotFocus = "neutral",
 ): DuoPickResult {
   const none: DuoPickResult = { bonus: 0, tag: null, line: null };
   if (candidateRole !== "adc" && candidateRole !== "support") return none;
   if (!state.duos.length && !getMustWith(candidate.id, candidateRole).length) return none;
   if (!bothBotRolesOpen(ctx)) return none;
+  const table = DUO.focusBonus[focus];
 
   const inDuo = (duo: BotDuoOption) => (candidateRole === "adc" ? duo.adcId : duo.supportId) === candidate.id;
   if (state.best && inDuo(state.best)) {
-    const bonus = state.best.kind === "mustWith" ? DUO.bestMustWithBonus : DUO.bestSynergyBonus;
+    if (focus === "elsewhere") return { bonus: 0, tag: null, line: "Priority on other lanes: bot picked separately" };
+    const bonus = state.best.tier === 1 ? table.bestTier1 : table.bestTier2;
     return { bonus, tag: "duo-plan", line: describeDuoPlan(state, bans) };
   }
   // Ancoră orfană: are mustWith pe rolul bot, dar niciun partener eligibil — înaintea
-  // „alt duo valid”: Xayah fără Rakan nu e un plan, chiar dacă merge cu Nautilus.
-  // Excepție: partenerul a fost luat chiar de inamic (ex. ei au Xayah) → Rakan rămâne deny (§2.4 / 5.5).
+  // „alt combo valid”: Xayah fără Rakan nu e un plan. Cu un combo tier 2 disponibil, combo-ul acela îi
+  // ține locul (fără penalizare). Excepție: partenerul a fost luat chiar de inamic → candidatul e deny (§2.4 / 5.5).
   const partnerTakenByEnemy = getMustWith(candidate.id, candidateRole).some((id) => enemyPicks.includes(id));
   if (getMustWith(candidate.id, candidateRole).length && !partnerTakenByEnemy) {
     const partners = getEligiblePartners(candidate.id, candidateRole, {
@@ -165,13 +237,18 @@ export function getDuoPickBonus(
       ownPicks: [...ctx.ownPicks, candidate.id],
       unavailable: new Set([...ctx.unavailable, candidate.id]),
     });
-    if (!partners.length) {
-      const penalty = getCarryArchetype(candidate.id) === "self-sufficient" ? DUO.orphanSelfSufficientPenalty : DUO.orphanAnchorPenalty;
-      const missing = getMustWith(candidate.id, candidateRole).map(name).join(" / ");
-      return { bonus: -penalty, tag: "orphan-anchor", line: `${name(candidate.id)} avoided: ${missing} not available` };
+    const tier2Combo = state.duos.some((duo) => duo.tier === 2 && inDuo(duo));
+    if (!partners.length && !tier2Combo) {
+      const base = table.orphan;
+      const penalty = getCarryArchetype(candidate.id) === "self-sufficient" ? Math.min(base, DUO.orphanSelfSufficientPenalty) : base;
+      const missingIds = getMustWith(candidate.id, candidateRole);
+      const missing = missingIds.map(name).join(" / ");
+      const status = missingIds.some((id) => bans.includes(id)) ? "banned" : "unavailable";
+      const going = state.best && focus !== "elsewhere" ? `, going ${name(state.best.adcId)} + ${name(state.best.supportId)}` : "";
+      return { bonus: -penalty, tag: "orphan-anchor", line: `${missing} ${status}: ${name(candidate.id)} avoided without ${missing}${going}` };
     }
   }
-  if (state.duos.some(inDuo)) return { bonus: DUO.otherDuoBonus, tag: "duo-plan", line: null };
+  if (focus !== "elsewhere" && state.duos.some(inDuo)) return { bonus: table.otherCombo, tag: "duo-plan", line: null };
   return none;
 }
 
@@ -179,8 +256,9 @@ export type DuoFallbackResult = { bonus: number; anchorId: string | null; line: 
 
 /**
  * §2.3 — ancora bot e deja luată, dar n-are partener mustWith eligibil (banat,
- * luat, jucătorul < C): candidații de pe rolul complementar cu synergyWith ≥ 4 cu
- * ancora și grad ≥ C primesc `fallbackPartnerBonus`, ordonați după grad.
+ * luat, jucătorul < C): candidații de pe rolul complementar care fac un combo tier 2
+ * (synergyWith 5, FEEDBACK_FIXES §10.4) cu ancora și au grad ≥ C primesc `fallbackPartnerBonus`,
+ * ordonați după grad. Partenerii tier 3 rămân la logica normală.
  */
 export function getDuoFallbackBonus(
   candidate: Champion,
@@ -196,12 +274,8 @@ export function getDuoFallbackBonus(
   if (!anchorId || assignments[candidateRole]) return none;
   if (!getMustWith(anchorId, anchorRole).length) return none;
 
-  const anchor = championsById[anchorId];
-  const minScore = MUSTWITH_CONFIG.explicitSynergyMinScore;
-  const synergy =
-    (anchor?.synergyWith.find((entry) => entry.championId === candidate.id)?.score ?? 0) >= minScore ||
-    (candidate.synergyWith.find((entry) => entry.championId === anchorId)?.score ?? 0) >= minScore;
-  if (!synergy) return none;
+  const pair = anchorRole === "adc" ? getBotPairTier(anchorId, candidate.id) : getBotPairTier(candidate.id, anchorId);
+  if (pair !== 2) return none;
   const grade = rosterGrade(ctx.roster, candidateRole, candidate.id);
   if (!isPlayableGrade(grade)) return none;
 
@@ -210,7 +284,7 @@ export function getDuoFallbackBonus(
   return {
     bonus: DUO.fallbackPartnerBonus + DUO.fallbackGradeStep * (rank - GRADE_RANK.C),
     anchorId,
-    line: `${missing} unavailable after ${name(anchorId)}: ${name(candidate.id)} instead (synergy, grade ${grade ?? "?"})`,
+    line: `${missing} unavailable after ${name(anchorId)}: ${name(candidate.id)} instead (combo, grade ${grade ?? "?"})`,
   };
 }
 

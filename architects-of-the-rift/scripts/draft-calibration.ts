@@ -18,7 +18,7 @@ import {
   resolveFinishedDraftAssignments,
   simulateDraftResult,
 } from "@/app/draft-engine/draftEngine";
-import { getCompletedMustWithPairs, isExplicitBotPair } from "@/app/draft-engine/mustWithPriority";
+import { getBotPairTier, getCompletedMustWithPairs, isExplicitBotPair } from "@/app/draft-engine/mustWithPriority";
 import { readCompIdentity } from "@/app/draft-engine/compIdentity";
 import { buildDraftPillarReport } from "@/app/draft-engine/draftPillarReport";
 import { hasThinPool } from "@/app/draft-engine/draftMasteryGate";
@@ -220,6 +220,8 @@ let r5Solo = 0;
 const flexByPhase: Record<string, { flex: number; total: number }> = {};
 let splitComps = 0;
 let explicitBotPairs = 0;
+let botCombos = 0;
+let botTier3 = 0;
 let styleGames = 0;
 let styleHits = 0;
 let styleStrictGames = 0;
@@ -276,6 +278,9 @@ records.forEach((record, gameIndex) => {
     const picks = pickActions.map((action) => action.championId);
     if (readCompIdentity(picks, assignments).split) splitComps += 1;
     if (isExplicitBotPair(assignments.adc, assignments.support)) explicitBotPairs += 1;
+    const tier = getBotPairTier(assignments.adc, assignments.support);
+    if (tier === 1 || tier === 2) botCombos += 1;
+    if (tier === 3) botTier3 += 1;
 
     const identity = side === "blue" ? record.compIdentityBlue : record.compIdentityRed;
     const styles = teamsBySlug.get(slug)?.identity?.preferredStyles ?? [];
@@ -388,6 +393,8 @@ const metrics: Metric[] = [
   { id: "flexPick2", label: "Pick-uri flex în pick2", value: flexRate("pick2"), target: "raportat", ok: null, format: "pct" },
   { id: "split", label: "Comp-uri split", value: pct(splitComps, games * 2), target: "< 15%", ok: pct(splitComps, games * 2) < 0.15, format: "pct" },
   { id: "explicitBotPairs", label: "Perechi bot explicite (mustWith / synergy ≥ 4)", value: pct(explicitBotPairs, games * 2), target: "raportat", ok: null, format: "pct" },
+  { id: "botCombos", label: "Combo-uri bot (tier 1–2: mustWith / synergy 5)", value: pct(botCombos, games * 2), target: "raportat", ok: null, format: "pct" },
+  { id: "botTier3", label: "Perechi bot tier 3 (synergy 4)", value: pct(botTier3, games * 2), target: "raportat", ok: null, format: "pct" },
   { id: "blueWinrate", label: "Winrate blue", value: pct(blueWins, games), target: "45–55%", ok: pct(blueWins, games) >= 0.45 && pct(blueWins, games) <= 0.55, format: "pct" },
   { id: "preferredStyles", label: "Draftează un stil din preferredStyles (cu balanced)", value: pct(styleHits, styleGames), target: "≥ 40%", ok: pct(styleHits, styleGames) >= 0.4, format: "pct" },
   { id: "preferredStylesStrict", label: "… fără balanced", value: pct(styleStrictHits, styleStrictGames), target: "raportat", ok: null, format: "pct" },

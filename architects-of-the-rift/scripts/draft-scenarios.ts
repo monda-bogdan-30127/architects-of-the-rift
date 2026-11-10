@@ -43,6 +43,9 @@ import { matchupPowerAgainst } from "@/app/draft-engine/matchSimulationUtils";
 import { getRoleMatchups } from "@/app/draft-engine/championMatchups";
 import { champions } from "@/app/data/champions";
 import { simulateAiVsAiSeries } from "@/app/draft-engine/aiSeriesSimulator";
+import { getBotPairTier } from "@/app/draft-engine/mustWithPriority";
+import { buildDraftContext } from "@/app/draft-engine/draftContext";
+import { DEFAULT_AI_CONFIG } from "@/app/draft-engine/draftTypes";
 import { computeSeriesMvp, type SeriesGameSummary } from "@/app/draft-engine/mvpStorage";
 
 // ─── Infrastructură ──────────────────────────────────────────────────────────
@@ -659,16 +662,17 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
   check(
     "16. Rakan banat → primul pick de bot nu e Xayah (orphan-anchor)",
     hasTag(xayah, "orphan-anchor") && Boolean(firstBot) && firstBot!.championId !== "xayah",
-    `Xayah: „${xayah.explanation?.find((line) => line.includes("evitat")) ?? ""}”; primul bot roșu: ${firstBot?.label} ${firstBot?.championId} (${firstBot?.breakdown?.projectedRole}) ${hasTag(firstBot?.breakdown, "duo-plan") ? "duo-plan" : ""} „${firstBot?.breakdown?.explanation?.find((line) => line.includes("Duo") || line.includes("→")) ?? ""}” [${adc}: Xayah ${grade(adc, "xayah")}, Kai'Sa ${grade(adc, "kaisa")}; ${support}: Nautilus ${grade(support, "nautilus")}]`,
+    `Xayah: „${xayah.explanation?.find((line) => line.includes("avoided")) ?? ""}”; primul bot roșu: ${firstBot?.label} ${firstBot?.championId} (${firstBot?.breakdown?.projectedRole}) ${hasTag(firstBot?.breakdown, "duo-plan") ? "duo-plan" : ""} „${firstBot?.breakdown?.explanation?.find((line) => line.includes("bot") || line.includes("going")) ?? ""}” [${adc}: Xayah ${grade(adc, "xayah")}, Kai'Sa ${grade(adc, "kaisa")}; ${support}: Nautilus ${grade(support, "nautilus")}]`,
   );
 }
 {
-  // 17. B3 Xayah, Rakan banat în faza 2 → B4 = un support cu synergyWith ≥ 4 cu Xayah, grad ≥ C (duo-fallback).
+  // 17. B3 Xayah, Rakan banat în faza 2 → fallback doar la un partener tier 2 (synergy 5, FEEDBACK_FIXES §10.4).
+  //     Fără niciun tier 2 (cazul actual: doar Nautilus, synergy 4 = tier 3) → logica normală, fără duo-fallback.
   const fallbackSupports = champions
     .filter((c) => c.roles.includes("support"))
-    .filter((c) => (c.synergyWith.find((s) => s.championId === "xayah")?.score ?? 0) >= 4 ||
-      (champions.find((x) => x.id === "xayah")!.synergyWith.find((s) => s.championId === c.id)?.score ?? 0) >= 4)
+    .filter((c) => getBotPairTier("xayah", c.id) === 3)
     .map((c) => c.id);
+  const tier2Supports = champions.filter((c) => c.roles.includes("support") && getBotPairTier("xayah", c.id) === 2).map((c) => c.id);
   // Supportul cu cel mai bun grad pe un partener synergy al lui Xayah.
   const bestRank = (playerId: string) => Math.max(...fallbackSupports.map((id) => RANK[grade(playerId, id)]));
   const support = teamPlayers
@@ -687,9 +691,9 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
   const step = getCurrentStep(game)!;
   const choice = getAiChoice(series, game, step, save);
   check(
-    "17. B3 Xayah, Rakan banat în faza 2 → B4 partener synergy (duo-fallback)",
-    Boolean(choice) && fallbackSupports.includes(choice!.championId) && hasTag(choice, "duo-fallback"),
-    `${step.label}=${choice?.championId} (${choice?.projectedRole}) „${choice?.explanation?.find((line) => line.includes("synergy")) ?? ""}”; candidați synergy: ${fallbackSupports.map((id) => `${id}:${grade(support, id)}`).join(", ")} [${support}]`,
+    "17. B3 Xayah, Rakan banat → fallback doar la tier 2; tier 3 (synergy 4) = logica normală",
+    Boolean(choice) && (tier2Supports.length ? tier2Supports.includes(choice!.championId) && hasTag(choice, "duo-fallback") : !hasTag(choice, "duo-fallback")),
+    `${step.label}=${choice?.championId} (${choice?.projectedRole}) fallback=${hasTag(choice, "duo-fallback")}; tier 2: ${tier2Supports.join(", ") || "—"}; tier 3: ${fallbackSupports.map((id) => `${id}:${grade(support, id)}`).join(", ")} [${support}]`,
   );
 }
 {
@@ -1038,6 +1042,99 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     games > 0 && maxRawGap < 0.01 && maxRoundedGap <= 0.1,
     `${games} jocuri; față de totalul brut: max ${maxRawGap.toFixed(4)}; față de blueTotal − redTotal (rotunjite la 0.1): max ${maxRoundedGap.toFixed(3)}; jocuri cu total în afara 0..10 (clamp): ${clamped}`,
   );
+}
+
+// ─── FEEDBACK_FIXES §10.6: duo-uri bot pe niveluri + focusul pe bot ───────────
+{
+  const firstRedBot = (log: LogEntry[]) =>
+    log.find((entry) => entry.side === "red" && entry.action === "pick" && ["adc", "support"].includes(entry.breakdown?.projectedRole ?? ""));
+  const stopAtRedBot = (entries: LogEntry[]) => Boolean(firstRedBot(entries));
+  const scoreAt = (game: DraftGameState, series: ActiveDraftSeries, save: DraftSave, id: string) =>
+    scoreDraftCandidate(champions.find((c) => c.id === id)!, getCurrentStep(game)!, game, series, save);
+
+  // 1. Renata banată; ADC Kalista A + Xayah A, support Rakan B + Alistar A → Xayah sau Rakan, nu Kalista;
+  //    Alistar nu e „combo” pentru Kalista (Kalista + Alistar = synergy 4, tier 3).
+  {
+    const adc = findPlayer("kalista", 4, 6, "adc", [], (id) => RANK[grade(id, "xayah")] >= 4);
+    const support = findPlayer("rakan", 3, 6, "support", [adc], (id) => RANK[grade(id, "alistar")] >= 4);
+    const save = makeSave({ [RED]: { adc, support } });
+    const bans = ["renata-glasc", "azir", "vi", "sejuani", "jayce", "ksante"];
+    const series = newSeries("f10a", BLUE, RED);
+    const r1Game: DraftGameState = { ...series.games[0], bansBlue: bans.slice(0, 3), bansRed: bans.slice(3), picksBlue: ["ahri"], phaseIndex: 7 };
+    const kalista = scoreAt(r1Game, series, save, "kalista");
+    const alistar = scoreAt(r1Game, series, save, "alistar");
+    const { log } = runDraft({ series, save, bans, stop: stopAtRedBot });
+    const bot = firstRedBot(log);
+    // Spec: „Xayah sau Rakan” cu plan protect-carry. Aici planul iese teamfight, iar Alistar are meta mult
+    // peste Rakan (~10 puncte în `power`, peste bonusul de combo de 3.5): verificăm mecanica, alegerea e în detaliu.
+    check(
+      "F10.1 Renata banată → Kalista evitată (orfană), Alistar nu e combo pentru ea",
+      hasTag(kalista, "orphan-anchor") && !hasTag(alistar, "duo-plan") && !hasTag(alistar, "duo-fallback") && bot?.championId !== "kalista",
+      `primul bot roșu: ${bot?.label} ${bot?.championId} (spec: xayah / rakan cu plan protect-carry); Kalista: „${kalista.explanation?.find((line) => line.includes("avoided")) ?? "—"}”; Alistar duo-plan: ${hasTag(alistar, "duo-plan")} [${adc}: Kalista ${grade(adc, "kalista")}, Xayah ${grade(adc, "xayah")}; ${support}: Rakan ${grade(support, "rakan")}, Alistar ${grade(support, "alistar")}]`,
+    );
+  }
+
+  // 2. Și Rakan banat, Lucian + Nami disponibil (ambii ≥ B) → Lucian sau Nami. Milio e banat și el:
+  //    în date Lucian are acum mustWith Milio (tier 1), altfel combo-ul acela ar câștiga.
+  {
+    const adc = findPlayer("lucian", 3, 6, "adc", [], (id) => RANK[grade(id, "kalista")] >= 4);
+    const support = findPlayer("nami", 3, 6, "support", [adc]);
+    const save = makeSave({ [RED]: { adc, support } });
+    const bans = ["renata-glasc", "rakan", "milio", "azir", "vi", "sejuani"];
+    const series = newSeries("f10b", BLUE, RED);
+    const r1Game: DraftGameState = { ...series.games[0], bansBlue: bans.slice(0, 3), bansRed: bans.slice(3), picksBlue: ["ahri"], phaseIndex: 7 };
+    const duos = buildDraftContext(getCurrentStep(r1Game)!, r1Game, series, save, DEFAULT_AI_CONFIG).mustWith.ownDuo.duos;
+    const lucianNami = duos.find((duo) => duo.adcId === "lucian" && duo.supportId === "nami");
+    const { log } = runDraft({ series, save, bans, stop: stopAtRedBot });
+    const bot = firstRedBot(log);
+    // Spec: „Lucian sau Nami”; verificăm că perechea e combo tier 2 disponibil și că nu e luată o ancoră orfană.
+    check(
+      "F10.2 Renata + Rakan banați → Lucian + Nami e combo tier 2; nicio ancoră orfană luată",
+      lucianNami?.tier === 2 && !["kalista", "xayah"].includes(bot?.championId ?? ""),
+      `Lucian + Nami: tier ${lucianNami?.tier ?? "—"} (loc ${duos.indexOf(lucianNami!) + 1} din ${duos.length}); primul bot roșu: ${bot?.label} ${bot?.championId} (spec: lucian / nami) „${bot?.breakdown?.explanation?.find((line) => line.includes("bot")) ?? ""}” [${adc}: Lucian ${grade(adc, "lucian")}; ${support}: Nami ${grade(support, "nami")}]`,
+    );
+  }
+
+  // 3. Win condition pe jungle (Vi B1) → focus „elsewhere”: bot-ul se alege separat, fără bonus de combo.
+  {
+    const save = makeSave();
+    const series = newSeries("f10c", BLUE, RED);
+    const game: DraftGameState = {
+      ...series.games[0], bansBlue: ["azir", "jayce", "ksante"], bansRed: ["sejuani", "orianna", "nocturne"],
+      picksBlue: ["vi"], pickRolesBlue: { vi: "jungle" }, picksRed: ["ahri", "rumble"], phaseIndex: 9,
+    };
+    const step = getCurrentStep(game)!;
+    const ctx = buildDraftContext(step, game, series, save, DEFAULT_AI_CONFIG);
+    const botCandidates = ["xayah", "rakan", "kalista", "renata-glasc", "lucian", "nami"].map((id) => scoreAt(game, series, save, id));
+    const bonused = botCandidates.filter((entry) => hasTag(entry, "duo-plan"));
+    check(
+      "F10.3 Win condition pe jungle (Vi) → focus elsewhere, fără bonus de combo",
+      ctx.botFocus === "elsewhere" && bonused.length === 0,
+      `win condition: ${ctx.ownWinCondition?.championId} (${ctx.ownWinCondition?.role}); focus: ${ctx.botFocus}; cu duo-plan: ${bonused.map((entry) => entry.championId).join(", ") || "—"}; „${botCandidates.flatMap((entry) => entry.explanation ?? []).find((line) => line.startsWith("Priority on other lanes")) ?? "—"}”`,
+    );
+  }
+
+  // 4. Kalista luată, Renata banată după → partener doar din tier 2 (Kalista n-are), fără fallback la Alistar.
+  {
+    const adc = findPlayer("kalista", 3, 6, "adc");
+    const support = findPlayer("alistar", 3, 6, "support", [adc]);
+    const save = makeSave({ [BLUE]: { adc, support } });
+    const series = newSeries("f10d", BLUE, RED);
+    const game: DraftGameState = {
+      ...series.games[0],
+      bansBlue: ["azir", "jayce", "ksante", "renata-glasc"], bansRed: ["vi", "sejuani", "orianna", "gnar"],
+      picksBlue: ["ambessa", "xin-zhao", "kalista"], pickRolesBlue: { ambessa: "top", "xin-zhao": "jungle", kalista: "adc" },
+      picksRed: ["rumble", "wukong", "syndra", "jinx"], phaseIndex: 17,
+    };
+    const choice = getAiChoice(series, game, getCurrentStep(game)!, save);
+    const alistar = scoreAt(game, series, save, "alistar");
+    const tier2 = champions.filter((c) => c.roles.includes("support") && getBotPairTier("kalista", c.id) === 2).map((c) => c.id);
+    check(
+      "F10.4 Kalista luată, Renata banată → doar tier 2 ca fallback (fără Alistar)",
+      !hasTag(alistar, "duo-fallback") && (tier2.length ? tier2.includes(choice?.championId ?? "") : !hasTag(choice, "duo-fallback")),
+      `B4=${choice?.championId} (${choice?.projectedRole}) fallback=${hasTag(choice, "duo-fallback")}; Alistar fallback: ${hasTag(alistar, "duo-fallback")}; tier 2 pentru Kalista: ${tier2.join(", ") || "—"}`,
+    );
+  }
 }
 
 // ─── Raport ──────────────────────────────────────────────────────────────────

@@ -42,6 +42,8 @@ export const MUSTWITH_CONFIG = {
   explicitBotPairFitCap: 3,
   /** synergyWith de la acest scor în sus = pereche bot explicită. */
   explicitSynergyMinScore: 4,
+  /** FEEDBACK_FIXES §10.2 — synergyWith de la acest scor = combo (tier 2); sub el, pereche bună (tier 3). */
+  comboSynergyMinScore: 5,
   /**
    * 5.4: bonus pentru partenerul unei ancore non-bot — mare, ca partenerul să
    * iasă primul (țintă ≥ 80%). Scade la `nonBotOverriddenBonus` doar când există
@@ -203,6 +205,26 @@ export function getComboPotentialBonus(
     unavailable: new Set([...ctx.unavailable, candidate.id]),
   });
   return partner ? { bonus: MUSTWITH_CONFIG.comboPotentialBonus, partner } : { bonus: 0, partner: null };
+}
+
+/**
+ * FEEDBACK_FIXES §10.2 — nivelul unei perechi adc + support:
+ *   1 = combo (mustWith în oricare sens) · 2 = combo (synergyWith 5, în oricare fișier)
+ *   3 = pereche bună (synergyWith 4) · null = nimic explicit.
+ */
+export type BotPairTier = 1 | 2 | 3;
+export function getBotPairTier(adcId: string | null | undefined, supportId: string | null | undefined): BotPairTier | null {
+  if (!adcId || !supportId || adcId === supportId) return null;
+  if (getMustWith(adcId, "adc").includes(supportId) || getMustWith(supportId, "support").includes(adcId)) return 1;
+  const adc = championsById[adcId];
+  const support = championsById[supportId];
+  const score = Math.max(
+    adc?.synergyWith.find((entry) => entry.championId === supportId)?.score ?? 0,
+    support?.synergyWith.find((entry) => entry.championId === adcId)?.score ?? 0,
+  );
+  if (score >= MUSTWITH_CONFIG.comboSynergyMinScore) return 2;
+  if (score >= MUSTWITH_CONFIG.explicitSynergyMinScore) return 3;
+  return null;
 }
 
 /** 5.3 — perechea bot din compoziție e explicită (mustWith în oricare fișier sau synergyWith ≥ 4)? */
