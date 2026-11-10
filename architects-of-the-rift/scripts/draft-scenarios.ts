@@ -41,6 +41,7 @@ import { getWeaknessCoverage } from "@/app/draft-engine/matchupGrades";
 import { matchupPowerAgainst } from "@/app/draft-engine/matchSimulationUtils";
 import { getRoleMatchups } from "@/app/draft-engine/championMatchups";
 import { champions } from "@/app/data/champions";
+import { simulateAiVsAiSeries } from "@/app/draft-engine/aiSeriesSimulator";
 
 // ─── Infrastructură ──────────────────────────────────────────────────────────
 
@@ -81,7 +82,6 @@ type LogEntry = { label: string; side: Side; action: "pick" | "ban"; championId:
 
 function newSeries(id: string, blue: string, red: string): ActiveDraftSeries {
   const series = createInitialSeries(`${id}-${blue}-${red}`, "__none__");
-  series.userSide = "__ai__" as never; // ambele echipe sunt AI
   return series;
 }
 
@@ -921,6 +921,57 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     "26. Raport pe piloni: 5 piloni cu note; F pe top → mastery D",
     complete && blueF.mastery.grade === "D" && blueF.mastery.notes.some((note) => note.includes("(F)")),
     pillars.map((key) => `${key} ${blue[key].grade}: ${blue[key].notes[0]}`).join(" | ") + ` || cu F: mastery ${blueF.mastery.grade} „${blueF.mastery.notes[0]}”`,
+  );
+}
+
+// ─── FEEDBACK_FIXES §1: serii AI vs AI simulate (ca în SeriesSchedule) ────────
+{
+  // localStorage fals: verificăm ce se scrie (memoria userului nu trebuie atinsă).
+  const storage = new Map<string, string>();
+  const writes: string[] = [];
+  const fakeWindow = {
+    localStorage: {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        writes.push(key);
+        storage.set(key, value);
+      },
+      removeItem: (key: string) => storage.delete(key),
+    },
+  };
+  (globalThis as { window?: unknown }).window = fakeWindow;
+  (globalThis as { localStorage?: unknown }).localStorage = fakeWindow.localStorage;
+  const offRole: string[] = [];
+  let nullUserSide = 0;
+  let gamesPlayed = 0;
+  const seriesCount = 50;
+  try {
+    for (let index = 0; index < seriesCount; index += 1) {
+      const left = teams[index % teams.length].slug;
+      const right = teams[(index * 11 + 5) % teams.length].slug;
+      if (left === right) continue;
+      const initial = createInitialSeries(`fx1s${index}-${left}-${right}`, "__ai__");
+      const { series } = simulateAiVsAiSeries(initial, makeSave());
+      if (initial.userSide === null && series.userSide === null) nullUserSide += 1;
+      for (const game of series.games.filter((entry) => entry.completed)) {
+        gamesPlayed += 1;
+        for (const assignments of [game.assignmentsBlue, game.assignmentsRed]) {
+          for (const [role, championId] of Object.entries(assignments)) {
+            const champion = champions.find((entry) => entry.id === championId);
+            if (champion && !champion.roles.includes(role as Role)) offRole.push(`${series.seriesId} G${game.number}: ${champion.id} ${role}`);
+          }
+        }
+      }
+    }
+  } finally {
+    delete (globalThis as { window?: unknown }).window;
+    delete (globalThis as { localStorage?: unknown }).localStorage;
+  }
+  const memoryWrites = writes.filter((key) => key.startsWith("rift-user-draft-memory")).length;
+  check(
+    "F1. Serii AI vs AI simulate: roluri valide, userSide null, fără memorie de user",
+    offRole.length === 0 && memoryWrites === 0 && nullUserSide === seriesCount,
+    `${seriesCount} serii / ${gamesPlayed} jocuri; userSide null: ${nullUserSide}; roluri invalide: ${offRole.length}${offRole.length ? ` (${offRole.slice(0, 3).join("; ")})` : ""}; scrieri userDraftMemory: ${memoryWrites}`,
   );
 }
 

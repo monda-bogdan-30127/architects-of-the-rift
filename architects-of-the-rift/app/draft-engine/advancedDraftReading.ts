@@ -83,7 +83,8 @@ export function getContestedPickUrgency(args: {
   candidate: Champion;
   plan: DraftPlan | null;
   series: ActiveDraftSeries;
-  userSide: Side;
+  /** Adversarul e userul? Memoria userului contează doar atunci (nu în AI vs AI). */
+  enemyIsUser: boolean;
   currentPickNumber: number;
 }): number {
   const { candidate, plan } = args;
@@ -98,8 +99,7 @@ export function getContestedPickUrgency(args: {
   let contestedScore = 0;
 
   // Factor 1: Is this a champion the user has picked recently?
-  const userPickCounts = getUserPickCounts();
-  const userPickFreq = userPickCounts[candidate.id] ?? 0;
+  const userPickFreq = args.enemyIsUser ? getUserPickCounts()[candidate.id] ?? 0 : 0;
   if (userPickFreq >= 2) contestedScore += 1.5; // User loves this champion
   else if (userPickFreq >= 1) contestedScore += 0.8;
 

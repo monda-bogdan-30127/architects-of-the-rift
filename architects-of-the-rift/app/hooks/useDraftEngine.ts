@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { teams } from "@/app/data/teams";
 import type { Role } from "@/app/types/champion";
 import type { ActiveDraftSeries, DraftSave, Side } from "@/app/draft-engine/draftTypes";
-import { ROLE_ORDER } from "@/app/draft-engine/draftTypes";
 import { migrateAllRiftStorage, normalizeActiveDraftSeries } from "@/app/draft-engine/storageMigration";
 import { useIsClient } from "@/app/hooks/useClientStorage";
 import {
@@ -50,7 +49,7 @@ export function useDraftEngine(seriesId: string) {
     const savedActiveSeries = readJson<ActiveDraftSeries>(ACTIVE_DRAFT_SERIES_KEY);
     setSeries(
       savedActiveSeries && savedActiveSeries.seriesId === seriesId
-        ? normalizeActiveDraftSeries(savedActiveSeries)
+        ? normalizeActiveDraftSeries(savedActiveSeries, save?.controlledTeamSlug ?? null)
         : createInitialSeries(seriesId, save?.controlledTeamSlug ?? "")
     );
   }
@@ -62,7 +61,8 @@ export function useDraftEngine(seriesId: string) {
 
   const currentGame = useMemo(() => getCurrentGame(series), [series]);
   const currentStep = useMemo(() => getCurrentStep(currentGame), [currentGame]);
-  const userSide = series?.userSide ?? "blue";
+  // Gardă: pagina de draft e pentru seriile userului; o serie fără user (null) nu trebuie să crape.
+  const userSide: Side = series?.userSide ?? "blue";
   const aiSide: Side = userSide === "blue" ? "red" : "blue";
   const blueTeam = useMemo(
     () => (series ? teams.find((team) => team.slug === series.blueTeamSlug) ?? null : null),
@@ -119,10 +119,9 @@ export function useDraftEngine(seriesId: string) {
       const game = getCurrentGame(prev);
       if (!game) return prev;
 
-      // §1.2: rolul userului = slotul din ordinea pick-urilor (se mută la swap).
-      const ownPicks = side === "blue" ? game.picksBlue : game.picksRed;
-      const slotRole = action === "pick" ? ROLE_ORDER[ownPicks.length] ?? null : null;
-      const nextGame = commitActionToGame(game, championId, side, action, slotRole);
+      // FEEDBACK_FIXES §1: pick-ul userului nu se blochează pe slotul din ordinea pick-urilor
+      // (ordinea de pick nu e o asignare). Rolul userului se scrie doar când îl alege el (swap).
+      const nextGame = commitActionToGame(game, championId, side, action, null);
       return {
         ...prev,
         games: prev.games.map((entry) => (entry.number === game.number ? nextGame : entry)),

@@ -160,7 +160,7 @@ function getRosterFitForPlan(
  * Check past series games — what plans worked/failed previously.
  * If user beat us with poke comp in game 1, game 2 wants anti-poke (front-to-back or dive).
  */
-function getSeriesAdaptationBonus(plan: DraftPlanType, series: ActiveDraftSeries): number {
+function getSeriesAdaptationBonus(plan: DraftPlanType, series: ActiveDraftSeries, ourSide: Side): number {
   if (series.currentGameNumber <= 1) return 0;
 
   let bonus = 0;
@@ -169,7 +169,6 @@ function getSeriesAdaptationBonus(plan: DraftPlanType, series: ActiveDraftSeries
     if (!prevGame.completed || !prevGame.winnerSide) continue;
 
     // If we lost this game, want a counter-plan for game 2+
-    const ourSide = series.userSide === "blue" ? "red" : "blue"; // AI side
     const weWon = prevGame.winnerSide === ourSide;
 
     if (!weWon) {
@@ -322,7 +321,7 @@ export function chooseDraftPlan(args: {
   for (const plan of plans) {
     const metaCoverage = getMetaCoverageForPlan(plan, availableChampions);
     const rosterFit = getRosterFitForPlan(plan, args.aiRoster);
-    const seriesAdapt = getSeriesAdaptationBonus(plan, args.series);
+    const seriesAdapt = getSeriesAdaptationBonus(plan, args.series, args.side);
     const userWeakness = getUserWeaknessBonus(plan, args.userRoster);
 
     // Weighted score

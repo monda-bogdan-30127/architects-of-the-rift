@@ -71,7 +71,8 @@ export type ActiveDraftSeries = {
   currentGameNumber: number;
   blueTeamSlug: string;
   redTeamSlug: string;
-  userSide: Side;
+  /** Side-ul userului în jocul curent; `null` = serie fără user (AI vs AI, ex. seriile simulate). */
+  userSide: Side | null;
   games: DraftGameState[];
 };
 

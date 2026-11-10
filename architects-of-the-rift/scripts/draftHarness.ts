@@ -50,7 +50,6 @@ export function makeSave(overrides: Record<string, Partial<Record<Role, string>>
 
 export function newAiSeries(prefix: string, blue: string, red: string): ActiveDraftSeries {
   const series = createInitialSeries(`${prefix}-${blue}-${red}`, "__none__");
-  series.userSide = "__ai__" as never; // ambele echipe sunt AI
   return series;
 }
 

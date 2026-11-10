@@ -17,12 +17,13 @@ import {
   DEFAULT_AI_CONFIG,
   DRAFT_SEQUENCE,
   REQUIRED_BANS_PER_SIDE,
+  ROLE_ORDER,
   REQUIRED_PICKS_PER_SIDE,
 } from "./draftTypes";
 import { chooseAiAction } from "./draftDecision";
 import { buildDraftPillarReport } from "./draftPillarReport";
 import { evaluateTeamDraft } from "./draftEvaluator";
-import { assignmentsCoverPicks, mapPicksToRoleOrder, resolveRoleAssignments } from "./draftRoleResolver";
+import { assignmentsCoverPicks, resolveRoleAssignments } from "./draftRoleResolver";
 import { simulateFullMatch } from "./matchSimulator";
 import { recordCompletedUserDraftGame } from "./userDraftMemory";
 
@@ -109,7 +110,13 @@ export function createInitialSeries(
   controlledTeamSlug: string
 ): ActiveDraftSeries {
   const { leftTeamSlug, rightTeamSlug } = getTeamSlugsFromSeriesId(seriesId);
-  const userSide: Side = controlledTeamSlug === leftTeamSlug ? "blue" : "red";
+  // Echipa controlată nu e în serie (ex. „__ai__” din SeriesSchedule) → serie fără user.
+  const userSide: Side | null =
+    controlledTeamSlug && controlledTeamSlug === leftTeamSlug
+      ? "blue"
+      : controlledTeamSlug && controlledTeamSlug === rightTeamSlug
+        ? "red"
+        : null;
 
   return {
     seriesId,
@@ -309,17 +316,15 @@ export function resolveFinishedDraftAssignments(
   const blueRoster = getTeamRosterFromSources({ teamSlug: series.blueTeamSlug, save });
   const redRoster = getTeamRosterFromSources({ teamSlug: series.redTeamSlug, save });
 
+  // Ordinea de pick nu e o asignare de roluri: fără asignare făcută (de user, la swap), rolurile se
+  // rezolvă pentru ambele echipe din roster + rolurile blocate (AI: rolul proiectat; user: swap-urile lui).
   const assignmentsBlue = hasResolvedAssignmentsForPicks(game.assignmentsBlue, game.picksBlue)
     ? game.assignmentsBlue
-    : series.userSide === "blue"
-      ? mapPicksToRoleOrder(game.picksBlue)
-      : resolveRoleAssignments(game.picksBlue, blueRoster, getPickRoles(game, "blue"));
+    : resolveRoleAssignments(game.picksBlue, blueRoster, getPickRoles(game, "blue"));
 
   const assignmentsRed = hasResolvedAssignmentsForPicks(game.assignmentsRed, game.picksRed)
     ? game.assignmentsRed
-    : series.userSide === "red"
-      ? mapPicksToRoleOrder(game.picksRed)
-      : resolveRoleAssignments(game.picksRed, redRoster, getPickRoles(game, "red"));
+    : resolveRoleAssignments(game.picksRed, redRoster, getPickRoles(game, "red"));
 
   return {
     ...game,
@@ -413,6 +418,7 @@ export function completeCurrentGame(
   if (!currentGame) return series;
 
   const resolvedGame = resolveFinishedDraftAssignments(currentGame, series, save);
+  if (process.env.NODE_ENV !== "production") warnOffRoleAssignments(series, resolvedGame);
   // DRAFT_THINKING §8: raportul pe piloni, înainte de simulare (memoria sezonului nu include încă jocul curent).
   const pillarRosters = {
     blue: getTeamRosterFromSources({ teamSlug: series.blueTeamSlug, save }),
@@ -447,6 +453,19 @@ export function completeCurrentGame(
   };
 }
 
+/** Gardă (dev): un campion asignat pe un rol care nu e în `roles` lui. */
+function warnOffRoleAssignments(series: ActiveDraftSeries, game: DraftGameState) {
+  for (const [side, assignments] of [["blue", game.assignmentsBlue], ["red", game.assignmentsRed]] as const) {
+    for (const role of ROLE_ORDER) {
+      const championId = assignments[role];
+      const champion = championId ? champions.find((entry) => entry.id === championId) : null;
+      if (champion && !champion.roles.includes(role)) {
+        console.warn(`[draft] ${series.seriesId} G${game.number} ${side}: ${champion.name} pe ${role} (roluri: ${champion.roles.join("/")})`);
+      }
+    }
+  }
+}
+
 export function advanceSeries(series: ActiveDraftSeries): ActiveDraftSeries {
   const nextGameNumber = series.currentGameNumber + 1;
   const hasNextGame = series.games.some((game) => game.number === nextGameNumber);
@@ -456,7 +475,7 @@ export function advanceSeries(series: ActiveDraftSeries): ActiveDraftSeries {
     currentGameNumber: nextGameNumber,
     blueTeamSlug: series.redTeamSlug,
     redTeamSlug: series.blueTeamSlug,
-    userSide: series.userSide === "blue" ? "red" : "blue",
+    userSide: series.userSide === null ? null : series.userSide === "blue" ? "red" : "blue",
     games: hasNextGame ? series.games : [...series.games, createEmptyGame(nextGameNumber)],
   };
 }

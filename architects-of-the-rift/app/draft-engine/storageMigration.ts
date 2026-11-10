@@ -23,9 +23,13 @@ const TEAM_SEASON_KEY = "rift-team-season-champions";
  * Seria de draft salvată: completează câmpurile adăugate după ce a fost scrisă
  * (DRAFT_THINKING §1.2: `pickRolesBlue` / `pickRolesRed`, implicit `{}`).
  */
-export function normalizeActiveDraftSeries(series: ActiveDraftSeries): ActiveDraftSeries {
+export function normalizeActiveDraftSeries(series: ActiveDraftSeries, controlledTeamSlug?: string | null): ActiveDraftSeries {
+  // FEEDBACK_FIXES §1: serie salvată cu `userSide`, dar fără echipa controlată în ea → serie fără user.
+  const hasUserTeam =
+    controlledTeamSlug == null || series.blueTeamSlug === controlledTeamSlug || series.redTeamSlug === controlledTeamSlug;
   return {
     ...series,
+    userSide: hasUserTeam ? series.userSide ?? null : null,
     games: (series.games ?? []).map((game) => ({
       ...game,
       pickRolesBlue: game.pickRolesBlue ?? {},

@@ -8,6 +8,7 @@ import { champions } from "@/app/data/champions";
 import { players } from "@/app/data/players";
 import { useDraftEngine } from "@/app/hooks/useDraftEngine";
 import { resolveFinishedDraftAssignments } from "@/app/draft-engine/draftEngine";
+import { resolveRoleAssignments } from "@/app/draft-engine/draftRoleResolver";
 import MatchResultsDialog from "@/components/ui/MatchResultsDialog";
 import type { DraftGameState, DraftSave, DraftSimulationResult, DraftStep, Side } from "@/app/draft-engine/draftTypes";
 import type { Champion, Role } from "@/app/types/champion";
@@ -77,22 +78,26 @@ function getTeamRosterFromSources({ team, save }: { team: unknown; save: DraftSa
   return baseRoster;
 }
 
-function assignChampionToRoleMap(assignments: Partial<Record<Role, string>>, championId: string) {
-  const next = { ...assignments };
-  const firstOpenRole = ROLE_ORDER.find((role) => !next[role]);
-  if (firstOpenRole) next[firstOpenRole] = championId;
-  return next;
-}
-
-function buildAssignmentsFromPicks(picks: string[]) {
-  let assignments: Partial<Record<Role, string>> = {};
-  for (const championId of picks) assignments = assignChampionToRoleMap(assignments, championId);
-  return assignments;
-}
-
-function getDisplayAssignments(savedAssignments: Partial<Record<Role, string>>, picks: string[]) {
+/**
+ * Rolurile afișate în timpul draftului: asignarea salvată (după lock-in / swap) sau rolurile rezolvate
+ * din roster (ca la finalul draftului). Ordinea de pick nu e o asignare de roluri (FEEDBACK_FIXES §1).
+ * Un pick care nu încape (combinație imposibilă) ia primul slot liber, ca să rămână vizibil.
+ */
+function getDisplayAssignments(
+  savedAssignments: Partial<Record<Role, string>>,
+  picks: string[],
+  roster: Partial<Record<Role, string>>,
+  pickRoles: Partial<Record<string, Role>> | undefined
+) {
   if (Object.keys(savedAssignments).length > 0) return savedAssignments;
-  return buildAssignmentsFromPicks(picks);
+  const assignments = resolveRoleAssignments(picks, roster, pickRoles ?? {});
+  const placed = new Set(Object.values(assignments));
+  for (const championId of picks) {
+    if (placed.has(championId)) continue;
+    const openRole = ROLE_ORDER.find((role) => !assignments[role]);
+    if (openRole) assignments[openRole] = championId;
+  }
+  return assignments;
 }
 
 function getPreviewBans(game: DraftGameState, currentStep: DraftStep | null, selectedChampionId: string | null, userSide: Side, isUserTurn: boolean) {
@@ -334,8 +339,8 @@ export default function DraftPage() {
   function handleSwapMenuToggle(role: Role) {
     if (!currentGame || !canSwapRoles) return;
     const ua = userSide === "blue"
-      ? getDisplayAssignments(currentGame.assignmentsBlue, currentGame.picksBlue)
-      : getDisplayAssignments(currentGame.assignmentsRed, currentGame.picksRed);
+      ? getDisplayAssignments(currentGame.assignmentsBlue, currentGame.picksBlue, getTeamRosterFromSources({ team: blueTeam, save: draftSave }), currentGame.pickRolesBlue)
+      : getDisplayAssignments(currentGame.assignmentsRed, currentGame.picksRed, getTeamRosterFromSources({ team: redTeam, save: draftSave }), currentGame.pickRolesRed);
     if (!ua[role]) return;
     setOpenSwapRole((prev) => (prev === role ? null : role));
   }
@@ -381,8 +386,10 @@ export default function DraftPage() {
     );
   }
 
-  const currentAssignmentsBlue = getDisplayAssignments(currentGame.assignmentsBlue, currentGame.picksBlue);
-  const currentAssignmentsRed = getDisplayAssignments(currentGame.assignmentsRed, currentGame.picksRed);
+  const rosterBlue = getTeamRosterFromSources({ team: blueTeam, save: draftSave });
+  const rosterRed = getTeamRosterFromSources({ team: redTeam, save: draftSave });
+  const currentAssignmentsBlue = getDisplayAssignments(currentGame.assignmentsBlue, currentGame.picksBlue, rosterBlue, currentGame.pickRolesBlue);
+  const currentAssignmentsRed = getDisplayAssignments(currentGame.assignmentsRed, currentGame.picksRed, rosterRed, currentGame.pickRolesRed);
 
   // DRAFT_THINKING §7.6: scouting înainte de primul ban — favoriții de sezon ai adversarului (read-only).
   const scoutedTeam = userSide === "blue" ? redTeam : blueTeam;
@@ -391,11 +398,11 @@ export default function DraftPage() {
     : [];
 
   const previewAssignmentsBlue = selectedChampionId && isUserTurn && currentStep?.action === "pick" && currentStep.side === "blue"
-    ? assignChampionToRoleMap(currentAssignmentsBlue, selectedChampionId)
+    ? getDisplayAssignments({}, [...currentGame.picksBlue, selectedChampionId], rosterBlue, currentGame.pickRolesBlue)
     : currentAssignmentsBlue;
 
   const previewAssignmentsRed = selectedChampionId && isUserTurn && currentStep?.action === "pick" && currentStep.side === "red"
-    ? assignChampionToRoleMap(currentAssignmentsRed, selectedChampionId)
+    ? getDisplayAssignments({}, [...currentGame.picksRed, selectedChampionId], rosterRed, currentGame.pickRolesRed)
     : currentAssignmentsRed;
 
   const previewBans = getPreviewBans(currentGame, currentStep, selectedChampionId, userSide, isUserTurn);

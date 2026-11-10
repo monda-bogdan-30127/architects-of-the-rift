@@ -1078,7 +1078,7 @@ export function scorePickCandidate(
     candidate,
     plan: draftPlan,
     series,
-    userSide: step.side === "blue" ? "red" : "blue",
+    enemyIsUser: !ctx.enemy.isAi,
     currentPickNumber: getCurrentPickNumberForSide(game, step.side),
   });
 
@@ -1783,7 +1783,8 @@ export function scoreBanCandidate(
   );
 
   // UPGRADE 13: Preemptive ban on user-favorite OP champions
-  const userFavoriteBan = getUserFavoriteBanBonus(candidate, series);
+  // Memoria userului doar când adversarul e userul (nu în AI vs AI).
+  const userFavoriteBan = ctx.enemy.isAi ? 0 : getUserFavoriteBanBonus(candidate, series);
 
   // DRAFT FINAL FIX 3: Phase 2 bans — protect own comp
   // In phase 2 (after 6 picks), AI has 3 picks visible. Ban champions that

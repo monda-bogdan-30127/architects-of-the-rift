@@ -131,6 +131,7 @@ function getCurrentSeriesUserCounts(series: ActiveDraftSeries) {
   for (const draftGame of series.games) {
     if (!draftGame.completed) continue;
 
+    if (series.userSide === null) continue;
     const collections = getSideCollections(draftGame, series.userSide);
     incrementCounter(firstPickCounts, collections.picks[0]);
     collections.picks.forEach((championId) => incrementCounter(overallPickCounts, championId));
@@ -162,9 +163,11 @@ function getCurrentSeriesUserCounts(series: ActiveDraftSeries) {
 
 export function recordCompletedUserDraftGame(series: ActiveDraftSeries, completedGame: DraftGameState) {
   if (!completedGame.completed) return;
+  // Serie fără user (AI vs AI): nimic de învățat despre user.
+  if (series.userSide === null) return;
 
   const memory = readMemory();
-  const collections = getSideCollections(completedGame, series.userSide);
+  const collections = getSideCollections(completedGame, series.userSide as Side);
 
   const firstPickId = collections.picks[0] ?? null;
   const firstPickRole = getChampionPrimaryRole(firstPickId ?? "");
