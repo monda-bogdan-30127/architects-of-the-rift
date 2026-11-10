@@ -678,6 +678,7 @@ export default function DraftPage() {
         onPrimaryAction={() => { setResultsGameNumber(null); if (resultsSeriesFinished) router.push("/gameplay-dashboard"); }}
         primaryLabel={resultsSeriesFinished ? "BACK TO DASHBOARD" : "GO NEXT GAME"}
         pillarReport={resultsPillarReport}
+        userSide={resultsUserSide}
         isSeriesComplete={resultsSeriesFinished}
         seriesMvpName={
           resultsSeriesFinished

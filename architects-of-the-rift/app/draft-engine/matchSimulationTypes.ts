@@ -22,8 +22,29 @@ export type TeamPhaseScores = {
   execution: number;
   clutch: number;
   late: number;
+  /** FEEDBACK_FIXES §6.1 — momentum și variația (rng), adunate în total. Opționale: salvările vechi nu le au. */
+  momentum?: number;
+  rng?: number;
   total: number;
+  /** Totalul înainte de clamp-uri și rotunjire (= Σ contribuțiilor). */
+  totalRaw?: number;
+  /** Contribuția fiecărui factor la total, cu ponderile din `buildTeamPhaseScores`. */
+  contributions?: Record<OutcomeFactorKey, number>;
   phases: PhaseBreakdown;
+};
+
+/** FEEDBACK_FIXES §6.1 — factorii rezultatului. */
+export type OutcomeFactorKey =
+  | "draft" | "players" | "mastery" | "lane" | "objectives" | "execution" | "clutch" | "late"
+  | "momentum" | "variance" | "early" | "mid" | "lateFights";
+
+export type OutcomeFactor = {
+  key: OutcomeFactorKey;
+  /** Valoarea factorului pentru fiecare echipă (scorul categoriei / fazei). */
+  blue: number;
+  red: number;
+  /** Contribuția la diferența de total; pozitivă = în favoarea blue. */
+  edgeBlue: number;
 };
 
 export type LaneRoleBreakdown = {
@@ -99,4 +120,6 @@ export type FullMatchSimulationResult = {
   playerScores: PlayerGameScore[];
   mvpPlayerId: string | null;
   gameLength: string;
+  /** FEEDBACK_FIXES §6.1 — ce a decis meciul (opțional: salvările vechi nu îl au). */
+  outcomeFactors?: OutcomeFactor[];
 };

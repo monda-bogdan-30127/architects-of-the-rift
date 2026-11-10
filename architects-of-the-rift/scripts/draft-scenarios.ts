@@ -16,6 +16,7 @@ import {
   resolveFinishedDraftAssignments,
   getAiChoice,
   getCurrentStep,
+  simulateDraftResult,
 } from "@/app/draft-engine/draftEngine";
 import { getPickCandidatePool } from "@/app/draft-engine/draftAI";
 import { chooseAiAction, scoreDraftCandidate } from "@/app/draft-engine/draftDecision";
@@ -1003,6 +1004,39 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     "F2. Series MVP: mereu din echipa câștigătoare (side-uri inversate)",
     mvp20?.startsWith("a") === true && mvp21?.startsWith("a") === true && mvpLegacy?.startsWith("a") === true && mvpLegacyUnknown === null,
     `2–0: ${mvp20}, 2–1: ${mvp21}, vechi cu roster: ${mvpLegacy}, vechi fără echipă: ${mvpLegacyUnknown}`,
+  );
+}
+
+// ─── FEEDBACK_FIXES §6.1: factorii rezultatului adună diferența de total ───────
+{
+  let games = 0;
+  let maxRawGap = 0;
+  let maxRoundedGap = 0;
+  let clamped = 0;
+  for (let index = 0; index < 60; index += 1) {
+    const blue = teams[(index * 3) % teams.length].slug;
+    const red = teams[(index * 3 + 13) % teams.length].slug;
+    if (blue === red) continue;
+    const series = newSeries(`f6s${index}`, blue, red);
+    const save = makeSave();
+    const { game } = runDraft({ series, save, bans: [] });
+    const resolved = resolveFinishedDraftAssignments(game, series, save);
+    const simulation = simulateDraftResult(resolved, series, save);
+    const factors = simulation.outcomeFactors ?? [];
+    const edge = factors.reduce((sum, factor) => sum + factor.edgeBlue, 0);
+    const rawGap = Math.abs(edge - ((simulation.bluePhaseScores.totalRaw ?? 0) - (simulation.redPhaseScores.totalRaw ?? 0)));
+    const roundedGap = Math.abs(edge - (simulation.blueTotal - simulation.redTotal));
+    const blueRaw = simulation.bluePhaseScores.totalRaw ?? 0;
+    const redRaw = simulation.redPhaseScores.totalRaw ?? 0;
+    if (blueRaw < 0 || blueRaw > 10 || redRaw < 0 || redRaw > 10) clamped += 1;
+    games += 1;
+    maxRawGap = Math.max(maxRawGap, rawGap);
+    maxRoundedGap = Math.max(maxRoundedGap, roundedGap);
+  }
+  check(
+    "F6. Σ edgeBlue = diferența de total brut (≤ 0.01); față de totalurile rotunjite la 0.1: ≤ 0.1",
+    games > 0 && maxRawGap < 0.01 && maxRoundedGap <= 0.1,
+    `${games} jocuri; față de totalul brut: max ${maxRawGap.toFixed(4)}; față de blueTotal − redTotal (rotunjite la 0.1): max ${maxRoundedGap.toFixed(3)}; jocuri cu total în afara 0..10 (clamp): ${clamped}`,
   );
 }
 

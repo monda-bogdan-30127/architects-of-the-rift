@@ -17,7 +17,7 @@ import {
 } from "./draftEvaluator";
 import { assignmentsCoverPicks, resolveRoleAssignments } from "./draftRoleResolver";
 import { ROLE_ORDER } from "./draftTypes";
-import type { MatchProfile, PhaseBreakdown, PlayerGameScore, TeamPhaseScores } from "./matchSimulationTypes";
+import type { MatchProfile, OutcomeFactor, OutcomeFactorKey, PhaseBreakdown, PlayerGameScore, TeamPhaseScores } from "./matchSimulationTypes";
 import { computeTendencyEvents } from "./tendencyEventSystem";
 import { computeTeamChemistry, getPlayerPersonalityModifiers } from "./personalitySystem";
 import { evaluateTeamfight } from "./teamfightSystem";
@@ -474,7 +474,30 @@ function buildTeamPhaseScores(args: {
 
   const total = clamp(categoryTotal * 0.60 + phaseComposite * 0.40, 0, 10);
 
+  // FEEDBACK_FIXES §6.1: contribuția fiecărui factor, cu exact ponderile de mai sus (înainte de clamp).
+  const category = (value: number, weight: number) => value * weight * 0.60;
+  const contributions: Record<OutcomeFactorKey, number> = {
+    draft: category(args.draft, 0.22),
+    players: category(args.playerPower, 0.14),
+    mastery: category(args.assignment, 0.08),
+    lane: category(args.lane, 0.10 * weights.lane),
+    objectives: category(args.objectives, 0.08 * weights.objectives),
+    execution: category(args.execution, 0.08 * weights.execution),
+    clutch: category(args.clutch, 0.06 * weights.clutch),
+    late: category(args.late, 0.05 * weights.late),
+    momentum: category(args.momentum, 1),
+    variance: category(args.rng, 1),
+    early: args.phases.early.phaseTotal * phaseW.early * 0.40,
+    mid: args.phases.mid.phaseTotal * phaseW.mid * 0.40,
+    lateFights: args.phases.late.phaseTotal * phaseW.late * 0.40,
+  };
+  const totalRaw = Object.values(contributions).reduce((sum, value) => sum + value, 0);
+
   return {
+    momentum: round1(args.momentum),
+    rng: round1(args.rng),
+    totalRaw,
+    contributions,
     draft: round1(args.draft),
     playerPower: round1(args.playerPower),
     assignment: round1(args.assignment),
@@ -1443,5 +1466,29 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     seriesMvpPlayerId,
     isSeriesComplete: seriesComplete,
     gameLength,
+    outcomeFactors: buildOutcomeFactors(blueScores, redScores),
   };
+}
+
+/** FEEDBACK_FIXES §6.1 — factorii rezultatului: valoarea per echipă și contribuția la diferența de total. */
+function buildOutcomeFactors(blue: TeamPhaseScores, red: TeamPhaseScores): OutcomeFactor[] {
+  const value = (scores: TeamPhaseScores, key: OutcomeFactorKey): number => {
+    switch (key) {
+      case "players": return scores.playerPower;
+      case "mastery": return scores.assignment;
+      case "momentum": return scores.momentum ?? 0;
+      case "variance": return scores.rng ?? 0;
+      case "early": return scores.phases.early.phaseTotal;
+      case "mid": return scores.phases.mid.phaseTotal;
+      case "lateFights": return scores.phases.late.phaseTotal;
+      default: return scores[key];
+    }
+  };
+  const keys = Object.keys(blue.contributions ?? {}) as OutcomeFactorKey[];
+  return keys.map((key) => ({
+    key,
+    blue: round1(value(blue, key)),
+    red: round1(value(red, key)),
+    edgeBlue: Math.round(((blue.contributions?.[key] ?? 0) - (red.contributions?.[key] ?? 0)) * 1000) / 1000,
+  }));
 }

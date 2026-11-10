@@ -4,8 +4,9 @@ import { createPortal } from "react-dom";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import { teams } from "@/app/data/teams";
-import type { DraftPillarReport, DraftSimulationResult, PillarGrade } from "@/app/draft-engine/draftTypes";
+import type { DraftPillarReport, DraftSimulationResult, PillarGrade, Side } from "@/app/draft-engine/draftTypes";
 import { PILLAR_LABELS, describeDraftEdge } from "@/app/draft-engine/draftDecisionExplainer";
+import { explainOutcome, formatEdge } from "@/app/draft-engine/outcomeExplainer";
 import PlayerResultRow from "./PlayerResultRow";
 
 const teamsBySlug = new Map(teams.map((team) => [team.slug, team]));
@@ -76,6 +77,8 @@ type Props = {
   /** DRAFT_THINKING §8 — raportul pe piloni al echipei userului (după lock-in). */
   pillarReport?: DraftPillarReport | null;
   pillarTeamName?: string;
+  /** FEEDBACK_FIXES §6.2 — side-ul echipei userului în acest joc (null = nu e în meci). */
+  userSide?: Side | null;
 };
 
 const PILLAR_GRADE_COLORS: Record<PillarGrade, string> = {
@@ -94,6 +97,7 @@ export default function MatchResultsDialog({
   seriesMvpName,
   pillarReport,
   pillarTeamName,
+  userSide = null,
 }: Props) {
   const [showPillarDetails, setShowPillarDetails] = useState(false);
   useEffect(() => {
@@ -137,6 +141,15 @@ export default function MatchResultsDialog({
     (a, b) => b.score - a.score
   )[0] ?? null;
 
+  // §6.2: ce a decis meciul (simulările vechi nu au factorii → secțiunea lipsește).
+  const outcome = explainOutcome({
+    factors: simulation.outcomeFactors,
+    winnerSide: simulation.winnerSide,
+    userSide,
+    closeness: simulation.closeness,
+  });
+  const maxFactor = Math.max(0.0001, ...(outcome?.winnerFactors ?? []).map((line) => line.value));
+
   return createPortal(
     <div
       className="
@@ -153,7 +166,7 @@ export default function MatchResultsDialog({
         aria-labelledby="match-results-title"
         className="
           relative
-          flex w-[720px] max-w-[calc(100vw-32px)] flex-col
+          flex max-h-[calc(100vh-32px)] w-[720px] max-w-[calc(100vw-32px)] flex-col overflow-y-auto
           gap-[32px]
           rounded-[16px]
           bg-[var(--bg-surface)]
@@ -235,6 +248,46 @@ export default function MatchResultsDialog({
             </div>
           </section>
         </div>
+
+        {/* ─── De ce a câștigat (FEEDBACK_FIXES §6.2) ───────────────── */}
+        {outcome && (
+          <section className="flex flex-col gap-[10px] self-stretch">
+            <p className="body-small text-[var(--text-secondary)]">Why {winnerName} won</p>
+            <div className="h-px self-stretch bg-[var(--border-default)]" />
+            {outcome.winnerFactors.length > 0 ? (
+              <div className="flex flex-col gap-[6px] self-stretch">
+                {outcome.winnerFactors.map((line) => (
+                  <div key={line.key} className="flex items-center gap-[12px] self-stretch">
+                    <span className="body-small w-[150px] shrink-0 text-[var(--text-primary)]">{line.label}</span>
+                    <div className="h-[6px] min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--border-default)]">
+                      <div
+                        className="h-full rounded-full bg-[var(--primary)]"
+                        style={{ width: `${Math.max(6, (line.value / maxFactor) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="body-small w-[48px] shrink-0 text-right font-bold text-[var(--text-primary)]">{formatEdge(line.value)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {outcome.upset && (
+              <span className="body-small text-[var(--warning)]">Upset: the weaker team on paper won (comeback or variance).</span>
+            )}
+            {outcome.varianceNote && <span className="body-small text-[var(--warning)]">{outcome.varianceNote}</span>}
+            {outcome.userFactors && (
+              <span className="body-small text-[var(--text-secondary)]">
+                What worked for you:{" "}
+                {outcome.userFactors.length
+                  ? outcome.userFactors.map((line) => `${line.label} ${formatEdge(line.value)}`).join(", ")
+                  : "nothing stood out"}
+              </span>
+            )}
+            {outcome.summary && <span className="body-small text-[var(--text-primary)]">{outcome.summary}</span>}
+            {simulation.reason && (
+              <span className="text-[11px] leading-tight text-[var(--text-muted)]">{simulation.reason}</span>
+            )}
+          </section>
+        )}
 
         {/* ─── Draft pe piloni (§8) ────────────────────────────────── */}
         {pillarReport && (
