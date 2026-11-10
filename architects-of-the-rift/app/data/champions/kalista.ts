@@ -20,7 +20,7 @@ export const kalista = createChampion({
   ],
 
   badSynergyWith: [
-    { championId: "nami", level: 2, note: "R-ul Kalistei aruncă suportul, Nami n-are engage de livrat" },
+    { championId: "nami", level: 2, note: "Kalista's R throws the support in, but Nami has no engage to deliver" },
   ],
 
   offers: [

@@ -460,7 +460,7 @@ function warnOffRoleAssignments(series: ActiveDraftSeries, game: DraftGameState)
       const championId = assignments[role];
       const champion = championId ? champions.find((entry) => entry.id === championId) : null;
       if (champion && !champion.roles.includes(role)) {
-        console.warn(`[draft] ${series.seriesId} G${game.number} ${side}: ${champion.name} pe ${role} (roluri: ${champion.roles.join("/")})`);
+        console.warn(`[draft] ${series.seriesId} G${game.number} ${side}: ${champion.name} on ${role} (roles: ${champion.roles.join("/")})`);
       }
     }
   }

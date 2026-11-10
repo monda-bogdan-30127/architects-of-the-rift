@@ -124,7 +124,7 @@ export function describeDuoPlan(state: BotDuoState, bans: readonly string[]): st
   const lost = state.bestWithoutBans;
   if (lost && (lost.adcId !== best.adcId || lost.supportId !== best.supportId)) {
     const bannedMember = [lost.adcId, lost.supportId].find((id) => bans.includes(id));
-    if (bannedMember) return `${name(bannedMember)} banat → trecem pe ${name(best.adcId)} + ${name(best.supportId)} (${grades})`;
+    if (bannedMember) return `${name(bannedMember)} banned: going ${name(best.adcId)} + ${name(best.supportId)} (${grades})`;
   }
   return `Duo: ${name(best.adcId)} + ${name(best.supportId)} (${grades})`;
 }
@@ -168,7 +168,7 @@ export function getDuoPickBonus(
     if (!partners.length) {
       const penalty = getCarryArchetype(candidate.id) === "self-sufficient" ? DUO.orphanSelfSufficientPenalty : DUO.orphanAnchorPenalty;
       const missing = getMustWith(candidate.id, candidateRole).map(name).join(" / ");
-      return { bonus: -penalty, tag: "orphan-anchor", line: `${name(candidate.id)} fără ${missing} disponibil — evitat` };
+      return { bonus: -penalty, tag: "orphan-anchor", line: `${name(candidate.id)} avoided: ${missing} not available` };
     }
   }
   if (state.duos.some(inDuo)) return { bonus: DUO.otherDuoBonus, tag: "duo-plan", line: null };
@@ -210,7 +210,7 @@ export function getDuoFallbackBonus(
   return {
     bonus: DUO.fallbackPartnerBonus + DUO.fallbackGradeStep * (rank - GRADE_RANK.C),
     anchorId,
-    line: `${missing} indisponibil după ${name(anchorId)} → ${name(candidate.id)} (synergy, grad ${grade ?? "?"})`,
+    line: `${missing} unavailable after ${name(anchorId)}: ${name(candidate.id)} instead (synergy, grade ${grade ?? "?"})`,
   };
 }
 

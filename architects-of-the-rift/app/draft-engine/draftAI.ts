@@ -869,7 +869,7 @@ function getSplitIdentityPenalty(
       : after.runnerUp;
   const compSide = candidateSide === after.dominant ? after.runnerUp : after.dominant;
   const anchor = getChampionById(ownPicks[0])?.name ?? ownPicks[0];
-  return { penalty, line: `${candidate.name} ar amesteca ${candidateSide} în comp-ul de ${compSide} (${anchor})` };
+  return { penalty, line: `Split identity: ${candidate.name} would mix ${candidateSide} into the ${compSide} comp (${anchor})` };
 }
 
 export function scorePickCandidate(

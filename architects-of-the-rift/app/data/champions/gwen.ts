@@ -64,7 +64,7 @@ export const gwen = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "malphite", level: 2, phase: "all", note: "damage magic și true damage contra tank-ului de armură" },
+        { championId: "malphite", level: 2, phase: "all", note: "Magic and true damage vs an armor tank" },
         { championId: "aatrox", level: 2, phase: "late" },
         { championId: "ambessa", level: 2, phase: "late" },
         { championId: "chogath", level: 2, phase: "late" },

@@ -20,7 +20,7 @@ export const zeri = createChampion({
   ],
 
   badSynergyWith: [
-    { championId: "rell", level: 2, note: "Zeri vrea un shell de enchanter cu shield-uri, Rell nu oferă așa ceva" },
+    { championId: "rell", level: 2, note: "Zeri wants an enchanter shell with shields; Rell offers none" },
   ],
 
   offers: [

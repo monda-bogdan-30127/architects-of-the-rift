@@ -62,7 +62,7 @@ export const nautilus = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "lux", level: 2, phase: "all", note: "hook și CC point-click pe un support imobil" },
+        { championId: "lux", level: 2, phase: "all", note: "Hook and point-click CC on an immobile support" },
         { championId: "heimerdinger", level: 2, phase: "lane" },
         { championId: "lulu", level: 2, phase: "lane" },
         { championId: "senna", level: 2, phase: "lane" },

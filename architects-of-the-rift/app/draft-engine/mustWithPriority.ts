@@ -242,7 +242,7 @@ export function getNonBotOverride(ctx: MustWithTeamContext, enemyCtx: MustWithTe
       if (!championsById[relation.championId]?.roles.includes(role)) continue;
       const counterGrade = player ? getChampionGrade(player, relation.championId) : null;
       if (counterGrade && GRADE_RANK[counterGrade] < MUSTWITH_CONFIG.minPartnerGradeRank) continue;
-      return `hard counter: ${relation.championId} contra ${enemyId} (${role})`;
+      return `hard counter: ${relation.championId} vs ${enemyId} (${role})`;
     }
   }
 
@@ -252,7 +252,7 @@ export function getNonBotOverride(ctx: MustWithTeamContext, enemyCtx: MustWithTe
     const signature = Object.values(championsById).find(
       (champion) => champion.roles.includes(role) && isFree(champion.id) && getChampionGrade(player, champion.id) === "SS",
     );
-    if (signature) return `pick SS: ${player.id} pe ${signature.id} (${role})`;
+    if (signature) return `SS pick: ${player.id} on ${signature.id} (${role})`;
   }
   return null;
 }

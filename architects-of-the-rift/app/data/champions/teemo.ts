@@ -53,7 +53,7 @@ export const teemo = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "tryndamere", level: 2, phase: "all", note: "blind-ul anulează autoatacurile lui Tryndamere" },
+        { championId: "tryndamere", level: 2, phase: "all", note: "The blind negates Tryndamere's autos" },
         { championId: "darius", level: 2, phase: "lane" },
         { championId: "jax", level: 2, phase: "lane" },
         { championId: "nasus", level: 2, phase: "lane" },

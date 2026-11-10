@@ -94,7 +94,7 @@ export const chogath = createChampion({
     },
     mid: {
       goodVs: [
-        { championId: "katarina", level: 2, phase: "all", note: "silence-ul și knock-up-ul întrerup R-ul Katarinei" },
+        { championId: "katarina", level: 2, phase: "all", note: "The silence and knock-up interrupt Katarina's R" },
       ],
       stats: null,
     },

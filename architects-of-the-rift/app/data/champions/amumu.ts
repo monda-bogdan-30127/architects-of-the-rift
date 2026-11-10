@@ -52,7 +52,7 @@ export const amumu = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "master-yi", level: 2, phase: "all", note: "CC în lanț pe un campion de autoatacuri" },
+        { championId: "master-yi", level: 2, phase: "all", note: "Chain CC on an auto-attack champion" },
       ],
       stats: null,
     },

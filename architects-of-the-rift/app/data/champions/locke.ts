@@ -63,8 +63,8 @@ export const locke = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "velkoz", level: 2, phase: "all", note: "blink, dash și execute pe un mage fără escape" },
-        { championId: "xerath", level: 2, phase: "all", note: "blink, dash și execute pe un artillery fără escape" },
+        { championId: "velkoz", level: 2, phase: "all", note: "Blink, dash and execute on a mage with no escape" },
+        { championId: "xerath", level: 2, phase: "all", note: "Blink, dash and execute on an artillery mage with no escape" },
         { championId: "syndra", level: 1, phase: "all" },
         { championId: "viktor", level: 1, phase: "all" },
       ],

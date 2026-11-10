@@ -64,12 +64,12 @@ export const vex = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "akali", level: 2, phase: "all", note: "pasivul pedepsește fiecare dash" },
-        { championId: "ekko", level: 2, phase: "all", note: "pasivul pedepsește dash-urile" },
-        { championId: "kassadin", level: 2, phase: "all", note: "pasivul pedepsește R-ul (blink) lui Kassadin" },
-        { championId: "leblanc", level: 2, phase: "all", note: "pasivul pedepsește dash-urile din W" },
-        { championId: "yasuo", level: 2, phase: "all", note: "pasivul pedepsește dash-urile" },
-        { championId: "yone", level: 2, phase: "all", note: "pasivul pedepsește dash-urile" },
+        { championId: "akali", level: 2, phase: "all", note: "The passive punishes every dash" },
+        { championId: "ekko", level: 2, phase: "all", note: "The passive punishes dashes" },
+        { championId: "kassadin", level: 2, phase: "all", note: "The passive punishes Kassadin's R (blink)" },
+        { championId: "leblanc", level: 2, phase: "all", note: "The passive punishes the W dashes" },
+        { championId: "yasuo", level: 2, phase: "all", note: "The passive punishes dashes" },
+        { championId: "yone", level: 2, phase: "all", note: "The passive punishes dashes" },
       ],
       stats: null,
     },

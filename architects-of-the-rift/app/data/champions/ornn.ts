@@ -62,7 +62,7 @@ export const ornn = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "irelia", level: 2, phase: "all", note: "prea tanky pentru all-in, iar CC-ul oprește stack-urile Ireliei" },
+        { championId: "irelia", level: 2, phase: "all", note: "Too tanky to all-in, and the CC stops Irelia's stacks" },
         { championId: "jayce", level: 2, phase: "late" },
         { championId: "kled", level: 2, phase: "late" },
         { championId: "renekton", level: 2, phase: "late" },

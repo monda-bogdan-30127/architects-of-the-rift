@@ -103,7 +103,7 @@ export function getWinConditionEffect(
     (need) => need.priority >= WIN.minNeedPriority && offerOf(candidate, String(need.type)) >= WIN.minOfferStrength,
   );
   if (enabledNeed) {
-    return { bonus: WIN.enableBonus, line: `Susține win condition-ul (${carry.name}): ${enabledNeed.type}` };
+    return { bonus: WIN.enableBonus, line: `Supports the win condition (${carry.name}): ${enabledNeed.type}` };
   }
 
   if (
@@ -111,7 +111,7 @@ export function getWinConditionEffect(
     getCarryArchetype(candidate.id) === "hard-protect" &&
     protectionSupply(ownPicks) < WIN.minProtectionSupply
   ) {
-    return { bonus: -WIN.secondHardProtectPenalty, line: `Al doilea carry de protejat lângă ${carry.name}, fără protecție` };
+    return { bonus: -WIN.secondHardProtectPenalty, line: `Second carry to protect next to ${carry.name}, without protection` };
   }
   return { bonus: 0, line: null };
 }

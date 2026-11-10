@@ -64,7 +64,7 @@ export const jax = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "tryndamere", level: 2, phase: "all", note: "Counter Strike anulează autoatacurile lui Tryndamere" },
+        { championId: "tryndamere", level: 2, phase: "all", note: "Counter Strike negates Tryndamere's autos" },
         { championId: "aatrox", level: 2, phase: "late" },
         { championId: "ambessa", level: 2, phase: "late" },
         { championId: "camille", level: 2, phase: "late" },

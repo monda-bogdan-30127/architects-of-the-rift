@@ -63,8 +63,8 @@ export const milio = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "leona", level: 2, phase: "all", note: "R curăță CC-ul și reface lupta" },
-        { championId: "nautilus", level: 2, phase: "all", note: "R curăță CC-ul și reface lupta" },
+        { championId: "leona", level: 2, phase: "all", note: "R cleanses CC and resets the fight" },
+        { championId: "nautilus", level: 2, phase: "all", note: "R cleanses CC and resets the fight" },
       ],
       stats: {
         picks: 13,

@@ -63,10 +63,10 @@ export const kennen = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "darius", level: 2, phase: "all", note: "kite și stun, Darius nu-l poate prinde" },
-        { championId: "malphite", level: 2, phase: "all", note: "damage AP de la distanță, armura nu ajută" },
-        { championId: "olaf", level: 2, phase: "all", note: "kite de la distanță, Olaf nu-l prinde fără R" },
-        { championId: "sett", level: 2, phase: "all", note: "kite contra juggernaut-ului fără range" },
+        { championId: "darius", level: 2, phase: "all", note: "Kite and stun; Darius can't catch him" },
+        { championId: "malphite", level: 2, phase: "all", note: "Ranged AP damage; armor doesn't help" },
+        { championId: "olaf", level: 2, phase: "all", note: "Kites from range; Olaf can't catch him without R" },
+        { championId: "sett", level: 2, phase: "all", note: "Kites a juggernaut with no range" },
         { championId: "ambessa", level: 2, phase: "lane" },
         { championId: "camille", level: 2, phase: "lane" },
         { championId: "fiora", level: 2, phase: "lane" },

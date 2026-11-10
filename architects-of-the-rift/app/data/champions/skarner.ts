@@ -65,8 +65,8 @@ export const skarner = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "master-yi", level: 2, phase: "all", note: "R (suppression) point-click pe un campion de autoatacuri" },
-        { championId: "rengar", level: 2, phase: "all", note: "tank cu suppression, nu poate fi one-shot" },
+        { championId: "master-yi", level: 2, phase: "all", note: "Point-click R (suppression) on an auto-attack champion" },
+        { championId: "rengar", level: 2, phase: "all", note: "Tank with suppression; can't be one-shot" },
       ],
       stats: {
         picks: 4,

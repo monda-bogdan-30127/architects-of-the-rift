@@ -241,7 +241,7 @@ export default function MatchResultsDialog({
           <section className="flex flex-col gap-[10px] self-stretch">
             <div className="flex items-center justify-between self-stretch">
               <p className="body-small text-[var(--text-secondary)]">
-                Draft{pillarTeamName ? ` — ${pillarTeamName}` : ""}
+                Draft{pillarTeamName ? `: ${pillarTeamName}` : ""}
               </p>
               <button
                 type="button"
@@ -249,7 +249,7 @@ export default function MatchResultsDialog({
                 className="body-small text-[var(--primary)]"
                 style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
               >
-                {showPillarDetails ? "ascunde detaliile" : "vezi detalii"}
+                {showPillarDetails ? "Hide details" : "Show details"}
               </button>
             </div>
             <div className="h-px self-stretch bg-[var(--border-default)]" />

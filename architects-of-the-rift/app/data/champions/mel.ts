@@ -65,9 +65,9 @@ export const mel = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "velkoz", level: 2, phase: "all", note: "W reflectă skillshot-urile" },
-        { championId: "xerath", level: 2, phase: "all", note: "W reflectă skillshot-urile unui artillery" },
-        { championId: "ziggs", level: 2, phase: "all", note: "W reflectă skillshot-urile" },
+        { championId: "velkoz", level: 2, phase: "all", note: "W reflects skillshots" },
+        { championId: "xerath", level: 2, phase: "all", note: "W reflects an artillery mage's skillshots" },
+        { championId: "ziggs", level: 2, phase: "all", note: "W reflects skillshots" },
       ],
       stats: {
         picks: 1,

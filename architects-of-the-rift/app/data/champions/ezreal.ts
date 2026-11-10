@@ -19,7 +19,7 @@ export const ezreal = createChampion({
   ],
 
   badSynergyWith: [
-    { championId: "lulu", level: 4, note: "Ambii sunt defensivi: fără engage și fără win condition în teamfight" },
+    { championId: "lulu", level: 4, note: "Both are defensive: no engage and no teamfight win condition" },
   ],
 
   offers: [

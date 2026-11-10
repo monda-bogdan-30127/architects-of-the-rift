@@ -60,9 +60,9 @@ export const annie = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "irelia", level: 2, phase: "all", note: "stun point-click pe un campion care trebuie să intre" },
-        { championId: "yasuo", level: 2, phase: "all", note: "stun point-click pe un campion care trebuie să intre în ea" },
-        { championId: "yone", level: 2, phase: "all", note: "stun point-click pe un campion care trebuie să intre în ea" },
+        { championId: "irelia", level: 2, phase: "all", note: "Point-click stun on a champion who has to dive in" },
+        { championId: "yasuo", level: 2, phase: "all", note: "Point-click stun on a champion who has to dive her" },
+        { championId: "yone", level: 2, phase: "all", note: "Point-click stun on a champion who has to dive her" },
         { championId: "akali", level: 1, phase: "all" },
       ],
       stats: {

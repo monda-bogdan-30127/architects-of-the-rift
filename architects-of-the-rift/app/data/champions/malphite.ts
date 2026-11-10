@@ -62,7 +62,7 @@ export const malphite = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "master-yi", level: 2, phase: "all", note: "armură și R pe un campion de autoatacuri" },
+        { championId: "master-yi", level: 2, phase: "all", note: "Armor and R on an auto-attack champion" },
       ],
       stats: {
         picks: 1,
@@ -102,12 +102,12 @@ export const malphite = createChampion({
     },
     top: {
       goodVs: [
-        { championId: "tryndamere", level: 3, phase: "all", note: "armura și R anulează complet un campion de autoatacuri AD" },
-        { championId: "akshan", level: 2, phase: "all", note: "armura anulează autoatacurile, R îl prinde fără escape" },
-        { championId: "gangplank", level: 2, phase: "all", note: "armură și R pe un campion AD fără escape" },
-        { championId: "jayce", level: 2, phase: "all", note: "armura anulează poke-ul AD" },
-        { championId: "rengar", level: 2, phase: "all", note: "armură, nu poate fi one-shot" },
-        { championId: "yasuo", level: 2, phase: "all", note: "armură contra crit-ului, R nu poate fi oprit de windwall" },
+        { championId: "tryndamere", level: 3, phase: "all", note: "Armor and R fully shut down an AD auto-attacker" },
+        { championId: "akshan", level: 2, phase: "all", note: "Armor negates autos; R catches him with no escape" },
+        { championId: "gangplank", level: 2, phase: "all", note: "Armor and R on an AD champion with no escape" },
+        { championId: "jayce", level: 2, phase: "all", note: "Armor negates AD poke" },
+        { championId: "rengar", level: 2, phase: "all", note: "Armor; can't be one-shot" },
+        { championId: "yasuo", level: 2, phase: "all", note: "Armor vs crit; R can't be blocked by Windwall" },
       ],
       stats: null,
     },

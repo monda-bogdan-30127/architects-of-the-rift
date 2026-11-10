@@ -64,13 +64,13 @@ export const fiora = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "aatrox", level: 2, phase: "all", note: "parry pe Q3 și vitals" },
-        { championId: "chogath", level: 2, phase: "all", note: "vitals contra tank-ului" },
-        { championId: "dr-mundo", level: 2, phase: "all", note: "vitals = true damage pe %HP contra lui Mundo" },
-        { championId: "ksante", level: 2, phase: "all", note: "vitals = true damage pe %HP contra tank-ului" },
-        { championId: "malphite", level: 2, phase: "all", note: "vitals ignoră armura" },
-        { championId: "ornn", level: 2, phase: "all", note: "vitals = true damage pe %HP contra tank-ului" },
-        { championId: "sion", level: 2, phase: "all", note: "vitals contra tank-ului" },
+        { championId: "aatrox", level: 2, phase: "all", note: "Parry on Q3, plus vitals" },
+        { championId: "chogath", level: 2, phase: "all", note: "Vitals vs the tank" },
+        { championId: "dr-mundo", level: 2, phase: "all", note: "Vitals deal %HP true damage vs Mundo" },
+        { championId: "ksante", level: 2, phase: "all", note: "Vitals deal %HP true damage vs tanks" },
+        { championId: "malphite", level: 2, phase: "all", note: "Vitals ignore armor" },
+        { championId: "ornn", level: 2, phase: "all", note: "Vitals deal %HP true damage vs tanks" },
+        { championId: "sion", level: 2, phase: "all", note: "Vitals vs the tank" },
         { championId: "darius", level: 1, phase: "all" },
       ],
       stats: null,

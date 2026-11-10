@@ -17,7 +17,7 @@ export const jhin = createChampion({
   ],
 
   badSynergyWith: [
-    { championId: "braum", level: 2, note: "Jhin kitează de la distanță cu slow-uri, Braum vrea range melee pentru pasiv" },
+    { championId: "braum", level: 2, note: "Jhin kites from range with slows; Braum needs melee range for his passive" },
   ],
 
   offers: [

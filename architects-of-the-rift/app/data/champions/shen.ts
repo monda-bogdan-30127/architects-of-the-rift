@@ -90,7 +90,7 @@ export const shen = createChampion({
     },
     top: {
       goodVs: [
-        { championId: "tryndamere", level: 2, phase: "all", note: "W blochează autoatacurile, R salvează carry-ul" },
+        { championId: "tryndamere", level: 2, phase: "all", note: "W blocks autos; R saves the carry" },
       ],
       stats: {
         picks: 4,

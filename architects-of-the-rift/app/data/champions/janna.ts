@@ -63,11 +63,11 @@ export const janna = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "alistar", level: 2, phase: "all", note: "disengage anulează combo-ul W-Q" },
-        { championId: "leona", level: 2, phase: "all", note: "disengage anulează engage-ul" },
-        { championId: "nautilus", level: 2, phase: "all", note: "disengage anulează engage-ul" },
-        { championId: "rakan", level: 2, phase: "all", note: "disengage anulează engage-ul" },
-        { championId: "rell", level: 2, phase: "all", note: "disengage anulează engage-ul" },
+        { championId: "alistar", level: 2, phase: "all", note: "Disengage negates the W-Q combo" },
+        { championId: "leona", level: 2, phase: "all", note: "Disengage negates the engage" },
+        { championId: "nautilus", level: 2, phase: "all", note: "Disengage negates the engage" },
+        { championId: "rakan", level: 2, phase: "all", note: "Disengage negates the engage" },
+        { championId: "rell", level: 2, phase: "all", note: "Disengage negates the engage" },
       ],
       stats: null,
     },

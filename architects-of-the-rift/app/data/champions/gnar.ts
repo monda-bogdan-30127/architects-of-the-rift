@@ -68,8 +68,8 @@ export const gnar = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "udyr", level: 2, phase: "all", note: "kite contra lui Udyr, care n-are gap-closer" },
-        { championId: "volibear", level: 2, phase: "all", note: "kite contra juggernaut-ului fără range" },
+        { championId: "udyr", level: 2, phase: "all", note: "Kites Udyr, who has no gap closer" },
+        { championId: "volibear", level: 2, phase: "all", note: "Kites a juggernaut with no range" },
         { championId: "ambessa", level: 2, phase: "lane" },
         { championId: "darius", level: 2, phase: "lane" },
         { championId: "fiora", level: 2, phase: "lane" },

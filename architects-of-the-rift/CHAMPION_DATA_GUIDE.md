@@ -68,7 +68,7 @@ export const poppy = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "camille", level: 3, phase: "all", note: "W oprește E-ul Camillei" },
+        { championId: "camille", level: 3, phase: "all", note: "W stops Camille's E" },
       ],
       stats: null,
     },
@@ -132,6 +132,7 @@ goodVs: [{ championId: "poppy", level: 2, phase: "late" }]
 - **`level: 1` vine aproape mereu cu `phase: "all"`.** `lane`/`late` sunt permise, dar validatorul dă warning.
 - **`vsRole` lipsă** = matchup de linie: același rol ca al tău. Pentru `adc`/`support` = botlane 2v2 (inamicul pe adc **sau** support). Pune `vsRole` doar pentru cazuri cross-role reale.
 - `note` e recomandat la `level` 3 și la `level` 2 cu `phase: "all"`.
+- **`note` se scrie în engleză**: apare în joc (raport, tooltip-uri, explicațiile matchup-urilor). Scurt, în terminologia LoL („Vitals deal %HP true damage vs tanks”). Validatorul dă warning pentru o `note` cu diacritice românești.
 
 ### Cum se calculează
 
@@ -187,7 +188,7 @@ Penalizarea se scade din sinergia candidatului la pick (`getCompSynergyScore`, �
 
 - **Simetric, scris o singură dată**, ca la `goodVs`: perechea apare doar într-unul dintre cele două fișiere (pe botlane în fișierul ADC-ului, altfel al primului din pereche). Validatorul dă eroare dacă apare în ambele.
 - **Doar interacțiuni specifice perechii.** Probleme generice de compoziție (fără frontline, fără engage, double AP, prea mult scaling) **nu** se pun aici: le acoperă `offers` / `needs` și comp gate-ul.
-- **`note` obligatoriu**: o propoziție cu motivul concret.
+- **`note` obligatoriu**: o propoziție cu motivul concret, **în engleză** (apare în joc).
 - **Nu în ambele liste**: același partener nu poate fi și în `synergyWith`, și în `badSynergyWith`.
 - `npm run validate:matchups` listează toate perechile, după `level`.
 
@@ -196,17 +197,17 @@ Penalizarea se scade din sinergia candidatului la pick (`getCompSynergyScore`, �
 ```ts
 // kogmaw.ts: Pyke pleacă din lane, Kog'Maw nu are cum să se apere singur
 badSynergyWith: [
-  { championId: "pyke", level: 5, note: "Pyke roamează, Kog'Maw rămâne singur în lane, fără peel" },
+  { championId: "pyke", level: 5, note: "Pyke roams; Kog'Maw is left alone in lane without peel" },
 ],
 
 // kalista.ts: R-ul ei e valoros doar cu un support care are engage de livrat
 badSynergyWith: [
-  { championId: "nami", level: 2, note: "R-ul Kalistei aruncă suportul, Nami n-are engage de livrat" },
+  { championId: "nami", level: 2, note: "Kalista's R throws the support in, but Nami has no engage to deliver" },
 ],
 
 // ziggs.ts: buff-urile Lului se pierd pe un mage
 badSynergyWith: [
-  { championId: "lulu", level: 3, note: "Buff-urile Lului (W, E) sunt pentru auto-attackeri, Ziggs e mage" },
+  { championId: "lulu", level: 3, note: "Lulu's buffs (W, E) are for auto-attackers; Ziggs is a mage" },
 ],
 ```
 

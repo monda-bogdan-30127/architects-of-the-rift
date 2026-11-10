@@ -64,9 +64,9 @@ export const lulu = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "camille", level: 2, phase: "all", note: "polymorph oprește all-in-ul Camillei" },
-        { championId: "pyke", level: 2, phase: "all", note: "polymorph oprește all-in-ul, R salvează ținta" },
-        { championId: "rell", level: 2, phase: "all", note: "polymorph oprește engage-ul" },
+        { championId: "camille", level: 2, phase: "all", note: "Polymorph stops Camille's all-in" },
+        { championId: "pyke", level: 2, phase: "all", note: "Polymorph stops the all-in; R saves the target" },
+        { championId: "rell", level: 2, phase: "all", note: "Polymorph stops the engage" },
       ],
       stats: {
         picks: 22,

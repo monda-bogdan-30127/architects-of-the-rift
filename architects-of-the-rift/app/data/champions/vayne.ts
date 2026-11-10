@@ -20,7 +20,7 @@ export const vayne = createChampion({
   ],
 
   badSynergyWith: [
-    { championId: "pyke", level: 4, note: "Pyke roamează, Vayne are nevoie de farm și protecție în lane" },
+    { championId: "pyke", level: 4, note: "Pyke roams; Vayne needs farm and protection in lane" },
   ],
 
   offers: [
@@ -73,14 +73,14 @@ export const vayne = createChampion({
     },
     top: {
       goodVs: [
-        { championId: "chogath", level: 2, phase: "all", note: "true damage și kite contra tank-ului" },
-        { championId: "dr-mundo", level: 2, phase: "all", note: "true damage pe %HP contra lui Mundo" },
-        { championId: "illaoi", level: 2, phase: "all", note: "kite în afara tentaculelor" },
-        { championId: "ksante", level: 2, phase: "all", note: "true damage și kite contra tank-ului" },
-        { championId: "mordekaiser", level: 2, phase: "all", note: "kite contra lui Mordekaiser, care n-are gap-closer" },
-        { championId: "ornn", level: 2, phase: "all", note: "true damage și kite contra tank-ului" },
-        { championId: "sion", level: 2, phase: "all", note: "true damage și kite contra tank-ului" },
-        { championId: "zac", level: 2, phase: "all", note: "true damage și kite contra tank-ului" },
+        { championId: "chogath", level: 2, phase: "all", note: "True damage and kiting vs the tank" },
+        { championId: "dr-mundo", level: 2, phase: "all", note: "%HP true damage vs Mundo" },
+        { championId: "illaoi", level: 2, phase: "all", note: "Kites outside the tentacles" },
+        { championId: "ksante", level: 2, phase: "all", note: "True damage and kiting vs the tank" },
+        { championId: "mordekaiser", level: 2, phase: "all", note: "Kites Mordekaiser, who has no gap closer" },
+        { championId: "ornn", level: 2, phase: "all", note: "True damage and kiting vs the tank" },
+        { championId: "sion", level: 2, phase: "all", note: "True damage and kiting vs the tank" },
+        { championId: "zac", level: 2, phase: "all", note: "True damage and kiting vs the tank" },
         { championId: "darius", level: 2, phase: "late" },
         { championId: "garen", level: 2, phase: "late" },
         { championId: "gnar", level: 2, phase: "late" },

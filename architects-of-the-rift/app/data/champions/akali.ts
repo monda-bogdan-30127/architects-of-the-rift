@@ -64,8 +64,8 @@ export const akali = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "velkoz", level: 2, phase: "all", note: "shroud-ul o ascunde de skillshot-urile unui mage imobil" },
-        { championId: "xerath", level: 2, phase: "all", note: "shroud-ul o ascunde de skillshot-urile unui artillery imobil" },
+        { championId: "velkoz", level: 2, phase: "all", note: "Shroud hides her from an immobile mage's skillshots" },
+        { championId: "xerath", level: 2, phase: "all", note: "Shroud hides her from an immobile artillery mage's skillshots" },
         { championId: "azir", level: 2, phase: "lane" },
         { championId: "orianna", level: 2, phase: "lane" },
         { championId: "ryze", level: 2, phase: "lane" },

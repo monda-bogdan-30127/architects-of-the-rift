@@ -32,26 +32,30 @@ export function isMatchupPhase(value: unknown): value is MatchupPhase {
 
 type Info = { label: string; description: string };
 
+// Textele din joc sunt în engleză (FEEDBACK_FIXES §4.1, terminologia din tabel).
 export const GOOD_VS_LEVEL_INFO: Record<MatchupLevel, Info> = {
-  3: { label: "Hard counter", description: "Îl bate mereu, indiferent de context." },
+  3: { label: "Hard counter", description: "Beats it in any context." },
   2: {
     label: "Counter",
-    description: "Îl bate, dar adversarul se poate juca dacă slăbiciunile îi sunt acoperite de echipă.",
+    description: "Beats it, but the enemy can play it if their team covers its weaknesses.",
   },
-  1: { label: "Skill matchup, ușor avantaj", description: "Decide în mare parte jucătorul." },
+  1: { label: "Skill matchup (slight edge)", description: "Mostly decided by the players." },
 };
 
 export const WEAK_VS_LEVEL_INFO: Record<MatchupLevel, Info> = {
-  3: { label: "Hard countered", description: "Pierde mereu, indiferent de context." },
-  2: { label: "Countered", description: "Pierde, dar poate câștiga dacă echipa îi acoperă slăbiciunile." },
-  1: { label: "Skill matchup, ușor dezavantaj", description: "Decide în mare parte jucătorul." },
+  3: { label: "Hard countered", description: "Loses in any context." },
+  2: { label: "Countered", description: "Loses, but can play it if the team covers its weaknesses." },
+  1: { label: "Skill matchup (slight disadvantage)", description: "Mostly decided by the players." },
 };
 
 export const MATCHUP_PHASE_INFO: Record<MatchupPhase, Info> = {
-  lane: { label: "pe linie", description: "Avantajul e în lane phase, se egalizează după." },
-  late: { label: "late", description: "Linia e egală, avantajul vine din mid game încolo." },
-  all: { label: "tot jocul", description: "Avantajul ține tot jocul." },
+  lane: { label: "in lane", description: "The edge is in the lane phase and evens out later." },
+  late: { label: "from mid game", description: "The lane is even; the edge comes from mid game onward." },
+  all: { label: "", description: "The edge lasts the whole game." },
 };
+
+/** „(conditional: depends on team cover)” — level 2 contează pe mid / late, condiționat de slăbiciunile acoperite. */
+export const CONDITIONAL_MATCHUP_LABEL = "(conditional: depends on team cover)";
 
 // ─── Ponderi și curbe ────────────────────────────────────────────────────────
 
@@ -119,19 +123,40 @@ export const isLaneCounter = (relation: LevelPhase) =>
 
 // ─── Text pentru explainer ───────────────────────────────────────────────────
 
-/** „Hard counter vs Azir”, „Counter pe linie vs Jax”, „Pierde late vs Gwen (condiționat)”. */
+/** „Hard counter vs Azir”, „Counter in lane vs Jax”, „Countered from mid game vs Gwen (conditional: …)”. */
 export function describeMatchup(relation: Pick<MatchupRelation, "championId" | "level" | "phase">, kind: MatchupKind): string {
   const enemy = championsById[relation.championId]?.name ?? relation.championId;
-  const base =
-    kind === "good"
-      ? GOOD_VS_LEVEL_INFO[relation.level].label
-      : relation.level === 2
-        ? "Pierde"
-        : WEAK_VS_LEVEL_INFO[relation.level].label;
+  const base = (kind === "good" ? GOOD_VS_LEVEL_INFO : WEAK_VS_LEVEL_INFO)[relation.level].label;
   const phase = relation.phase === "all" || relation.level === 1 ? "" : ` ${MATCHUP_PHASE_INFO[relation.phase].label}`;
   // Level 2 e condiționat de slăbiciunile acoperite — contează pe mid/late, nu pe linie.
-  const conditional = relation.level === 2 && relation.phase !== "lane" ? " (condiționat)" : "";
+  const conditional = relation.level === 2 && relation.phase !== "lane" ? ` ${CONDITIONAL_MATCHUP_LABEL}` : "";
   return `${base}${phase} vs ${enemy}${conditional}`;
+}
+
+/** Fraza din definiții (fără `note`): nivelul × faza, din perspectiva campionului. */
+function describeMatchupReason(level: MatchupLevel, phase: MatchupPhase, kind: MatchupKind): string {
+  const when =
+    phase === "lane" ? " in the lane phase, evens out later" : phase === "late" ? " from mid game onward (the lane is even)" : " for the whole game";
+  if (level === 3) return `${kind === "good" ? "Clear advantage" : "Clear disadvantage"}${when}, in any context`;
+  if (level === 2) {
+    return kind === "good"
+      ? `Wins${when}; the enemy can play it if their team covers its weaknesses`
+      : `Loses${when}; can play it if the team covers its weaknesses`;
+  }
+  return `${kind === "good" ? "Slight edge" : "Slight disadvantage"}${when}; mostly decided by the players`;
+}
+
+/**
+ * FEEDBACK_FIXES §4.3 — matchup-ul explicat: `label` („Countered in lane vs Fiora”) și `reason`
+ * (`note` din date dacă există, altfel definiția nivelului + fazei).
+ */
+export function describeMatchupDetailed(
+  relation: Pick<MatchupRelation, "championId" | "level" | "phase"> & { note?: string },
+  kind: MatchupKind,
+): { label: string; reason: string } {
+  const label = describeMatchup(relation, kind);
+  const note = relation.note?.trim();
+  return { label, reason: note ? note : describeMatchupReason(relation.level, relation.phase, kind) };
 }
 
 // ─── Level 2: slăbiciuni acoperite (doar pe mid / late) ─────────────────────

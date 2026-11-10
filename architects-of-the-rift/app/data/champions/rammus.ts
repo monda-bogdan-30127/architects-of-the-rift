@@ -52,10 +52,10 @@ export const rammus = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "master-yi", level: 3, phase: "all", note: "W (armură + damage înapoi) și taunt anulează un campion de autoatacuri" },
-        { championId: "graves", level: 2, phase: "all", note: "armură și taunt contra damage-ului AD" },
-        { championId: "khazix", level: 2, phase: "all", note: "armură și taunt, nu poate fi izolat" },
-        { championId: "rengar", level: 2, phase: "all", note: "armură și taunt, nu poate fi one-shot" },
+        { championId: "master-yi", level: 3, phase: "all", note: "W (armor + reflected damage) and taunt shut down an auto-attack champion" },
+        { championId: "graves", level: 2, phase: "all", note: "Armor and taunt vs AD damage" },
+        { championId: "khazix", level: 2, phase: "all", note: "Armor and taunt; can't be isolated" },
+        { championId: "rengar", level: 2, phase: "all", note: "Armor and taunt; can't be one-shot" },
       ],
       stats: null,
     },

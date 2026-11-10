@@ -22,7 +22,7 @@ export const yunara = createChampion({
   ],
 
   badSynergyWith: [
-    { championId: "seraphine", level: 3, note: "Seraphine nu dă peel sau engage pentru un hyper-carry on-hit ca Yunara" },
+    { championId: "seraphine", level: 3, note: "Seraphine gives no peel or engage for an on-hit hypercarry like Yunara" },
   ],
 
   offers: [

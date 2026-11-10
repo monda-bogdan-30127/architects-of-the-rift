@@ -63,15 +63,15 @@ export const trundle = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "chogath", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
-        { championId: "dr-mundo", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
-        { championId: "malphite", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
-        { championId: "maokai", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
-        { championId: "nunu", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
-        { championId: "rammus", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
-        { championId: "sejuani", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
-        { championId: "skarner", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
-        { championId: "zac", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
+        { championId: "chogath", level: 2, phase: "all", note: "R steals the tank's resistances" },
+        { championId: "dr-mundo", level: 2, phase: "all", note: "R steals the tank's resistances" },
+        { championId: "malphite", level: 2, phase: "all", note: "R steals the tank's resistances" },
+        { championId: "maokai", level: 2, phase: "all", note: "R steals the tank's resistances" },
+        { championId: "nunu", level: 2, phase: "all", note: "R steals the tank's resistances" },
+        { championId: "rammus", level: 2, phase: "all", note: "R steals the tank's resistances" },
+        { championId: "sejuani", level: 2, phase: "all", note: "R steals the tank's resistances" },
+        { championId: "skarner", level: 2, phase: "all", note: "R steals the tank's resistances" },
+        { championId: "zac", level: 2, phase: "all", note: "R steals the tank's resistances" },
         { championId: "ivern", level: 2, phase: "lane" },
       ],
       stats: {
@@ -111,10 +111,10 @@ export const trundle = createChampion({
     },
     top: {
       goodVs: [
-        { championId: "ksante", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
-        { championId: "malphite", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
-        { championId: "ornn", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
-        { championId: "sion", level: 2, phase: "all", note: "R fură rezistențele tank-ului" },
+        { championId: "ksante", level: 2, phase: "all", note: "R steals the tank's resistances" },
+        { championId: "malphite", level: 2, phase: "all", note: "R steals the tank's resistances" },
+        { championId: "ornn", level: 2, phase: "all", note: "R steals the tank's resistances" },
+        { championId: "sion", level: 2, phase: "all", note: "R steals the tank's resistances" },
       ],
       stats: {
         picks: 1,

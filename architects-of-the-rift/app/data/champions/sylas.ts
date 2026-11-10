@@ -62,7 +62,7 @@ export const sylas = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "veigar", level: 2, phase: "all", note: "fură R-ul lui Veigar" },
+        { championId: "veigar", level: 2, phase: "all", note: "Steals Veigar's R" },
         { championId: "orianna", level: 1, phase: "all" },
         { championId: "viktor", level: 1, phase: "all" },
       ],

@@ -67,10 +67,10 @@ export const sejuani = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "belveth", level: 2, phase: "all", note: "CC în lanț contra lui Bel'Veth, care trebuie să stea în luptă" },
-        { championId: "briar", level: 2, phase: "all", note: "CC pe un campion care nu-și poate controla frenzy-ul" },
-        { championId: "master-yi", level: 2, phase: "all", note: "stun din R și din pasiv pe un campion de autoatacuri" },
-        { championId: "rengar", level: 2, phase: "all", note: "tank cu CC, nu poate fi one-shot" },
+        { championId: "belveth", level: 2, phase: "all", note: "Chain CC vs Bel'Veth, who has to stay in the fight" },
+        { championId: "briar", level: 2, phase: "all", note: "CC on a champion who can't control his frenzy" },
+        { championId: "master-yi", level: 2, phase: "all", note: "Stuns from R and the passive on an auto-attack champion" },
+        { championId: "rengar", level: 2, phase: "all", note: "Tank with CC; can't be one-shot" },
         { championId: "naafiri", level: 2, phase: "late" },
         { championId: "pantheon", level: 2, phase: "late" },
       ],

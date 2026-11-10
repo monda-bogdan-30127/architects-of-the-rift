@@ -61,8 +61,8 @@ export const samira = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "jhin", level: 2, phase: "all", note: "dive pe un carry imobil" },
-        { championId: "jinx", level: 2, phase: "all", note: "dive pe un carry imobil" },
+        { championId: "jhin", level: 2, phase: "all", note: "Dive on an immobile carry" },
+        { championId: "jinx", level: 2, phase: "all", note: "Dive on an immobile carry" },
       ],
       stats: null,
     },

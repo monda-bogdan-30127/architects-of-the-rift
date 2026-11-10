@@ -66,7 +66,7 @@ export const quinn = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "darius", level: 2, phase: "all", note: "kite, Darius nu o poate prinde" },
+        { championId: "darius", level: 2, phase: "all", note: "Kites; Darius can't catch her" },
         { championId: "fiora", level: 2, phase: "lane" },
         { championId: "garen", level: 2, phase: "lane" },
         { championId: "gnar", level: 2, phase: "lane" },

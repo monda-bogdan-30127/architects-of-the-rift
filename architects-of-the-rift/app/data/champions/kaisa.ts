@@ -19,9 +19,9 @@ export const kaisa = createChampion({
   ],
 
   badSynergyWith: [
-    { championId: "lulu", level: 3, note: "Kai'Sa vrea engage pentru all-in și R; Lulu nu oferă engage sau follow-up" },
-    { championId: "karma", level: 3, note: "Kai'Sa vrea engage pentru all-in și R; Karma nu oferă engage sau follow-up" },
-    { championId: "seraphine", level: 3, note: "Kai'Sa vrea engage pentru all-in și R; Seraphine nu oferă engage sau follow-up" },
+    { championId: "lulu", level: 3, note: "Kai'Sa wants engage for all-ins and R; Lulu offers no engage or follow-up" },
+    { championId: "karma", level: 3, note: "Kai'Sa wants engage for all-ins and R; Karma offers no engage or follow-up" },
+    { championId: "seraphine", level: 3, note: "Kai'Sa wants engage for all-ins and R; Seraphine offers no engage or follow-up" },
   ],
 
   offers: [
@@ -71,8 +71,8 @@ export const kaisa = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "senna", level: 2, phase: "all", note: "dive pe un carry imobil" },
-        { championId: "ziggs", level: 2, phase: "all", note: "dive pe un mage imobil" },
+        { championId: "senna", level: 2, phase: "all", note: "Dive on an immobile carry" },
+        { championId: "ziggs", level: 2, phase: "all", note: "Dive on an immobile mage" },
         { championId: "caitlyn", level: 2, phase: "late" },
       ],
       stats: {

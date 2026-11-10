@@ -67,7 +67,7 @@ export const rumble = createChampion({
   roleData: {
     top: {
       goodVs: [
-        { championId: "yorick", level: 2, phase: "all", note: "AoE care curăță ghoul-ii și Maiden-ul" },
+        { championId: "yorick", level: 2, phase: "all", note: "AoE clears the ghouls and the Maiden" },
         { championId: "aatrox", level: 2, phase: "lane" },
         { championId: "chogath", level: 2, phase: "lane" },
         { championId: "darius", level: 2, phase: "lane" },

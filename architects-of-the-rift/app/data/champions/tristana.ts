@@ -64,7 +64,7 @@ export const tristana = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "jhin", level: 2, phase: "all", note: "all-in pe un carry imobil" },
+        { championId: "jhin", level: 2, phase: "all", note: "All-in on an immobile carry" },
         { championId: "kogmaw", level: 2, phase: "lane" },
       ],
       stats: {

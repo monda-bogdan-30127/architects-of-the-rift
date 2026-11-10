@@ -573,7 +573,7 @@ const blockedPick = (entry: DraftCandidateBreakdown | null | undefined) =>
   const moved = braum.reassignment?.find((entry) => entry.championId === "poppy");
   check(
     "12. Poppy support, top ≥ C → Braum permis, Poppy pe top cu penalizare",
-    !blockedPick(braum) && moved?.toRole === "top" && Boolean(braum.explanation?.some((line) => line.includes("ar muta"))),
+    !blockedPick(braum) && moved?.toRole === "top" && Boolean(braum.explanation?.some((line) => line.includes("would move"))),
     `Braum: ${blockedPick(braum) ? "blocat" : "permis"}, „${braum.explanation?.[0] ?? ""}” [support ${support}: ${grade(support, "poppy")}, top ${top}: ${grade(top, "poppy")}]`,
   );
 }
@@ -771,7 +771,7 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
   const jayce = score("jayce");
   const lucian = score("lucian");
   const milio = score("milio");
-  const line = (entry: DraftCandidateBreakdown) => entry.explanation?.find((text) => text.includes("ar amesteca")) ?? "—";
+  const line = (entry: DraftCandidateBreakdown) => entry.explanation?.find((text) => text.includes("would mix")) ?? "—";
   check(
     "20. Xin + K'Sante (engage) → Jayce (poke): split-identity",
     hasTag(jayce, "split-identity"),
@@ -797,8 +797,8 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
   const has = (entry: DraftCandidateBreakdown, text: string) => Boolean(entry.explanation?.some((line) => line.includes(text)));
   check(
     "21. Win condition Kog'Maw → Lulu susține, Aphelios penalizat",
-    lulu.winCondition?.championId === "kogmaw" && has(lulu, "Susține win condition") && has(aphelios, "carry de protejat"),
-    `win condition: ${lulu.winCondition?.championId} (${lulu.winCondition?.kind}); Lulu: „${lulu.explanation?.find((line) => line.includes("win condition")) ?? "—"}”; Aphelios: „${aphelios.explanation?.find((line) => line.includes("protejat")) ?? "—"}”`,
+    lulu.winCondition?.championId === "kogmaw" && has(lulu, "Supports the win condition") && has(aphelios, "Second carry to protect"),
+    `win condition: ${lulu.winCondition?.championId} (${lulu.winCondition?.kind}); Lulu: „${lulu.explanation?.find((line) => line.includes("win condition")) ?? "—"}”; Aphelios: „${aphelios.explanation?.find((line) => line.includes("Second carry")) ?? "—"}”`,
   );
 }
 
@@ -819,7 +819,7 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
   check(
     "22. Comp counter care pierde linia → tunnel-vision",
     hasTag(camille, "tunnel-vision") && (camille.compCounterValue ?? 0) < 0.5,
-    `Camille: compCounterValue ${camille.compCounterValue?.toFixed(2)}, „${camille.explanation?.find((line) => line.includes("pierde linia")) ?? "—"}”`,
+    `Camille: compCounterValue ${camille.compCounterValue?.toFixed(2)}, „${camille.explanation?.find((line) => line.includes("loses lane")) ?? "—"}”`,
   );
 }
 
@@ -875,7 +875,7 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
   check(
     "24. Sezon: avem counter A → Olaf liber; luat de ei → season-counter",
     Boolean(counterTop) && !bansB.some((entry) => entry.championId === "olaf") && hasTag(counter, "season-counter"),
-    `top ${counterTop}: ${counterId} (${counterGrades[counterId ?? ""] ?? "?"}); ban-uri albaștri ${bansB.map((entry) => entry.championId).join(", ")}; „${counter?.explanation?.find((line) => line.startsWith("Counter la")) ?? "—"}”`,
+    `top ${counterTop}: ${counterId} (${counterGrades[counterId ?? ""] ?? "?"}); ban-uri albaștri ${bansB.map((entry) => entry.championId).join(", ")}; „${counter?.explanation?.find((line) => line.startsWith("Counter to their")) ?? "—"}”`,
   );
   setTeamSeasonStoreOverride(null);
 }

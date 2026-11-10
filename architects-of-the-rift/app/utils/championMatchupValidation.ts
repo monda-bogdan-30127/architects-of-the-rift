@@ -72,6 +72,10 @@ const emptyCounts = (): LevelPhaseCounts =>
     MATCHUP_LEVELS.map((level) => [level, Object.fromEntries(MATCHUP_PHASES.map((phase) => [phase, 0]))]),
   ) as LevelPhaseCounts;
 
+/** FEEDBACK_FIXES §4.2: `note` apare în joc, deci se scrie în engleză. */
+const ROMANIAN_DIACRITICS = /[ăâîșțşţĂÂÎȘȚŞŢ]/;
+const isRomanianNote = (note: unknown) => typeof note === "string" && ROMANIAN_DIACRITICS.test(note);
+
 function isRole(value: unknown): value is Role {
   return typeof value === "string" && (ROLES as string[]).includes(value);
 }
@@ -122,6 +126,7 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
       const level: unknown = relation.level;
       if (!isBadSynergyLevel(level)) error(owner.id, `${label}: level ${String(level)} în afara 1..5`);
       if (typeof relation.note !== "string" || relation.note.trim() === "") error(owner.id, `${label}: lipsește \`note\` (motivul concret)`);
+      if (isRomanianNote(relation.note)) warning(owner.id, `${label}: \`note\` în română (se afișează în joc: scrie-o în engleză)`);
       if (seen.has(relation.championId)) error(owner.id, `${label}: duplicat`);
       seen.add(relation.championId);
       const inSynergy =
@@ -166,6 +171,7 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
         if (level === 1 && phase !== "all") warning(key, `${label}: level 1 cu phase "${String(phase)}" — rar are sens`);
         if (!byId.has(relation.championId)) error(key, `${label}: campion inexistent`);
         if (relation.championId === owner.id) error(key, `${label}: self-reference`);
+        if (isRomanianNote(relation.note)) warning(key, `${label}: \`note\` în română (se afișează în joc: scrie-o în engleză)`);
         if (relation.vsRole !== undefined && !isRole(relation.vsRole)) {
           error(key, `${label}: vsRole invalid "${String(relation.vsRole)}"`);
         }

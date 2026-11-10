@@ -65,11 +65,11 @@ export const maokai = createChampion({
   roleData: {
     jungle: {
       goodVs: [
-        { championId: "belveth", level: 2, phase: "all", note: "CC point-click (W) pe un campion care trebuie să stea în luptă" },
-        { championId: "khazix", level: 2, phase: "all", note: "tank cu CC point-click, nu poate fi izolat" },
-        { championId: "master-yi", level: 2, phase: "all", note: "W point-click îl prinde pe Yi după Q" },
-        { championId: "naafiri", level: 2, phase: "all", note: "CC point-click (W) și tank pe care nu-l poate burst-a" },
-        { championId: "rengar", level: 2, phase: "all", note: "tank cu CC point-click, nu poate fi one-shot" },
+        { championId: "belveth", level: 2, phase: "all", note: "Point-click CC (W) on a champion who has to stay in the fight" },
+        { championId: "khazix", level: 2, phase: "all", note: "Tank with point-click CC; can't be isolated" },
+        { championId: "master-yi", level: 2, phase: "all", note: "Point-click W catches Yi after Q" },
+        { championId: "naafiri", level: 2, phase: "all", note: "Point-click CC (W) and too tanky to burst" },
+        { championId: "rengar", level: 2, phase: "all", note: "Tank with point-click CC; can't be one-shot" },
         { championId: "pantheon", level: 2, phase: "late" },
       ],
       stats: {

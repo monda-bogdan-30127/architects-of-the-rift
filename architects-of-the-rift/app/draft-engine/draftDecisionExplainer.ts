@@ -1,6 +1,7 @@
 import { championsById } from "@/app/data/champions";
 import type { DraftCandidateBreakdown, DraftPillarReport, TeamDraftEvaluation } from "./draftTypes";
-import { describeMatchup } from "./matchupGrades";
+import { describeMatchupDetailed } from "./matchupGrades";
+import { getMatchupRelations } from "./championMatchups";
 
 function championName(championId: string) {
   return championsById[championId]?.name ?? championId;
@@ -26,83 +27,85 @@ function explainMustWith(breakdown: DraftCandidateBreakdown): string[] {
         describeMustWithLock(breakdown.mustWithLock, true),
     );
   }
-  if (tags.has("combo-potential")) lines.push("combo potential: partener mustWith eligibil pe botlane");
-  // DRAFT_THINKING §2: liniile concrete (duo, ancoră orfană, fallback) sunt în `explanation`.
-  for (const tag of ["duo-plan", "orphan-anchor", "duo-fallback"]) {
-    if (!tags.has(tag)) continue;
-    const line = breakdown.explanation?.find((entry) => entry.includes("Duo:") || entry.includes("→") || entry.includes("evitat"));
-    if (line && !lines.includes(line)) lines.push(line);
-  }
-  if (tags.has("mustwith-partner")) lines.push("mustWith: completează perechea unui pick propriu");
+  if (tags.has("combo-potential")) lines.push("Combo potential: an eligible mustWith partner on bot lane");
+  // DRAFT_THINKING §2: liniile concrete (duo, ancoră orfană, fallback) sunt deja în `explanation`;
+  // explainDraftCandidate le adaugă pe toate, fără duplicate.
+  if (tags.has("mustwith-partner")) lines.push("mustWith: completes the pair of one of our picks");
   if (tags.has("mustwith-deny")) {
     lines.push(
       breakdown.action === "ban"
-        ? "mustWith deny: banează partenerul liber al ancorei inamice"
-        : "mustWith deny: ia partenerul liber al ancorei inamice",
+        ? "mustWith deny: bans the free partner of their anchor"
+        : "mustWith deny: takes the free partner of their anchor",
     );
   }
   return lines;
 }
 
-/** „Braum ar muta Poppy pe top (Zeus: F) — respins” (DRAFT_THINKING §1.4). */
+/** „Braum would move Poppy to top (Zeus: F): rejected” (DRAFT_THINKING §1.4). */
 export function describeReassignment(
   candidateId: string,
   entry: { championId: string; toRole: string; playerId: string | null; grade: string | null },
   rejected: boolean,
 ): string {
   const who = entry.playerId ? ` (${entry.playerId}: ${entry.grade ?? "?"})` : "";
-  return `${championName(candidateId)} ar muta ${championName(entry.championId)} pe ${entry.toRole}${who}${rejected ? " — respins" : ""}`;
+  return `${championName(candidateId)} would move ${championName(entry.championId)} to ${entry.toRole}${who}${rejected ? ": rejected" : ""}`;
 }
 
-/** „Plan: dive, construit în jurul lui Vi (B1)” (DRAFT_THINKING §4). */
+/** „Plan: dive, built around Vi (B1)” (DRAFT_THINKING §4). */
 export function describePlanAnchor(planType: string, anchorId: string, side: "blue" | "red", lockedAtPick?: number): string {
-  const locked = lockedAtPick ? ", blocat" : "";
-  return `Plan: ${planType}, construit în jurul lui ${championName(anchorId)} (${side === "blue" ? "B1" : "R1"}${locked})`;
+  const locked = lockedAtPick ? ", locked" : "";
+  return `Plan: ${planType}, built around ${championName(anchorId)} (${side === "blue" ? "B1" : "R1"}${locked})`;
 }
 
-/** DRAFT_THINKING §7.4: „Ban Olaf: G2 are 6–1 cu el în sezon”. */
+/** DRAFT_THINKING §7.4: „Ban Olaf: G2 is 6–1 with it this season”. */
 export function describeSeasonBan(teamName: string, championId: string, wins: number, games: number): string {
-  return `Ban ${championName(championId)}: ${teamName} are ${wins}–${games - wins} cu el în sezon`;
+  return `Ban ${championName(championId)}: ${teamName} is ${wins}–${games - wins} with it this season`;
 }
 
-/** „Lăsăm Olaf liber: avem Poppy (A) ca răspuns”. */
+/** „Leaving Olaf open: we have Poppy (A) as an answer”. */
 export function describeSeasonPlan(championId: string, counterId: string, grade: string | undefined): string {
-  return `Lăsăm ${championName(championId)} liber: avem ${championName(counterId)}${grade ? ` (${grade})` : ""} ca răspuns`;
+  return `Leaving ${championName(championId)} open: we have ${championName(counterId)}${grade ? ` (${grade})` : ""} as an answer`;
 }
 
-/** „Counter la Olaf-ul lor (6–1 în sezon)”. */
+/** „Counter to their Olaf (6–1 this season)”. */
 export function describeSeasonCounter(championId: string, wins: number, games: number): string {
-  return `Counter la ${championName(championId)}-ul lor (${wins}–${games - wins} în sezon)`;
+  return `Counter to their ${championName(championId)} (${wins}–${games - wins} this season)`;
 }
 
-/** „Zeus nu joacă Poppy (F) — exclus” (§1.5). */
+/** „Zeus doesn't play Poppy (F): excluded” (§1.5). */
 export function describeMasteryBlock(playerId: string, championId: string, grade: string): string {
   return grade === "F"
-    ? `${playerId} nu joacă ${championName(championId)} (F) — exclus`
-    : `${playerId} are ${championName(championId)} la grad ${grade} — penalizat`;
+    ? `${playerId} doesn't play ${championName(championId)} (F): excluded`
+    : `${playerId} has ${championName(championId)} at grade ${grade}: penalized`;
 }
 
-/** „Pool golit de ban-uri / fearless: Zeus pe Poppy (F), singura variantă” (§1.5). */
+/** „Pool emptied by bans / fearless: Zeus on Poppy, outside their pool, the only option” (§1.5). */
 export function describeForcedOffPool(playerId: string | null, championId: string): string {
-  return `Pool golit (ban-uri / fearless): ${playerId ?? "jucătorul"} pe ${championName(championId)} în afara pool-ului, singura variantă`;
+  return `Pool emptied by bans / fearless: ${playerId ?? "the player"} on ${championName(championId)}, outside their pool, the only option`;
 }
 
-/** „Anti-sinergie cu Pyke (Pyke roamează, Kog'Maw rămâne singur în lane, fără peel)”, din `note`. */
+/** „Anti-synergy with Pyke (Pyke roams, Kog'Maw is left alone in lane)”, din `note`. */
 export function describeBadSynergy(entry: { partnerId: string; note: string }): string {
-  return `Anti-sinergie cu ${championName(entry.partnerId)} (${entry.note})`;
+  return `Anti-synergy with ${championName(entry.partnerId)} (${entry.note})`;
 }
 
 function explainBadSynergy(breakdown: DraftCandidateBreakdown): string[] {
   return (breakdown.badSynergies ?? []).map(describeBadSynergy);
 }
 
-/** Cele mai importante două matchup-uri ale candidatului, în cuvinte („Counter pe linie vs Jax”). */
+/** Cele mai importante două matchup-uri ale candidatului: „Counter in lane vs Jax: <motiv>” (§4.3). */
 function explainMatchups(breakdown: DraftCandidateBreakdown): string[] {
   return [...(breakdown.matchupDetails ?? [])]
     .filter((detail) => Math.abs(detail.value) >= 0.9)
     .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
     .slice(0, 2)
-    .map((detail) => describeMatchup({ championId: detail.enemyId, level: detail.level, phase: detail.phase }, detail.kind));
+    .map((detail) => {
+      const role = breakdown.projectedRole ?? null;
+      const relations = role ? getMatchupRelations(breakdown.championId, role, detail.enemyId, detail.enemyRole) : {};
+      const note = (detail.kind === "good" ? relations.good : relations.weak)?.note;
+      const { label, reason } = describeMatchupDetailed({ championId: detail.enemyId, level: detail.level, phase: detail.phase, note }, detail.kind);
+      return `${label}: ${reason}`;
+    });
 }
 
 function topReasonEntries(reasonMap: Array<[string, number]>) {
@@ -142,10 +145,10 @@ export function explainDraftCandidate(breakdown: DraftCandidateBreakdown): strin
 /** Etichetele pilonilor din raport (§8), în ordinea din UI. */
 export const PILLAR_LABELS: { key: keyof DraftPillarReport; label: string }[] = [
   { key: "priority", label: "Priority picks" },
-  { key: "cohesion", label: "Coeziune" },
-  { key: "matchups", label: "Matchup-uri" },
+  { key: "cohesion", label: "Cohesion" },
+  { key: "matchups", label: "Matchups" },
   { key: "mastery", label: "Mastery" },
-  { key: "seasonPrep", label: "Pregătire de sezon" },
+  { key: "seasonPrep", label: "Season prep" },
 ];
 
 export function summarizeTeamDraftEvaluation(evaluation: TeamDraftEvaluation, report?: DraftPillarReport | null): string[] {

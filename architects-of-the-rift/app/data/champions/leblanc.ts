@@ -58,7 +58,7 @@ export const leblanc = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "xerath", level: 2, phase: "all", note: "burst și W pe un artillery imobil" },
+        { championId: "xerath", level: 2, phase: "all", note: "Burst and W on an immobile artillery mage" },
         { championId: "aurelion-sol", level: 2, phase: "lane" },
         { championId: "kassadin", level: 2, phase: "lane" },
         { championId: "kogmaw", level: 2, phase: "lane" },

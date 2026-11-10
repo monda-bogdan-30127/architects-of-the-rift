@@ -65,14 +65,14 @@ export const lissandra = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "akali", level: 2, phase: "all", note: "CC point-click (R) pe un asasin, chiar și în shroud" },
-        { championId: "ekko", level: 2, phase: "all", note: "CC point-click pe un asasin" },
-        { championId: "katarina", level: 2, phase: "all", note: "CC point-click întrerupe R-ul Katarinei" },
-        { championId: "leblanc", level: 2, phase: "all", note: "CC point-click pe LeBlanc" },
-        { championId: "locke", level: 2, phase: "all", note: "CC point-click și R pe sine opresc all-in-ul" },
-        { championId: "talon", level: 2, phase: "all", note: "CC point-click pe un asasin" },
-        { championId: "yasuo", level: 2, phase: "all", note: "CC point-click pe un campion care trăiește din dash-uri" },
-        { championId: "zed", level: 2, phase: "all", note: "R pe sine anulează all-in-ul lui Zed" },
+        { championId: "akali", level: 2, phase: "all", note: "Point-click CC (R) on an assassin, even in shroud" },
+        { championId: "ekko", level: 2, phase: "all", note: "Point-click CC on an assassin" },
+        { championId: "katarina", level: 2, phase: "all", note: "Point-click CC interrupts Katarina's R" },
+        { championId: "leblanc", level: 2, phase: "all", note: "Point-click CC on LeBlanc" },
+        { championId: "locke", level: 2, phase: "all", note: "Point-click CC and self-cast R stop the all-in" },
+        { championId: "talon", level: 2, phase: "all", note: "Point-click CC on an assassin" },
+        { championId: "yasuo", level: 2, phase: "all", note: "Point-click CC on a champion who lives on dashes" },
+        { championId: "zed", level: 2, phase: "all", note: "Self-cast R negates Zed's all-in" },
       ],
       stats: {
         picks: 2,

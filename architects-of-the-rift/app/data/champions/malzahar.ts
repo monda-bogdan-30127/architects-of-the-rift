@@ -67,9 +67,9 @@ export const malzahar = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "katarina", level: 2, phase: "all", note: "R (suppression) întrerupe R-ul Katarinei" },
-        { championId: "leblanc", level: 2, phase: "all", note: "spell shield și R point-click pe un asasin" },
-        { championId: "zed", level: 2, phase: "all", note: "spell shield și R point-click pe un asasin" },
+        { championId: "katarina", level: 2, phase: "all", note: "R (suppression) interrupts Katarina's R" },
+        { championId: "leblanc", level: 2, phase: "all", note: "Spell shield and point-click R on an assassin" },
+        { championId: "zed", level: 2, phase: "all", note: "Spell shield and point-click R on an assassin" },
       ],
       stats: null,
     },

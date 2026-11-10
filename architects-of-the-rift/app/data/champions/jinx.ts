@@ -19,7 +19,7 @@ export const jinx = createChampion({
   ],
 
   badSynergyWith: [
-    { championId: "pyke", level: 3, note: "Jinx vrea siguranță în lane, Pyke roamează" },
+    { championId: "pyke", level: 3, note: "Jinx wants a safe lane; Pyke roams" },
   ],
 
   offers: [

@@ -63,7 +63,7 @@ export const sivir = createChampion({
   roleData: {
     adc: {
       goodVs: [
-        { championId: "blitzcrank", level: 2, phase: "all", note: "E (spell shield) blochează hook-ul" },
+        { championId: "blitzcrank", level: 2, phase: "all", note: "E (spell shield) blocks the hook" },
         { championId: "kogmaw", level: 2, phase: "late" },
       ],
       stats: {

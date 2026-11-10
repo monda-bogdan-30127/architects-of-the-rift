@@ -20,7 +20,7 @@ export const ziggs = createChampion({
   ],
 
   badSynergyWith: [
-    { championId: "lulu", level: 3, note: "Buff-urile Lului (W, E) sunt pentru auto-attackeri, Ziggs e mage" },
+    { championId: "lulu", level: 3, note: "Lulu's buffs (W, E) are for auto-attackers; Ziggs is a mage" },
   ],
 
   offers: [

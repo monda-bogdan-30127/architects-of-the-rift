@@ -63,7 +63,7 @@ export function getCompCounterValue(args: {
     if (loses) {
       value = value * CC.tunnelVisionFactor - CC.tunnelVisionPenalty;
       tunnelVision = { opponentId: loses.id };
-      lines.push(`${args.candidate.name} contrează comp-ul lor, dar pierde linia vs ${name(loses.id)} — evitat`);
+      lines.push(`${args.candidate.name} counters their comp, but loses lane vs ${name(loses.id)}: avoided`);
     }
   }
   if (!tunnelVision && value >= CC.explainMin) {
@@ -108,11 +108,11 @@ export function getLosingLanesEffect(args: {
       bonus: -CC.losingLanesPenalty,
       tag: "losing-lanes",
       balance,
-      line: `Pierdem deja liniile (${balance.toFixed(1)}), iar ${args.candidate.name} pierde și el vs ${vs}`,
+      line: `Already losing lanes (${balance.toFixed(1)}), and ${args.candidate.name} also loses vs ${vs}`,
     };
   }
   if (own.value > 0) {
-    return { bonus: CC.balancingBonus, tag: null, balance, line: `${args.candidate.name} câștigă linia vs ${vs}: echilibrează liniile (${balance.toFixed(1)})` };
+    return { bonus: CC.balancingBonus, tag: null, balance, line: `${args.candidate.name} wins lane vs ${vs}: balances the lanes (${balance.toFixed(1)})` };
   }
   return { ...none, balance };
 }

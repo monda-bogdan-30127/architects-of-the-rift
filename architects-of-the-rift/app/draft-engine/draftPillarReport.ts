@@ -41,15 +41,15 @@ function priorityPillar(
   const firstIsPriority = first
     ? isPriorityPick(first, roleOf(ownAssignments, first), roster, (id) => isSeasonFavorite(teamSlug, id, roster))
     : false;
-  if (first) notes.push(firstIsPriority ? `Priority pick: ${name(first)} (${side === "blue" ? "B1" : "R1"})` : `Primul pick (${name(first)}) nu e un priority pick`);
+  if (first) notes.push(firstIsPriority ? `Priority pick: ${name(first)} (${side === "blue" ? "B1" : "R1"})` : `First pick (${name(first)}) is not a priority pick`);
   const isMetaPriority = (id: string, assignments: Assignments) => {
     const champion = championsById[id];
     return champion ? getMetaPriorityScore(champion, roleOf(assignments, id)) >= DRAFT_THINKING_CONFIG.plan.priorityMetaMin : false;
   };
   const own = ownPicks.filter((id) => isMetaPriority(id, ownAssignments));
   const theirs = enemyPicks.filter((id) => isMetaPriority(id, enemyAssignments));
-  if (theirs.length) notes.push(`Inamicul a luat ${theirs.length} priority pick-uri: ${theirs.map(name).join(", ")}`);
-  else if (own.length) notes.push(`Priority pick-uri luate: ${own.map(name).join(", ")}`);
+  if (theirs.length) notes.push(`The enemy took ${theirs.length} priority picks: ${theirs.map(name).join(", ")}`);
+  else if (own.length) notes.push(`Priority picks taken: ${own.map(name).join(", ")}`);
   return { grade: grade((firstIsPriority ? 1 : 0) + own.length - theirs.length * 0.5, [2, 1, 0]), notes };
 }
 
@@ -62,14 +62,14 @@ function cohesionPillar(ownPicks: string[], ownAssignments: Assignments, roster:
       [...ownPicks].sort((a, b) =>
         getCandidateIdentityFit(championsById[b]!, roleOf(ownAssignments, b), identity) -
         getCandidateIdentityFit(championsById[a]!, roleOf(ownAssignments, a), identity))[0];
-    notes.push(`Identitate împărțită: ${reading.dominant} (${name(lead(reading.dominant))}) + ${reading.runnerUp} (${name(lead(reading.runnerUp))})`);
+    notes.push(`Split identity: ${reading.dominant} (${name(lead(reading.dominant))}) + ${reading.runnerUp} (${name(lead(reading.runnerUp))})`);
     pillarGrade = "D";
   } else if (!reading.dominant) {
-    notes.push("Fără identitate clară (balanced)");
+    notes.push("No clear identity (balanced)");
     pillarGrade = "C";
   } else {
-    const clarity = reading.strength >= 0.6 ? "clară" : reading.strength >= 0.4 ? "medie" : "slabă";
-    notes.push(`Identitate: ${reading.dominant} (${clarity})`);
+    const clarity = reading.strength >= 0.6 ? "clear" : reading.strength >= 0.4 ? "medium" : "weak";
+    notes.push(`Identity: ${reading.dominant} (${clarity})`);
     pillarGrade = grade(reading.strength, [0.6, 0.4, 0]);
   }
   const winCondition = getWinCondition(ownPicks, ownAssignments, reading, roster);
@@ -103,11 +103,11 @@ function matchupsPillar(
   const ours = readCompIdentity(ownPicks, ownAssignments);
   const theirs = readCompIdentity(enemyPicks, enemyAssignments);
   const edge = ours.dominant && theirs.dominant ? COMP_COUNTER_MATRIX[ours.dominant][theirs.dominant] * theirs.strength : 0;
-  const lanes = `câștigi ${won} ${won === 1 ? "linie" : "linii"}, pierzi ${lost}`;
-  if (edge > 0.1) notes.push(lost >= 2 ? `Ai luat comp counter (${ours.dominant} vs ${theirs.dominant}), dar pierzi ${lost} linii` : `Comp counter: ${ours.dominant} vs ${theirs.dominant}; ${lanes}`);
-  else if (edge < -0.1) notes.push(`Comp-ul lor îl bate pe al tău (${theirs.dominant} vs ${ours.dominant}); ${lanes}`);
-  else notes.push(`Linii: ${lanes}`);
-  if (tunnel.length) notes.push(`Linii pierdute din draft: ${tunnel.join(", ")}`);
+  const lanes = `you win ${won} ${won === 1 ? "lane" : "lanes"}, lose ${lost}`;
+  if (edge > 0.1) notes.push(lost >= 2 ? `You took the comp counter (${ours.dominant} vs ${theirs.dominant}), but lose ${lost} lanes` : `Comp counter: ${ours.dominant} vs ${theirs.dominant}; ${lanes}`);
+  else if (edge < -0.1) notes.push(`Their comp beats yours (${theirs.dominant} vs ${ours.dominant}); ${lanes}`);
+  else notes.push(`Lanes: ${lanes}`);
+  if (tunnel.length) notes.push(`Lost lanes from draft: ${tunnel.join(", ")}`);
   return { grade: grade(balance / 3 + edge * 1.5, [1.5, 0, -1.5]), notes };
 }
 
@@ -122,18 +122,18 @@ function masteryPillar(ownAssignments: Assignments, roster: Assignments, pickRol
     const playerGrade = getChampionGrade(player, championId);
     ranks.push(GRADE_RANK[playerGrade]);
     if (playerGrade === "F" || playerGrade === "D") {
-      notes.push(`${player.name} pe ${name(championId)} (${playerGrade})`);
+      notes.push(`${player.name} on ${name(championId)} (${playerGrade})`);
       if (playerGrade === "F") worst = "F";
       else if (worst !== "F") worst = "D";
     }
   }
   for (const [championId, lockedRole] of Object.entries(pickRoles)) {
     const finalRole = roleOf(ownAssignments, championId);
-    if (lockedRole && finalRole && finalRole !== lockedRole) notes.push(`${name(championId)} mutat de pe ${lockedRole} pe ${finalRole}`);
+    if (lockedRole && finalRole && finalRole !== lockedRole) notes.push(`${name(championId)} moved from ${lockedRole} to ${finalRole}`);
   }
   const average = ranks.length ? ranks.reduce((sum, rank) => sum + rank, 0) / ranks.length : 0;
   const labels = ["F", "D", "C", "B", "A", "S", "SS"];
-  if (!notes.length && ranks.length) notes.push(`Grad mediu: ${labels[Math.floor(average)]} (${average.toFixed(1)} / 6)`);
+  if (!notes.length && ranks.length) notes.push(`Average grade: ${labels[Math.floor(average)]} (${average.toFixed(1)} / 6)`);
   const pillarGrade: PillarGrade = worst === "F" ? "D" : worst === "D" ? "C" : grade(average, [4, 3, 0]);
   return { grade: pillarGrade, notes };
 }
@@ -145,15 +145,15 @@ function seasonPrepPillar(
   const favorites = getSeasonFavorites(enemyTeamSlug, enemyRoster, 5).filter(
     (entry) => entry.threat >= DRAFT_THINKING_CONFIG.season.threatThreshold,
   );
-  if (!favorites.length) return { grade: "A", notes: ["Adversarul nu are favoriți de sezon"] };
+  if (!favorites.length) return { grade: "A", notes: ["The enemy has no season favorites"] };
   const notes: string[] = [];
   let good = 0;
   let bad = 0;
   for (const favorite of favorites) {
-    const record = `${favorite.wins}–${favorite.games - favorite.wins} în sezon`;
+    const record = `${favorite.wins}–${favorite.games - favorite.wins} this season`;
     if (ownBans.includes(favorite.championId)) {
       good += 1;
-      notes.push(`Ban pe ${name(favorite.championId)} (${record})`);
+      notes.push(`Banned ${name(favorite.championId)} (${record})`);
       continue;
     }
     if (!enemyPicks.includes(favorite.championId)) continue;
@@ -166,13 +166,13 @@ function seasonPrepPillar(
       : undefined;
     if (answer) {
       good += 1;
-      notes.push(`Răspuns la ${name(favorite.championId)} (${record}): ${name(answer.id)}`);
+      notes.push(`Answer to ${name(favorite.championId)} (${record}): ${name(answer.id)}`);
     } else {
       bad += 1;
-      notes.push(`${name(favorite.championId)} (${record}) a rămas liber fără counter`);
+      notes.push(`${name(favorite.championId)} (${record}) left open without a counter`);
     }
   }
-  if (!notes.length) notes.push("Favoriții lor de sezon n-au fost jucați");
+  if (!notes.length) notes.push("Their season favorites weren't played");
   const pillarGrade: PillarGrade = bad === 0 ? (good > 0 ? "A" : "B") : good > 0 ? "C" : "D";
   return { grade: pillarGrade, notes };
 }

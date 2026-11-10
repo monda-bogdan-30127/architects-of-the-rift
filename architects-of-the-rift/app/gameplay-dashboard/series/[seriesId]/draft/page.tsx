@@ -581,7 +581,7 @@ export default function DraftPage() {
               flexShrink: 0,
             }}>
               <span className="label" style={{ fontSize: "9px", color: "var(--text-muted)", letterSpacing: "0.12em" }}>
-                FAVORIȚII SEZONULUI — {scoutedTeam.abbreviation}
+                SEASON FAVORITES: {scoutedTeam.abbreviation}
               </span>
               {seasonScouting.map((favorite) => {
                 const champion = getChampionById(favorite.championId);
@@ -1003,8 +1003,8 @@ function SidebarPanel({
                     const grade = player ? getChampionGrade(player, champion.id) : null;
                     if (grade !== "F" && grade !== "D") return null;
                     const text = grade === "F"
-                      ? `${player!.name} nu joacă ${champion.name} (F) — contribuție 0 în simulare`
-                      : `Grad D — performanță redusă`;
+                      ? `${player!.name} doesn't play ${champion.name} (F): no contribution in the simulation`
+                      : `Grade D: reduced performance`;
                     return (
                       <span title={text} style={{
                         fontSize: "8px",

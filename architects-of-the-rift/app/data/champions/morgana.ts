@@ -63,13 +63,13 @@ export const morgana = createChampion({
   roleData: {
     support: {
       goodVs: [
-        { championId: "blitzcrank", level: 3, phase: "all", note: "black shield anulează complet hook-ul" },
-        { championId: "galio", level: 2, phase: "all", vsRole: "mid", note: "black shield anulează CC-ul lui Galio pe aliat" },
-        { championId: "leona", level: 2, phase: "all", note: "black shield anulează CC-ul lui Leona" },
-        { championId: "nautilus", level: 2, phase: "all", note: "black shield anulează hook-ul și R-ul" },
-        { championId: "pyke", level: 2, phase: "all", note: "black shield anulează hook-ul și stun-ul" },
-        { championId: "thresh", level: 2, phase: "all", note: "black shield anulează hook-ul și flay-ul" },
-        { championId: "vi", level: 2, phase: "all", vsRole: "jungle", note: "black shield anulează CC-ul ult-ului lui Vi pe aliat" },
+        { championId: "blitzcrank", level: 3, phase: "all", note: "Black Shield fully negates the hook" },
+        { championId: "galio", level: 2, phase: "all", vsRole: "mid", note: "Black Shield negates Galio's CC on the ally" },
+        { championId: "leona", level: 2, phase: "all", note: "Black Shield negates Leona's CC" },
+        { championId: "nautilus", level: 2, phase: "all", note: "Black Shield negates the hook and R" },
+        { championId: "pyke", level: 2, phase: "all", note: "Black Shield negates the hook and stun" },
+        { championId: "thresh", level: 2, phase: "all", note: "Black Shield negates the hook and flay" },
+        { championId: "vi", level: 2, phase: "all", vsRole: "jungle", note: "Black Shield negates the CC of Vi's ult on the ally" },
       ],
       stats: null,
     },

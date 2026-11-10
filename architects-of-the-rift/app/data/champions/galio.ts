@@ -65,16 +65,16 @@ export const galio = createChampion({
   roleData: {
     mid: {
       goodVs: [
-        { championId: "akali", level: 2, phase: "all", note: "MR și taunt anulează burst-ul Akalei" },
-        { championId: "aurora", level: 2, phase: "all", note: "MR și taunt anulează burst-ul Aurorei" },
-        { championId: "cassiopeia", level: 2, phase: "all", note: "MR din W și engage pe un mage imobil" },
-        { championId: "fizz", level: 2, phase: "all", note: "MR și taunt anulează burst-ul AP" },
-        { championId: "katarina", level: 2, phase: "all", note: "taunt-ul întrerupe R-ul Katarinei, MR contra burst-ului" },
-        { championId: "leblanc", level: 2, phase: "all", note: "MR din W și taunt anulează burst-ul LeBlanc-ului" },
-        { championId: "locke", level: 2, phase: "all", note: "MR și taunt pe un asasin AP" },
-        { championId: "sylas", level: 2, phase: "all", note: "MR anulează burst-ul AP al lui Sylas" },
-        { championId: "viktor", level: 2, phase: "all", note: "MR și taunt pe un mage imobil" },
-        { championId: "zoe", level: 2, phase: "all", note: "MR și engage pe un mage fragil" },
+        { championId: "akali", level: 2, phase: "all", note: "MR and taunt negate Akali's burst" },
+        { championId: "aurora", level: 2, phase: "all", note: "MR and taunt negate Aurora's burst" },
+        { championId: "cassiopeia", level: 2, phase: "all", note: "MR from W and engage on an immobile mage" },
+        { championId: "fizz", level: 2, phase: "all", note: "MR and taunt negate AP burst" },
+        { championId: "katarina", level: 2, phase: "all", note: "The taunt interrupts Katarina's R; MR vs the burst" },
+        { championId: "leblanc", level: 2, phase: "all", note: "MR from W and taunt negate LeBlanc's burst" },
+        { championId: "locke", level: 2, phase: "all", note: "MR and taunt on an AP assassin" },
+        { championId: "sylas", level: 2, phase: "all", note: "MR negates Sylas's AP burst" },
+        { championId: "viktor", level: 2, phase: "all", note: "MR and taunt on an immobile mage" },
+        { championId: "zoe", level: 2, phase: "all", note: "MR and engage on a squishy mage" },
       ],
       stats: {
         picks: 9,
@@ -100,10 +100,10 @@ export const galio = createChampion({
     },
     top: {
       goodVs: [
-        { championId: "kennen", level: 3, phase: "all", note: "pasivul W (MR) anulează burst-ul AP, iar taunt-ul îl prinde pe Kennen" },
-        { championId: "aurora", level: 2, phase: "all", note: "MR și taunt anulează burst-ul Aurorei" },
-        { championId: "rumble", level: 2, phase: "all", note: "pasivul W (MR) anulează damage-ul AP al lui Rumble" },
-        { championId: "vladimir", level: 2, phase: "all", note: "MR și taunt contra unui mage de lupte lungi" },
+        { championId: "kennen", level: 3, phase: "all", note: "W passive (MR) negates AP burst, and the taunt catches Kennen" },
+        { championId: "aurora", level: 2, phase: "all", note: "MR and taunt negate Aurora's burst" },
+        { championId: "rumble", level: 2, phase: "all", note: "W passive (MR) negates Rumble's AP damage" },
+        { championId: "vladimir", level: 2, phase: "all", note: "MR and taunt vs a long-fight mage" },
       ],
       stats: {
         picks: 5,
