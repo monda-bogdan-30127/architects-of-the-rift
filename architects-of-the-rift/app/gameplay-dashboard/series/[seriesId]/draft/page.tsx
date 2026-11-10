@@ -447,6 +447,9 @@ export default function DraftPage() {
     : currentAssignmentsRed;
 
   const previewBans = getPreviewBans(currentGame, currentStep, selectedChampionId, userSide, isUserTurn);
+  // FEEDBACK_FIXES §9: avertismentul F / D doar după toate cele 10 pick-uri (etapa de asignare, înainte de
+  // confirmare): până atunci flex-urile pot schimba rolurile. Se recalculează după fiecare swap.
+  const showMasteryWarnings = allPicksCompleted && !currentStep;
 
   // §7.1 / §7.2: identitatea și atributele fiecărei echipe (informație publică pentru ambele).
   const identityBlue = getIdentitySummary(currentGame.picksBlue, currentAssignmentsBlue);
@@ -565,7 +568,7 @@ export default function DraftPage() {
           roster={getTeamRosterFromSources({ team: blueTeam, save: draftSave })}
           currentStep={currentStep}
           isUserTurn={isUserTurn}
-          showMasteryWarnings={userSide === "blue"}
+          showMasteryWarnings={showMasteryWarnings && userSide === "blue"}
         />
 
         <div style={{ width: "1px", background: "var(--divider)", flexShrink: 0 }} />
@@ -744,7 +747,7 @@ export default function DraftPage() {
           currentStep={currentStep}
           isUserTurn={isUserTurn}
           alignRight
-          showMasteryWarnings={userSide === "red"}
+          showMasteryWarnings={showMasteryWarnings && userSide === "red"}
         />
       </div>
 
