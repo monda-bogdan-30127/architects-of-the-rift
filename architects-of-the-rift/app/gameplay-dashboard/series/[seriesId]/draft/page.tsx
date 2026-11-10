@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
 import { champions } from "@/app/data/champions";
@@ -18,7 +18,13 @@ import {
   type IdentitySummary,
   type TeamAttributes,
 } from "@/app/draft-engine/draftInsights";
-import { ChampionHoverCard, CompIdentityIndicator, TeamAttributesPanel } from "@/components/ui/DraftInsights";
+import {
+  ChampionContextMenu,
+  ChampionHoverCard,
+  CompIdentityIndicator,
+  GRADE_COLORS,
+  TeamAttributesPanel,
+} from "@/components/ui/DraftInsights";
 import MatchResultsDialog from "@/components/ui/MatchResultsDialog";
 import type { DraftGameState, DraftSave, DraftSimulationResult, DraftStep, Side } from "@/app/draft-engine/draftTypes";
 import type { Champion, Role } from "@/app/types/champion";
@@ -140,11 +146,11 @@ const DRAFT_STYLES = `
   .draft-champ-btn {
     transition: transform 0.12s ease, filter 0.12s ease;
   }
-  .draft-champ-btn:not(:disabled):hover .draft-champ-img {
+  .draft-champ-btn:not([aria-disabled="true"]):hover .draft-champ-img {
     filter: brightness(1.18);
     transform: scale(1.03);
   }
-  .draft-champ-btn:disabled {
+  .draft-champ-btn[aria-disabled="true"] {
     cursor: not-allowed;
   }
   .draft-champ-img {
@@ -287,6 +293,14 @@ export default function DraftPage() {
     setHovered(null);
   }
   useEffect(() => () => { if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current); }, []);
+  // FEEDBACK_FIXES §8: click dreapta pe campion → gradele și winrate-ul jucătorilor (nu blochează draftul).
+  const [contextMenu, setContextMenu] = useState<{ championId: string; x: number; y: number } | null>(null);
+  const closeContextMenu = useCallback(() => setContextMenu(null), []);
+  function handleChampionContextMenu(championId: string, event: React.MouseEvent) {
+    event.preventDefault();
+    handleChampionHoverEnd();
+    setContextMenu({ championId, x: event.clientX + 4, y: event.clientY + 4 });
+  }
 
   useEffect(() => {
     if (!series || !currentGame || currentStep || !allPicksCompleted) return;
@@ -450,6 +464,13 @@ export default function DraftPage() {
     const pickRoles = userSide === "blue" ? currentGame.pickRolesBlue : currentGame.pickRolesRed;
     return getPickPreview(ownPicks, hoveredChampion.id, getDisplayAssignments({}, [...ownPicks, hoveredChampion.id], roster, pickRoles));
   })();
+  const contextChampion = contextMenu ? getChampionById(contextMenu.championId) ?? null : null;
+  const userTeam = userSide === "blue" ? blueTeam : redTeam;
+  const enemyTeam = userSide === "blue" ? redTeam : blueTeam;
+  const contextMatchups = contextChampion
+    ? getChampionMatchupsVs(contextChampion, userSide === "blue" ? currentAssignmentsRed : currentAssignmentsBlue)
+    : [];
+
   const hoverMatchups = hoveredChampion && hovered
     ? getChampionMatchupsVs(hoveredChampion, hovered.side === "blue" ? currentAssignmentsRed : currentAssignmentsBlue)
     : [];
@@ -665,6 +686,7 @@ export default function DraftPage() {
               masteryPlayer={masteryPlayer}
               onChampionHover={(championId, element) => handleChampionHover(championId, userSide, element)}
               onChampionHoverEnd={handleChampionHoverEnd}
+              onChampionContextMenu={handleChampionContextMenu}
             />
           </div>
 
@@ -726,7 +748,19 @@ export default function DraftPage() {
         />
       </div>
 
-      {hovered && hoveredChampion && (
+      {contextMenu && contextChampion && (
+        <ChampionContextMenu
+          key={`${contextMenu.championId}:${contextMenu.x}:${contextMenu.y}`}
+          champion={contextChampion}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          ours={{ name: userTeam.name, abbreviation: userTeam.abbreviation, slug: userTeam.slug, roster: userSide === "blue" ? rosterBlue : rosterRed }}
+          theirs={{ name: enemyTeam.name, abbreviation: enemyTeam.abbreviation, slug: enemyTeam.slug, roster: userSide === "blue" ? rosterRed : rosterBlue }}
+          matchups={contextMatchups}
+          onClose={closeContextMenu}
+        />
+      )}
+
+      {hovered && hoveredChampion && !contextMenu && (
         <ChampionHoverCard champion={hoveredChampion} anchor={hovered.rect} preview={hoverPreview} matchups={hoverMatchups} />
       )}
 
@@ -1180,15 +1214,7 @@ function SidebarPanel({
 // ─── Champion Grid ─────────────────────────────────────────────────────────────
 // ── Mastery grade colours & tooltip descriptions ─────────────────────────────
 
-const GRADE_COLORS: Record<ChampionMasteryGrade, { bg: string; text: string; border: string }> = {
-  SS: { bg: "#B8860B",  text: "#FFF8E1", border: "#FFD466" },
-  S:  { bg: "#8B1A2B",  text: "#FFD1DA", border: "#E84868" },
-  A:  { bg: "#5B2D8E",  text: "#E8D4FF", border: "#A86EDB" },
-  B:  { bg: "#1A6B5A",  text: "#D4F5ED", border: "#38BFA0" },
-  C:  { bg: "#4A4A52",  text: "#D0D0D4", border: "#808088" },
-  D:  { bg: "#6B4226",  text: "#EADDD4", border: "#A87850" },
-  F:  { bg: "#3A1A1A",  text: "#D08080", border: "#802020" },
-};
+// GRADE_COLORS: components/ui/DraftInsights.tsx (comun cu popover-ul de click dreapta, §8).
 
 const GRADE_TOOLTIP: Record<ChampionMasteryGrade, string> = {
   SS: "Best in the world — must-ban",
@@ -1233,7 +1259,7 @@ function MasteryBadgeSmall({ grade }: { grade: ChampionMasteryGrade }) {
 
 function ChampionGrid({
   champions: champs, selectedChampionId, unavailableChampionIds, isUserTurn, onChampionClick, masteryPlayer,
-  onChampionHover, onChampionHoverEnd,
+  onChampionHover, onChampionHoverEnd, onChampionContextMenu,
 }: {
   champions: Champion[];
   selectedChampionId: string | null;
@@ -1243,6 +1269,7 @@ function ChampionGrid({
   masteryPlayer: Player | null;
   onChampionHover: (championId: string, element: HTMLElement) => void;
   onChampionHoverEnd: () => void;
+  onChampionContextMenu: (championId: string, event: React.MouseEvent) => void;
 }) {
   return (
     <div style={{
@@ -1271,7 +1298,11 @@ function ChampionGrid({
             onClick={() => onChampionClick(champion.id)}
             onMouseEnter={(event) => onChampionHover(champion.id, event.currentTarget)}
             onMouseLeave={onChampionHoverEnd}
-            disabled={!isUserTurn || isUnavailable}
+            onContextMenu={(event) => onChampionContextMenu(champion.id, event)}
+            // aria-disabled, nu disabled: butoanele dezactivate nu primesc evenimente de mouse, iar hover-ul
+            // și click-ul dreapta (§7.3 / §8) trebuie să meargă și în afara rândului userului.
+            // Click-ul e oricum ignorat în handleChampionClick.
+            aria-disabled={!isUserTurn || isUnavailable}
             className="draft-champ-btn"
             {...(tooltipText ? { "data-mastery-tip": tooltipText, "data-tip-align": tipAlign } : {})}
             style={{
