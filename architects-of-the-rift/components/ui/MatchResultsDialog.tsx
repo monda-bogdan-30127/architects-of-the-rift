@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import { teams } from "@/app/data/teams";
 import type { DraftPillarReport, DraftSimulationResult, PillarGrade } from "@/app/draft-engine/draftTypes";
@@ -11,11 +11,52 @@ import PlayerResultRow from "./PlayerResultRow";
 const teamsBySlug = new Map(teams.map((team) => [team.slug, team]));
 
 function getTeamLabel(teamSlug: string) {
-  const team = teamsBySlug.get(teamSlug) as
-    | { name?: string; shortName?: string }
-    | undefined;
+  const team = teamsBySlug.get(teamSlug);
+  const name = team?.name ?? teamSlug;
+  return { name, abbreviation: team?.abbreviation ?? name };
+}
 
-  return team?.name ?? team?.shortName ?? teamSlug;
+/** Sub atâta din numele complet vizibil (cu ellipsis), afișăm abrevierea. */
+const MIN_VISIBLE_NAME_RATIO = 0.6;
+
+/**
+ * Titlul unei echipe: numele se taie cu ellipsis (tooltip cu numele complet), scorul nu se taie
+ * niciodată. Dacă nici cu ellipsis nu se vede ≥ 60% din nume, se afișează abrevierea.
+ */
+function TeamHeading({ name, abbreviation, score, align }: { name: string; abbreviation: string; score: number; align: "left" | "right" }) {
+  const containerRef = useRef<HTMLSpanElement | null>(null);
+  const measureRef = useRef<HTMLSpanElement | null>(null);
+  const [useAbbreviation, setUseAbbreviation] = useState(false);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const measure = measureRef.current;
+    if (!container || !measure) return;
+    const update = () => {
+      const fullWidth = measure.scrollWidth;
+      setUseAbbreviation(fullWidth > 0 && container.clientWidth / fullWidth < MIN_VISIBLE_NAME_RATIO);
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [name]);
+
+  return (
+    <h3
+      className={`h1 flex min-w-0 items-baseline gap-[8px] self-stretch text-[var(--text-primary)] ${align === "right" ? "justify-end" : ""}`}
+      title={name}
+    >
+      <span ref={containerRef} className="relative min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+        {useAbbreviation ? abbreviation : name}
+        {/* Lățimea numelui complet, pentru alegerea abrevierii. */}
+        <span ref={measureRef} aria-hidden className="pointer-events-none invisible absolute left-0 top-0 whitespace-nowrap">
+          {name}
+        </span>
+      </span>
+      <span className="shrink-0">- {score}</span>
+    </h3>
+  );
 }
 
 type Props = {
@@ -70,8 +111,10 @@ export default function MatchResultsDialog({
     return null;
   }
 
-  const blueTeamName = getTeamLabel(simulation.blueTeamSlug);
-  const redTeamName = getTeamLabel(simulation.redTeamSlug);
+  const blueTeam = getTeamLabel(simulation.blueTeamSlug);
+  const redTeam = getTeamLabel(simulation.redTeamSlug);
+  const blueTeamName = blueTeam.name;
+  const redTeamName = redTeam.name;
 
   const winnerName =
     simulation.winnerSide === "blue" ? blueTeamName : redTeamName;
@@ -125,7 +168,7 @@ export default function MatchResultsDialog({
 
           <h2
             id="match-results-title"
-            className="h1 text-[var(--text-primary)]"
+            className="h1 max-w-full text-balance break-words text-[var(--text-primary)]"
           >
             {title}
           </h2>
@@ -147,9 +190,7 @@ export default function MatchResultsDialog({
         <div className="flex min-w-0 items-start gap-[32px] self-stretch">
           {/* ── Left section ───────────────────────────────────────── */}
           <section className="flex min-w-0 flex-1 flex-col gap-[16px]">
-            <h3 className="h1 whitespace-nowrap text-[var(--text-primary)]">
-              {blueTeamName} - {simulation.seriesScoreBlue}
-            </h3>
+            <TeamHeading name={blueTeam.name} abbreviation={blueTeam.abbreviation} score={simulation.seriesScoreBlue} align="left" />
 
             <div className="h-px self-stretch bg-[var(--border-default)]" />
 
@@ -172,9 +213,7 @@ export default function MatchResultsDialog({
 
           {/* ── Right section ──────────────────────────────────────── */}
           <section className="flex min-w-0 flex-1 flex-col gap-[16px]">
-            <h3 className="h1 whitespace-nowrap self-stretch text-right text-[var(--text-primary)]">
-              {redTeamName} - {simulation.seriesScoreRed}
-            </h3>
+            <TeamHeading name={redTeam.name} abbreviation={redTeam.abbreviation} score={simulation.seriesScoreRed} align="right" />
 
             <div className="h-px self-stretch bg-[var(--border-default)]" />
 
