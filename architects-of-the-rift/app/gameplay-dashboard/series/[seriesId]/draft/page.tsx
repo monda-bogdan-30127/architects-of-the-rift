@@ -10,6 +10,15 @@ import { useDraftEngine } from "@/app/hooks/useDraftEngine";
 import { resolveFinishedDraftAssignments } from "@/app/draft-engine/draftEngine";
 import { resolveRoleAssignments } from "@/app/draft-engine/draftRoleResolver";
 import { isCurrentPillarReport } from "@/app/draft-engine/draftPillarReport";
+import {
+  getChampionMatchupsVs,
+  getIdentitySummary,
+  getPickPreview,
+  getTeamAttributes,
+  type IdentitySummary,
+  type TeamAttributes,
+} from "@/app/draft-engine/draftInsights";
+import { ChampionHoverCard, CompIdentityIndicator, TeamAttributesPanel } from "@/components/ui/DraftInsights";
 import MatchResultsDialog from "@/components/ui/MatchResultsDialog";
 import type { DraftGameState, DraftSave, DraftSimulationResult, DraftStep, Side } from "@/app/draft-engine/draftTypes";
 import type { Champion, Role } from "@/app/types/champion";
@@ -22,6 +31,8 @@ const CHAMPION_CARD_SIZE = 86;
 const CHAMPION_CARD_GAP = 5;
 const CHAMPION_GRID_COLUMNS = 6;
 const MINI_SLOT_SIZE = 34;
+/** §7.3: hover-ul pe campion apare după atât. */
+const HOVER_DELAY_MS = 250;
 
 const ROLE_ORDER: Role[] = ["top", "jungle", "mid", "adc", "support"];
 const FILTERS: Array<{ key: Role | "all"; label: string; icon: string }> = [
@@ -263,6 +274,19 @@ export default function DraftPage() {
   const swapMenuContainerRef = useRef<HTMLDivElement | null>(null);
   const [resultsGameNumber, setResultsGameNumber] = useState<number | null>(null);
   const [resultsSeriesFinished, setResultsSeriesFinished] = useState(false);
+  // FEEDBACK_FIXES §7.3: hover pe campion (grilă / sloturi), după ~250 ms.
+  const [hovered, setHovered] = useState<{ championId: string; side: Side; rect: DOMRect } | null>(null);
+  const hoverTimerRef = useRef<number | null>(null);
+  function handleChampionHover(championId: string, side: Side, element: HTMLElement) {
+    if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = window.setTimeout(() => setHovered({ championId, side, rect: element.getBoundingClientRect() }), HOVER_DELAY_MS);
+  }
+  function handleChampionHoverEnd() {
+    if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = null;
+    setHovered(null);
+  }
+  useEffect(() => () => { if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current); }, []);
 
   useEffect(() => {
     if (!series || !currentGame || currentStep || !allPicksCompleted) return;
@@ -410,6 +434,26 @@ export default function DraftPage() {
 
   const previewBans = getPreviewBans(currentGame, currentStep, selectedChampionId, userSide, isUserTurn);
 
+  // §7.1 / §7.2: identitatea și atributele fiecărei echipe (informație publică pentru ambele).
+  const identityBlue = getIdentitySummary(currentGame.picksBlue, currentAssignmentsBlue);
+  const identityRed = getIdentitySummary(currentGame.picksRed, currentAssignmentsRed);
+  const attributesBlue = getTeamAttributes(currentGame.picksBlue);
+  const attributesRed = getTeamAttributes(currentGame.picksRed);
+
+  // §7.3: hover — preview dacă e rândul userului la pick, matchup-uri contra pick-urilor adversarului.
+  const hoveredChampion = hovered ? getChampionById(hovered.championId) ?? null : null;
+  const hoverPreview = (() => {
+    if (!hoveredChampion || !hovered || hovered.side !== userSide || !isUserTurn || currentStep?.action !== "pick") return null;
+    const ownPicks = userSide === "blue" ? currentGame.picksBlue : currentGame.picksRed;
+    if (ownPicks.includes(hoveredChampion.id)) return null;
+    const roster = userSide === "blue" ? rosterBlue : rosterRed;
+    const pickRoles = userSide === "blue" ? currentGame.pickRolesBlue : currentGame.pickRolesRed;
+    return getPickPreview(ownPicks, hoveredChampion.id, getDisplayAssignments({}, [...ownPicks, hoveredChampion.id], roster, pickRoles));
+  })();
+  const hoverMatchups = hoveredChampion && hovered
+    ? getChampionMatchupsVs(hoveredChampion, hovered.side === "blue" ? currentAssignmentsRed : currentAssignmentsBlue)
+    : [];
+
   const activeTeamAbbr = currentStep?.side === "blue" ? blueTeam.abbreviation : redTeam.abbreviation;
   const title = currentStep
     ? `${activeTeamAbbr}'s ${currentStep.action === "ban" ? "Ban" : "Pick"} ${currentStep.label.replace(/[BR]/g, "")}`
@@ -493,6 +537,10 @@ export default function DraftPage() {
           onSwapSelect={handleRoleSwap}
           swapMenuContainerRef={userSide === "blue" ? swapMenuContainerRef : null}
           lockedChampionIds={blueLockedChampionIds}
+          identity={identityBlue}
+          attributes={attributesBlue}
+          onChampionHover={handleChampionHover}
+          onChampionHoverEnd={handleChampionHoverEnd}
           roster={getTeamRosterFromSources({ team: blueTeam, save: draftSave })}
           currentStep={currentStep}
           isUserTurn={isUserTurn}
@@ -615,6 +663,8 @@ export default function DraftPage() {
               isUserTurn={isUserTurn}
               onChampionClick={handleChampionClick}
               masteryPlayer={masteryPlayer}
+              onChampionHover={(championId, element) => handleChampionHover(championId, userSide, element)}
+              onChampionHoverEnd={handleChampionHoverEnd}
             />
           </div>
 
@@ -664,6 +714,10 @@ export default function DraftPage() {
           onSwapSelect={handleRoleSwap}
           swapMenuContainerRef={userSide === "red" ? swapMenuContainerRef : null}
           lockedChampionIds={redLockedChampionIds}
+          identity={identityRed}
+          attributes={attributesRed}
+          onChampionHover={handleChampionHover}
+          onChampionHoverEnd={handleChampionHoverEnd}
           roster={getTeamRosterFromSources({ team: redTeam, save: draftSave })}
           currentStep={currentStep}
           isUserTurn={isUserTurn}
@@ -671,6 +725,10 @@ export default function DraftPage() {
           showMasteryWarnings={userSide === "red"}
         />
       </div>
+
+      {hovered && hoveredChampion && (
+        <ChampionHoverCard champion={hoveredChampion} anchor={hovered.rect} preview={hoverPreview} matchups={hoverMatchups} />
+      )}
 
       <MatchResultsDialog
         open={Boolean(resultsSimulation)}
@@ -735,6 +793,7 @@ function SidebarPanel({
   side, team, score, assignments, showSwap, openSwapRole,
   onSwapToggle, onSwapSelect, swapMenuContainerRef,
   lockedChampionIds, roster, currentStep, isUserTurn, alignRight = false, showMasteryWarnings = false,
+  identity, attributes, onChampionHover, onChampionHoverEnd,
 }: {
   side: Side;
   team: { name: string; abbreviation: string; logo: string; slug?: string };
@@ -752,6 +811,11 @@ function SidebarPanel({
   alignRight?: boolean;
   /** DRAFT_THINKING §1.6 — avertisment F / D pe sloturile userului (nu blochează). */
   showMasteryWarnings?: boolean;
+  /** FEEDBACK_FIXES §7.1 / §7.2 — identitatea și atributele echipei. */
+  identity: IdentitySummary;
+  attributes: TeamAttributes;
+  onChampionHover: (championId: string, side: Side, element: HTMLElement) => void;
+  onChampionHoverEnd: () => void;
 }) {
   const swapButtonRefs = useRef<Partial<Record<Role, HTMLButtonElement | null>>>({});
   // Poziția e legată de rolul pentru care a fost măsurată: la închidere sau la
@@ -833,6 +897,9 @@ function SidebarPanel({
         </div>
       </div>
 
+      {/* §7.1: tipul de comp, sub header */}
+      <CompIdentityIndicator summary={identity} alignRight={alignRight} />
+
       {/* Thin accent line */}
       <div style={{
         height: "1px",
@@ -893,6 +960,8 @@ function SidebarPanel({
               {/* Pick card */}
               <div
                 className={`draft-pick-slot ${alignRight ? "draft-pick-slot-right" : ""}`}
+                onMouseEnter={champion ? (event) => onChampionHover(champion.id, side, event.currentTarget) : undefined}
+                onMouseLeave={champion ? onChampionHoverEnd : undefined}
                 style={{
                   flex: 1,
                   height: "64px",
@@ -1031,6 +1100,9 @@ function SidebarPanel({
         })}
       </div>
 
+      {/* §7.2: atributele echipei (live, pliabil), deasupra campionilor blocați */}
+      <TeamAttributesPanel attributes={attributes} alignRight={alignRight} />
+
       {/* Locked champions */}
       {lockedChampionIds.length > 0 && (
         <div style={{ marginTop: "10px", borderTop: "1px solid var(--divider)", paddingTop: "8px" }}>
@@ -1161,6 +1233,7 @@ function MasteryBadgeSmall({ grade }: { grade: ChampionMasteryGrade }) {
 
 function ChampionGrid({
   champions: champs, selectedChampionId, unavailableChampionIds, isUserTurn, onChampionClick, masteryPlayer,
+  onChampionHover, onChampionHoverEnd,
 }: {
   champions: Champion[];
   selectedChampionId: string | null;
@@ -1168,6 +1241,8 @@ function ChampionGrid({
   isUserTurn: boolean;
   onChampionClick: (id: string) => void;
   masteryPlayer: Player | null;
+  onChampionHover: (championId: string, element: HTMLElement) => void;
+  onChampionHoverEnd: () => void;
 }) {
   return (
     <div style={{
@@ -1194,6 +1269,8 @@ function ChampionGrid({
             key={champion.id}
             type="button"
             onClick={() => onChampionClick(champion.id)}
+            onMouseEnter={(event) => onChampionHover(champion.id, event.currentTarget)}
+            onMouseLeave={onChampionHoverEnd}
             disabled={!isUserTurn || isUnavailable}
             className="draft-champ-btn"
             {...(tooltipText ? { "data-mastery-tip": tooltipText, "data-tip-align": tipAlign } : {})}
