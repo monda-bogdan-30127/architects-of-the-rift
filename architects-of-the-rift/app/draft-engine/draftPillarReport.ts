@@ -9,14 +9,15 @@ import { GRADE_RANK, getChampionGrade } from "@/app/utils/championMasteryUtils";
 import { getMatchupRelations } from "./championMatchups";
 import { COMP_COUNTER_MATRIX, getCandidateIdentityFit, isCompatible, readCompIdentity } from "./compIdentity";
 import { getDirectOpponents } from "./compCounter";
-import { buildCompVector, getMetaPriorityScore } from "./draftEvaluator";
+import { buildCompVector } from "./draftEvaluator";
 import { getOpenRolesForPickedChampions } from "./draftRoleResolver";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import type { ActiveDraftSeries, DraftGameState, DraftPillar, DraftPillarReport, DraftSave, PillarGrade, Side } from "./draftTypes";
 import { DRAFT_SEQUENCE, ROLE_ORDER } from "./draftTypes";
 import { describeMatchupDetailed, getWeaknessCoverage, isLaneCounter, isStrongCounter, WEAKNESS_COVER_CONFIG } from "./matchupGrades";
 import { getMatchupValue } from "./matchupScoring";
-import { getSeasonFavorites, isSeasonFavorite } from "./seasonThreatSystem";
+import { getSeasonFavorites } from "./seasonThreatSystem";
+import { createPriorityLookup } from "./priorityValue";
 import { getWinCondition } from "./winCondition";
 
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -224,15 +225,25 @@ function orderedActions(game: DraftGameState) {
   });
 }
 
+type Contested = {
+  championId: string;
+  value: number;
+  tier: 1 | 2 | 3;
+  ownUsable: boolean;
+  /** Jucătorul lor care îl voia (cel mai bun grad pe un rol liber de-al lor), pentru note. */
+  enemyWanter: { name: string; grade: string } | null;
+};
+
 /**
- * Campionii contestați (§5.3): meta ≥ priorityMetaMin, disponibili la o acțiune proprie din faza 1
- * (ban 1, pick-urile din faza 1), pe care adversarul îi voia (un jucător pe un rol liber îi are ≥ A,
- * sau sunt favoriți de sezon ai lor).
+ * Campionii contestați (FEEDBACK_FIXES §5.3, pe priorityValue din DRAFT_REALISM §6 / §12): la fiecare acțiune
+ * proprie din faza 1 (ban 1, pick1-open, pick1-close), campionii tier 1–2 disponibili în acel moment
+ * (priority calculat cu starea de atunci), pe care adversarul îi voia (enemyWant ≥ 5) sau pe care îi puteam juca.
+ * Plus pick-urile proprii din faza 1 (pentru nota „am luat un tier 2 cât un tier 1 a mers la ei”).
  */
 function getContestedChampions(
   game: DraftGameState, series: ActiveDraftSeries, side: Side,
-  enemyRoster: Assignments, enemyTeamSlug: string,
-): Set<string> {
+  rosters: { own: Assignments; enemy: Assignments }, enemyTeamSlug: string,
+) {
   const unavailable = new Set<string>();
   for (const previous of series.games) {
     if (previous.number >= game.number) continue;
@@ -240,81 +251,110 @@ function getContestedChampions(
     previous.picksRed.forEach((id) => unavailable.add(id));
   }
   const enemySide: Side = side === "blue" ? "red" : "blue";
-  const enemyPicks: string[] = [];
-  const contested = new Set<string>();
-  const metaMin = DRAFT_THINKING_CONFIG.plan.priorityMetaMin;
-  const wantRank = REPORT.preparation.enemyWantMinRank;
+  const picks: Record<Side, string[]> = { blue: [], red: [] };
+  const contested = new Map<string, Contested>();
+  const ownPhaseOnePicks: { label: string; championId: string; value: number; tier: number; before: Set<string> }[] = [];
+  const minEnemyWant = DRAFT_THINKING_CONFIG.priority.banMinEnemyWant;
 
   for (const { index, step, championId } of orderedActions(game)) {
     if (index > 11) break; // doar faza 1 (ban 1 + pick-urile din faza 1)
     if (step.side === side) {
-      const openEnemyRoles = getOpenRolesForPickedChampions(enemyPicks, enemyRoster);
+      const lookup = createPriorityLookup({
+        ownRoster: rosters.own,
+        ownOpenRoles: getOpenRolesForPickedChampions(picks[side], rosters.own),
+        enemyRoster: rosters.enemy,
+        enemyOpenRoles: getOpenRolesForPickedChampions(picks[enemySide], rosters.enemy),
+        enemyTeamSlug,
+        unavailable,
+      });
+      const before = new Set(contested.keys());
       for (const champion of Object.values(championsById)) {
         if (!champion || unavailable.has(champion.id) || contested.has(champion.id)) continue;
-        const meta = Math.max(...champion.roles.map((role) => getMetaPriorityScore(champion, role)));
-        if (meta < metaMin) continue;
-        const wanted =
-          champion.roles.some((role) => {
-            if (!openEnemyRoles.includes(role)) return false;
-            const player = enemyRoster[role] ? playersById.get(enemyRoster[role]!) : undefined;
-            return Boolean(player && GRADE_RANK[getChampionGrade(player, champion.id)] >= wantRank);
-          }) || isSeasonFavorite(enemyTeamSlug, champion.id, enemyRoster);
-        if (wanted) contested.add(champion.id);
+        const priority = lookup(champion);
+        if (priority.tier === 3 || (priority.enemyWant < minEnemyWant && !priority.ownUsable)) continue;
+        let enemyWanter: Contested["enemyWanter"] = null;
+        for (const role of champion.roles) {
+          const player = rosters.enemy[role] ? playersById.get(rosters.enemy[role]!) : undefined;
+          if (!player) continue;
+          const playerGrade = getChampionGrade(player, champion.id);
+          if (!enemyWanter || GRADE_RANK[playerGrade] > GRADE_RANK[enemyWanter.grade as keyof typeof GRADE_RANK]) enemyWanter = { name: player.name, grade: playerGrade };
+        }
+        contested.set(champion.id, { championId: champion.id, value: priority.value, tier: priority.tier, ownUsable: priority.ownUsable, enemyWanter });
+      }
+      if (step.action === "pick" && championId) {
+        const priority = lookup(championsById[championId]!);
+        ownPhaseOnePicks.push({ label: step.label, championId, value: priority.value, tier: priority.tier, before });
       }
     }
     if (championId) {
       unavailable.add(championId);
-      if (step.side === enemySide && step.action === "pick") enemyPicks.push(championId);
+      if (step.action === "pick") picks[step.side].push(championId);
     }
   }
-  return contested;
+  return { contested: [...contested.values()].sort((a, b) => b.value - a.value), ownPhaseOnePicks };
 }
 
 function preparationPillar(
   game: DraftGameState, series: ActiveDraftSeries, side: Side,
-  enemyTeamSlug: string, enemyRoster: Assignments,
+  enemyTeamSlug: string, rosters: { own: Assignments; enemy: Assignments },
   ownPicks: string[], ownBans: string[], enemyPicks: string[],
   ownAssignments: Assignments, enemyAssignments: Assignments,
 ): DraftPillar {
   const notes = new Notes();
+  // Ponderat cu priority value: un tier 1 pierdut contează mai mult decât un tier 2.
   let handled = 0;
   let lost = 0;
   const seen = new Set<string>();
+  const lostIds: string[] = [];
 
-  const resolve = (championId: string, label: string) => {
+  const resolve = (championId: string, label: string, weight: number, context?: Contested) => {
     if (seen.has(championId)) return;
     seen.add(championId);
+    const wanter = context?.enemyWanter && GRADE_RANK[context.enemyWanter.grade as keyof typeof GRADE_RANK] >= GRADE_RANK.A
+      ? `${context.enemyWanter.name} had it at ${context.enemyWanter.grade}`
+      : null;
     if (ownPicks.includes(championId)) {
-      handled += 1;
-      notes.add(`Took ${label}`);
+      handled += weight;
+      notes.add(`Secured ${label}`);
       return;
     }
     if (ownBans.includes(championId)) {
-      handled += 1;
-      notes.add(`Banned ${label}`);
+      handled += weight;
+      notes.add(`Banned ${label}${wanter ? `: ${wanter}` : ""}`);
       return;
     }
     if (!enemyPicks.includes(championId)) return; // nimeni nu l-a luat: nu contează
     const role = roleOf(enemyAssignments, championId);
     const answer = role ? findLaneAnswer(championId, role, ownAssignments) : null;
     if (answer) {
-      handled += 1;
-      notes.add(`Answered ${label} with ${name(answer.id)}`, `${answer.detail.label}: ${answer.detail.reason}`);
+      handled += weight;
+      notes.add(`Neutralized ${label} with ${name(answer.id)}`, `${answer.detail.label}: ${answer.detail.reason}`);
     } else {
-      lost += 1;
-      notes.add(`${label} went to them unanswered`);
+      lost += weight;
+      lostIds.push(championId);
+      notes.add(`Left ${label}${wanter ? ` (${wanter})` : ""} without a ban or an answer`);
     }
   };
 
   // Favoriții de sezon ai adversarului (cu W–L), apoi campionii contestați din faza 1.
-  const favorites = getSeasonFavorites(enemyTeamSlug, enemyRoster, 5).filter(
+  const favorites = getSeasonFavorites(enemyTeamSlug, rosters.enemy, 5).filter(
     (entry) => entry.threat >= DRAFT_THINKING_CONFIG.season.threatThreshold,
   );
+  const { contested, ownPhaseOnePicks } = getContestedChampions(game, series, side, rosters, enemyTeamSlug);
+  const byId = new Map(contested.map((entry) => [entry.championId, entry]));
   for (const favorite of favorites) {
-    resolve(favorite.championId, `${name(favorite.championId)} (${favorite.wins}–${favorite.games - favorite.wins} this season)`);
+    const entry = byId.get(favorite.championId);
+    resolve(favorite.championId, `${name(favorite.championId)} (${favorite.wins}–${favorite.games - favorite.wins} this season)`, entry?.value ?? REPORT.preparation.favoriteWeight, entry);
   }
-  const contested = getContestedChampions(game, series, side, enemyRoster, enemyTeamSlug);
-  for (const championId of contested) resolve(championId, `${name(championId)} (contested)`);
+  for (const entry of contested) resolve(entry.championId, `${name(entry.championId)} (tier ${entry.tier})`, entry.value, entry);
+
+  // „Took Corki (tier 2) at B1, while Rumble (tier 1) went to them.”
+  for (const lostId of lostIds) {
+    const lostEntry = byId.get(lostId);
+    if (!lostEntry || lostEntry.tier !== 1) continue;
+    const lower = ownPhaseOnePicks.find((pick) => pick.before.has(lostId) && pick.tier > 1 && pick.value < lostEntry.value);
+    if (lower) notes.add(`Took ${name(lower.championId)} (tier ${lower.tier}) at ${lower.label}, while ${name(lostId)} (tier 1) went to them`);
+  }
 
   if (handled + lost === 0) {
     notes.add("Nothing contested");
@@ -345,7 +385,7 @@ export function buildDraftPillarReport(
     composition: compositionPillar(ownPicks, ownAssignments, roster),
     lanes: lanesPillar(ownPicks, enemyPicks, ownAssignments, enemyAssignments),
     players: playersPillar(ownAssignments, roster, pickRoles),
-    preparation: preparationPillar(game, series, side, enemyTeamSlug, enemyRoster, ownPicks, ownBans, enemyPicks, ownAssignments, enemyAssignments),
+    preparation: preparationPillar(game, series, side, enemyTeamSlug, { own: roster, enemy: enemyRoster }, ownPicks, ownBans, enemyPicks, ownAssignments, enemyAssignments),
   };
 }
 

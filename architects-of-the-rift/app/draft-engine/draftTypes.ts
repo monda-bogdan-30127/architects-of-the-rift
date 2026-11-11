@@ -233,6 +233,8 @@ export type DraftCandidateBreakdown = {
    */
   reasonTags?: string[];
   explanation?: string[];
+  /** DRAFT_REALISM §13 — decizia în trei linii (intenție, alegere + bucket-uri, alternativa). */
+  decisionLines?: string[];
   /** Locul alegerii în lista de candidați valizi, sortată (0 = primul). Lipsă la acțiunile forțate. */
   choiceRank?: number;
   /** DRAFT_REALISM §6 — cât e de contestat candidatul (din perspectiva echipei care draftează). */

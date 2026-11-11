@@ -58,7 +58,7 @@ for (const action of actions) {
     console.log(`    Intenție: ${main.id} (${main.urgency.toFixed(1)})${main.reason ? ` — ${main.reason}` : ""}`);
   }
   const buckets = bucketLine(chosen);
-  if (buckets) console.log(`    ${buckets}`);
+  if (buckets && !chosen.decisionLines) console.log(`    ${buckets}`);
   const tags = (chosen.reasonTags ?? []).filter((tag) => !["valid-role-map", "meta-ok", "safe-pick", "single-role"].includes(tag));
   if (tags.length) console.log(`    tags: ${tags.join(", ")}`);
   for (const line of chosen.explanation ?? []) console.log(`    · ${line}`);

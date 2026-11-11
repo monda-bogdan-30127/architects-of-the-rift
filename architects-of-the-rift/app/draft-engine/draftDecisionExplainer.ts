@@ -1,4 +1,6 @@
 import { championsById } from "@/app/data/champions";
+import { players } from "@/app/data/players";
+import { getChampionGrade } from "@/app/utils/championMasteryUtils";
 import type { DraftCandidateBreakdown, DraftPillarReport, TeamDraftEvaluation } from "./draftTypes";
 import { describeMatchupDetailed } from "./matchupGrades";
 import { getMatchupRelations } from "./championMatchups";
@@ -177,4 +179,58 @@ export function summarizeTeamDraftEvaluation(evaluation: TeamDraftEvaluation, re
     notes.push(`identity note: ${evaluation.identityNote}`);
   }
   return notes;
+}
+
+// ─── DRAFT_REALISM §13: decizia AI în trei linii ─────────────────────────────
+
+const BUCKET_LABELS: Record<string, string> = {
+  power: "power", comp: "comp", counter: "counter", comfort: "comfort", deny: "deny", info: "info",
+  target: "target", protect: "protect", compDeny: "comp deny", predict: "predict", hygiene: "hygiene",
+};
+
+function weightedBuckets(entry: DraftCandidateBreakdown): [string, number][] {
+  const weights = entry.bucketWeights ?? {};
+  return Object.entries(entry.buckets ?? {}).map(([bucket, value]) => [bucket, (value as number) * ((weights as Record<string, number>)[bucket] ?? 1)]);
+}
+
+/**
+ * „[R1 pick · pick1-open] Intent: deny (8.4): <reason>”
+ * „Picked: Vi (jungle, Oner A). power 9.1 · deny 6.2 · comp 2.0 · info 3.4”
+ * „Alternative: Rumble (−1.8): lost most on deny (−3.1).”
+ */
+export function describeDecision(args: {
+  label: string;
+  action: "pick" | "ban";
+  phase: string;
+  chosen: DraftCandidateBreakdown;
+  ranked: readonly DraftCandidateBreakdown[];
+}): string[] {
+  const { chosen } = args;
+  const main = chosen.intents?.[0];
+  const header = `[${args.label} ${args.action} · ${args.phase}]`;
+  const lines = [main ? `${header} Intent: ${main.id} (${main.urgency.toFixed(1)}): ${main.reason ?? ""}` : header];
+
+  const player = chosen.projectedPlayerId ? players.find((entry) => entry.id === chosen.projectedPlayerId) : undefined;
+  const who = chosen.projectedRole
+    ? ` (${chosen.projectedRole}${player ? `, ${player.name} ${getChampionGrade(player, chosen.championId)}` : ""})`
+    : "";
+  const top = weightedBuckets(chosen)
+    .filter(([bucket]) => bucket !== "hygiene")
+    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+    .slice(0, 4)
+    .map(([bucket, value]) => `${BUCKET_LABELS[bucket] ?? bucket} ${value.toFixed(1)}`)
+    .join(" · ");
+  lines.push(`${args.action === "ban" ? "Banned" : "Picked"}: ${championName(chosen.championId)}${who}. ${top}`);
+
+  const alternative = args.ranked.find((entry) => entry.championId !== chosen.championId);
+  if (alternative) {
+    const gap = alternative.totalScore - chosen.totalScore;
+    const mine = new Map(weightedBuckets(chosen));
+    const [bucket, delta] = weightedBuckets(alternative)
+      .map(([key, value]) => [key, value - (mine.get(key) ?? 0)] as [string, number])
+      .sort((a, b) => a[1] - b[1])[0] ?? ["", 0];
+    const reason = delta < 0 ? `: lost most on ${BUCKET_LABELS[bucket] ?? bucket} (${delta.toFixed(1)})` : "";
+    lines.push(`Alternative: ${championName(alternative.championId)} (${gap >= 0 ? "+" : "−"}${Math.abs(gap).toFixed(1)})${reason}.`);
+  }
+  return lines;
 }

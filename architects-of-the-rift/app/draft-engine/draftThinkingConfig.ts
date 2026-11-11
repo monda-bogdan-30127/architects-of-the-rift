@@ -287,7 +287,8 @@ export const DRAFT_THINKING_CONFIG = {
     /** deny: theirInterest × takeProbability × atât (spec: × 1). */
     denyScale: 1,
     /** answer: valoarea de matchup a celui mai bun counter ≥ B × atât; + bonus dacă e favoritul lor de sezon. */
-    answerScale: 2,
+    /** Spec: × 2; valoarea de matchup ajunge la 9.5 (hard counter), deci × 2 satura urgența la 10 la orice counter. */
+    answerScale: 1.5,
     answerSeasonBonus: 3,
     /** build-identity: nevoi lipsă × atât + gate (fără frontline / adc) + win condition neacoperit + focus bot. */
     identityNeedScale: 1,
@@ -350,8 +351,8 @@ export const DRAFT_THINKING_CONFIG = {
     preparation: {
       /** handled / (handled + lost): A ≥ [0], B ≥ [1], C ≥ [2], altfel D. */
       grades: [0.75, 0.5, 0.25] as [number, number, number],
-      /** Adversarul „vrea” campionul: un jucător pe un rol liber îl are la cel puțin acest grad (A). */
-      enemyWantMinRank: 4,
+      /** Ponderea unui favorit de sezon care nu e și contestat (priority value mediu). */
+      favoriteWeight: 5,
     },
   },
 

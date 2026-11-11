@@ -48,6 +48,8 @@ import { buildDraftContext } from "@/app/draft-engine/draftContext";
 import { DEFAULT_AI_CONFIG } from "@/app/draft-engine/draftTypes";
 import { getTeamStyle } from "@/app/draft-engine/teamStyle";
 import { getOpenRolesForPickedChampions } from "@/app/draft-engine/draftRoleResolver";
+import { isLaneCounter, isStrongCounter } from "@/app/draft-engine/matchupGrades";
+import { ROLE_ORDER } from "@/app/draft-engine/draftTypes";
 import { evaluateIntents } from "@/app/draft-engine/draftDecision";
 import { getResolvedChampionPool } from "@/app/utils/championMasteryUtils";
 import { computeSeriesMvp, type SeriesGameSummary } from "@/app/draft-engine/mvpStorage";
@@ -1364,6 +1366,71 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     ban2 > 0 && wasted.length === 0,
     `${ban2} ban-uri în ban 2; pe roluri completate: ${wasted.length}${wasted.length ? ` (${wasted.slice(0, 3).join("; ")})` : ""}`,
   );
+}
+
+// ─── DRAFT_REALISM §15.12–13: Preparation pe priority value ─────────────────
+{
+  const save = makeSave();
+  const rosters = { blue: save.updatedTeamRosters[BLUE] ?? {}, red: save.updatedTeamRosters[RED] ?? {} };
+  const start = newSeries("r13p", BLUE, RED);
+  const ctx = buildDraftContext(getCurrentStep(start.games[0])!, start.games[0], start, save, DEFAULT_AI_CONFIG);
+  // Tier 1-urile pe care roșii le vor (din perspectiva albaștrilor, la primul ban).
+  const wanted = champions
+    .map((champion) => ({ id: champion.id, priority: ctx.priorityOf(champion) }))
+    .filter((entry) => entry.priority.tier === 1 && entry.priority.enemyWant >= 5)
+    .sort((a, b) => b.priority.value - a.priority.value)
+    .map((entry) => entry.id);
+
+  // 12. Albaștrii banează toți tier 1-urile pe care le voiau roșii → Preparation A (nu D).
+  {
+    // Albaștrii au 3 ban-uri în faza 1: dacă roșii vor mai mult de 3 tier 1, restul îl banează chiar roșii
+    // (nu-l mai ia nimeni, deci nu contează), ca toate tier 1-urile lor să fie acoperite.
+    const neutral = ["azir", "jayce", "ksante", "orianna", "sejuani", "vi"].filter((id) => !wanted.includes(id));
+    const blueBans = wanted.slice(0, 3);
+    const redBans = [...wanted.slice(3, 6), ...neutral].slice(0, 3);
+    // Ordinea din DRAFT_SEQUENCE: B1 R1 B2 R2 B3 R3.
+    const sequenceBans = [blueBans[0], redBans[0], blueBans[1], redBans[1], blueBans[2], redBans[2]];
+    const series = newSeries("r13a", BLUE, RED);
+    const { game } = runDraft({ series, save, bans: sequenceBans });
+    const report = buildDraftPillarReport(resolveFinishedDraftAssignments(game, series, save), "blue", series, save, rosters);
+    check(
+      "R15.12 Banăm tier 1-urile pe care le voiau ei → Preparation A",
+      wanted.length > 0 && report.preparation.grade === "A",
+      `tier 1 voiți de ei: ${wanted.join(", ") || "—"}; ban-uri albaștri ${blueBans.join(", ")}; Preparation ${report.preparation.grade}: ${report.preparation.notes.slice(0, 3).join(" | ")}`,
+    );
+  }
+
+  // 13. Roșii iau un tier 1, albaștrii iau counter-ul lui pe linie în pick2 → neutralizat.
+  {
+    const target = wanted[0];
+    const targetChampion = champions.find((c) => c.id === target);
+    const role = targetChampion?.roles[0] ?? "mid";
+    const counterId = target
+      ? getRoleMatchups(target, role).weakVs.find((relation) => (isStrongCounter(relation) || isLaneCounter(relation)) && relation.championId !== target)?.championId
+      : undefined;
+    const fillers = (exclude: string[], roles: Role[]) =>
+      roles.map((entry) => champions.find((c) => c.roles[0] === entry && !exclude.includes(c.id) && c.roles.length === 1)!.id);
+    const otherRoles = ROLE_ORDER.filter((entry) => entry !== role);
+    const redPicks = target ? [target, ...fillers([target, counterId ?? ""], otherRoles)] : [];
+    const bluePicks = counterId ? [...fillers([...redPicks, counterId], otherRoles).map((id, index) => (redPicks.includes(id) ? champions.filter((c) => c.roles[0] === otherRoles[index] && !redPicks.includes(c.id) && c.id !== counterId)[1].id : id)), counterId] : [];
+    const series = newSeries("r13b", BLUE, RED);
+    const game: DraftGameState = {
+      ...series.games[0],
+      bansBlue: ["azir", "jayce", "ksante", "gnar", "kalista"].filter((id) => id !== target && id !== counterId).slice(0, 5),
+      bansRed: ["sejuani", "orianna", "rumble", "vi", "zeri"].filter((id) => id !== target && id !== counterId).slice(0, 5),
+      picksBlue: bluePicks,
+      picksRed: redPicks,
+      phaseIndex: 20,
+    };
+    const resolved = resolveFinishedDraftAssignments(game, series, save);
+    const report = buildDraftPillarReport(resolved, "blue", series, save, rosters);
+    const name = targetChampion?.name ?? target;
+    check(
+      "R15.13 Ei iau un tier 1, noi luăm counter-ul pe linie în pick2 → neutralizat",
+      Boolean(counterId) && report.preparation.notes.some((note) => note.startsWith(`Neutralized ${name}`)),
+      `tier 1: ${target} (${role}); counter: ${counterId ?? "—"}; Preparation ${report.preparation.grade}: ${report.preparation.notes.slice(0, 3).join(" | ")}`,
+    );
+  }
 }
 
 // ─── Raport ──────────────────────────────────────────────────────────────────

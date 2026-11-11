@@ -29,7 +29,8 @@ import {
 } from "./draftAI";
 import { UNIT_BAN_WEIGHTS, UNIT_PICK_WEIGHTS, type BucketWeights } from "./draftBuckets";
 import { MUSTWITH_CONFIG, resolveMustWithLock, type EligiblePartner } from "./mustWithPriority";
-import { describeForcedOffPool, describeMustWithLock } from "./draftDecisionExplainer";
+import { describeDecision, describeForcedOffPool, describeMustWithLock } from "./draftDecisionExplainer";
+import { getDraftPhaseId } from "./draftPhase";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { roll } from "./draftVariationSystem";
 
@@ -335,7 +336,11 @@ export function chooseAiAction(
   config: DraftAiConfig = DEFAULT_AI_CONFIG
 ): DraftCandidateBreakdown | null {
   const ranked: DraftCandidateBreakdown[] = [];
-  const chosen = decideDraftAction(pool, step, game, series, save, config, ranked);
+  const decided = decideDraftAction(pool, step, game, series, save, config, ranked);
+  // §13: decizia explicată în trei linii (pentru trace, raport și UI).
+  const chosen = decided
+    ? { ...decided, decisionLines: describeDecision({ label: step.label, action: step.action, phase: getDraftPhaseId(game.phaseIndex), chosen: decided, ranked }) }
+    : null;
   decisionObserver?.({ step, game, series, ranked, chosen });
   return chosen;
 }
