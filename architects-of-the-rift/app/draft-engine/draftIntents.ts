@@ -294,6 +294,30 @@ export function evaluateIntents(ctx: DraftContext, styleUrgency: Partial<Record<
   return intents.sort((a, b) => b.urgency - a.urgency);
 }
 
+const intentCache = new WeakMap<DraftContext, Intent[]>();
+/** Intențiile pasului, cu stilul echipei (cache pe context: o dată per acțiune). */
+export function getCachedIntents(ctx: DraftContext): Intent[] {
+  let intents = intentCache.get(ctx);
+  if (!intents) {
+    intents = evaluateIntents(ctx, ctx.style.intentUrgency);
+    intentCache.set(ctx, intents);
+  }
+  return intents;
+}
+
+/**
+ * §7.3 — așteptare: un solo lane al nostru pe care ei nu-l iau și nu-l banează până la următorul pick poate
+ * rămâne pentru counter-pick; pick-ul curent merge pe altceva. Penalizare în `info`, proporțională cu urgența hide.
+ */
+export function getWaitPenalty(champion: Champion, role: Role | null, ctx: DraftContext): number {
+  if (!role || !isSolo(role) || ctx.step.action !== "pick" || ctx.phase === "last-pick" || ctx.lookahead.ourPicksLeft < 2) return 0;
+  if (getScarcity(ctx).own.includes(role)) return 0;
+  const look = getLookaheadValue(champion, ctx);
+  if (look.takeProbability >= LOOKAHEAD.safeProbability || look.banProbability >= LOOKAHEAD.safeProbability) return 0;
+  const hideUrgency = getCachedIntents(ctx).find((intent) => intent.id === "hide")?.urgency ?? 0;
+  return (hideUrgency / 10) * LOOKAHEAD.waitPenalty;
+}
+
 /** Multiplicatorul unui bucket din intenții: 1 + boost × Σ urgency/10 a intențiilor legate de el. */
 export function getIntentMultiplier(intents: readonly Intent[], bucket: BucketId): number {
   const sum = intents.filter((intent) => INTENT_BUCKET[intent.id] === bucket).reduce((total, intent) => total + intent.urgency / 10, 0);

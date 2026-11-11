@@ -26,6 +26,7 @@ import { getBotFocus, type BotFocus } from "./botDuoPlan";
 import { champions } from "@/app/data/champions";
 import type { Champion } from "@/app/types/champion";
 import { createPriorityLookup, type PriorityValue } from "./priorityValue";
+import { getTeamStyle, type TeamStyle } from "./teamStyle";
 
 export type TeamDraftState = {
   side: Side;
@@ -73,6 +74,8 @@ export type DraftContext = {
   ownWinCondition: WinCondition | null;
   /** FEEDBACK_FIXES §10.3 — „jucăm prin bot?” (doar cu ambele roluri bot libere contează). */
   botFocus: BotFocus;
+  /** DRAFT_REALISM §8 — stilul echipei care draftează. */
+  style: TeamStyle;
   /** DRAFT_REALISM §6 — priority value din perspectiva echipei care draftează (cache pe acțiune). */
   priorityOf: (champion: Champion) => PriorityValue;
   /** Campionul disponibil cu cel mai mare priority value folosibil de noi (calculat la cerere). */
@@ -168,6 +171,10 @@ export function buildDraftContext(
   const ownWinCondition = getWinCondition(own.picks, own.assignments, own.identity, own.roster);
   const clutch = getClutchContext(series);
   const unavailableIds = mustWith.own.unavailable;
+  const seriesPressure = {
+    eliminationGame: side === "blue" ? clutch.blueAtElimination : clutch.redAtElimination,
+    leading: countWins(series, side) > countWins(series, enemySide),
+  };
   const priorityOf = createPriorityLookup({
     ownRoster: own.roster, ownOpenRoles: own.openRoles,
     enemyRoster: enemy.roster, enemyOpenRoles: enemy.openRoles,
@@ -189,8 +196,6 @@ export function buildDraftContext(
     }
     return topCache;
   };
-  const ownWins = countWins(series, side);
-  const enemyWins = countWins(series, enemySide);
   const ctx: DraftContext = {
     step,
     stepIndex: game.phaseIndex,
@@ -218,10 +223,8 @@ export function buildDraftContext(
     enemyPriorityOf,
     topOwnUsablePriority,
     lookahead: getLookahead(game.phaseIndex, side),
-    seriesPressure: {
-      eliminationGame: side === "blue" ? clutch.blueAtElimination : clutch.redAtElimination,
-      leading: ownWins > enemyWins,
-    },
+    seriesPressure,
+    style: getTeamStyle(own.team, { seriesPressure }),
   };
   if (contextCache.size > 300) contextCache.clear();
   contextCache.set(key, ctx);

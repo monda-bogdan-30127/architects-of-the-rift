@@ -46,6 +46,7 @@ import { simulateAiVsAiSeries } from "@/app/draft-engine/aiSeriesSimulator";
 import { getBotPairTier } from "@/app/draft-engine/mustWithPriority";
 import { buildDraftContext } from "@/app/draft-engine/draftContext";
 import { DEFAULT_AI_CONFIG } from "@/app/draft-engine/draftTypes";
+import { getTeamStyle } from "@/app/draft-engine/teamStyle";
 import { evaluateIntents } from "@/app/draft-engine/draftDecision";
 import { getResolvedChampionPool } from "@/app/utils/championMasteryUtils";
 import { computeSeriesMvp, type SeriesGameSummary } from "@/app/draft-engine/mvpStorage";
@@ -760,7 +761,8 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     "19. B1 Vi → plan dive/pick, blocat după pick 3, B4/B5 aliniate",
     // Înainte, de la pick-ul 5 alinierea era mereu 0; acum planul rămâne activ și blocat. Pick-urile alese pot
     // avea fit 0 (aliniere 0), deci verificăm direct: pe pick-ul 5, un campion cu fit ≠ 0 are aliniere ≠ 0.
-    plans.every((type) => type === "dive" || type === "pick") && lockedSame && anchored &&
+    // DRAFT_REALISM §8: planul poate urma și stilul echipei (preferredStyles), dacă Vi se potrivește cu el (fit ≥ 1).
+    plans.every((type) => type !== "—" && getCandidateIdentityFit(champions.find((c) => c.id === "vi")!, "jungle", type as DraftPlanType) >= 1) && lockedSame && anchored &&
       b4?.breakdown?.plan?.lockedAtPick === 3 && b5?.breakdown?.plan?.lockedAtPick === 3 &&
       typeof b5?.breakdown?.planAlignment === "number" && pick5Alignment !== 0,
     `Vi priority=${viPriority}; plan B2..B5: ${plans.join(", ")}; ancoră vi: ${anchored}; aliniere B4 ${b4?.breakdown?.planAlignment?.toFixed(2)}, B5 ${b5?.breakdown?.planAlignment?.toFixed(2)}, pick 5 cu ${fitting.id}: ${pick5Alignment.toFixed(2)}; pick-uri: ${bluePicks.map((entry) => entry.championId).join(", ")}; „${b2?.breakdown?.explanation?.find((line) => line.startsWith("Plan:")) ?? ""}”`,
@@ -886,10 +888,13 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     picksBlue: ["ahri"], picksRed: ["olaf"], pickRolesRed: { olaf: "top" }, phaseIndex: 9,
   };
   const counter = counterId ? scoreDraftCandidate(champions.find((c) => c.id === counterId)!, getCurrentStep(game24)!, game24, series24, saveB) : null;
+  // DRAFT_REALISM §8: o echipă cu stil „ban” (riskLevel ≤ 3) banează favoritul și când are counter.
+  const blueStyle = getTeamStyle(teams.find((team) => team.slug === BLUE) ?? null, { seriesPressure: { eliminationGame: false } }).seasonResponse;
+  const olafBanned = bansB.some((entry) => entry.championId === "olaf");
   check(
-    "24. Sezon: avem counter A → Olaf liber; luat de ei → season-counter",
-    Boolean(counterTop) && !bansB.some((entry) => entry.championId === "olaf") && hasTag(counter, "season-counter"),
-    `top ${counterTop}: ${counterId} (${counterGrades[counterId ?? ""] ?? "?"}); ban-uri albaștri ${bansB.map((entry) => entry.championId).join(", ")}; „${counter?.explanation?.find((line) => line.startsWith("Counter to their")) ?? "—"}”`,
+    "24. Sezon: avem counter A → Olaf liber (sau banat de un stil „ban”); luat de ei → season-counter",
+    Boolean(counterTop) && (blueStyle === "ban" ? olafBanned : !olafBanned) && hasTag(counter, "season-counter"),
+    `stil ${BLUE}: ${blueStyle}; top ${counterTop}: ${counterId} (${counterGrades[counterId ?? ""] ?? "?"}); ban-uri albaștri ${bansB.map((entry) => entry.championId).join(", ")}; „${counter?.explanation?.find((line) => line.startsWith("Counter to their")) ?? "—"}”`,
   );
   setTeamSeasonStoreOverride(null);
 }
@@ -1237,6 +1242,62 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     "R15.11 Meci de eliminare → urgența comfort mai mare",
     comfortElimination > comfortNormal,
     `comfort: normal ${comfortNormal}, eliminare ${comfortElimination}`,
+  );
+}
+
+// ─── DRAFT_REALISM §15.8–9: stilul echipei ───────────────────────────────────
+{
+  // Knob-urile echipei roșii modificate temporar (restaurate la final).
+  const team = teams.find((entry) => entry.slug === RED)!;
+  const original = { ...team.identity! };
+  const withKnobs = <T,>(knobs: Partial<typeof original>, run: () => T): T => {
+    team.identity = { ...original, ...knobs };
+    try {
+      return run();
+    } finally {
+      team.identity = { ...original };
+    }
+  };
+  const save = makeSave();
+  const seeds = 30;
+
+  // 8. counterpickBias 9 vs 2: prima lasă solo lane-urile pentru pick2 mai des (mai puține top/mid în faza 1).
+  const soloInPhaseOne = (prefix: string) => {
+    let solo = 0;
+    for (let index = 0; index < seeds; index += 1) {
+      const { log } = runDraft({ series: newSeries(`${prefix}${index}`, BLUE, RED), save, bans: [], stop: (entries) => entries.length >= 12 });
+      solo += log.filter((entry) => entry.side === "red" && entry.action === "pick" && ["top", "mid"].includes(entry.breakdown?.projectedRole ?? "")).length;
+    }
+    return solo;
+  };
+  const soloHigh = withKnobs({ counterpickBias: 9 }, () => soloInPhaseOne("r9c"));
+  const soloLow = withKnobs({ counterpickBias: 2 }, () => soloInPhaseOne("r9c"));
+  check(
+    "R15.8 counterpickBias 9 lasă solo lane-urile pentru pick2 mai des decât 2",
+    soloHigh < soloLow,
+    `top/mid în faza 1 (${seeds} drafturi): counterpickBias 9 → ${soloHigh}, 2 → ${soloLow}`,
+  );
+
+  // 9. creativity 2 alege primul candidat în ≥ 90% din acțiuni; creativity 9 în 40–70%.
+  const firstRate = (prefix: string) => {
+    let first = 0;
+    let total = 0;
+    for (let index = 0; index < 50; index += 1) {
+      const { log } = runDraft({ series: newSeries(`${prefix}${index}`, BLUE, RED), save, bans: [] });
+      for (const entry of log) {
+        if (entry.side !== "red" || entry.breakdown?.choiceRank === undefined) continue;
+        total += 1;
+        if (entry.breakdown.choiceRank === 0) first += 1;
+      }
+    }
+    return total ? first / total : 0;
+  };
+  const rateLow = withKnobs({ creativity: 2 }, () => firstRate("r9v"));
+  const rateHigh = withKnobs({ creativity: 9 }, () => firstRate("r9v"));
+  check(
+    "R15.9 creativity 2 → primul candidat ≥ 90%; creativity 9 → 40–70%",
+    rateLow >= 0.9 && rateHigh >= 0.4 && rateHigh <= 0.7,
+    `creativity 2: ${(rateLow * 100).toFixed(1)}%, creativity 9: ${(rateHigh * 100).toFixed(1)}%`,
   );
 }
 

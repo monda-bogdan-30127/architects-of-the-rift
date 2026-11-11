@@ -31,10 +31,10 @@ import { UNIT_BAN_WEIGHTS, UNIT_PICK_WEIGHTS, type BucketWeights } from "./draft
 import { MUSTWITH_CONFIG, resolveMustWithLock, type EligiblePartner } from "./mustWithPriority";
 import { describeForcedOffPool, describeMustWithLock } from "./draftDecisionExplainer";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
-import { chooseFromAdaptiveShortlist, roll } from "./draftVariationSystem";
+import { roll } from "./draftVariationSystem";
 
 import {
-  evaluateIntents as evaluateTeamIntents,
+  getCachedIntents,
   getIntentMultiplier,
   getScarcity,
   INTENT_BUCKET,
@@ -115,14 +115,8 @@ function applyRealisticPickTiebreaker(a: DraftCandidateBreakdown, b: DraftCandid
 
 // ─── Intenții și ponderi (§5, §7, §8) ────────────────────────────────────────
 /** §7 — intențiile echipei la pasul curent (cache pe context: se calculează o dată per acțiune). */
-const intentCache = new WeakMap<DraftContext, Intent[]>();
 export function evaluateIntents(ctx: DraftContext): Intent[] {
-  let intents = intentCache.get(ctx);
-  if (!intents) {
-    intents = evaluateTeamIntents(ctx);
-    intentCache.set(ctx, intents);
-  }
-  return intents;
+  return getCachedIntents(ctx);
 }
 
 /** Ponderea fazei (§5) pentru fiecare bucket; intențiile (§7) și stilul (§8) se adaugă peste. */
@@ -139,9 +133,18 @@ export function getPhaseWeights(ctx: DraftContext): BucketWeights {
 /** weight[b] = faza × stil (§8) × (1 + boost × Σ urgency/10 a intențiilor legate de b). */
 export function getBucketWeights(ctx: DraftContext, intents: readonly Intent[]): BucketWeights {
   const weights = getPhaseWeights(ctx);
+  const phaseOne = ctx.phase === "pick1-open" || ctx.phase === "pick1-close";
   for (const bucket of Object.keys(weights) as (keyof BucketWeights)[]) {
     if (bucket === "hygiene") continue;
-    weights[bucket] = (weights[bucket] ?? 1) * getIntentMultiplier(intents, bucket);
+    // Stilul (§8) contează la pick; `power` (earlyPriorityBias) doar în faza 1, `counter` (counterpickBias)
+    // doar în pick2 / last-pick: în faza 1 ar trage spre counter-pick-uri imediate pe solo lane-uri,
+    // exact opusul lui „păstrez solo lane-ul pentru counter-pick” (scenariul §15.8).
+    const style =
+      ctx.step.action !== "pick" ? 1
+        : bucket === "power" ? (phaseOne ? ctx.style.phaseOnePower : 1)
+          : bucket === "counter" ? (phaseOne ? 1 : ctx.style.bucket.counter ?? 1)
+            : ctx.style.bucket[bucket] ?? 1;
+    weights[bucket] = (weights[bucket] ?? 1) * style * getIntentMultiplier(intents, bucket);
   }
   return weights;
 }
@@ -224,6 +227,25 @@ function withChoiceRank(chosen: DraftCandidateBreakdown | null, ranked: DraftCan
   return index >= 0 ? { ...chosen, choiceRank: index } : chosen;
 }
 
+/**
+ * §10 — shortlist = candidații cu totalScore ≥ best − window (max 5), p(i) ∝ exp((score_i − best) / temperature),
+ * alegere deterministă prin roll(seed) pe distribuția cumulativă.
+ */
+export function chooseSoftmax(ranked: DraftCandidateBreakdown[], window: number, temperature: number, seed: string): DraftCandidateBreakdown | null {
+  const best = ranked[0];
+  if (!best) return null;
+  const shortlist = ranked.filter((entry) => entry.totalScore >= best.totalScore - window).slice(0, DRAFT_THINKING_CONFIG.choice.maxShortlist);
+  if (shortlist.length <= 1) return best;
+  const weights = shortlist.map((entry) => Math.exp((entry.totalScore - best.totalScore) / Math.max(0.05, temperature)));
+  const total = weights.reduce((sum, value) => sum + value, 0);
+  let threshold = roll(seed) * total;
+  for (let index = 0; index < shortlist.length; index += 1) {
+    threshold -= weights[index];
+    if (threshold <= 0) return shortlist[index];
+  }
+  return shortlist[shortlist.length - 1];
+}
+
 export function chooseFinal(ranked: DraftCandidateBreakdown[], ctx: DraftContext): DraftCandidateBreakdown | null {
   const { series, game, step } = ctx;
   if (step.action === "pick") {
@@ -241,13 +263,14 @@ export function chooseFinal(ranked: DraftCandidateBreakdown[], ctx: DraftContext
     if (partnerEntry && nonBotPartner && roll(`${seed}:mustwith`) < MUSTWITH_CONFIG.nonBotLockChance) {
       return withMustWithLock(partnerEntry, nonBotPartner);
     }
-    return withChoiceRank(chooseFromAdaptiveShortlist(valid, seed) ?? null, valid);
+    const { window, temperature } = ctx.style.variance;
+    return withChoiceRank(chooseSoftmax(valid, window, temperature, seed), valid);
   }
 
+  // §9.3: la ban, aceeași alegere, cu fereastră mai mică și temperatura × 0.7.
   const banSeed = `${series.seriesId}:${series.currentGameNumber}:${game.phaseIndex}:ban:${step.side}`;
-  const banShortlist = ranked.slice(0, 3);
-  const banHash = banSeed.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return withChoiceRank(banShortlist[banHash % banShortlist.length] ?? ranked[0] ?? null, ranked);
+  const CHOICE = DRAFT_THINKING_CONFIG.choice;
+  return withChoiceRank(chooseSoftmax(ranked, CHOICE.banWindow, ctx.style.variance.temperature * CHOICE.banTemperatureFactor, banSeed), ranked);
 }
 
 // ─── Pipeline ────────────────────────────────────────────────────────────────

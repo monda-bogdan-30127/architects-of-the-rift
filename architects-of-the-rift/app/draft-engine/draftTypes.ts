@@ -247,7 +247,7 @@ export type DraftCandidateBreakdown = {
 };
 
 /** DRAFT_REALISM §4 — bucket-urile de pick / ban. */
-export type PickBucketId = "power" | "comp" | "counter" | "comfort" | "deny" | "info" | "style";
+export type PickBucketId = "power" | "comp" | "counter" | "comfort" | "deny" | "info";
 export type BanBucketId = "power" | "target" | "protect" | "compDeny" | "predict" | "hygiene";
 export type BucketId = PickBucketId | BanBucketId;
 /** DRAFT_REALISM §7 — intențiile echipei. */

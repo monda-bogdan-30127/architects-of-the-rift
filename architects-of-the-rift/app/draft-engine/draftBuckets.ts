@@ -4,7 +4,7 @@ import type { BanBucketId, BucketId, PickBucketId } from "./draftTypes";
 
 export type BucketWeights = Partial<Record<BucketId, number>>;
 
-export const PICK_BUCKETS: readonly PickBucketId[] = ["power", "comp", "counter", "comfort", "deny", "info", "style"];
+export const PICK_BUCKETS: readonly PickBucketId[] = ["power", "comp", "counter", "comfort", "deny", "info"];
 export const BAN_BUCKETS: readonly BanBucketId[] = ["power", "target", "protect", "compDeny", "predict", "hygiene"];
 
 export const UNIT_PICK_WEIGHTS: Readonly<Record<PickBucketId, number>> = Object.freeze(

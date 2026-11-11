@@ -175,13 +175,13 @@ export const DRAFT_THINKING_CONFIG = {
   },
 
   // DRAFT_REALISM §5 — ponderile bucket-urilor pe fază (după indexul din DRAFT_SEQUENCE).
-  // `style` rămâne 1 (stilul acționează pe ponderi din §8); `hygiene` e mereu × 1.
+  // Stilul echipei (§8) înmulțește ponderile; `hygiene` e mereu × 1.
   phases: {
     pick: {
-      "pick1-open": { power: 1.3, comp: 0.6, counter: 0.4, comfort: 1.0, deny: 1.2, info: 1.2, style: 1 },
-      "pick1-close": { power: 1.1, comp: 0.9, counter: 0.7, comfort: 1.0, deny: 1.0, info: 1.1, style: 1 },
-      pick2: { power: 0.8, comp: 1.3, counter: 1.2, comfort: 1.0, deny: 0.7, info: 0.6, style: 1 },
-      "last-pick": { power: 0.6, comp: 1.2, counter: 1.6, comfort: 1.0, deny: 0.2, info: 0.1, style: 1 },
+      "pick1-open": { power: 1.3, comp: 0.6, counter: 0.4, comfort: 1.0, deny: 1.2, info: 1.2 },
+      "pick1-close": { power: 1.1, comp: 0.9, counter: 0.7, comfort: 1.0, deny: 1.0, info: 1.1 },
+      pick2: { power: 0.8, comp: 1.3, counter: 1.2, comfort: 1.0, deny: 0.7, info: 0.6 },
+      "last-pick": { power: 0.6, comp: 1.2, counter: 1.6, comfort: 1.0, deny: 0.2, info: 0.1 },
     },
     ban: {
       ban1: { power: 1.2, target: 1.1, protect: 0.5, compDeny: 0.3, predict: 1.0, hygiene: 1 },
@@ -190,6 +190,45 @@ export const DRAFT_THINKING_CONFIG = {
     /** §5.3 — fostele scalări pe pick înlocuite de ponderile de fază. */
     flexAmbiguityBonus: 1.0,
     contestabilityAnswerWeight: 0.32,
+  },
+
+  // DRAFT_REALISM §8 — stilul echipei (teamStyle.ts), din knob-urile TeamIdentity (1–10).
+  style: {
+    /** f(k) = knobBase + knobStep × k (k = 5 → 1.0). */
+    knobBase: 0.7,
+    knobStep: 0.06,
+    /** Meci de eliminare: comfortBias +, riskLevel + (temporar). */
+    eliminationComfort: 2,
+    eliminationRisk: 1,
+    /** creativity → §10: window = base + step × c, temperature = base + step × c; offMeta = base − step × c. */
+    windowBase: 0.2,
+    windowStep: 0.8,
+    temperatureBase: -0.2,
+    temperatureStep: 0.32,
+    offMetaBase: 1.3,
+    offMetaStep: 0.06,
+    /** riskLevel ≥ atât → răspunsul „plan” la favoriții de sezon; ≤ atât → „ban”. */
+    seasonPlanRisk: 7,
+    seasonBanRisk: 3,
+    /**
+     * counterpickBias → factorul bonusului de păstrare a counter-pick-ului: 1 + step × (k − 5).
+     * f(k) din spec (0.76..1.3) pe urgența hide nu schimba niciun rol în faza 1 (scenariul §15.8: 34 / 34).
+     */
+    counterpickPreservationStep: 0.15,
+    /** Planurile din preferredStyles primesc atât în scorul planului. */
+    preferredPlanBonus: 0.15,
+    /** preferredTags / avoidTags (fostul getIdentityBias), × planCommitment în `comp`. */
+    preferredTagBonus: 0.45,
+    avoidTagPenalty: 0.6,
+  },
+
+  // DRAFT_REALISM §10 — alegerea finală (draftDecision.ts → chooseFinal).
+  choice: {
+    /** Shortlist: cel mult atâția candidați în fereastra stilului. */
+    maxShortlist: 5,
+    /** La ban: fereastra fixă și temperatura × banTemperatureFactor. */
+    banWindow: 1.5,
+    banTemperatureFactor: 0.7,
   },
 
   // DRAFT_REALISM §6 — priority value (priorityValue.ts): cât e de contestat un campion.
@@ -268,6 +307,8 @@ export const DRAFT_THINKING_CONFIG = {
     /** Sub aceste probabilități, un solo lane al nostru poate aștepta (bonus la urgența hide). */
     safeProbability: 0.15,
     waitBonusToHide: 1.0,
+    /** … și candidatul solo lane care poate aștepta: −(urgența hide / 10) × atât în `info`. */
+    waitPenalty: 5,
   },
 
   // FEEDBACK_FIXES §5 — raportul de draft pe piloni (draftPillarReport.ts)

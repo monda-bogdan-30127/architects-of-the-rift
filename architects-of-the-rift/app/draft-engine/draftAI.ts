@@ -96,7 +96,7 @@ import {
 } from "./playerProfileSystem";
 import { getAdaptivePriorityBonus } from "./adaptivePrioritySystem";
 import { getContestabilityPenalty } from "./draftContestability";
-import { getLookaheadValue, getScarcity, isScarcePoolChampion } from "./draftIntents";
+import { getLookaheadValue, getScarcity, getWaitPenalty, isScarcePoolChampion } from "./draftIntents";
 import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
 import { getBadSynergy, getTotalBadSynergy } from "./badSynergy";
@@ -181,6 +181,8 @@ export function getCachedPlan(args: {
     lockedPlan: ownPickCount >= lockAt ? lastPlanBeforeLock.get(baseKey) ?? null : null,
     // §7: planul ține cont de stilul de sezon al lor (favoritul de sezon nu mai face un priority pick, FEEDBACK_FIXES §11).
     seasonEnemyBestIdentity: getSeasonBestIdentity(userTeamSlug),
+    // DRAFT_REALISM §8: planurile din preferredStyles ale echipei primesc un bonus.
+    preferredStyles: (teams.find((team) => team.slug === aiTeamSlug)?.identity?.preferredStyles ?? []).filter((style) => style !== "balanced"),
   });
 
   if (ownPickCount < lockAt) lastPlanBeforeLock.set(baseKey, plan);
@@ -256,27 +258,18 @@ function hasCurrentSideLastRotation(game: DraftGameState, side: Side) {
   );
 }
 
-function getIdentityBias(teamSlug: string, champion: Champion) {
-  const team = teams.find((entry) => entry.slug === teamSlug);
-  const identity = team?.identity;
+/**
+ * DRAFT_REALISM §8 — tag-urile preferate / evitate ale echipei (din fostul getIdentityBias; cele 4 praguri
+ * `>= 7` pe flex / early / counterpick / creativity sunt acum stilul echipei, pe ponderi). În `comp`.
+ */
+function getTeamTagBias(teamSlug: string, champion: Champion) {
+  const identity = teams.find((entry) => entry.slug === teamSlug)?.identity;
   if (!identity) return 0;
-
   const tagSet = new Set(champion.championTags ?? []);
+  const STYLE = DRAFT_THINKING_CONFIG.style;
   let bias = 0;
-
-  if ((identity.flexBias ?? 0) >= 7 && champion.roles.length >= 2) bias += 1.35;
-  if ((identity.earlyPriorityBias ?? 0) >= 7 && (champion.stats?.prioScore ?? 0) >= 65) bias += 1.15;
-  if ((identity.counterpickBias ?? 0) >= 7 && champion.roles.length === 1) bias += 0.4;
-  if ((identity.creativity ?? 0) >= 7 && champion.roles.length >= 2) bias += 0.6;
-
-  for (const tag of identity.preferredTags ?? []) {
-    if (tagSet.has(tag)) bias += 0.45;
-  }
-
-  for (const tag of identity.avoidTags ?? []) {
-    if (tagSet.has(tag)) bias -= 0.6;
-  }
-
+  for (const tag of identity.preferredTags ?? []) if (tagSet.has(tag)) bias += STYLE.preferredTagBonus;
+  for (const tag of identity.avoidTags ?? []) if (tagSet.has(tag)) bias -= STYLE.avoidTagPenalty;
   return clamp(bias, -3, 4);
 }
 
@@ -927,7 +920,9 @@ export function scorePickCandidate(
     clutchAmplifier: clutchAmp,
   });
   const metaPriority = clamp(getMetaPriorityScore(candidate, projected.projectedRole), 0, 10);
-  const identityBias = getIdentityBias(teamSlug, candidate);
+  // §8: discipline → angajamentul față de plan / identitate (aliniere, coerență, win condition, split, tag-uri).
+  const commitment = ctx.style.planCommitment;
+  const identityBias = getTeamTagBias(teamSlug, candidate) * commitment;
   const flexBonus = candidate.roles.length >= 2 ? 1.8 : 0.35;
 
   const roleCoverage = getRoleCoverageUrgency(
@@ -953,7 +948,11 @@ export function scorePickCandidate(
     projected.projectedRole,
     enemyState.picks
   );
-  const counterpickPreservationBonus = counterpickPreservationBase - directLaneCounterPenalty;
+  // §8: counterpickBias → cât ține solo lane-urile pentru counter-pick.
+  //     Doar partea negativă (solo lane single-role ținut pentru counter-pick); bonusul pentru flex rămâne.
+  const counterpickPreservationBonus =
+    (counterpickPreservationBase < 0 ? counterpickPreservationBase * ctx.style.counterpickPreservation : counterpickPreservationBase) -
+    directLaneCounterPenalty;
 
   const mustWithState = ctx.mustWith;
 
@@ -1004,7 +1003,8 @@ export function scorePickCandidate(
     predictions: advCtx.enemyPredictions,
   });
   const weaknessPenalty = getWeaknessPenalty(enemyState.picks, candidate);
-  const offMetaPenalty = getOffMetaPenalty(candidate, series, projected.projectedRole);
+  // §8: creativity → toleranța la off-meta.
+  const offMetaPenalty = getOffMetaPenalty(candidate, series, projected.projectedRole) * ctx.style.offMetaTolerance;
   const archetypeAffinity = getArchetypeAffinityScore(roster, projected.projectedRole, candidate);
   const comboDependencyPenalty = getComboDependencyPenalty(ownState.picks, candidate, projected.projectedRole);
   const winConditionCoherence = getWinConditionCoherenceScore(
@@ -1241,15 +1241,15 @@ export function scorePickCandidate(
       compSynergy * adjustedConfig.synergyWeight +
       needFill * adjustedConfig.needWeight +
       archetypeAffinity +
-      winConditionCoherence +
-      planAlignment +
+      (winConditionCoherence + planAlignment) * commitment +
+      identityBias +                 // §8: tag-urile echipei (× discipline)
       ruleSynergyBonus +             // DRAFT FINAL FIX 1
       compGate +
       botLaneFitBonus +
       duoPick.bonus +                // §2.2: planul de duo / ancoră orfană
       duoFallback.bonus +            // §2.3: partener synergy după ancoră
-      winConditionEffect.bonus -     // §5.3: susține / încarcă win condition-ul
-      splitIdentity.penalty -        // §5.2: identitate împărțită
+      (winConditionEffect.bonus -    // §5.3: susține / încarcă win condition-ul
+        splitIdentity.penalty) * commitment - // §5.2: identitate împărțită
       weaknessPenalty * adjustedConfig.weaknessWeight -
       comboDependencyPenalty -
       carryNeedPenalty,
@@ -1278,9 +1278,9 @@ export function scorePickCandidate(
       sideAware +
       flexAmbiguity +
       userRoleBias -
-      blindRiskPenalty -
+      blindRiskPenalty * ctx.style.blindRiskFactor - // §8: riskLevel mare → acceptă blind-uri riscante
+      getWaitPenalty(candidate, projected.projectedRole, ctx) - // §7.3: solo lane-ul poate aștepta counter-pick-ul
       contestability,
-    style: identityBias,
   };
   // §7.3: loseRisk din power + comfort de dinainte de lookahead.
   const ourValue = buckets.power + buckets.comfort;
@@ -1684,12 +1684,14 @@ export function scoreBanCandidate(
   const seasonResponse = seasonBanState.responses.find(
     (response) => response.kind !== "ignore" && response.championId === candidate.id
   );
-  const seasonBan =
-    seasonResponse?.kind === "ban"
-      ? Math.min(seasonResponse.threat * DRAFT_THINKING_CONFIG.season.banWeight, DRAFT_THINKING_CONFIG.season.banCap)
-      : 0;
+  // §8: o echipă cu stil „ban” (riskLevel mic) banează favoritul și când ar avea counter („plan”).
+  const seasonBanResponse =
+    seasonResponse?.kind === "ban" || (seasonResponse?.kind === "plan" && ctx.style.seasonResponse === "ban");
+  const seasonBan = seasonBanResponse && seasonResponse
+    ? Math.min(seasonResponse.threat * DRAFT_THINKING_CONFIG.season.banWeight, DRAFT_THINKING_CONFIG.season.banCap)
+    : 0;
   const seasonBanLine =
-    seasonResponse?.kind === "ban"
+    seasonBanResponse && seasonResponse
       ? describeSeasonBan(seasonBanState.enemyTeamName, candidate.id, seasonResponse.wins, seasonResponse.games)
       : seasonResponse?.kind === "plan"
         ? describeSeasonPlan(candidate.id, seasonResponse.counterIds[0], seasonResponse.counterGrades[seasonResponse.counterIds[0]])

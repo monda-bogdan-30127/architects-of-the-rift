@@ -256,6 +256,8 @@ export function chooseDraftPlan(args: {
   lockedPlan?: DraftPlan | null;
   /** §7.4 — identitatea cu cel mai bun winrate a adversarului în sezon. */
   seasonEnemyBestIdentity?: CompIdentity | null;
+  /** DRAFT_REALISM §8 — stilurile preferate ale echipei (+preferredPlanBonus). */
+  preferredStyles?: string[];
 }): DraftPlan | null {
   const aiPicks = args.side === "blue" ? args.game.picksBlue : args.game.picksRed;
   // §4.2: după al 3-lea pick propriu planul e blocat (înainte: null de aici încolo).
@@ -330,7 +332,8 @@ export function chooseDraftPlan(args: {
     const score =
       ((baseScore * (1 - anchorWeight) + anchorFit * anchorWeight) * (1 - enemyWeight) + enemyCompMatchup * enemyWeight) *
         (1 - seasonWeight) +
-      seasonEnemyIdentity * seasonWeight;
+      seasonEnemyIdentity * seasonWeight +
+      (args.preferredStyles?.includes(plan) ? DRAFT_THINKING_CONFIG.style.preferredPlanBonus : 0);
 
     scored.push({
       plan,
