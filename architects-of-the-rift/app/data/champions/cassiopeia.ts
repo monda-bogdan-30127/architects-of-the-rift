@@ -75,7 +75,6 @@ export const cassiopeia = createChampion({
         { championId: "yasuo", level: 2, phase: "all", note: "Grounding negates E and Q3" },
         { championId: "yone", level: 2, phase: "all", note: "Grounding negates E and R (dashes)" },
         { championId: "zed", level: 2, phase: "all", note: "Grounding and R (stun) on a melee assassin" },
-        { championId: "anivia", level: 1, phase: "all" },
         { championId: "orianna", level: 1, phase: "all" },
       ],
       stats: {
