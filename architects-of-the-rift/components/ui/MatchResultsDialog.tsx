@@ -91,8 +91,6 @@ const PILLAR_GRADE_COLORS: Record<PillarGrade, string> = {
 /** RESULTS_DIALOG_TABS §2 — tab-urile dialogului. */
 type ResultsTab = "scoreboard" | "why" | "draft";
 const TAB_LABELS: Record<ResultsTab, string> = { scoreboard: "Scoreboard", why: "Why it ended", draft: "Draft" };
-/** Înălțimea fixă a conținutului (cel mai înalt tab compact: scoreboard-ul cu 5 jucători ≈ 375px). */
-const TAB_PANEL_HEIGHT = 390;
 /** §2.1: într-un pilon deschis, cel mult atâtea note; restul în „+N more” (tooltip). */
 const MAX_OPEN_NOTES = 5;
 
@@ -189,6 +187,84 @@ export default function MatchResultsDialog({
     isSeriesComplete && seriesMvpName ? `${seriesMvpName} - Series MVP` : null,
   ].filter(Boolean);
 
+  // ─── Draft pe piloni (acordeon, fără scroll) ──────────────
+  const renderDraftPanel = (openPillar: string | null, interactive: boolean) =>
+    pillarReport ? (
+      <section className="flex flex-col gap-[10px] self-stretch">
+        <p className="body-small text-[var(--text-secondary)]">Draft{pillarTeamName ? `: ${pillarTeamName}` : ""}</p>
+        <div className="h-px self-stretch bg-[var(--border-default)]" />
+        {/* §3.2: scorul brut al ambelor echipe, cu tooltip. */}
+        <p
+          className="body-small font-bold"
+          title={DRAFT_SCORE_TOOLTIP}
+          style={{ color: draftGap > 0.05 ? "var(--success)" : draftGap < -0.05 ? "var(--danger)" : "var(--text-secondary)" }}
+        >
+          {describeDraftScore(ownDraftScore, theirDraftScore)}
+        </p>
+        <div className="flex flex-col gap-[8px] self-stretch">
+          {PILLAR_LABELS.map(({ key, label }) => {
+            const pillar = pillarReport[key];
+            const isOpen = openPillar === key;
+            const shown = isOpen ? pillar.notes.slice(0, MAX_OPEN_NOTES) : pillar.notes.slice(0, 1);
+            const hidden = isOpen ? pillar.notes.slice(MAX_OPEN_NOTES) : [];
+            const canOpen = pillar.notes.length > 1 || Boolean(pillar.reasons?.some(Boolean));
+            return (
+              <div key={key} className="flex items-start gap-[12px] self-stretch">
+                <button
+                  type="button"
+                  onClick={() => canOpen && interactive && togglePillar(key)}
+                  aria-expanded={canOpen ? isOpen : undefined}
+                  className="body-small flex w-[174px] shrink-0 items-center gap-[8px] text-left"
+                  style={{ background: "none", border: "none", padding: 0, cursor: canOpen ? "pointer" : "default", color: "var(--text-primary)" }}
+                >
+                  <span className="w-[10px] shrink-0 text-[var(--text-muted)]">{canOpen ? (isOpen ? "▾" : "▸") : ""}</span>
+                  <span className="flex-1">{label}</span>
+                  <span className="w-[24px] shrink-0 text-center font-bold" style={{ color: PILLAR_GRADE_COLORS[pillar.grade] }}>
+                    {pillar.grade}
+                  </span>
+                </button>
+                <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
+                  {shown.map((note, index) => {
+                    const reason = pillar.reasons?.[index];
+                    return (
+                      <div key={`${index}:${note}`} className="flex flex-col" title={reason ?? undefined}>
+                        <span className={`body-small text-[var(--text-secondary)] ${isOpen ? "" : "truncate"}`}>{note}</span>
+                        {/* §4.3: explicația matchup-ului, a doua linie mai mică (în pilonul deschis). */}
+                        {reason && isOpen && <span className="text-[11px] leading-tight text-[var(--text-muted)]">{reason}</span>}
+                      </div>
+                    );
+                  })}
+                  {hidden.length > 0 && (
+                    <span className="body-small cursor-help text-[var(--primary)]" title={hidden.join("\n")}>
+                      +{hidden.length} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    ) : null;
+
+  // Înălțimea conținutului = cel mai înalt tab: toate panourile stau în aceeași celulă de grid, cele inactive
+  // invizibile. Tab-ul Draft intră și cu fiecare pilon deschis (fantome), ca acordeonul să nu schimbe înălțimea.
+  const panelProps = (tab: ResultsTab, extraClass = "") => {
+    const active = tab === activeTab;
+    return {
+      role: active ? "tabpanel" : undefined,
+      id: active ? `results-panel-${tab}` : undefined,
+      "aria-labelledby": active && tabs.length > 1 ? `results-tab-${tab}` : undefined,
+      "aria-hidden": active ? undefined : true,
+      inert: !active,
+      className: `flex min-w-0 flex-col self-stretch ${extraClass} ${active ? "" : "invisible"}`,
+      style: { gridArea: "1 / 1" },
+    } as const;
+  };
+  const ghostPillars = pillarReport
+    ? PILLAR_LABELS.filter(({ key }) => pillarReport[key].notes.length > 1 || Boolean(pillarReport[key].reasons?.some(Boolean))).map(({ key }) => key)
+    : [];
+
   return createPortal(
     <div
       className="
@@ -205,7 +281,7 @@ export default function MatchResultsDialog({
         aria-labelledby="match-results-title"
         className="
           relative
-          flex w-[720px] max-w-[calc(100vw-32px)] flex-col
+          flex max-h-[calc(100vh-32px)] w-[720px] max-w-[calc(100vw-32px)] flex-col overflow-y-auto
           gap-[20px]
           rounded-[16px]
           bg-[var(--bg-surface)]
@@ -260,15 +336,9 @@ export default function MatchResultsDialog({
           </div>
         )}
 
-        {/* ─── Conținutul tab-ului (înălțime fixă, fără scroll) ───── */}
-        <div
-          role="tabpanel"
-          id={`results-panel-${activeTab}`}
-          aria-labelledby={tabs.length > 1 ? `results-tab-${activeTab}` : undefined}
-          className="flex flex-col self-stretch overflow-hidden"
-          style={{ height: TAB_PANEL_HEIGHT }}
-        >
-          {activeTab === "scoreboard" && (
+        {/* ─── Conținutul tab-urilor (înălțimea celui mai înalt, fără scroll) ── */}
+        <div className="grid self-stretch" style={{ gridTemplateColumns: "minmax(0, 1fr)" }}>
+          <div {...panelProps("scoreboard")}>
             <div className="flex min-w-0 items-start gap-[32px] self-stretch">
               {/* ── Left section ───────────────────────────────────── */}
               <section className="flex min-w-0 flex-1 flex-col gap-[12px]">
@@ -311,11 +381,11 @@ export default function MatchResultsDialog({
                 </div>
               </section>
             </div>
-          )}
+          </div>
 
           {/* ─── Why it ended (FEEDBACK_FIXES §6.2) ───────────────── */}
-          {activeTab === "why" && outcome && (
-            <section className="flex flex-col gap-[10px] self-stretch">
+          {outcome && (
+            <section {...panelProps("why", "gap-[10px]")}>
               <p className="body-small text-[var(--text-secondary)]">Why {winnerName} won</p>
               <div className="h-px self-stretch bg-[var(--border-default)]" />
               {outcome.winnerFactors.length > 0 ? (
@@ -355,63 +425,15 @@ export default function MatchResultsDialog({
             </section>
           )}
 
-          {/* ─── Draft pe piloni (acordeon, fără scroll) ──────────── */}
-          {activeTab === "draft" && pillarReport && (
-            <section className="flex flex-col gap-[10px] self-stretch">
-              <p className="body-small text-[var(--text-secondary)]">Draft{pillarTeamName ? `: ${pillarTeamName}` : ""}</p>
-              <div className="h-px self-stretch bg-[var(--border-default)]" />
-              {/* §3.2: scorul brut al ambelor echipe, cu tooltip. */}
-              <p
-                className="body-small font-bold"
-                title={DRAFT_SCORE_TOOLTIP}
-                style={{ color: draftGap > 0.05 ? "var(--success)" : draftGap < -0.05 ? "var(--danger)" : "var(--text-secondary)" }}
-              >
-                {describeDraftScore(ownDraftScore, theirDraftScore)}
-              </p>
-              <div className="flex flex-col gap-[8px] self-stretch">
-                {PILLAR_LABELS.map(({ key, label }) => {
-                  const pillar = pillarReport[key];
-                  const isOpen = current.pillar === key;
-                  const shown = isOpen ? pillar.notes.slice(0, MAX_OPEN_NOTES) : pillar.notes.slice(0, 1);
-                  const hidden = isOpen ? pillar.notes.slice(MAX_OPEN_NOTES) : [];
-                  const canOpen = pillar.notes.length > 1 || Boolean(pillar.reasons?.some(Boolean));
-                  return (
-                    <div key={key} className="flex items-start gap-[12px] self-stretch">
-                      <button
-                        type="button"
-                        onClick={() => canOpen && togglePillar(key)}
-                        aria-expanded={canOpen ? isOpen : undefined}
-                        className="body-small flex w-[174px] shrink-0 items-center gap-[8px] text-left"
-                        style={{ background: "none", border: "none", padding: 0, cursor: canOpen ? "pointer" : "default", color: "var(--text-primary)" }}
-                      >
-                        <span className="w-[10px] shrink-0 text-[var(--text-muted)]">{canOpen ? (isOpen ? "▾" : "▸") : ""}</span>
-                        <span className="flex-1">{label}</span>
-                        <span className="w-[24px] shrink-0 text-center font-bold" style={{ color: PILLAR_GRADE_COLORS[pillar.grade] }}>
-                          {pillar.grade}
-                        </span>
-                      </button>
-                      <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
-                        {shown.map((note, index) => {
-                          const reason = pillar.reasons?.[index];
-                          return (
-                            <div key={`${index}:${note}`} className="flex flex-col" title={reason ?? undefined}>
-                              <span className={`body-small text-[var(--text-secondary)] ${isOpen ? "" : "truncate"}`}>{note}</span>
-                              {/* §4.3: explicația matchup-ului, a doua linie mai mică (în pilonul deschis). */}
-                              {reason && isOpen && <span className="text-[11px] leading-tight text-[var(--text-muted)]">{reason}</span>}
-                            </div>
-                          );
-                        })}
-                        {hidden.length > 0 && (
-                          <span className="body-small cursor-help text-[var(--primary)]" title={hidden.join("\n")}>
-                            +{hidden.length} more
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
+          {pillarReport && (
+            <>
+              <div {...panelProps("draft")}>{renderDraftPanel(current.pillar, true)}</div>
+              {ghostPillars.map((key) => (
+                <div key={key} aria-hidden inert className="invisible flex min-w-0 flex-col" style={{ gridArea: "1 / 1" }}>
+                  {renderDraftPanel(key, false)}
+                </div>
+              ))}
+            </>
           )}
         </div>
 
