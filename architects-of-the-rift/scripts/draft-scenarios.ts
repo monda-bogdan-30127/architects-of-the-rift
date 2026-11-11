@@ -17,6 +17,8 @@ import {
   getAiChoice,
   getCurrentStep,
   simulateDraftResult,
+  initializeSwapStageAssignments,
+  swapAssignedRoles,
 } from "@/app/draft-engine/draftEngine";
 import { getPickCandidatePool } from "@/app/draft-engine/draftAI";
 import { chooseAiAction, scoreDraftCandidate } from "@/app/draft-engine/draftDecision";
@@ -1431,6 +1433,34 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
       `tier 1: ${target} (${role}); counter: ${counterId ?? "—"}; Preparation ${report.preparation.grade}: ${report.preparation.notes.slice(0, 3).join(" | ")}`,
     );
   }
+}
+
+// ─── DRAFT_PICK_ORDER_SLOTS: sloturile userului în ordinea pick-urilor ───────
+{
+  // Serie a userului (blue = echipa controlată): AI-ul draftează ambele părți ca să avem un draft complet.
+  const save = { ...makeSave(), controlledTeamSlug: BLUE };
+  const series = createInitialSeries(`slots-${BLUE}-${RED}`, BLUE);
+  let game = series.games[0];
+  for (let step = getCurrentStep(game); step; step = getCurrentStep(game)) {
+    const choice = getAiChoice(series, game, step, save)!;
+    // Pick-urile userului nu se blochează pe rol (commitActionToGame(..., null), ca în pagină).
+    game = commitActionToGame(game, choice.championId, step.side, step.action, step.side === "blue" ? null : choice.projectedRole);
+  }
+  const swapStage = initializeSwapStageAssignments(game, series, save);
+  const pickOrder = ROLE_ORDER.every((role, index) => swapStage.assignmentsBlue[role] === game.picksBlue[index]);
+  const aiResolved = ROLE_ORDER.every((role) => {
+    const champion = champions.find((c) => c.id === swapStage.assignmentsRed[role]);
+    return Boolean(champion?.roles.includes(role));
+  });
+  // Swap-ul userului: primul slot ↔ al doilea; simularea folosește exact sloturile (fără recalculare).
+  const swapped = swapAssignedRoles(swapStage, "blue", "top", "jungle");
+  const finished = resolveFinishedDraftAssignments(swapped, series, save);
+  const keptSwap = finished.assignmentsBlue.top === swapped.assignmentsBlue.top && finished.assignmentsBlue.jungle === swapped.assignmentsBlue.jungle;
+  check(
+    "S1. Sloturi: userul rămâne în ordinea pick-urilor, AI-ul se aranjează pe roluri, simularea folosește sloturile",
+    series.userSide === "blue" && pickOrder && aiResolved && keptSwap,
+    `user (ordinea pick-urilor): ${ROLE_ORDER.map((role) => `${role}=${swapStage.assignmentsBlue[role]}`).join(" ")}; AI: ${ROLE_ORDER.map((role) => `${role}=${swapStage.assignmentsRed[role]}`).join(" ")}; după swap + finalizare: top=${finished.assignmentsBlue.top}, jungle=${finished.assignmentsBlue.jungle}`,
+  );
 }
 
 // ─── Raport ──────────────────────────────────────────────────────────────────

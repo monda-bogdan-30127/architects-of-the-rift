@@ -23,7 +23,7 @@ import {
 import { chooseAiAction } from "./draftDecision";
 import { buildDraftPillarReport } from "./draftPillarReport";
 import { evaluateTeamDraft } from "./draftEvaluator";
-import { assignmentsCoverPicks, resolveRoleAssignments } from "./draftRoleResolver";
+import { assignmentsCoverPicks, mapPicksToRoleOrder, resolveRoleAssignments } from "./draftRoleResolver";
 import { simulateFullMatch } from "./matchSimulator";
 import { recordCompletedUserDraftGame } from "./userDraftMemory";
 
@@ -306,6 +306,27 @@ export function commitActionToGame(
 
   nextGame.phaseIndex = Math.min(game.phaseIndex + 1, DRAFT_SEQUENCE.length);
   return nextGame;
+}
+
+/**
+ * DRAFT_PICK_ORDER_SLOTS §3.2 — etapa de swap din pagina de draft (după ultimul pick): echipa AI își
+ * aranjează campionii pe roluri, echipa userului rămâne în ordinea pick-urilor (își face singur swap-urile).
+ * Dacă userul și-a aranjat deja sloturile, asignarea lui rămâne. Simulările AI vs AI folosesc în continuare
+ * `resolveFinishedDraftAssignments` (ambele părți automat).
+ */
+export function initializeSwapStageAssignments(
+  game: DraftGameState,
+  series: ActiveDraftSeries,
+  save: DraftSave | null
+): DraftGameState {
+  const resolved = resolveFinishedDraftAssignments(game, series, save);
+  const userSide = series.userSide;
+  if (!userSide) return resolved;
+  const userPicks = userSide === "blue" ? game.picksBlue : game.picksRed;
+  const userAssignments = userSide === "blue" ? game.assignmentsBlue : game.assignmentsRed;
+  if (hasResolvedAssignmentsForPicks(userAssignments, userPicks)) return resolved;
+  const pickOrder = mapPicksToRoleOrder(userPicks);
+  return userSide === "blue" ? { ...resolved, assignmentsBlue: pickOrder } : { ...resolved, assignmentsRed: pickOrder };
 }
 
 export function resolveFinishedDraftAssignments(

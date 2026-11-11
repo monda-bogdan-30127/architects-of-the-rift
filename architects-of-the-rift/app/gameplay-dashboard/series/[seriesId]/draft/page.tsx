@@ -7,8 +7,8 @@ import { useParams, useRouter } from "next/navigation";
 import { champions } from "@/app/data/champions";
 import { players } from "@/app/data/players";
 import { useDraftEngine } from "@/app/hooks/useDraftEngine";
-import { resolveFinishedDraftAssignments } from "@/app/draft-engine/draftEngine";
-import { resolveRoleAssignments } from "@/app/draft-engine/draftRoleResolver";
+import { initializeSwapStageAssignments } from "@/app/draft-engine/draftEngine";
+import { mapPicksToRoleOrder, resolveRoleAssignments } from "@/app/draft-engine/draftRoleResolver";
 import { isCurrentPillarReport } from "@/app/draft-engine/draftPillarReport";
 import {
   getChampionMatchupsVs,
@@ -97,17 +97,24 @@ function getTeamRosterFromSources({ team, save }: { team: unknown; save: DraftSa
 }
 
 /**
- * Rolurile afișate în timpul draftului: asignarea salvată (după lock-in / swap) sau rolurile rezolvate
- * din roster (ca la finalul draftului). Ordinea de pick nu e o asignare de roluri (FEEDBACK_FIXES §1).
- * Un pick care nu încape (combinație imposibilă) ia primul slot liber, ca să rămână vizibil.
+ * DRAFT_PICK_ORDER_SLOTS §3.1 — ce se afișează în sloturi (ca în pro): în timpul draftului, pick-urile în
+ * ordinea în care au fost luate (pick-ul i → slotul i), pentru ambele echipe; după ultimul pick, asignarea
+ * salvată (AI: aranjată pe roluri; user: ordinea pick-urilor + swap-urile lui). Asta intră în simulare.
  */
-function getDisplayAssignments(
-  savedAssignments: Partial<Record<Role, string>>,
+function getSlotAssignments(savedAssignments: Partial<Record<Role, string>>, picks: string[], swapStage: boolean) {
+  if (swapStage && Object.keys(savedAssignments).length > 0) return savedAssignments;
+  return mapPicksToRoleOrder(picks);
+}
+
+/**
+ * Rolurile probabile (din roster + rolurile blocate), folosite doar în calcule (identitate, hover, matchup-uri),
+ * nu afișate. Un pick care nu încape (combinație imposibilă) ia primul rol liber.
+ */
+function getAnalysisRoles(
   picks: string[],
   roster: Partial<Record<Role, string>>,
   pickRoles: Partial<Record<string, Role>> | undefined
 ) {
-  if (Object.keys(savedAssignments).length > 0) return savedAssignments;
   const assignments = resolveRoleAssignments(picks, roster, pickRoles ?? {});
   const placed = new Set(Object.values(assignments));
   for (const championId of picks) {
@@ -280,6 +287,8 @@ export default function DraftPage() {
   const swapMenuContainerRef = useRef<HTMLDivElement | null>(null);
   const [resultsGameNumber, setResultsGameNumber] = useState<number | null>(null);
   const [resultsSeriesFinished, setResultsSeriesFinished] = useState(false);
+  // DRAFT_PICK_ORDER_SLOTS §3.3: confirmarea pentru campioni pe roluri greșite, lângă DRAFT READY.
+  const [confirmOffRole, setConfirmOffRole] = useState(false);
   // FEEDBACK_FIXES §7.3: hover pe campion (grilă / sloturi), după ~250 ms.
   const [hovered, setHovered] = useState<{ championId: string; side: Side; rect: DOMRect } | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
@@ -307,7 +316,8 @@ export default function DraftPage() {
     if (Object.keys(currentGame.assignmentsBlue).length > 0 && Object.keys(currentGame.assignmentsRed).length > 0) return;
     setSeries((prev) => {
       if (!prev) return prev;
-      return { ...prev, games: prev.games.map((g) => g.number === currentGame.number ? resolveFinishedDraftAssignments(g, prev, draftSave) : g) };
+      // §3.2: echipa AI se aranjează pe roluri; userul rămâne în ordinea pick-urilor (își face singur swap-ul).
+      return { ...prev, games: prev.games.map((g) => g.number === currentGame.number ? initializeSwapStageAssignments(g, prev, draftSave) : g) };
     });
   }, [series, currentGame, currentStep, allPicksCompleted, setSeries, draftSave]);
 
@@ -352,8 +362,15 @@ export default function DraftPage() {
 
   function handleReady() {
     if (!currentGame || !series) return;
+    // §3.3: campioni pe roluri pe care nu le joacă → o confirmare (nu blochează).
+    if (offRoleSlots.length > 0 && !confirmOffRole) {
+      setConfirmOffRole(true);
+      return;
+    }
+    setConfirmOffRole(false);
     const completedGameNumber = currentGame.number;
-    const resolvedGame = resolveFinishedDraftAssignments(currentGame, series, draftSave);
+    // Ce e în sloturi intră în simulare: asignarea userului salvată nu se recalculează.
+    const resolvedGame = initializeSwapStageAssignments(currentGame, series, draftSave);
     flushSync(() => {
       setSeries((prev) => {
         if (!prev) return prev;
@@ -380,8 +397,8 @@ export default function DraftPage() {
   function handleSwapMenuToggle(role: Role) {
     if (!currentGame || !canSwapRoles) return;
     const ua = userSide === "blue"
-      ? getDisplayAssignments(currentGame.assignmentsBlue, currentGame.picksBlue, getTeamRosterFromSources({ team: blueTeam, save: draftSave }), currentGame.pickRolesBlue)
-      : getDisplayAssignments(currentGame.assignmentsRed, currentGame.picksRed, getTeamRosterFromSources({ team: redTeam, save: draftSave }), currentGame.pickRolesRed);
+      ? getSlotAssignments(currentGame.assignmentsBlue, currentGame.picksBlue, true)
+      : getSlotAssignments(currentGame.assignmentsRed, currentGame.picksRed, true);
     if (!ua[role]) return;
     setOpenSwapRole((prev) => (prev === role ? null : role));
   }
@@ -390,6 +407,7 @@ export default function DraftPage() {
     if (!canSwapRoles || sourceRole === targetRole) return;
     swapRoles(userSide, sourceRole, targetRole);
     setOpenSwapRole(null);
+    setConfirmOffRole(false);
   }
 
   useEffect(() => {
@@ -429,8 +447,12 @@ export default function DraftPage() {
 
   const rosterBlue = getTeamRosterFromSources({ team: blueTeam, save: draftSave });
   const rosterRed = getTeamRosterFromSources({ team: redTeam, save: draftSave });
-  const currentAssignmentsBlue = getDisplayAssignments(currentGame.assignmentsBlue, currentGame.picksBlue, rosterBlue, currentGame.pickRolesBlue);
-  const currentAssignmentsRed = getDisplayAssignments(currentGame.assignmentsRed, currentGame.picksRed, rosterRed, currentGame.pickRolesRed);
+  // §3.1: sloturile (afișare) în ordinea pick-urilor până la ultimul pick; rolurile probabile doar pentru calcule.
+  const swapStage = allPicksCompleted && !currentStep;
+  const currentAssignmentsBlue = getSlotAssignments(currentGame.assignmentsBlue, currentGame.picksBlue, swapStage);
+  const currentAssignmentsRed = getSlotAssignments(currentGame.assignmentsRed, currentGame.picksRed, swapStage);
+  const analysisBlue = swapStage ? currentAssignmentsBlue : getAnalysisRoles(currentGame.picksBlue, rosterBlue, currentGame.pickRolesBlue);
+  const analysisRed = swapStage ? currentAssignmentsRed : getAnalysisRoles(currentGame.picksRed, rosterRed, currentGame.pickRolesRed);
 
   // DRAFT_THINKING §7.6: scouting înainte de primul ban — favoriții de sezon ai adversarului (read-only).
   const scoutedTeam = userSide === "blue" ? redTeam : blueTeam;
@@ -439,21 +461,29 @@ export default function DraftPage() {
     : [];
 
   const previewAssignmentsBlue = selectedChampionId && isUserTurn && currentStep?.action === "pick" && currentStep.side === "blue"
-    ? getDisplayAssignments({}, [...currentGame.picksBlue, selectedChampionId], rosterBlue, currentGame.pickRolesBlue)
+    ? mapPicksToRoleOrder([...currentGame.picksBlue, selectedChampionId])
     : currentAssignmentsBlue;
 
   const previewAssignmentsRed = selectedChampionId && isUserTurn && currentStep?.action === "pick" && currentStep.side === "red"
-    ? getDisplayAssignments({}, [...currentGame.picksRed, selectedChampionId], rosterRed, currentGame.pickRolesRed)
+    ? mapPicksToRoleOrder([...currentGame.picksRed, selectedChampionId])
     : currentAssignmentsRed;
 
   const previewBans = getPreviewBans(currentGame, currentStep, selectedChampionId, userSide, isUserTurn);
   // FEEDBACK_FIXES §9: avertismentul F / D doar după toate cele 10 pick-uri (etapa de asignare, înainte de
   // confirmare): până atunci flex-urile pot schimba rolurile. Se recalculează după fiecare swap.
-  const showMasteryWarnings = allPicksCompleted && !currentStep;
+  const showMasteryWarnings = swapStage;
+  // §3.3: campionii userului pe un rol care nu e în `roles` lor (după aranjamentul real din sloturi).
+  const userSlots = userSide === "blue" ? currentAssignmentsBlue : currentAssignmentsRed;
+  const offRoleSlots = swapStage
+    ? ROLE_ORDER.flatMap((role) => {
+        const champion = userSlots[role] ? getChampionById(userSlots[role]!) : null;
+        return champion && !champion.roles.includes(role) ? [champion.name] : [];
+      })
+    : [];
 
   // §7.1 / §7.2: identitatea și atributele fiecărei echipe (informație publică pentru ambele).
-  const identityBlue = getIdentitySummary(currentGame.picksBlue, currentAssignmentsBlue);
-  const identityRed = getIdentitySummary(currentGame.picksRed, currentAssignmentsRed);
+  const identityBlue = getIdentitySummary(currentGame.picksBlue, analysisBlue);
+  const identityRed = getIdentitySummary(currentGame.picksRed, analysisRed);
   const attributesBlue = getTeamAttributes(currentGame.picksBlue);
   const attributesRed = getTeamAttributes(currentGame.picksRed);
 
@@ -465,17 +495,17 @@ export default function DraftPage() {
     if (ownPicks.includes(hoveredChampion.id)) return null;
     const roster = userSide === "blue" ? rosterBlue : rosterRed;
     const pickRoles = userSide === "blue" ? currentGame.pickRolesBlue : currentGame.pickRolesRed;
-    return getPickPreview(ownPicks, hoveredChampion.id, getDisplayAssignments({}, [...ownPicks, hoveredChampion.id], roster, pickRoles));
+    return getPickPreview(ownPicks, hoveredChampion.id, getAnalysisRoles([...ownPicks, hoveredChampion.id], roster, pickRoles));
   })();
   const contextChampion = contextMenu ? getChampionById(contextMenu.championId) ?? null : null;
   const userTeam = userSide === "blue" ? blueTeam : redTeam;
   const enemyTeam = userSide === "blue" ? redTeam : blueTeam;
   const contextMatchups = contextChampion
-    ? getChampionMatchupsVs(contextChampion, userSide === "blue" ? currentAssignmentsRed : currentAssignmentsBlue)
+    ? getChampionMatchupsVs(contextChampion, userSide === "blue" ? analysisRed : analysisBlue)
     : [];
 
   const hoverMatchups = hoveredChampion && hovered
-    ? getChampionMatchupsVs(hoveredChampion, hovered.side === "blue" ? currentAssignmentsRed : currentAssignmentsBlue)
+    ? getChampionMatchupsVs(hoveredChampion, hovered.side === "blue" ? analysisRed : analysisBlue)
     : [];
 
   const activeTeamAbbr = currentStep?.side === "blue" ? blueTeam.abbreviation : redTeam.abbreviation;
@@ -713,14 +743,32 @@ export default function DraftPage() {
                 LOCK IN
               </button>
             ) : (
-              <button
-                type="button"
-                className="draft-ready-btn"
-                onClick={handleReady}
-                disabled={readyDisabled}
-              >
-                DRAFT READY
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", justifyContent: "center" }}>
+                {/* §3.3: confirmare pentru campioni pe roluri greșite (nu blochează). */}
+                {confirmOffRole && offRoleSlots.length > 0 && (
+                  <span className="body-small" style={{ color: "var(--warning)" }}>
+                    Some champions are off-role ({offRoleSlots.join(", ")}). Continue?
+                  </span>
+                )}
+                {confirmOffRole && offRoleSlots.length > 0 && (
+                  <button
+                    type="button"
+                    className="body-small"
+                    onClick={() => setConfirmOffRole(false)}
+                    style={{ background: "none", border: "1px solid var(--border-default)", color: "var(--text-secondary)", cursor: "pointer", padding: "6px 12px" }}
+                  >
+                    CANCEL
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="draft-ready-btn"
+                  onClick={handleReady}
+                  disabled={readyDisabled}
+                >
+                  {confirmOffRole && offRoleSlots.length > 0 ? "CONTINUE" : "DRAFT READY"}
+                </button>
+              </div>
             )}
           </div>
         </section>
@@ -1106,6 +1154,25 @@ function SidebarPanel({
                       {champion.name}
                     </span>
                   )}
+
+                  {/* DRAFT_PICK_ORDER_SLOTS §3.3: campionul nu joacă rolul slotului — doar avertisment */}
+                  {showMasteryWarnings && champion && !champion.roles.includes(role) && (() => {
+                    const text = `${champion.name} doesn't play ${role === "adc" ? "ADC" : role.charAt(0).toUpperCase() + role.slice(1)}`;
+                    return (
+                      <span title={text} style={{
+                        fontSize: "8px",
+                        fontFamily: '"Spiegel", sans-serif',
+                        fontWeight: 700,
+                        letterSpacing: "0.03em",
+                        color: "var(--danger)",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}>
+                        {text}
+                      </span>
+                    );
+                  })()}
 
                   {/* §1.6: jucătorul nu știe campionul (F / D) — doar avertisment */}
                   {showMasteryWarnings && champion && roster?.[role] && (() => {
