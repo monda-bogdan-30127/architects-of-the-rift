@@ -32,6 +32,7 @@ import { getPlayerChampionHistoryMetrics } from "./playerHistoryEvaluator";
 import { resolveRoleAssignments } from "./draftRoleResolver";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { getSeasonEnemyIdentityFactor } from "./seasonThreatSystem";
+import { getComboPartners, getPairDependency } from "./pairPriority";
 
 const playersById = new Map(players.map((p) => [p.id, p]));
 
@@ -74,9 +75,14 @@ const PLAN = DRAFT_THINKING_CONFIG.plan;
  * §4.2 / FEEDBACK_FIXES §11 — primul pick propriu e „priority pick” doar dacă e contestat: meta ≥ 7.5.
  * Mastery-ul SS/S și favoritul de sezon țin de comfort (ce vrea echipa), nu de priority.
  */
-export function isPriorityPick(championId: string, role: Role | null): boolean {
+export function isPriorityPick(championId: string, role: Role | null, partnerAvailable?: (partnerId: string) => boolean): boolean {
   const champion = champions.find((entry) => entry.id === championId);
   if (!champion) return false;
+  // DUO_PRIORITY_AND_FEARLESS §2.4: o piesă de combo (dependență ≥ 0.5) fără partener nu ancorează planul.
+  if (partnerAvailable && role && getPairDependency(champion, role) >= DRAFT_THINKING_CONFIG.pair.conserveMinDependency) {
+    const partners = getComboPartners(championId, role);
+    if (partners.length && !partners.some((entry) => partnerAvailable(entry.partnerId))) return false;
+  }
   return getMetaPriorityScore(champion, role) >= PLAN.priorityMetaMin;
 }
 
@@ -271,8 +277,15 @@ export function chooseDraftPlan(args: {
   const roleOf = (championId: string) =>
     (ROLE_ORDER.find((role) => ownRoles[role] === championId) ?? null) as Role | null;
   const anchorId = aiPicks[0];
+  // DUO §2.4: partenerul ancorei e indisponibil dacă e banat, luat de adversar sau jucat într-un joc anterior.
+  const enemyPicksForPartner = args.side === "blue" ? args.game.picksRed : args.game.picksBlue;
+  const unavailableForPartner = new Set<string>([...args.game.bansBlue, ...args.game.bansRed, ...enemyPicksForPartner]);
+  for (const previous of args.series.games) {
+    if (previous.number >= args.game.number) continue;
+    for (const id of [...previous.picksBlue, ...previous.picksRed]) unavailableForPartner.add(id);
+  }
   const anchorIsPriority = anchorId
-    ? isPriorityPick(anchorId, roleOf(anchorId))
+    ? isPriorityPick(anchorId, roleOf(anchorId), (partnerId) => aiPicks.includes(partnerId) || !unavailableForPartner.has(partnerId))
     : false;
   const anchorWeight = aiPicks.length ? (anchorIsPriority ? PLAN.priorityAnchorWeight : PLAN.anchorWeight) : 0;
   const enemyPicks = args.side === "blue" ? args.game.picksRed : args.game.picksBlue;

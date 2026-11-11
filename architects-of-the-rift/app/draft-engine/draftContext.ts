@@ -25,6 +25,9 @@ import type { DraftPlan } from "./draftPlanSystem";
 import { getBotFocus, type BotFocus } from "./botDuoPlan";
 import { champions } from "@/app/data/champions";
 import type { Champion } from "@/app/types/champion";
+import { players } from "@/app/data/players";
+import { GRADE_RANK, getChampionGrade } from "@/app/utils/championMasteryUtils";
+import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { createPriorityLookup, type PriorityValue } from "./priorityValue";
 import { getTeamStyle, type TeamStyle } from "./teamStyle";
 
@@ -133,6 +136,7 @@ function buildTeamState(series: ActiveDraftSeries, game: DraftGameState, side: S
   };
 }
 
+const playersById = new Map(players.map((player) => [player.id, player]));
 const contextCache = new Map<string, DraftContext>();
 
 export function buildDraftContext(
@@ -175,15 +179,43 @@ export function buildDraftContext(
     eliminationGame: side === "blue" ? clutch.blueAtElimination : clutch.redAtElimination,
     leading: countWins(series, side) > countWins(series, enemySide),
   };
+  // DUO_PRIORITY_AND_FEARLESS §2.3: starea partenerului, din perspectiva fiecărei echipe. Interesul celeilalte
+  // echipe pentru partener = gradul jucătorului ei de pe un rol liber (fără priority, ca să nu fie circular).
+  const gradeInterest = (roster: Partial<Record<Role, string>>, openRoles: readonly Role[]) => (champion: Champion) => {
+    let best = 0;
+    for (const role of champion.roles) {
+      if (!openRoles.includes(role)) continue;
+      const player = roster[role] ? playersById.get(roster[role]!) : undefined;
+      if (player) best = Math.max(best, DRAFT_THINKING_CONFIG.priority.gradeWant[getChampionGrade(player, champion.id)] ?? 0);
+    }
+    return best;
+  };
+  const visibleSignature = (roster: Partial<Record<Role, string>>) => (championId: string) =>
+    Object.values(roster).some((playerId) => {
+      const player = playerId ? playersById.get(playerId) : undefined;
+      return Boolean(player && GRADE_RANK[getChampionGrade(player, championId)] >= GRADE_RANK.S);
+    });
+  const ownLook = getLookahead(game.phaseIndex, side);
+  const enemyLook = getLookahead(game.phaseIndex, enemySide);
   const priorityOf = createPriorityLookup({
     ownRoster: own.roster, ownOpenRoles: own.openRoles,
     enemyRoster: enemy.roster, enemyOpenRoles: enemy.openRoles,
     enemyTeamSlug: enemy.teamSlug, unavailable: unavailableIds,
+    partner: {
+      side, stepIndex: game.phaseIndex, ownPicks: own.picks, ownRoster: own.roster, unavailable: unavailableIds,
+      enemyPicksBeforeOurNext: ownLook.enemyPicksBeforeOurNext, enemyBansBeforeOurNext: ownLook.enemyBansBeforeOurNext,
+      theirInterest: gradeInterest(enemy.roster, enemy.openRoles), isVisibleToEnemy: visibleSignature(own.roster),
+    },
   });
   const enemyPriorityOf = createPriorityLookup({
     ownRoster: enemy.roster, ownOpenRoles: enemy.openRoles,
     enemyRoster: own.roster, enemyOpenRoles: own.openRoles,
     enemyTeamSlug: own.teamSlug, unavailable: unavailableIds,
+    partner: {
+      side: enemySide, stepIndex: game.phaseIndex, ownPicks: enemy.picks, ownRoster: enemy.roster, unavailable: unavailableIds,
+      enemyPicksBeforeOurNext: enemyLook.enemyPicksBeforeOurNext, enemyBansBeforeOurNext: enemyLook.enemyBansBeforeOurNext,
+      theirInterest: gradeInterest(own.roster, own.openRoles), isVisibleToEnemy: visibleSignature(enemy.roster),
+    },
   });
   let topCache: { championId: string; priority: PriorityValue } | null | undefined;
   const topOwnUsablePriority = () => {

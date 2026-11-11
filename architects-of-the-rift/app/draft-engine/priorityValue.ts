@@ -13,6 +13,7 @@ import { getMetaPriorityScore } from "./draftEvaluator";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { isStrongCounter } from "./matchupGrades";
 import { getSeasonChampionThreat } from "./seasonThreatSystem";
+import { adjustForPartner, getPairDependency, getPartnerState, type PartnerStateResult, type PartnerView } from "./pairPriority";
 
 const PRIORITY = DRAFT_THINKING_CONFIG.priority;
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -33,6 +34,11 @@ export type PriorityValue = {
   ownBestGrade: ChampionMasteryGrade | null;
   /** Rolul pe care se măsoară meta / blind safety (cel mai jucat în pro). */
   role: Role;
+  /** DUO_PRIORITY_AND_FEARLESS §2 — cât depinde de partener (0..1) și starea partenerului la pasul curent. */
+  dependency: number;
+  partner: PartnerStateResult;
+  /** Valoarea înainte de ajustarea după partener. */
+  baseValue: number;
 };
 
 /** Perspectiva echipei care draftează: rosterele, rolurile libere, ce e indisponibil. */
@@ -43,6 +49,8 @@ export type PriorityPerspective = {
   enemyOpenRoles: readonly Role[];
   enemyTeamSlug: string;
   unavailable: ReadonlySet<string>;
+  /** §2.3 — starea partenerului (fără ea, valoarea nu se ajustează: ex. raportul de după draft). */
+  partner?: PartnerView;
 };
 
 /** Rolul cu cele mai multe pick-uri pro (date pe rol), altfel primul rol. */
@@ -112,11 +120,17 @@ export function getPriorityValue(champion: Champion, view: PriorityPerspective):
   }
   const ownUsable = Boolean(ownBestGrade && GRADE_RANK[ownBestGrade] >= GRADE_RANK.B);
 
-  const value = clamp10(
+  const baseValue = clamp10(
     PRIORITY.weights.meta * meta + PRIORITY.weights.flex * flex + PRIORITY.weights.blindSafety * blindSafety + PRIORITY.weights.enemyWant * enemyWant,
   );
+  // DUO_PRIORITY_AND_FEARLESS §2.4: o piesă de combo valorează după cum poate lua partenerul (fereastră / expus / orfan).
+  const dependency = view.partner ? getPairDependency(champion, role) : 0;
+  const partner: PartnerStateResult = dependency > 0 && view.partner
+    ? getPartnerState(champion, role, view.partner)
+    : { state: "none", partnerId: null, denyChance: 0 };
+  const value = dependency > 0 ? clamp10(adjustForPartner(baseValue, dependency, partner)) : baseValue;
   const tier = value >= PRIORITY.tier1Min ? 1 : value >= PRIORITY.tier2Min ? 2 : 3;
-  return { value, tier, meta, flex, blindSafety, enemyWant, ownUsable, ownBestGrade, role };
+  return { value, tier, meta, flex, blindSafety, enemyWant, ownUsable, ownBestGrade, role, dependency, partner, baseValue };
 }
 
 /** Cache-ul unei perspective (o acțiune): priority value calculat o singură dată per campion. */

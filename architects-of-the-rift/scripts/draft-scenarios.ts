@@ -106,7 +106,8 @@ function runDraft(args: {
   stop?: (log: LogEntry[]) => boolean;
 }) {
   const bans = args.bans ?? NEUTRAL_BANS;
-  let game: DraftGameState = args.series.games[0];
+  // Jocul curent al seriei (scenariile de fearless au jocuri anterioare completate înainte).
+  let game: DraftGameState = args.series.games.find((entry) => entry.number === args.series.currentGameNumber) ?? args.series.games[0];
   const counters = { "blue:pick": 0, "red:pick": 0, "blue:ban": 0, "red:ban": 0 };
   const log: LogEntry[] = [];
   for (let step = getCurrentStep(game); step; step = getCurrentStep(game)) {
@@ -1462,6 +1463,152 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     series.userSide === "blue" && pickOrder && aiResolved && keptSwap,
     `user (ordinea pick-urilor): ${ROLE_ORDER.map((role) => `${role}=${swapStage.assignmentsBlue[role]}`).join(" ")}; AI: ${ROLE_ORDER.map((role) => `${role}=${swapStage.assignmentsRed[role]}`).join(" ")}; după swap + finalizare: top=${finished.assignmentsBlue.top}, jungle=${finished.assignmentsBlue.jungle}`,
   );
+}
+
+// ─── DUO_PRIORITY_AND_FEARLESS §5: piese de combo, fereastră, păstrare ───────
+{
+  const renata = champions.find((c) => c.id === "renata-glasc")!;
+  const sup = findPlayer("renata-glasc", 3, 6, "support");
+  const adc = findPlayer("kalista", 3, 6, "adc", [sup]);
+  const neutralBans = (extra: string[] = []) => [...extra, "azir", "jayce", "ksante", "orianna", "sejuani", "vi"].slice(0, 6);
+  const ctxAt = (series: ActiveDraftSeries, game: DraftGameState, save: DraftSave) =>
+    buildDraftContext(getCurrentStep(game)!, game, series, save, DEFAULT_AI_CONFIG);
+  const firstPickOf = (log: LogEntry[], side: Side) => log.find((entry) => entry.side === side && entry.action === "pick");
+
+  // 2. First pick expus: blue B1 cu Renata → partenerul poate fi luat / banat de red înainte → nu e Renata.
+  {
+    const save = makeSave({ [BLUE]: { support: sup, adc } });
+    const series = newSeries("dp2", BLUE, RED);
+    const bans = neutralBans();
+    const b1Game: DraftGameState = { ...series.games[0], bansBlue: [bans[0], bans[2], bans[4]], bansRed: [bans[1], bans[3], bans[5]], phaseIndex: 6 };
+    const entry = scoreDraftCandidate(renata, getCurrentStep(b1Game)!, b1Game, series, save);
+    const priority = ctxAt(series, b1Game, save).priorityOf(renata);
+    const { log } = runDraft({ series, save, bans, stop: (entries) => Boolean(firstPickOf(entries, "blue")) });
+    const b1 = firstPickOf(log, "blue");
+    check(
+      "D2. Renata la B1 e expusă (deny ≥ 0.5) → B1 nu e Renata",
+      priority.partner.state === "exposed" && hasTag(entry, "exposed-combo") && b1?.championId !== "renata-glasc",
+      `Renata: ${priority.partner.state}, deny ${priority.partner.denyChance.toFixed(2)}, priority ${priority.baseValue.toFixed(1)} → ${priority.value.toFixed(1)}; „${entry.explanation?.find((line) => line.includes("exposed")) ?? "—"}”; B1=${b1?.championId}`,
+    );
+  }
+
+  // 3. Fereastra de pereche: red R1–R2, Renata și Kalista libere, ambii ≥ B → tag pair-window; R1 una → R2 cealaltă.
+  {
+    const save = makeSave({ [RED]: { support: sup, adc } });
+    const series = newSeries("dp3", BLUE, RED);
+    const r1Game: DraftGameState = { ...series.games[0], bansBlue: ["azir", "jayce", "orianna"], bansRed: ["ksante", "sejuani", "vi"], picksBlue: ["ahri"], phaseIndex: 7 };
+    const renataR1 = scoreDraftCandidate(renata, getCurrentStep(r1Game)!, r1Game, series, save);
+    const kalistaR1 = scoreDraftCandidate(champions.find((c) => c.id === "kalista")!, getCurrentStep(r1Game)!, r1Game, series, save);
+    const { log } = runDraft({
+      series, save, bans: neutralBans(),
+      forced: [{ side: "blue", action: "pick", nth: 1, championId: "ahri" }],
+      stop: (entries) => entries.filter((entry) => entry.side === "red" && entry.action === "pick").length >= 2,
+    });
+    const [r1, r2] = log.filter((entry) => entry.side === "red" && entry.action === "pick");
+    const pairTaken = ["renata-glasc", "kalista"].includes(r1?.championId ?? "") ? ["renata-glasc", "kalista"].includes(r2?.championId ?? "") && r1?.championId !== r2?.championId : true;
+    check(
+      "D3. Fereastra R1–R2: Renata / Kalista cu pair-window; dacă R1 ia una, R2 ia cealaltă",
+      hasTag(renataR1, "pair-window") && hasTag(kalistaR1, "pair-window") && pairTaken,
+      `R1=${r1?.championId}, R2=${r2?.championId}; „${renataR1.explanation?.find((line) => line.startsWith("Pair window")) ?? "—"}”`,
+    );
+  }
+
+  // 4. Orfan: Kalista banată în jocul curent → Renata are tier mai mic și nu ancorează planul.
+  {
+    const save = makeSave({ [RED]: { support: sup, adc } });
+    const series = newSeries("dp4", BLUE, RED);
+    const open: DraftGameState = { ...series.games[0], bansBlue: ["azir", "jayce", "orianna"], bansRed: ["ksante", "sejuani", "vi"], picksBlue: ["ahri"], phaseIndex: 7 };
+    const banned: DraftGameState = { ...open, bansBlue: ["azir", "jayce", "kalista"] };
+    const withPartner = ctxAt(series, open, save).priorityOf(renata);
+    const orphan = ctxAt(series, banned, save).priorityOf(renata);
+    const anchors = isPriorityPick("renata-glasc", "support", (id) => id !== "kalista");
+    check(
+      "D4. Kalista banată → Renata orfană: priority mai mic, nu ancorează planul",
+      orphan.partner.state === "orphan" && orphan.value < withPartner.value && !anchors,
+      `Renata: cu Kalista ${withPartner.value.toFixed(2)} (tier ${withPartner.tier}, ${withPartner.partner.state}), fără ${orphan.value.toFixed(2)} (tier ${orphan.tier}); ancorează planul: ${anchors}`,
+    );
+  }
+
+  // 5–8. Fearless: Bo3. Seria cu un joc anterior completat (roșii au câștigat jocul 1).
+  const fearlessSeries = (id: string, gameNumber: number, previousPicks: string[] = []) => {
+    const series = newSeries(id, BLUE, RED);
+    series.bo = 3;
+    const previous = Array.from({ length: gameNumber - 1 }, (_, index): DraftGameState => ({
+      ...series.games[0], number: index + 1, completed: true, winnerSide: index % 2 === 0 ? "red" : "blue",
+      picksBlue: index === 0 ? previousPicks : [], picksRed: [],
+    }));
+    series.games = [...previous, { ...series.games[0], number: gameNumber }];
+    series.currentGameNumber = gameNumber;
+    return series;
+  };
+  const conserveState = (series: ActiveDraftSeries, save: DraftSave, bansBlue: string[]) => {
+    const game: DraftGameState = { ...series.games[series.games.length - 1], bansBlue, bansRed: ["ksante", "sejuani", "vi"], picksBlue: ["ahri"], phaseIndex: 7 };
+    return scoreDraftCandidate(renata, getCurrentStep(game)!, game, series, save);
+  };
+  {
+    // 5. Jocul 2 (1–0), Kalista banată acum, nejucată în jocul 1 → Renata păstrată (conserve-combo).
+    const save = makeSave({ [RED]: { support: sup, adc } });
+    const series = fearlessSeries("dp5", 2);
+    const entry = conserveState(series, save, ["azir", "jayce", "kalista"]);
+    const { log } = runDraft({ series, save, bans: ["kalista", "ksante", "azir", "sejuani", "jayce", "vi"], stop: (entries) => entries.filter((e) => e.side === "red" && e.action === "pick").length >= 3 });
+    const redPicks = log.filter((e) => e.side === "red" && e.action === "pick").map((e) => e.championId);
+    check(
+      "D5. Fearless: Kalista banată (nejucată) → Renata păstrată (conserve-combo), nu e luată în faza 1",
+      hasTag(entry, "conserve-combo") && !redPicks.includes("renata-glasc"),
+      `„${entry.explanation?.find((line) => line.includes("held")) ?? "—"}”; roșii faza 1: ${redPicks.join(", ")}`,
+    );
+  }
+  {
+    // 6. Același caz, dar singurul support decent e Renata (restul consumați în jocul 1) → Renata luată oricum.
+    const supports = champions.filter((c) => c.roles.includes("support") && c.id !== "renata-glasc").map((c) => c.id);
+    const save = makeSave({ [RED]: { support: sup, adc } });
+    const series = fearlessSeries("dp6", 2, supports);
+    const entry = conserveState(series, save, ["azir", "jayce", "kalista"]);
+    const { log } = runDraft({ series: { ...series, games: series.games }, save, bans: ["kalista", "ksante", "azir", "sejuani", "jayce", "vi"] });
+    const redPicks = log.filter((e) => e.side === "red" && e.action === "pick").map((e) => e.championId);
+    check(
+      "D6. Singurul support decent e Renata → luată oricum (păstrarea e penalizare, nu filtru)",
+      hasTag(entry, "conserve-combo") && redPicks.includes("renata-glasc"),
+      `supporturi consumate: ${supports.length}; roșii: ${redPicks.join(", ")}`,
+    );
+  }
+  {
+    // 7. Kalista jucată în jocul 1 → în jocul 2 Renata e orfană, fără conserve-combo (consumat definitiv).
+    const save = makeSave({ [RED]: { support: sup, adc } });
+    const series = fearlessSeries("dp7", 2, ["kalista"]);
+    const entry = conserveState(series, save, ["azir", "jayce", "orianna"]);
+    const priority = ctxAt(series, { ...series.games[1], bansBlue: ["azir", "jayce", "orianna"], bansRed: ["ksante", "sejuani", "vi"], picksBlue: ["ahri"], phaseIndex: 7 }, save).priorityOf(renata);
+    check(
+      "D7. Kalista jucată anterior → Renata orfană, fără conserve-combo",
+      priority.partner.state === "orphan" && !hasTag(entry, "conserve-combo"),
+      `Renata: ${priority.partner.state}; tags ${entry.reasonTags?.filter((t) => t.includes("combo")).join(",") || "—"}`,
+    );
+  }
+  {
+    // 8. Jocul 3 dintr-un Bo3 (decisiv) → fără conserve-combo.
+    const save = makeSave({ [RED]: { support: sup, adc } });
+    const series = fearlessSeries("dp8", 3);
+    const entry = conserveState(series, save, ["azir", "jayce", "kalista"]);
+    check(
+      "D8. Joc decisiv (Bo3, jocul 3) → fără conserve-combo",
+      !hasTag(entry, "conserve-combo"),
+      `tags ${entry.reasonTags?.filter((t) => t.includes("combo")).join(",") || "—"}`,
+    );
+  }
+  {
+    // 9. Kalista deja banată → AI-ul nu-și irosește un ban pe Renata (orphan-combo, nu e banată în ban 1).
+    const save = makeSave({ [RED]: { support: sup, adc } });
+    const series = newSeries("dp9", BLUE, RED);
+    const game: DraftGameState = { ...series.games[0], bansBlue: ["kalista"], phaseIndex: 1 };
+    const entry = scoreDraftCandidate(renata, getCurrentStep(game)!, { ...game, phaseIndex: 2, bansRed: ["azir"] }, series, save);
+    const { log } = runDraft({ series, save, bans: ["kalista"], stop: (entries) => entries.length >= 6 });
+    const blueBans = log.filter((e) => e.side === "blue" && e.action === "ban").map((e) => e.championId);
+    check(
+      "D9. Kalista banată → ban pe Renata depunctat (orphan-combo), Renata nu e banată",
+      hasTag(entry, "orphan-combo") && ![...blueBans, ...log.filter((e) => e.side === "red" && e.action === "ban").map((e) => e.championId)].includes("renata-glasc"),
+      `ban-uri: ${log.filter((e) => e.action === "ban").map((e) => e.championId).join(", ")}`,
+    );
+  }
 }
 
 // ─── Raport ──────────────────────────────────────────────────────────────────

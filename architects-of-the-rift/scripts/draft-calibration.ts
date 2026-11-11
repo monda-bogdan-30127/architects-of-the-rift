@@ -21,6 +21,7 @@ import {
 import { getBotPairTier, getCompletedMustWithPairs, isExplicitBotPair } from "@/app/draft-engine/mustWithPriority";
 import { readCompIdentity } from "@/app/draft-engine/compIdentity";
 import { buildDraftPillarReport } from "@/app/draft-engine/draftPillarReport";
+import { isComboPiece } from "@/app/draft-engine/pairPriority";
 import { hasThinPool } from "@/app/draft-engine/draftMasteryGate";
 import { DRAFT_PHASE_IDS, type DraftPhaseId } from "@/app/draft-engine/draftPhase";
 import { ROLE_ORDER, type Side } from "@/app/draft-engine/draftTypes";
@@ -219,6 +220,11 @@ let r5Total = 0;
 let r5Solo = 0;
 const flexByPhase: Record<string, { flex: number; total: number }> = {};
 let splitComps = 0;
+// DUO_PRIORITY_AND_FEARLESS §5: piesele de combo — la B1 vs în ferestrele de pereche (R1–R2, B2–B3, B4–B5).
+const PAIR_WINDOW_STEPS = new Set([7, 8, 9, 10, 17, 18]);
+let comboPicks = 0;
+let comboAtB1 = 0;
+let comboInWindow = 0;
 let explicitBotPairs = 0;
 let botCombos = 0;
 let botTier3 = 0;
@@ -268,6 +274,11 @@ records.forEach((record, gameIndex) => {
       if (action.label === "R5" && side === "red") {
         r5Total += 1;
         if (role === "top" || role === "mid") r5Solo += 1;
+      }
+      if (isComboPiece(action.championId, role)) {
+        comboPicks += 1;
+        if (action.stepIndex === 6) comboAtB1 += 1;
+        if (PAIR_WINDOW_STEPS.has(action.stepIndex)) comboInWindow += 1;
       }
       const champion = championsById.get(action.championId);
       const bucket = (flexByPhase[action.phase] ??= { flex: 0, total: 0 });
@@ -395,6 +406,8 @@ const metrics: Metric[] = [
   { id: "explicitBotPairs", label: "Perechi bot explicite (mustWith / synergy ≥ 4)", value: pct(explicitBotPairs, games * 2), target: "raportat", ok: null, format: "pct" },
   { id: "botCombos", label: "Combo-uri bot (tier 1–2: mustWith / synergy 5)", value: pct(botCombos, games * 2), target: "raportat", ok: null, format: "pct" },
   { id: "botTier3", label: "Perechi bot tier 3 (synergy 4)", value: pct(botTier3, games * 2), target: "raportat", ok: null, format: "pct" },
+  { id: "comboAtB1", label: `Piese de combo luate la B1 (din ${comboPicks})`, value: pct(comboAtB1, comboPicks), target: "rar", ok: null, format: "pct" },
+  { id: "comboInWindow", label: "Piese de combo în ferestrele de pereche (R1–R2, B2–B3, B4–B5)", value: pct(comboInWindow, comboPicks), target: "majoritar", ok: null, format: "pct" },
   { id: "blueWinrate", label: "Winrate blue", value: pct(blueWins, games), target: "45–55%", ok: pct(blueWins, games) >= 0.45 && pct(blueWins, games) <= 0.55, format: "pct" },
   { id: "preferredStyles", label: "Draftează un stil din preferredStyles (cu balanced)", value: pct(styleHits, styleGames), target: "≥ 40%", ok: pct(styleHits, styleGames) >= 0.4, format: "pct" },
   { id: "preferredStylesStrict", label: "… fără balanced", value: pct(styleStrictHits, styleStrictGames), target: "raportat", ok: null, format: "pct" },

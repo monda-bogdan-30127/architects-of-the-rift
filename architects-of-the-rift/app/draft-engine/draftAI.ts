@@ -2,7 +2,7 @@ import { teams } from "@/app/data/teams";
 import { players } from "@/app/data/players";
 import type { Champion, Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
-import { GRADE_RANK } from "@/app/utils/championMasteryUtils";
+import { GRADE_RANK, getChampionGrade } from "@/app/utils/championMasteryUtils";
 import type {
   ActiveDraftSeries,
   DraftCandidateBreakdown,
@@ -76,6 +76,7 @@ import {
   getNonBotOverride,
   getUnavailableChampionIds,
   isExplicitBotPair,
+  getBotPairTier,
   isProtectedOwnPartner,
   resolveMustWithLock,
   type EligiblePartner,
@@ -96,6 +97,8 @@ import {
 } from "./playerProfileSystem";
 import { getContestabilityPenalty } from "./draftContestability";
 import { getLookaheadValue, getScarcity, getWaitPenalty, isScarcePoolChampion } from "./draftIntents";
+import { getComboPartners, getGamesRemainingPossible, getPairFactor, isPartnerOnlyBannedThisGame } from "./pairPriority";
+import type { PriorityValue } from "./priorityValue";
 import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
 import { getBadSynergy, getTotalBadSynergy } from "./badSynergy";
@@ -1220,6 +1223,8 @@ export function scorePickCandidate(
   // §7.3 — lookahead: ce vor ei și iau înainte de următorul nostru pick (deny); ce e bun pentru noi și riscă
   // să dispară se ia acum (loseRisk, din power + comfort fără lookahead, ca să nu fie circular).
   const lookahead = getLookaheadValue(candidate, ctx);
+  // DUO_PRIORITY_AND_FEARLESS §2.5–§3.3 — piesele de combo: fereastră de pereche, first pick expus, păstrare în fearless.
+  const pairEffect = getPairPickEffect(candidate, projected.projectedRole, priority, ctx);
   // §7.1 — fearless: jucătorul nostru mai are puține opțiuni ≥ B pe rol → îi asiguri rolul cât încă poți.
   const scarcePower = isScarcePoolChampion(candidate, ctx.own.roster, getScarcity(ctx).own) ? DRAFT_THINKING_CONFIG.intents.scarcePowerBonus : 0;
   const buckets: Record<PickBucketId, number> = {
@@ -1277,7 +1282,11 @@ export function scorePickCandidate(
   // §7.3: loseRisk din power + comfort de dinainte de lookahead.
   const ourValue = buckets.power + buckets.comfort;
   const loseRisk = Math.max(0, ourValue) * Math.max(lookahead.takeProbability, lookahead.banProbability) * DRAFT_THINKING_CONFIG.lookahead.loseRiskWeight;
-  buckets.power += loseRisk + scarcePower;
+  // DUO §2.1 / §2.4: valoarea piesei de combo ca pick depinde de partener — același factor ca în priority value,
+  // aplicat pe partea pozitivă a lui `power` (cu pickWeight 0.5, doar termenul de priority nu muta decizia:
+  // Renata expusă rămânea first pick pe meta).
+  if (buckets.power > 0 && priority.dependency > 0) buckets.power *= 1 - priority.dependency * (1 - getPairFactor(priority.partner));
+  buckets.power += loseRisk + scarcePower + pairEffect.power;
   buckets.deny += lookahead.denyValue;
 
   // În afara ponderilor: partenerul non-bot mustWith (§5.4; lock-ul e în chooseFinal),
@@ -1302,6 +1311,7 @@ export function scorePickCandidate(
     ...(duoPick.line ? [duoPick.line] : []),
     ...(duoFallback.line ? [duoFallback.line] : []),
     ...badSynergies.map(describeBadSynergy),
+    ...pairEffect.lines,
   ];
 
   let planType: DraftCandidateBreakdown["planType"] = "stabilize-comp";
@@ -1362,6 +1372,7 @@ export function scorePickCandidate(
       ...(masteryGate.blocked ? ["mastery-f"] : []),
       ...(masteryGate.soft ? ["mastery-d"] : []),
       ...(badSynergies.length ? ["bad-synergy"] : []),
+      ...pairEffect.tags,
       ...(duoPick.tag ? [duoPick.tag] : []),
       ...(duoFallback.bonus > 0 ? ["duo-fallback"] : []),
       ...(nonBotMustWith.bonus > 0 ? ["mustwith-partner"] : []),
@@ -1862,6 +1873,13 @@ export function scoreBanCandidate(
   const enemyBestDuo = ctx.mustWith.enemyDuo.best;
   const duoDenyBan2 =
     isBan2 && enemyBestDuo && (enemyBestDuo.adcId === candidate.id || enemyBestDuo.supportId === candidate.id) ? BANS.enemyDuoBan2 : 0;
+  // DUO_PRIORITY_AND_FEARLESS §3.4 — piesa lor de combo, cu partenerul deja banat în jocul ăsta: ei o păstrează
+  // oricum pentru alt joc, deci ban-ul pe ea valorează mai puțin.
+  const enemyPair = ctx.enemyPriorityOf(candidate).partner;
+  const orphanComboBan =
+    ctx.phase === "ban1" && enemyPair.state === "orphan" && enemyPair.partnerId && [...game.bansBlue, ...game.bansRed].includes(enemyPair.partnerId)
+      ? -DRAFT_THINKING_CONFIG.pair.orphanBanPenalty
+      : 0;
   // §9.1: amenințările de sezon cu răspuns „plan” nu se banează (le lăsăm, avem counter-ul).
   const seasonPlanHold = seasonResponse?.kind === "plan" && !seasonBanResponse ? -BANS.seasonPlanHold : 0;
 
@@ -1899,6 +1917,7 @@ export function scoreBanCandidate(
       redundantBanPenalty * (isBan2 ? BANS.roleCoveredBan2Factor : 1) -
       banRepeatPenalty +
       seasonPlanHold +
+      orphanComboBan +
       trapBanReduction +
       ownMustWithBanBlock +
       firstPickInsteadOfBan,
@@ -1932,6 +1951,7 @@ export function scoreBanCandidate(
     reasonTags: [
       ...(banTag ? [banTag] : []),
       ...(seasonPlanHold < 0 ? ["season-plan"] : []),
+      ...(orphanComboBan < 0 ? ["orphan-combo"] : []),
       ...(identityCompletion > 0 ? ["identity-deny"] : []),
       ...(seasonBan > 0 ? ["season-ban"] : []),
       userBias > 1 || signatureBonus > 2 ? "user-pattern" : "meta-ban",
@@ -1996,6 +2016,62 @@ export function getPickCandidatePool(
   const playable = filteredPool.filter((champion) => !gradeById.get(champion.id)?.allBlocked);
   if (playable.length) filteredPool = playable;
   return filteredPool;
+}
+
+/** Etichetele pick-urilor adversarului până la următorul nostru pick: „R1–R2”. */
+function enemyPickLabelsBeforeOurNext(ctx: DraftContext): string {
+  const labels: string[] = [];
+  for (let index = ctx.stepIndex + 1; index < DRAFT_SEQUENCE.length; index += 1) {
+    const step = DRAFT_SEQUENCE[index];
+    if (step.side === ctx.side && step.action === "pick") break;
+    if (step.side !== ctx.side && step.action === "pick") labels.push(step.label);
+  }
+  return labels.length > 1 ? `${labels[0]}–${labels[labels.length - 1]}` : labels[0] ?? "their next picks";
+}
+
+/**
+ * DUO_PRIORITY_AND_FEARLESS §2.5–§3.3 — efectul de pereche pe un pick:
+ *   fereastră (combo tier 1, ambii ≥ B, focus ≠ elsewhere) → +windowBonus în `power`;
+ *   expus (șansa de deny ≥ 0.5) → tag `exposed-combo` + explicație (scăderea e deja în priority value);
+ *   orfan cu partenerul doar banat în jocul ăsta, seria mai continuă, joc nedecisiv → −conserve în `power`.
+ */
+function getPairPickEffect(candidate: Champion, role: Role | null, priority: PriorityValue, ctx: DraftContext) {
+  const PAIR = DRAFT_THINKING_CONFIG.pair;
+  const result = { power: 0, lines: [] as string[], tags: [] as string[] };
+  if (priority.dependency <= 0 || !priority.partner.partnerId) return result;
+  const partner = getChampionById(priority.partner.partnerId);
+  const partnerName = partner?.name ?? priority.partner.partnerId;
+  const state = priority.partner.state;
+
+  if (state === "pair-window" && partner) {
+    const partnerRole = getComboPartners(candidate.id, priority.role).find((entry) => entry.partnerId === partner.id)?.partnerRole ?? null;
+    const bot = role === "adc" || role === "support";
+    const tier = bot && partnerRole
+      ? (role === "adc" ? getBotPairTier(candidate.id, partner.id) : getBotPairTier(partner.id, candidate.id))
+      : 1; // perechile non-bot sunt mustWith (tier 1)
+    const rank = (r: Role | null, id: string) => {
+      const player = r && ctx.own.roster[r] ? playersById.get(ctx.own.roster[r]!) : undefined;
+      return player ? GRADE_RANK[getChampionGrade(player, id)] : GRADE_RANK.C;
+    };
+    if (tier === 1 && rank(role, candidate.id) >= GRADE_RANK.B && rank(partnerRole, partner.id) >= GRADE_RANK.B && ctx.botFocus !== "elsewhere") {
+      result.power += PAIR.windowBonus;
+      result.tags.push("pair-window");
+      result.lines.push(`Pair window: ${candidate.name} now, ${partnerName} next`);
+    }
+  }
+  if (state === "exposed" && priority.partner.denyChance >= PAIR.exposedDenyChance) {
+    result.tags.push("exposed-combo");
+    result.lines.push(`${candidate.name} as first pick is exposed: they can take ${partnerName} with ${enemyPickLabelsBeforeOurNext(ctx)}`);
+  }
+  if (state === "orphan" && priority.dependency >= PAIR.conserveMinDependency) {
+    const remaining = getGamesRemainingPossible(ctx.series);
+    if (remaining >= 1 && !ctx.seriesPressure.eliminationGame && isPartnerOnlyBannedThisGame(candidate, priority.role, ctx.game, ctx.series, ctx.enemy.picks)) {
+      result.power -= PAIR.conservePenalty * priority.dependency * Math.min(1, remaining / 2);
+      result.tags.push("conserve-combo");
+      result.lines.push(`${candidate.name} held: ${partnerName} is banned, saving it for a later game`);
+    }
+  }
+  return result;
 }
 
 /**

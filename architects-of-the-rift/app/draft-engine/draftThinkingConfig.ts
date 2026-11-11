@@ -231,6 +231,27 @@ export const DRAFT_THINKING_CONFIG = {
     banTemperatureFactor: 0.7,
   },
 
+  // DUO_PRIORITY_AND_FEARLESS §2–§3 — priority în funcție de partener (pairPriority.ts).
+  pair: {
+    /** Dependența unei piese de combo de partener; mai mică pentru un carry self-sufficient. */
+    dependency: 0.7,
+    dependencySelfSufficient: 0.35,
+    /** Partenerul nu mai e disponibil: partea dependentă × atât. */
+    orphanFactor: 0.25,
+    /** Probabilitatea de ban pe partener înainte de următorul nostru pick (vizibil = favorit / combo al nostru). */
+    banRate: 0.3,
+    banRateVisible: 0.5,
+    /** §2.5 — fereastra de pereche (combo tier 1, ambii ≥ B, focus ≠ elsewhere): +atât în `power`. */
+    windowBonus: 1.0,
+    /** §2.6 — piesă expusă: tag și explicație de la această șansă de deny. */
+    exposedDenyChance: 0.5,
+    /** §3.3 — păstrarea combo-ului în fearless: atât × dependency × min(1, jocuri rămase / 2). */
+    conservePenalty: 2.0,
+    conserveMinDependency: 0.5,
+    /** §3.4 — ban pe o piesă de combo cu partenerul deja banat: −atât în `hygiene`. */
+    orphanBanPenalty: 1.0,
+  },
+
   // DRAFT_REALISM §9 — ban-uri realiste.
   bans: {
     /** §9.1 — favorit de sezon cu răspuns „plan”: −atât în `hygiene` (nu-l banăm, avem counter). */
