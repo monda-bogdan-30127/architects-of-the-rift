@@ -221,6 +221,55 @@ export const DRAFT_THINKING_CONFIG = {
     redDenyFirstPick: 2,
   },
 
+  // DRAFT_REALISM §7 — intențiile echipei (draftIntents.ts)
+  intents: {
+    /** weight[b] = faza × stil × (1 + boost × Σ urgency/10 a intențiilor legate de b). */
+    boost: 0.6,
+    /** Intenția principală cu urgența de la atât: candidații cu subtotal ≤ 0 în bucket-ul ei → −offIntentPenalty. */
+    decisiveThreshold: 8,
+    offIntentPenalty: 2,
+    /** secure-priority: (cel mai mare priority folosibil − tier2Min) × atât. */
+    secureScale: 5,
+    /** deny: theirInterest × takeProbability × atât (spec: × 1). */
+    denyScale: 1,
+    /** answer: valoarea de matchup a celui mai bun counter ≥ B × atât; + bonus dacă e favoritul lor de sezon. */
+    answerScale: 2,
+    answerSeasonBonus: 3,
+    /** build-identity: nevoi lipsă × atât + gate (fără frontline / adc) + win condition neacoperit + focus bot. */
+    identityNeedScale: 1,
+    identityGateBonus: 3,
+    identityWinBonus: 2,
+    /** FEEDBACK_FIXES §10.5 — focus „bot” crește urgența build-identity. */
+    botFocusIdentityBonus: 2,
+    /** comfort: SS / S disponibil pe un rol liber, meci de eliminare, pool rar în fearless. */
+    comfortSS: 6,
+    comfortS: 4,
+    comfortElimination: 2,
+    comfortScarce: 2,
+    /** hide: solo lane-uri libere × atât + pick-uri inamice rămase × atât; × factor cu un singur pick rămas. */
+    hideSoloScale: 1.5,
+    hideEnemyScale: 0.4,
+    hideLastPicksFactor: 0.4,
+    /** §7.2 — interesul lor: grad + priority (perspectiva lor) + fit cu identitatea lor. */
+    interestWeights: { grade: 0.5, priority: 0.3, identity: 0.2 },
+    /** §7.1 — pool rar: jucătorul mai are cel mult atâția campioni ≥ B pe rolul lui. */
+    scarcePool: 3,
+    /** … termen în `power` (pick) / `target` (ban) pentru campionii lui ≥ B. */
+    scarcePowerBonus: 1.5,
+  },
+
+  // DRAFT_REALISM §7.3 — lookahead: „dacă nu-l iau acum, îl iau ei înainte de următorul meu pick?”
+  lookahead: {
+    takeRate: 0.6,
+    /** pBan = cât ne-ar bana ei campionul (semnătura / sezonul nostru) / 10 × banRate. */
+    banRate: 0.5,
+    denyWeight: 0.5,
+    loseRiskWeight: 0.35,
+    /** Sub aceste probabilități, un solo lane al nostru poate aștepta (bonus la urgența hide). */
+    safeProbability: 0.15,
+    waitBonusToHide: 1.0,
+  },
+
   // FEEDBACK_FIXES §5 — raportul de draft pe piloni (draftPillarReport.ts)
   report: {
     composition: {

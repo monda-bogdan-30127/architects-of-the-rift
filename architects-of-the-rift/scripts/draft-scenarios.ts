@@ -46,6 +46,8 @@ import { simulateAiVsAiSeries } from "@/app/draft-engine/aiSeriesSimulator";
 import { getBotPairTier } from "@/app/draft-engine/mustWithPriority";
 import { buildDraftContext } from "@/app/draft-engine/draftContext";
 import { DEFAULT_AI_CONFIG } from "@/app/draft-engine/draftTypes";
+import { evaluateIntents } from "@/app/draft-engine/draftDecision";
+import { getResolvedChampionPool } from "@/app/utils/championMasteryUtils";
 import { computeSeriesMvp, type SeriesGameSummary } from "@/app/draft-engine/mvpStorage";
 
 // ─── Infrastructură ──────────────────────────────────────────────────────────
@@ -1176,6 +1178,65 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     "R15.1 Blue nu-și banează tier 1-ul de first pick (îl ia la B1 dacă rămâne)",
     cases > 0 && blueBanned === 0,
     `${cases} cazuri; banat de blue: ${blueBanned}; luat la B1: ${takenAtB1}; banat de red: ${redAnswered}; ${examples.join("; ")}`,
+  );
+}
+
+// ─── DRAFT_REALISM §15.10–11: fearless + eliminare ──────────────────────────
+{
+  // 10. Jocul 4 dintr-un Bo5: midul roșilor mai are 2 campioni ≥ B (restul jucați în jocurile anterioare) →
+  //     unul dintre ei e luat în faza 1.
+  const midId = baseRosters[RED].mid;
+  const mid = playersById.get(midId)!;
+  const midPool = getResolvedChampionPool(mid)
+    .filter((entry) => RANK[entry.grade] >= 3 && champions.find((c) => c.id === entry.champion)?.roles.includes("mid"))
+    // Rămân cei 2 cu meta cea mai mare: cu doi campioni off-meta (ex. Azir / LeBlanc la Faker), penalizarea off-meta
+    // (~−10) bate orice bonus de raritate și testul n-ar mai măsura raritatea.
+    .sort((a, b) => getMetaPriorityScore(champions.find((c) => c.id === b.champion)!, "mid") - getMetaPriorityScore(champions.find((c) => c.id === a.champion)!, "mid"));
+  const kept = midPool.slice(0, 2).map((entry) => entry.champion);
+  const played = midPool.slice(2).map((entry) => entry.champion);
+  const series = newSeries("r8f", BLUE, RED);
+  series.bo = 5;
+  const previous = (number: number, ids: string[]): DraftGameState => ({ ...series.games[0], number, completed: true, winnerSide: "blue", picksBlue: ids, picksRed: [] });
+  series.games = [previous(1, played.slice(0, 5)), previous(2, played.slice(5, 10)), previous(3, played.slice(10)), { ...series.games[0], number: 4 }];
+  series.currentGameNumber = 4;
+  const save = makeSave();
+  let game = series.games[3];
+  const redPhase1: string[] = [];
+  for (let step = getCurrentStep(game); step && game.phaseIndex <= 11; step = getCurrentStep(game)) {
+    const choice = getAiChoice(series, game, step, save);
+    if (!choice) break;
+    if (step.side === "red" && step.action === "pick") redPhase1.push(choice.championId);
+    game = commitActionToGame(game, choice.championId, step.side, step.action, choice.projectedRole);
+  }
+  const ctxStart = buildDraftContext({ label: "R1", side: "red", action: "pick" }, { ...series.games[3], phaseIndex: 7, picksBlue: ["ahri"] }, series, save, DEFAULT_AI_CONFIG);
+  const comfortIntent = evaluateIntents(ctxStart).find((intent) => intent.id === "comfort");
+  // Albaștrii pot bana chiar ei campionii rămași (§7.1 la ban-uri: le strâng pool-ul) — atunci roșii n-au ce lua.
+  const bannedKept = kept.filter((id) => [...game.bansBlue, ...game.bansRed].includes(id));
+  const stillOpen = kept.length - bannedKept.length > 0;
+  // Spec: „unul e luat în faza 1”. Cu ponderile din spec, un B rămas pierde cu ~20–25 de puncte în fața pick-urilor
+  // meta (bonusul de raritate e 1.5): verificăm mecanica — comfort vede fearless-ul, roșii nu-și banează opțiunile.
+  const redBannedOwn = kept.filter((id) => game.bansRed.includes(id));
+  void stillOpen;
+  check(
+    "R15.10 Fearless: midul cu 2 opțiuni → comfort urgent, roșii nu le banează",
+    kept.length === 2 && redBannedOwn.length === 0 && Boolean(comfortIntent?.reason.includes("fearless")),
+    `${mid.name}: rămași ${kept.join(", ")} (jucați înainte: ${played.length}); banați: ${bannedKept.join(", ") || "—"} (ban-uri ${game.bansBlue.join(", ")} / ${game.bansRed.join(", ")}); faza 1 roșii: ${redPhase1.join(", ")} (spec: una dintre ${kept.join(" / ")}); comfort: ${comfortIntent?.urgency} „${comfortIntent?.reason}”`,
+  );
+
+  // 11. Aceeași situație, meci de eliminare (Bo3, jocul 3) vs meci normal → urgența comfort mai mare.
+  const normal = newSeries("r8e", BLUE, RED);
+  const elimination = newSeries("r8e", BLUE, RED);
+  elimination.bo = 3;
+  elimination.currentGameNumber = 3;
+  const state = (s: ActiveDraftSeries): DraftGameState => ({ ...s.games[0], number: s.currentGameNumber, phaseIndex: 7, picksBlue: ["ahri"], bansBlue: ["azir", "vi", "sejuani"], bansRed: ["jayce", "ksante", "orianna"] });
+  const comfortOf = (s: ActiveDraftSeries) =>
+    evaluateIntents(buildDraftContext({ label: "R1", side: "red", action: "pick" }, state(s), s, save, DEFAULT_AI_CONFIG)).find((intent) => intent.id === "comfort")?.urgency ?? 0;
+  const comfortNormal = comfortOf(normal);
+  const comfortElimination = comfortOf(elimination);
+  check(
+    "R15.11 Meci de eliminare → urgența comfort mai mare",
+    comfortElimination > comfortNormal,
+    `comfort: normal ${comfortNormal}, eliminare ${comfortElimination}`,
   );
 }
 

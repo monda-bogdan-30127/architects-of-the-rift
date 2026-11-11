@@ -33,7 +33,14 @@ import { describeForcedOffPool, describeMustWithLock } from "./draftDecisionExpl
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { chooseFromAdaptiveShortlist, roll } from "./draftVariationSystem";
 
-type Intent = NonNullable<DraftCandidateBreakdown["intents"]>[number];
+import {
+  evaluateIntents as evaluateTeamIntents,
+  getIntentMultiplier,
+  getScarcity,
+  INTENT_BUCKET,
+  isScarcePoolChampion,
+  type Intent,
+} from "./draftIntents";
 
 // ─── Observator de decizii (harness: scripts/draft-trace.ts, draft-calibration.ts) ──
 export type DraftDecisionObservation = {
@@ -51,8 +58,26 @@ export function setDraftDecisionObserver(observer: ((observation: DraftDecisionO
 }
 
 // ─── Scor ────────────────────────────────────────────────────────────────────
-export function scoreCandidate(candidate: Champion, ctx: DraftContext, weights: BucketWeights): DraftCandidateBreakdown {
-  return ctx.step.action === "ban" ? scoreBanCandidate(candidate, ctx, weights) : scorePickCandidate(candidate, ctx, weights);
+export function scoreCandidate(
+  candidate: Champion,
+  ctx: DraftContext,
+  weights: BucketWeights,
+  intents: readonly Intent[] = [],
+): DraftCandidateBreakdown {
+  const entry = ctx.step.action === "ban" ? scoreBanCandidate(candidate, ctx, weights) : scorePickCandidate(candidate, ctx, weights);
+  // §7: intenția decisivă conduce draftul — candidații fără nimic în bucket-ul ei sunt penalizați.
+  const main = intents[0];
+  if (main && main.urgency >= DRAFT_THINKING_CONFIG.intents.decisiveThreshold) {
+    const bucket = INTENT_BUCKET[main.id];
+    if ((entry.buckets?.[bucket] ?? 0) <= 0) {
+      return {
+        ...entry,
+        totalScore: entry.totalScore - DRAFT_THINKING_CONFIG.intents.offIntentPenalty,
+        reasonTags: [...(entry.reasonTags ?? []), "off-intent"],
+      };
+    }
+  }
+  return entry;
 }
 
 /** Un candidat scorat în afara pipeline-ului (scenarii, UI), cu ponderile pasului. */
@@ -66,7 +91,7 @@ export function scoreDraftCandidate(
 ): DraftCandidateBreakdown {
   const ctx = buildDraftContext(step, game, series, save, config);
   const intents = evaluateIntents(ctx);
-  return withIntents(scoreCandidate(candidate, ctx, getBucketWeights(ctx, intents)), intents);
+  return withIntents(scoreCandidate(candidate, ctx, getBucketWeights(ctx, intents), intents), intents);
 }
 
 function byTotal(a: DraftCandidateBreakdown, b: DraftCandidateBreakdown) {
@@ -89,8 +114,15 @@ function applyRealisticPickTiebreaker(a: DraftCandidateBreakdown, b: DraftCandid
 }
 
 // ─── Intenții și ponderi (§5, §7, §8) ────────────────────────────────────────
-export function evaluateIntents(_ctx: DraftContext): Intent[] {
-  return [];
+/** §7 — intențiile echipei la pasul curent (cache pe context: se calculează o dată per acțiune). */
+const intentCache = new WeakMap<DraftContext, Intent[]>();
+export function evaluateIntents(ctx: DraftContext): Intent[] {
+  let intents = intentCache.get(ctx);
+  if (!intents) {
+    intents = evaluateTeamIntents(ctx);
+    intentCache.set(ctx, intents);
+  }
+  return intents;
 }
 
 /** Ponderea fazei (§5) pentru fiecare bucket; intențiile (§7) și stilul (§8) se adaugă peste. */
@@ -104,12 +136,18 @@ export function getPhaseWeights(ctx: DraftContext): BucketWeights {
   return { ...UNIT_PICK_WEIGHTS, ...phases.pick[pickPhase] };
 }
 
-export function getBucketWeights(ctx: DraftContext, _intents: Intent[]): BucketWeights {
-  return getPhaseWeights(ctx);
+/** weight[b] = faza × stil (§8) × (1 + boost × Σ urgency/10 a intențiilor legate de b). */
+export function getBucketWeights(ctx: DraftContext, intents: readonly Intent[]): BucketWeights {
+  const weights = getPhaseWeights(ctx);
+  for (const bucket of Object.keys(weights) as (keyof BucketWeights)[]) {
+    if (bucket === "hygiene") continue;
+    weights[bucket] = (weights[bucket] ?? 1) * getIntentMultiplier(intents, bucket);
+  }
+  return weights;
 }
 
-function withIntents(entry: DraftCandidateBreakdown, intents: Intent[]): DraftCandidateBreakdown {
-  return intents.length ? { ...entry, intents } : entry;
+function withIntents(entry: DraftCandidateBreakdown, intents: readonly Intent[]): DraftCandidateBreakdown {
+  return intents.length ? { ...entry, intents: intents.map(({ id, urgency, reason }) => ({ id, urgency, reason })) } : entry;
 }
 
 // ─── Filtre dure (§3.2) ──────────────────────────────────────────────────────
@@ -121,7 +159,12 @@ export function applyHardFilters(pool: Champion[], ctx: DraftContext): FilteredP
   if (ctx.step.action === "ban") {
     // §5.5: nu-ți bana partenerul eligibil al unui campion deja luat.
     // DRAFT_THINKING §2.4: în faza 1 nici membrii celui mai bun duo propriu (clar peste al doilea).
-    const protectedIds = new Set([...ownPartnerIds, ...(ctx.phase === "ban1" ? ctx.mustWith.ownDuo.protectedIds : [])]);
+    // DRAFT_REALISM §7.1: nici ultimele opțiuni ≥ B ale unui jucător propriu cu pool rar (fearless).
+    const scarceOwn = getScarcity(ctx).own;
+    const ownScarceIds = scarceOwn.length
+      ? pool.filter((champion) => isScarcePoolChampion(champion, ctx.own.roster, scarceOwn)).map((champion) => champion.id)
+      : [];
+    const protectedIds = new Set([...ownPartnerIds, ...ownScarceIds, ...(ctx.phase === "ban1" ? ctx.mustWith.ownDuo.protectedIds : [])]);
     let banPool = pool;
     if (protectedIds.size > 0) {
       const unprotected = pool.filter((champion) => !protectedIds.has(champion.id));
@@ -188,13 +231,15 @@ export function chooseFinal(ranked: DraftCandidateBreakdown[], ctx: DraftContext
     const valid = ranked.filter((entry, index) => index === 0 || !entry.reasonTags?.includes("mastery-d"));
     const seed = `${series.seriesId}:${series.currentGameNumber}:${game.phaseIndex}:${step.side}`;
 
-    // §5.4: partener non-bot pe primul loc → ales cu nonBotLockChance (determinist).
-    const top = valid[0];
-    const nonBotPartner = top
-      ? ctx.mustWith.ownPartners.find((partner) => !partner.isBotPair && partner.partnerId === top.championId)
-      : undefined;
-    if (top && nonBotPartner && roll(`${seed}:mustwith`) < MUSTWITH_CONFIG.nonBotLockChance) {
-      return withMustWithLock(top, nonBotPartner);
+    // §5.4: partenerul non-bot al unei ancore proprii e ales cu nonBotLockChance (determinist).
+    // Fără o excepție permisă (counter nota 5 / pick SS, `nonBotOverride`): oriunde ar fi în listă — bonusul
+    // fix nu mai garanta locul 1 după ce intențiile (§7) amplifică bucket-urile. Cu excepție: doar dacă e primul.
+    const isNonBotPartner = (entry: DraftCandidateBreakdown) =>
+      ctx.mustWith.ownPartners.find((partner) => !partner.isBotPair && partner.partnerId === entry.championId);
+    const partnerEntry = ctx.mustWith.nonBotOverride ? (valid[0] && isNonBotPartner(valid[0]) ? valid[0] : undefined) : valid.find(isNonBotPartner);
+    const nonBotPartner = partnerEntry ? isNonBotPartner(partnerEntry) : undefined;
+    if (partnerEntry && nonBotPartner && roll(`${seed}:mustwith`) < MUSTWITH_CONFIG.nonBotLockChance) {
+      return withMustWithLock(partnerEntry, nonBotPartner);
     }
     return withChoiceRank(chooseFromAdaptiveShortlist(valid, seed) ?? null, valid);
   }
@@ -224,7 +269,7 @@ export function decideDraftAction(
   if (forced) return withIntents(forced, intents);
 
   const { candidates, blocked } = applyHardFilters(pool, ctx);
-  const ranked = candidates.map((candidate) => scoreCandidate(candidate, ctx, weights)).sort(byTotal);
+  const ranked = candidates.map((candidate) => scoreCandidate(candidate, ctx, weights, intents)).sort(byTotal);
   rankedOut.push(...ranked);
 
   if (step.action === "pick" && !ranked.length) {
@@ -232,7 +277,7 @@ export function decideDraftAction(
     // dintre cei excluși doar pentru mastery, marcat `forced-off-pool`.
     const scoredBlocked = blocked
       .filter((entry) => entry.tag !== "invalid-role-map")
-      .map((entry) => scoreCandidate(entry.champion, ctx, weights))
+      .map((entry) => scoreCandidate(entry.champion, ctx, weights, intents))
       .sort(byTotal);
     rankedOut.push(...scoredBlocked);
     const forcedOff =

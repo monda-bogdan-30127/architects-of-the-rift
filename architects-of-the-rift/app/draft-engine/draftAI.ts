@@ -96,7 +96,7 @@ import {
 } from "./playerProfileSystem";
 import { getAdaptivePriorityBonus } from "./adaptivePrioritySystem";
 import { getContestabilityPenalty } from "./draftContestability";
-import { getDraftIntent } from "./draftIntentSystem";
+import { getLookaheadValue, getScarcity, isScarcePoolChampion } from "./draftIntents";
 import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
 import { getBadSynergy, getTotalBadSynergy } from "./badSynergy";
@@ -1225,6 +1225,11 @@ export function scorePickCandidate(
   // DRAFT_REALISM §6: cât e de contestat; în `power` doar dacă îl putem juca (altfel e ban / deny).
   const priority = ctx.priorityOf(candidate);
   const priorityPick = priority.ownUsable ? priority.value * DRAFT_THINKING_CONFIG.priority.pickWeight : 0;
+  // §7.3 — lookahead: ce vor ei și iau înainte de următorul nostru pick (deny); ce e bun pentru noi și riscă
+  // să dispară se ia acum (loseRisk, din power + comfort fără lookahead, ca să nu fie circular).
+  const lookahead = getLookaheadValue(candidate, ctx);
+  // §7.1 — fearless: jucătorul nostru mai are puține opțiuni ≥ B pe rol → îi asiguri rolul cât încă poți.
+  const scarcePower = isScarcePoolChampion(candidate, ctx.own.roster, getScarcity(ctx).own) ? DRAFT_THINKING_CONFIG.intents.scarcePowerBonus : 0;
   const buckets: Record<PickBucketId, number> = {
     power:
       metaPriority * adjustedConfig.metaWeight +
@@ -1277,6 +1282,12 @@ export function scorePickCandidate(
       contestability,
     style: identityBias,
   };
+  // §7.3: loseRisk din power + comfort de dinainte de lookahead.
+  const ourValue = buckets.power + buckets.comfort;
+  const loseRisk = Math.max(0, ourValue) * Math.max(lookahead.takeProbability, lookahead.banProbability) * DRAFT_THINKING_CONFIG.lookahead.loseRiskWeight;
+  buckets.power += loseRisk + scarcePower;
+  buckets.deny += lookahead.denyValue;
+
   // În afara ponderilor: `adaptivePriority` (se șterge în §11) și partenerul non-bot mustWith (§5.4),
   // care e un mecanism de lock (30 de puncte ca să iasă primul, apoi `nonBotLockChance` în chooseFinal),
   // nu o preferință de compoziție: cu × comp (0.6 în pick1-open) partenerul pierdea locul 1.
@@ -1366,15 +1377,6 @@ export function scorePickCandidate(
       canFit ? "valid-role-map" : "invalid-role-map",
       candidate.roles.length >= 2 ? "flex" : "single-role",
       projected.projectedRole ?? "unassigned",
-      getDraftIntent({
-        candidate,
-        side: step.side,
-        game,
-        synergyScore: compSynergy,
-        counterScore: counterValue,
-        comfortScore,
-        planBonus: identityBias + roleCoverage,
-      }).primary,
       offMetaPenalty >= 3 ? "off-meta" : "meta-ok",
       contestability >= 2 ? "high-contestability" : "safe-pick",
       ctx.phase,
@@ -1861,7 +1863,9 @@ export function scoreBanCandidate(
       userFavoriteBan +
       userBias +
       seriesAwareBan +
-      comfortRepeatThreat,
+      comfortRepeatThreat +
+      // §7.1 — fearless: jucătorul lor mai are puține opțiuni ≥ B pe un rol liber → ban-ul îl strânge.
+      (isScarcePoolChampion(candidate, ctx.enemy.roster, getScarcity(ctx).enemy) ? DRAFT_THINKING_CONFIG.intents.scarcePowerBonus : 0),
     // Pick-urile noastre.
     protect:
       protectOwnCompBonus +          // DRAFT FINAL FIX 3
