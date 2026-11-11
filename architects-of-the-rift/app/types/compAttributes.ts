@@ -24,6 +24,11 @@ export const COMP_ATTRIBUTE_ORDER = [
   'splitpush',
   'sideLanePressure',
   'scaling',
+  // COMP_ATTRIBUTES_EXPANSION §1 — la final, ca ordinea atributelor existente (și departajările) să rămână aceeași.
+  'antiTank',
+  'antiCC',
+  'sustain',
+  'globalPressure',
 ] as const;
 
 export type CompAttribute = (typeof COMP_ATTRIBUTE_ORDER)[number];
@@ -229,6 +234,38 @@ export const COMP_ATTRIBUTE_INFO: Record<CompAttribute, CompAttributeInfo> = {
     needLabel: 'Scaling',
     weaknessLabel: 'Can lose to scaling',
   },
+  antiTank: {
+    label: 'Anti-tank',
+    shortLabel: 'Anti-tank',
+    category: 'damage',
+    offerPositiveLabel: 'Anti-tank',
+    needLabel: 'Anti-tank',
+    weaknessLabel: 'Melts into anti-tank',
+  },
+  antiCC: {
+    label: 'Anti-CC',
+    shortLabel: 'Anti-CC',
+    category: 'defense',
+    offerPositiveLabel: 'Anti-CC',
+    needLabel: 'Anti-CC',
+    weaknessLabel: 'CC gets cleansed or blocked',
+  },
+  sustain: {
+    label: 'Sustain',
+    shortLabel: 'Sustain',
+    category: 'defense',
+    offerPositiveLabel: 'Sustain',
+    needLabel: 'Sustain',
+    weaknessLabel: 'Struggles into sustain',
+  },
+  globalPressure: {
+    label: 'Global pressure',
+    shortLabel: 'Global',
+    category: 'macro',
+    offerPositiveLabel: 'Global pressure',
+    needLabel: 'Global pressure',
+    weaknessLabel: 'Struggles into global pressure',
+  },
 };
 
 export const OFFER_STRENGTH_LABEL: Record<1 | 2 | 3 | 4 | 5, string> = {
@@ -297,4 +334,8 @@ export const ATTRIBUTE_THREAT_LABEL: Record<CompAttribute, string> = {
   splitpush: 'splitpush',
   sideLanePressure: 'side-lane pressure',
   scaling: 'scaling',
+  antiTank: 'anti-tank damage',
+  antiCC: 'anti-CC',
+  sustain: 'sustain',
+  globalPressure: 'global pressure',
 };

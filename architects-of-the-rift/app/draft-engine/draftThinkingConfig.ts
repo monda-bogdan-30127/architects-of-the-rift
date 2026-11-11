@@ -391,4 +391,45 @@ export const DRAFT_THINKING_CONFIG = {
     carryBonus: 1,
     hardProtectBonus: 1.5,
   },
+
+  // COMP_ATTRIBUTES_EXPANSION — atributele noi (antiTank, antiCC, sustain, globalPressure), resourceDemand,
+  // nevoile contextuale. Cu datele goale (fără offers noi, resourceDemand 3 peste tot) nimic nu se activează.
+  attributes: {
+    /** §2.2 — conflict de resurse: peste atâtea pick-uri cu resourceDemand ≥ highDemandMin, −penalty pentru fiecare. */
+    highDemandMin: 4,
+    maxHighDemand: 2,
+    resourceConflictPenalty: 1.5,
+    /** §2.2 — focusul pe bot: non-bot cu cerere ≥ highDemandMin −focusCarryPenalty; top/jungle ≤ weaksideMax +focusWeaksideBonus. */
+    focusCarryPenalty: 0.75,
+    focusWeaksideBonus: 0.5,
+    weaksideMax: 2,
+    /** §2.2 — win condition: doar un campion cu cerere ≥ atât. */
+    winConditionMinDemand: 3,
+    /** §2.2 — simulare: execution −atât pentru fiecare carry (cerere ≥ highDemandMin) peste maxHighDemand. */
+    simResourceConflict: 0.3,
+    /** §3 — nevoile contextuale (din compoziția adversarului). Oprite până se completează datele. */
+    contextualNeedsEnabled: false,
+    contextualNeedWeight: 1.0,
+    /** Nevoia contextuală nesatisfăcută cu priority ≥ atât crește urgența `answer`. */
+    contextualAnswerMinPriority: 2,
+    contextualAnswerUrgency: 2,
+    /** Se activează doar de la atâtea pick-uri ale adversarului. */
+    contextualMinEnemyPicks: 2,
+    /** Pragurile pe vectorul adversarului: [prag, prag pentru priority mai mare]. */
+    thresholds: {
+      frontline: [8, 12],
+      cc: [14, 20],
+      poke: [9, 13],
+      sidelane: [8, Infinity],
+    },
+    /** §4 — simulare: reducerile din teamfight (plafon, per punct de atribut al adversarului). */
+    simAntiTankCap: 0.35,
+    simAntiTankPerPoint: 0.04,
+    simAntiCCCap: 0.25,
+    simAntiCCPerPoint: 0.03,
+    simSustainCap: 0.25,
+    simSustainPerPoint: 0.03,
+    /** §4 — globalPressure la presiunea de macro (mid / late), lângă roamPressure. */
+    simGlobalPressureWeight: 0.5,
+  },
 } as const;

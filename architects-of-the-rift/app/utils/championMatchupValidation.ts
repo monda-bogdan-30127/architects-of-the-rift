@@ -20,6 +20,7 @@ import {
 import { MATCHUP_LEVELS, MATCHUP_PHASES, isMatchupLevel, isMatchupPhase } from "../draft-engine/matchupGrades";
 import { getChampionStatsForRole } from "../draft-engine/championRoleStatsSystem";
 import { getBadSynergyIssues, isBadSynergyLevel } from "../draft-engine/badSynergy";
+import { COMP_ATTRIBUTE_ORDER } from "../types/compAttributes";
 import type {
   Champion,
   ChampionRoleData,
@@ -113,6 +114,7 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
       if (entry && isRole(roleKey)) validateRoleEntry(owner, roleKey, entry);
     }
     validateBadSynergy(owner);
+    validateAttributes(owner);
   }
 
   // ── badSynergyWith (global pe campion) ───────────────────────────────────
@@ -139,8 +141,34 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
     }
   }
 
+  // ── offers / needs / weaknesses (COMP_ATTRIBUTES_EXPANSION §1) ──────────
+  function validateAttributes(owner: Champion) {
+    const isAttribute = (value: unknown) => COMP_ATTRIBUTE_ORDER.includes(value as never);
+    const inRange = (value: unknown, max: number) => Number.isInteger(value) && (value as number) >= 1 && (value as number) <= max;
+    const lists = [
+      { name: "offers", field: "type", scale: "strength", max: 5, entries: owner.offers ?? [] },
+      { name: "needs", field: "type", scale: "priority", max: 3, entries: owner.needs ?? [] },
+      { name: "weaknesses", field: "exposedTo", scale: "severity", max: 3, entries: owner.weaknesses ?? [] },
+    ] as const;
+    for (const list of lists) {
+      const seen = new Set<string>();
+      for (const item of list.entries as readonly Record<string, unknown>[]) {
+        const attribute = item[list.field];
+        if (!isAttribute(attribute)) error(owner.id, `${list.name}: atribut necunoscut "${String(attribute)}"`);
+        if (!inRange(item[list.scale], list.max)) error(owner.id, `${list.name} ${String(attribute)}: ${list.scale} ${String(item[list.scale])} în afara 1..${list.max}`);
+        if (seen.has(String(attribute))) warning(owner.id, `${list.name} ${String(attribute)}: de două ori`);
+        seen.add(String(attribute));
+      }
+    }
+  }
+
   function validateRoleEntry(owner: Champion, role: Role, entry: ChampionRoleData) {
     const key = `${owner.id}:${role}`;
+
+    // ── resourceDemand (opțional, 1..5; lipsă = 3) ─────────────────────────
+    if (entry.resourceDemand !== undefined && ![1, 2, 3, 4, 5].includes(entry.resourceDemand as number)) {
+      error(key, `resourceDemand ${String(entry.resourceDemand)} în afara 1..5`);
+    }
 
     // ── weakVs: nu se mai scrie (derivat din goodVs) ─────────────────────
     if ("weakVs" in entry) {

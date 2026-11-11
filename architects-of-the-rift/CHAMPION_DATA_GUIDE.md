@@ -81,7 +81,7 @@ export const poppy = createChampion({
 Reguli de formatare, la fel în toate fișierele:
 
 - **Ordinea câmpurilor:** identitate (`id`, `name`, `image`, `roles`, `damageProfile`, `attackType`) → compoziție (`synergyWith`, `badSynergyWith` dacă există, `offers`, `needs`, `weaknesses`, `playerScaling`, `carryProfile` dacă e explicit) → `stats` → `roleData`.
-- **`roleData` are exact cheile din `roles`, în aceeași ordine.** Într-un rol: `goodVs`, `mustWith` (opțional, doar dacă există), `stats`, apoi `profile` (opțional).
+- **`roleData` are exact cheile din `roles`, în aceeași ordine.** Într-un rol: `goodVs`, `mustWith` (opțional, doar dacă există), `stats`, `resourceDemand` (opțional), apoi `profile` (opțional).
 - **Nu se scrie `weakVs`** (e generat automat, vezi mai jos) și **nici `mustWith: []`**. Validatorul dă eroare la ambele.
 - `synergyWith` e global pe campion, nu pe rol.
 - `attackType` (`"melee"` / `"ranged"`) e range-ul atacului de bază și dă tag-ul `melee` / `ranged` din profilul derivat. La formele schimbătoare (Jayce, Nidalee, Elise, Gnar, Kayle) se trece forma dominantă în pro. Dacă scrii `tags` într-un `profile` manual, tag-ul de range trebuie să fie același.
@@ -157,6 +157,23 @@ Formatul vechi (notă 1–5, din DRAFT_REWORK) a fost înlocuit de `level` + `ph
 | 1 | 1 | `"all"` |
 
 Combinațiile noi, imposibile înainte (de exemplu un hard counter doar pe linie, `level 3, lane`), se scriu direct.
+
+## Atribute de compoziție (`offers`, `needs`, `weaknesses`)
+
+Lista completă e în `app/types/compAttributes.ts` (`COMP_ATTRIBUTE_ORDER`). Scalele: `offers.strength` 1–5, `needs.priority` 1–3, `weaknesses.severity` 1–3. Validatorul dă eroare pentru un atribut necunoscut sau o valoare în afara scalei.
+
+Atributele adăugate de `COMP_ATTRIBUTES_EXPANSION` (definițiile și exemplele complete sunt în `ATTRIBUTES_DATA_BRIEF.md`):
+
+| Atribut | Sens | Ca slăbiciune (`exposedTo`) |
+|---|---|---|
+| `antiTank` | damage pe %HP, true damage, reducere de rezistențe | tancuri care trăiesc doar din viață și rezistențe |
+| `antiCC` | cleanse, spell shield, imunitate la CC (pe sine: maxim 3) | campioni care depind de un CC (hook, engage) |
+| `sustain` | heal / regen de echipă contra poke (pe sine: maxim 2) | comp-uri care câștigă doar prin poke |
+| `globalPressure` | ult global sau semi-global (TF, Shen, Galio) | split pusheri izolați |
+
+## `resourceDemand` (`roleData[rol].resourceDemand`, opțional)
+
+Câte resurse (gold, XP, atenția junglerului) vrea campionul **pe acel rol**, în meta pro: 5 hyper carry, 4 carry, 3 neutru, 2 weakside, 1 nu vrea resurse (support-uri de utilitate). Lipsă = 3; nu e nevoie să scrii 3 explicit.
 
 ## `mustWith` (`roleData[rol].mustWith`, opțional)
 

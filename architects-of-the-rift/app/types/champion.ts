@@ -103,7 +103,14 @@ export type ChampionRoleData = {
    * regulile din `synergy` se adaugă. Toate valorile pe 0–10.
    */
   profile?: ChampionRoleProfileOverride;
+  /**
+   * COMP_ATTRIBUTES_EXPANSION §2 — câte resurse (gold, XP, atenția junglerului) vrea campionul pe acest rol:
+   * 5 hyper carry, 4 carry, 3 neutru, 2 weakside, 1 nu vrea resurse. Lipsă = 3 (`getResourceDemand`).
+   */
+  resourceDemand?: ResourceDemand;
 };
+
+export type ResourceDemand = 1 | 2 | 3 | 4 | 5;
 
 /** Override parțial de profil: fiecare câmp opțional, obiectele parțiale, array-urile întregi. */
 export type ChampionRoleProfileOverride = {
