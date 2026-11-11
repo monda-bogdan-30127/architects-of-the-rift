@@ -5,8 +5,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import { teams } from "@/app/data/teams";
 import type { DraftPillarReport, DraftSimulationResult, PillarGrade, Side } from "@/app/draft-engine/draftTypes";
-import { PILLAR_LABELS, describeDraftEdge } from "@/app/draft-engine/draftDecisionExplainer";
-import { explainOutcome, formatEdge } from "@/app/draft-engine/outcomeExplainer";
+import { DRAFT_SCORE_TOOLTIP, PILLAR_LABELS, describeDraftScore } from "@/app/draft-engine/draftDecisionExplainer";
+import { OUTCOME_BAR_FULL, OUTCOME_FACTOR_TOOLTIPS, explainOutcome, formatEdge } from "@/app/draft-engine/outcomeExplainer";
 import PlayerResultRow from "./PlayerResultRow";
 
 const teamsBySlug = new Map(teams.map((team) => [team.slug, team]));
@@ -88,6 +88,14 @@ const PILLAR_GRADE_COLORS: Record<PillarGrade, string> = {
   D: "var(--danger)",
 };
 
+/** RESULTS_DIALOG_TABS §2 — tab-urile dialogului. */
+type ResultsTab = "scoreboard" | "why" | "draft";
+const TAB_LABELS: Record<ResultsTab, string> = { scoreboard: "Scoreboard", why: "Why it ended", draft: "Draft" };
+/** Înălțimea fixă a conținutului (cel mai înalt tab compact: scoreboard-ul cu 5 jucători ≈ 375px). */
+const TAB_PANEL_HEIGHT = 390;
+/** §2.1: într-un pilon deschis, cel mult atâtea note; restul în „+N more” (tooltip). */
+const MAX_OPEN_NOTES = 5;
+
 export default function MatchResultsDialog({
   open,
   simulation,
@@ -99,7 +107,14 @@ export default function MatchResultsDialog({
   pillarTeamName,
   userSide = null,
 }: Props) {
-  const [showPillarDetails, setShowPillarDetails] = useState(false);
+  // Tab-ul și pilonul deschis țin de jocul afișat: la un joc nou revin la Scoreboard / niciun pilon (fără effect).
+  const gameKey = simulation
+    ? `${simulation.blueTeamSlug}:${simulation.redTeamSlug}:${simulation.seriesScoreBlue}:${simulation.seriesScoreRed}:${simulation.gameLength}`
+    : "";
+  const [tabState, setTabState] = useState<{ key: string; tab: ResultsTab; pillar: string | null }>({ key: "", tab: "scoreboard", pillar: null });
+  const current = tabState.key === gameKey ? tabState : { key: gameKey, tab: "scoreboard" as ResultsTab, pillar: null };
+  const tabRefs = useRef<Partial<Record<ResultsTab, HTMLButtonElement | null>>>({});
+
   useEffect(() => {
     if (!open) return;
 
@@ -141,14 +156,38 @@ export default function MatchResultsDialog({
     (a, b) => b.score - a.score
   )[0] ?? null;
 
-  // §6.2: ce a decis meciul (simulările vechi nu au factorii → secțiunea lipsește).
+  // §6.2: ce a decis meciul (simulările vechi nu au factorii → tab-ul lipsește).
   const outcome = explainOutcome({
     factors: simulation.outcomeFactors,
     winnerSide: simulation.winnerSide,
     userSide,
     closeness: simulation.closeness,
   });
-  const maxFactor = Math.max(0.0001, ...(outcome?.winnerFactors ?? []).map((line) => line.value));
+
+  // §2: tab-urile disponibile (cu un singur tab, bara nu se afișează).
+  const tabs: ResultsTab[] = ["scoreboard", ...(outcome ? (["why"] as const) : []), ...(pillarReport ? (["draft"] as const) : [])];
+  const activeTab: ResultsTab = tabs.includes(current.tab) ? current.tab : "scoreboard";
+  const selectTab = (tab: ResultsTab) => setTabState({ key: gameKey, tab, pillar: current.pillar });
+  const togglePillar = (pillar: string) =>
+    setTabState({ key: gameKey, tab: activeTab, pillar: current.pillar === pillar ? null : pillar });
+  const onTabKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+    event.preventDefault();
+    const index = tabs.indexOf(activeTab);
+    const next = tabs[(index + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+    selectTab(next);
+    tabRefs.current[next]?.focus();
+  };
+
+  // §3.2: scorul brut de draft al ambelor echipe (altă mărime decât „Draft impact”).
+  const ownDraftScore = userSide === "red" ? simulation.redDraftScore : simulation.blueDraftScore;
+  const theirDraftScore = userSide === "red" ? simulation.blueDraftScore : simulation.redDraftScore;
+  const draftGap = ownDraftScore - theirDraftScore;
+
+  const metaLine = [
+    simulation.gameLength ? simulation.gameLength : null,
+    isSeriesComplete && seriesMvpName ? `${seriesMvpName} - Series MVP` : null,
+  ].filter(Boolean);
 
   return createPortal(
     <div
@@ -166,190 +205,217 @@ export default function MatchResultsDialog({
         aria-labelledby="match-results-title"
         className="
           relative
-          flex max-h-[calc(100vh-32px)] w-[720px] max-w-[calc(100vw-32px)] flex-col overflow-y-auto
-          gap-[32px]
+          flex w-[720px] max-w-[calc(100vw-32px)] flex-col
+          gap-[20px]
           rounded-[16px]
           bg-[var(--bg-surface)]
-          px-[40px] py-[40px]
+          px-[40px] py-[28px]
         "
       >
-        {/* ─── Header ─────────────────────────────────────────────── */}
-        <div className="flex flex-col items-center gap-[4px] self-stretch text-center">
-          <p className="body-small text-[var(--text-primary)]">
-            Game Result
-          </p>
-
-          <h2
-            id="match-results-title"
-            className="h1 max-w-full text-balance break-words text-[var(--text-primary)]"
-          >
+        {/* ─── Header (fix) ───────────────────────────────────────── */}
+        <div className="flex flex-col items-center gap-[2px] self-stretch text-center">
+          <p className="body-small text-[var(--text-primary)]">Game Result</p>
+          <h2 id="match-results-title" className="h1 max-w-full text-balance break-words text-[var(--text-primary)]">
             {title}
           </h2>
-
-          {simulation.gameLength && (
+          {metaLine.length > 0 && (
             <p className="body-small text-[var(--text-secondary)]">
-              Match Length - {simulation.gameLength}
-            </p>
-          )}
-
-          {isSeriesComplete && seriesMvpName && (
-            <p className="body-small text-[var(--primary)]">
-              {seriesMvpName} - Series MVP
+              {simulation.gameLength ? `Match Length - ${simulation.gameLength}` : null}
+              {simulation.gameLength && isSeriesComplete && seriesMvpName ? " · " : null}
+              {isSeriesComplete && seriesMvpName ? <span className="text-[var(--primary)]">{seriesMvpName} - Series MVP</span> : null}
             </p>
           )}
         </div>
 
-        {/* ─── Teams area ─────────────────────────────────────────── */}
-        <div className="flex min-w-0 items-start gap-[32px] self-stretch">
-          {/* ── Left section ───────────────────────────────────────── */}
-          <section className="flex min-w-0 flex-1 flex-col gap-[16px]">
-            <TeamHeading name={blueTeam.name} abbreviation={blueTeam.abbreviation} score={simulation.seriesScoreBlue} align="left" />
-
-            <div className="h-px self-stretch bg-[var(--border-default)]" />
-
-            <div className="flex items-center gap-[12px] self-stretch">
-              <div className="min-w-0 flex-1" />
-              <span className="body-small w-[56px] shrink-0 text-center text-[var(--text-secondary)]">KDA</span>
-              <span className="body-small w-[44px] shrink-0 text-center text-[var(--text-secondary)]">Score</span>
-            </div>
-
-            <div className="flex flex-col gap-[16px] self-stretch">
-              {bluePlayers.map((entry) => (
-                <PlayerResultRow
-                  key={`${entry.side}-${entry.role}-${entry.playerId}`}
-                  entry={entry}
-                  showMvp={entry.playerId === gameMvp?.playerId}
-                />
-              ))}
-            </div>
-          </section>
-
-          {/* ── Right section ──────────────────────────────────────── */}
-          <section className="flex min-w-0 flex-1 flex-col gap-[16px]">
-            <TeamHeading name={redTeam.name} abbreviation={redTeam.abbreviation} score={simulation.seriesScoreRed} align="right" />
-
-            <div className="h-px self-stretch bg-[var(--border-default)]" />
-
-            <div className="flex items-center gap-[12px] self-stretch">
-              <span className="body-small w-[44px] shrink-0 text-center text-[var(--text-secondary)]">Score</span>
-              <span className="body-small w-[56px] shrink-0 text-center text-[var(--text-secondary)]">KDA</span>
-              <div className="min-w-0 flex-1" />
-            </div>
-
-            <div className="flex flex-col gap-[16px] self-stretch">
-              {redPlayers.map((entry) => (
-                <PlayerResultRow
-                  key={`${entry.side}-${entry.role}-${entry.playerId}`}
-                  entry={entry}
-                  align="right"
-                  showMvp={entry.playerId === gameMvp?.playerId}
-                />
-              ))}
-            </div>
-          </section>
-        </div>
-
-        {/* ─── De ce a câștigat (FEEDBACK_FIXES §6.2) ───────────────── */}
-        {outcome && (
-          <section className="flex flex-col gap-[10px] self-stretch">
-            <p className="body-small text-[var(--text-secondary)]">Why {winnerName} won</p>
-            <div className="h-px self-stretch bg-[var(--border-default)]" />
-            {outcome.winnerFactors.length > 0 ? (
-              <div className="flex flex-col gap-[6px] self-stretch">
-                {outcome.winnerFactors.map((line) => (
-                  <div key={line.key} className="flex items-center gap-[12px] self-stretch">
-                    <span className="body-small w-[150px] shrink-0 text-[var(--text-primary)]">{line.label}</span>
-                    <div className="h-[6px] min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--border-default)]">
-                      <div
-                        className="h-full rounded-full bg-[var(--primary)]"
-                        style={{ width: `${Math.max(6, (line.value / maxFactor) * 100)}%` }}
-                      />
-                    </div>
-                    <span className="body-small w-[48px] shrink-0 text-right font-bold text-[var(--text-primary)]">{formatEdge(line.value)}</span>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-            {outcome.upset && (
-              <span className="body-small text-[var(--warning)]">Upset: the weaker team on paper won (comeback or variance).</span>
-            )}
-            {outcome.varianceNote && <span className="body-small text-[var(--warning)]">{outcome.varianceNote}</span>}
-            {outcome.userFactors && (
-              <span className="body-small text-[var(--text-secondary)]">
-                What worked for you:{" "}
-                {outcome.userFactors.length
-                  ? outcome.userFactors.map((line) => `${line.label} ${formatEdge(line.value)}`).join(", ")
-                  : "nothing stood out"}
-              </span>
-            )}
-            {outcome.summary && <span className="body-small text-[var(--text-primary)]">{outcome.summary}</span>}
-            {simulation.reason && (
-              <span className="text-[11px] leading-tight text-[var(--text-muted)]">{simulation.reason}</span>
-            )}
-          </section>
+        {/* ─── Tab-uri (fixe) ─────────────────────────────────────── */}
+        {tabs.length > 1 && (
+          <div role="tablist" aria-label="Game result" className="flex justify-center gap-[24px] self-stretch border-b border-[var(--border-default)]" onKeyDown={onTabKeyDown}>
+            {tabs.map((tab) => {
+              const selected = tab === activeTab;
+              return (
+                <button
+                  key={tab}
+                  ref={(node) => { tabRefs.current[tab] = node; }}
+                  type="button"
+                  role="tab"
+                  id={`results-tab-${tab}`}
+                  aria-selected={selected}
+                  aria-controls={`results-panel-${tab}`}
+                  tabIndex={selected ? 0 : -1}
+                  onClick={() => selectTab(tab)}
+                  className="label -mb-px pb-[8px]"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    borderBottom: `2px solid ${selected ? "var(--primary)" : "transparent"}`,
+                    color: selected ? "var(--primary)" : "var(--text-secondary)",
+                    cursor: "pointer",
+                    padding: "0 2px 8px",
+                  }}
+                >
+                  {TAB_LABELS[tab]}
+                </button>
+              );
+            })}
+          </div>
         )}
 
-        {/* ─── Draft pe piloni (§8) ────────────────────────────────── */}
-        {pillarReport && (
-          <section className="flex flex-col gap-[10px] self-stretch">
-            <div className="flex items-center justify-between self-stretch">
-              <p className="body-small text-[var(--text-secondary)]">
-                Draft{pillarTeamName ? `: ${pillarTeamName}` : ""}
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowPillarDetails((value) => !value)}
-                className="body-small text-[var(--primary)]"
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
-              >
-                {showPillarDetails ? "Hide details" : "Show details"}
-              </button>
+        {/* ─── Conținutul tab-ului (înălțime fixă, fără scroll) ───── */}
+        <div
+          role="tabpanel"
+          id={`results-panel-${activeTab}`}
+          aria-labelledby={tabs.length > 1 ? `results-tab-${activeTab}` : undefined}
+          className="flex flex-col self-stretch overflow-hidden"
+          style={{ height: TAB_PANEL_HEIGHT }}
+        >
+          {activeTab === "scoreboard" && (
+            <div className="flex min-w-0 items-start gap-[32px] self-stretch">
+              {/* ── Left section ───────────────────────────────────── */}
+              <section className="flex min-w-0 flex-1 flex-col gap-[12px]">
+                <TeamHeading name={blueTeam.name} abbreviation={blueTeam.abbreviation} score={simulation.seriesScoreBlue} align="left" />
+                <div className="h-px self-stretch bg-[var(--border-default)]" />
+                <div className="flex items-center gap-[12px] self-stretch">
+                  <div className="min-w-0 flex-1" />
+                  <span className="body-small w-[56px] shrink-0 text-center text-[var(--text-secondary)]">KDA</span>
+                  <span className="body-small w-[44px] shrink-0 text-center text-[var(--text-secondary)]">Score</span>
+                </div>
+                <div className="flex flex-col gap-[12px] self-stretch">
+                  {bluePlayers.map((entry) => (
+                    <PlayerResultRow
+                      key={`${entry.side}-${entry.role}-${entry.playerId}`}
+                      entry={entry}
+                      showMvp={entry.playerId === gameMvp?.playerId}
+                    />
+                  ))}
+                </div>
+              </section>
+
+              {/* ── Right section ──────────────────────────────────── */}
+              <section className="flex min-w-0 flex-1 flex-col gap-[12px]">
+                <TeamHeading name={redTeam.name} abbreviation={redTeam.abbreviation} score={simulation.seriesScoreRed} align="right" />
+                <div className="h-px self-stretch bg-[var(--border-default)]" />
+                <div className="flex items-center gap-[12px] self-stretch">
+                  <span className="body-small w-[44px] shrink-0 text-center text-[var(--text-secondary)]">Score</span>
+                  <span className="body-small w-[56px] shrink-0 text-center text-[var(--text-secondary)]">KDA</span>
+                  <div className="min-w-0 flex-1" />
+                </div>
+                <div className="flex flex-col gap-[12px] self-stretch">
+                  {redPlayers.map((entry) => (
+                    <PlayerResultRow
+                      key={`${entry.side}-${entry.role}-${entry.playerId}`}
+                      entry={entry}
+                      align="right"
+                      showMvp={entry.playerId === gameMvp?.playerId}
+                    />
+                  ))}
+                </div>
+              </section>
             </div>
-            <div className="h-px self-stretch bg-[var(--border-default)]" />
-            {/* Ce a contat efectiv în simulare: scorul de draft, al nostru − al lor. */}
-            {typeof pillarReport.draftEdge === "number" && (
+          )}
+
+          {/* ─── Why it ended (FEEDBACK_FIXES §6.2) ───────────────── */}
+          {activeTab === "why" && outcome && (
+            <section className="flex flex-col gap-[10px] self-stretch">
+              <p className="body-small text-[var(--text-secondary)]">Why {winnerName} won</p>
+              <div className="h-px self-stretch bg-[var(--border-default)]" />
+              {outcome.winnerFactors.length > 0 ? (
+                <div className="flex flex-col gap-[6px] self-stretch">
+                  {outcome.winnerFactors.map((line) => (
+                    <div key={line.key} className="flex items-center gap-[12px] self-stretch" title={OUTCOME_FACTOR_TOOLTIPS[line.key]}>
+                      <span className="body-small w-[150px] shrink-0 text-[var(--text-primary)]">{line.label}</span>
+                      <div className="h-[6px] min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--border-default)]">
+                        {/* §3.3: scală fixă (OUTCOME_BAR_FULL = bară plină), ca un +0.05 să arate mic. */}
+                        <div
+                          className="h-full rounded-full bg-[var(--primary)]"
+                          style={{ width: `${Math.max(3, Math.min(100, (line.value / OUTCOME_BAR_FULL) * 100))}%` }}
+                        />
+                      </div>
+                      <span className="body-small w-[48px] shrink-0 text-right font-bold text-[var(--text-primary)]">{formatEdge(line.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {/* §3.3: upset și close game nu apar împreună (upset are prioritate). */}
+              {outcome.upset && (
+                <span className="body-small text-[var(--warning)]">Upset: the weaker team on paper won (comeback or variance).</span>
+              )}
+              {outcome.varianceNote && <span className="body-small text-[var(--warning)]">{outcome.varianceNote}</span>}
+              {outcome.userFactors && (
+                <span className="body-small text-[var(--text-secondary)]">
+                  What worked for you:{" "}
+                  {outcome.userFactors.length
+                    ? outcome.userFactors.map((line) => `${line.label} ${formatEdge(line.value)}`).join(", ")
+                    : "nothing stood out"}
+                </span>
+              )}
+              {outcome.summary && <span className="body-small text-[var(--text-primary)]">{outcome.summary}</span>}
+              {simulation.reason && (
+                <span className="text-[11px] leading-tight text-[var(--text-muted)]">{simulation.reason}</span>
+              )}
+            </section>
+          )}
+
+          {/* ─── Draft pe piloni (acordeon, fără scroll) ──────────── */}
+          {activeTab === "draft" && pillarReport && (
+            <section className="flex flex-col gap-[10px] self-stretch">
+              <p className="body-small text-[var(--text-secondary)]">Draft{pillarTeamName ? `: ${pillarTeamName}` : ""}</p>
+              <div className="h-px self-stretch bg-[var(--border-default)]" />
+              {/* §3.2: scorul brut al ambelor echipe, cu tooltip. */}
               <p
                 className="body-small font-bold"
-                style={{ color: pillarReport.draftEdge > 0.05 ? "var(--success)" : pillarReport.draftEdge < -0.05 ? "var(--danger)" : "var(--text-secondary)" }}
+                title={DRAFT_SCORE_TOOLTIP}
+                style={{ color: draftGap > 0.05 ? "var(--success)" : draftGap < -0.05 ? "var(--danger)" : "var(--text-secondary)" }}
               >
-                {describeDraftEdge(pillarReport.draftEdge)}
+                {describeDraftScore(ownDraftScore, theirDraftScore)}
               </p>
-            )}
-            <div className="flex flex-col gap-[8px] self-stretch">
-              {PILLAR_LABELS.map(({ key, label }) => {
-                const pillar = pillarReport[key];
-                const visible = showPillarDetails ? pillar.notes.length : Math.min(1, pillar.notes.length);
-                return (
-                  <div key={key} className="flex items-start gap-[12px] self-stretch">
-                    <span className="body-small w-[150px] shrink-0 text-[var(--text-primary)]">{label}</span>
-                    <span
-                      className="body-small w-[24px] shrink-0 text-center font-bold"
-                      style={{ color: PILLAR_GRADE_COLORS[pillar.grade] }}
-                    >
-                      {pillar.grade}
-                    </span>
-                    <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
-                      {pillar.notes.slice(0, visible).map((note, index) => {
-                        const reason = pillar.reasons?.[index];
-                        return (
-                          <div key={`${index}:${note}`} className="flex flex-col" title={reason ?? undefined}>
-                            <span className="body-small text-[var(--text-secondary)]">{note}</span>
-                            {/* §4.3: explicația matchup-ului, a doua linie mai mică (în detalii). */}
-                            {reason && showPillarDetails && (
-                              <span className="text-[11px] leading-tight text-[var(--text-muted)]">{reason}</span>
-                            )}
-                          </div>
-                        );
-                      })}
+              <div className="flex flex-col gap-[8px] self-stretch">
+                {PILLAR_LABELS.map(({ key, label }) => {
+                  const pillar = pillarReport[key];
+                  const isOpen = current.pillar === key;
+                  const shown = isOpen ? pillar.notes.slice(0, MAX_OPEN_NOTES) : pillar.notes.slice(0, 1);
+                  const hidden = isOpen ? pillar.notes.slice(MAX_OPEN_NOTES) : [];
+                  const canOpen = pillar.notes.length > 1 || Boolean(pillar.reasons?.some(Boolean));
+                  return (
+                    <div key={key} className="flex items-start gap-[12px] self-stretch">
+                      <button
+                        type="button"
+                        onClick={() => canOpen && togglePillar(key)}
+                        aria-expanded={canOpen ? isOpen : undefined}
+                        className="body-small flex w-[174px] shrink-0 items-center gap-[8px] text-left"
+                        style={{ background: "none", border: "none", padding: 0, cursor: canOpen ? "pointer" : "default", color: "var(--text-primary)" }}
+                      >
+                        <span className="w-[10px] shrink-0 text-[var(--text-muted)]">{canOpen ? (isOpen ? "▾" : "▸") : ""}</span>
+                        <span className="flex-1">{label}</span>
+                        <span className="w-[24px] shrink-0 text-center font-bold" style={{ color: PILLAR_GRADE_COLORS[pillar.grade] }}>
+                          {pillar.grade}
+                        </span>
+                      </button>
+                      <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
+                        {shown.map((note, index) => {
+                          const reason = pillar.reasons?.[index];
+                          return (
+                            <div key={`${index}:${note}`} className="flex flex-col" title={reason ?? undefined}>
+                              <span className={`body-small text-[var(--text-secondary)] ${isOpen ? "" : "truncate"}`}>{note}</span>
+                              {/* §4.3: explicația matchup-ului, a doua linie mai mică (în pilonul deschis). */}
+                              {reason && isOpen && <span className="text-[11px] leading-tight text-[var(--text-muted)]">{reason}</span>}
+                            </div>
+                          );
+                        })}
+                        {hidden.length > 0 && (
+                          <span className="body-small cursor-help text-[var(--primary)]" title={hidden.join("\n")}>
+                            +{hidden.length} more
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
+                  );
+                })}
+              </div>
+            </section>
+          )}
+        </div>
 
-        {/* ─── Action ─────────────────────────────────────────────── */}
+        {/* ─── Action (fix, mereu vizibil) ────────────────────────── */}
         <div className="flex justify-center self-stretch">
           <Button
             onClick={onPrimaryAction}

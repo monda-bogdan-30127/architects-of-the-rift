@@ -152,6 +152,17 @@ export const PILLAR_LABELS: { key: "composition" | "lanes" | "players" | "prepar
   { key: "preparation", label: "Preparation" },
 ];
 
+/**
+ * RESULTS_DIALOG_TABS §3.2 — „Draft score: 6.8 vs 7.2 (theirs +0.4)”: scorul brut de draft al ambelor echipe
+ * (altă mărime decât „Draft impact” din Why it ended, care e contribuția ponderată la rezultat).
+ */
+export function describeDraftScore(ours: number, theirs: number): string {
+  const gap = Math.round((ours - theirs) * 10) / 10;
+  const owner = gap > 0 ? ` (yours +${gap.toFixed(1)})` : gap < 0 ? ` (theirs +${Math.abs(gap).toFixed(1)})` : " (even)";
+  return `Draft score: ${ours.toFixed(1)} vs ${theirs.toFixed(1)}${owner}`;
+}
+export const DRAFT_SCORE_TOOLTIP = "Raw draft strength of both teams";
+
 /** „Draft edge: +0.4 (yours)” / „Draft edge: −0.6 (theirs)”: scorul de draft din simulare, al nostru − al lor. */
 export function describeDraftEdge(edge: number): string {
   const sign = edge > 0 ? "+" : edge < 0 ? "−" : "±";

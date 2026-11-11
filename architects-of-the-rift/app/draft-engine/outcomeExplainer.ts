@@ -4,7 +4,7 @@ import type { OutcomeFactor, OutcomeFactorKey } from "./matchSimulationTypes";
 import type { Side } from "./draftTypes";
 
 export const OUTCOME_FACTOR_LABELS: Record<OutcomeFactorKey, string> = {
-  draft: "Draft",
+  draft: "Draft impact",
   players: "Player power",
   mastery: "Mastery & roles",
   lane: "Lane phase",
@@ -18,6 +18,17 @@ export const OUTCOME_FACTOR_LABELS: Record<OutcomeFactorKey, string> = {
   mid: "Mid game",
   lateFights: "Late fights",
 };
+
+/** RESULTS_DIALOG_TABS §3.2 — tooltip-uri (o propoziție) pentru factorii care se pot confunda. */
+export const OUTCOME_FACTOR_TOOLTIPS: Partial<Record<OutcomeFactorKey, string>> = {
+  draft: "How much the draft moved the final result",
+};
+
+/** §3.3 — bara e plină de la atâta contribuție (scală fixă, ca un +0.05 să arate mic). */
+export const OUTCOME_BAR_FULL = 0.5;
+/** §3.3 — un factor „decide” meciul doar dacă e cel puțin atâta din diferența totală și cel puțin DECIDING_MIN. */
+const DECIDING_SHARE = 0.35;
+const DECIDING_MIN = 0.15;
 
 /** Sub atât, un factor nu „a contat” (contribuția la diferența de total, scala 0..10). */
 const MIN_EDGE = 0.01;
@@ -35,8 +46,10 @@ export type OutcomeExplanation = {
   userFactors: OutcomeFactorLine[] | null;
   /** „Your draft was better (+0.3), but their player power (+0.6) and late game (+0.4) decided the game.” */
   summary: string | null;
-  /** „Close game, decided by variance.” */
+  /** „Close game, decided by variance.” (nu și cu upset: upset are prioritate). */
   varianceNote: string | null;
+  /** §3.3 — niciun factor nu a decis singur meciul. */
+  closeGame: boolean;
   /** Câștigătorul avea totalul mai mic (comeback / variance). */
   upset: boolean;
 };
@@ -74,13 +87,22 @@ export function explainOutcome(args: {
   const userLost = args.userSide !== null && args.userSide === loserSide;
   const userFactors = userLost ? linesFor(factors, loserSide).slice(0, 3) : null;
 
+  // §3.3: un factor „decide” doar dacă e ≥ 35% din diferența totală și ≥ 0.15.
+  const upset = totalEdge < 0;
+  const deciders = winnerFactors
+    .filter((line) => line.value >= DECIDING_MIN && line.value >= DECIDING_SHARE * Math.abs(totalEdge))
+    .slice(0, 2);
+  const closeGame = deciders.length === 0;
+
   let summary: string | null = null;
-  if (userLost && winnerFactors.length) {
+  if (closeGame) {
+    // Upset are prioritate peste „close game” (se afișează doar unul).
+    if (!upset && winnerFactors.length) {
+      summary = `Close game: no single factor decided it. Top factors: ${winnerFactors.map((line) => `${line.label} ${formatEdge(line.value)}`).join(", ")}.`;
+    }
+  } else if (userLost) {
     // „their late fights (+0.4) and variance (+0.2)”: variance nu e „a lor”.
-    const decided = winnerFactors
-      .slice(0, 2)
-      .map((line) => (line.key === "variance" ? mention(line) : `their ${mention(line)}`))
-      .join(" and ");
+    const decided = deciders.map((line) => (line.key === "variance" ? mention(line) : `their ${mention(line)}`)).join(" and ");
     const best = userFactors?.[0];
     summary =
       best && best.value >= MIN_SUMMARY_EDGE
@@ -88,8 +110,8 @@ export function explainOutcome(args: {
         : `${decided.charAt(0).toUpperCase()}${decided.slice(1)} decided the game.`;
   }
 
-  const varianceTop = winnerFactors.slice(0, 2).some((line) => line.key === "variance");
-  const varianceNote = varianceTop && args.closeness >= CLOSE_GAME ? "Close game, decided by variance." : null;
+  const varianceTop = deciders.some((line) => line.key === "variance");
+  const varianceNote = !upset && varianceTop && args.closeness >= CLOSE_GAME ? "Close game, decided by variance." : null;
 
-  return { winnerFactors, userFactors, summary, varianceNote, upset: totalEdge < 0 };
+  return { winnerFactors, userFactors, summary, varianceNote, closeGame, upset };
 }

@@ -182,7 +182,7 @@ function lanesPillar(ownPicks: string[], enemyPicks: string[], ownAssignments: A
 
 // ─── Players ─────────────────────────────────────────────────────────────────
 
-function playersPillar(ownAssignments: Assignments, roster: Assignments, pickRoles: Partial<Record<string, Role>>): DraftPillar {
+function playersPillar(ownAssignments: Assignments, roster: Assignments, pickRoles: Partial<Record<string, Role>>, isUserTeam: boolean): DraftPillar {
   const notes = new Notes();
   const ranks: number[] = [];
   let worst: "F" | "D" | null = null;
@@ -201,9 +201,17 @@ function playersPillar(ownAssignments: Assignments, roster: Assignments, pickRol
       else if (worst !== "F") worst = "D";
     }
   }
-  for (const [championId, lockedRole] of Object.entries(pickRoles)) {
+  // RESULTS_DIALOG_TABS §3.1: „X moved from A to B” doar la AI (singura echipă cu roluri blocate la pick) și doar
+  // dacă mutarea a dus la un grad mai mic. Userul își aranjează campionii la final: un swap nu e o „mutare”.
+  for (const [championId, lockedRole] of isUserTeam ? [] : Object.entries(pickRoles)) {
     const finalRole = roleOf(ownAssignments, championId);
-    if (lockedRole && finalRole && finalRole !== lockedRole) notes.add(`${name(championId)} moved from ${lockedRole} to ${finalRole}`);
+    if (!lockedRole || !finalRole || finalRole === lockedRole) continue;
+    const lockedPlayer = roster[lockedRole] ? playersById.get(roster[lockedRole]!) : undefined;
+    const finalPlayer = roster[finalRole] ? playersById.get(roster[finalRole]!) : undefined;
+    if (!lockedPlayer || !finalPlayer) continue;
+    const before = GRADE_RANK[getChampionGrade(lockedPlayer, championId)];
+    const after = GRADE_RANK[getChampionGrade(finalPlayer, championId)];
+    if (after < before) notes.add(`${name(championId)} moved from ${lockedRole} to ${finalRole} (${getChampionGrade(lockedPlayer, championId)} → ${getChampionGrade(finalPlayer, championId)})`);
   }
   const average = ranks.length ? ranks.reduce((sum, rank) => sum + rank, 0) / ranks.length : 0;
   const labels = ["F", "D", "C", "B", "A", "S", "SS"];
@@ -384,7 +392,7 @@ export function buildDraftPillarReport(
   return {
     composition: compositionPillar(ownPicks, ownAssignments, roster),
     lanes: lanesPillar(ownPicks, enemyPicks, ownAssignments, enemyAssignments),
-    players: playersPillar(ownAssignments, roster, pickRoles),
+    players: playersPillar(ownAssignments, roster, pickRoles, series.userSide === side),
     preparation: preparationPillar(game, series, side, enemyTeamSlug, { own: roster, enemy: enemyRoster }, ownPicks, ownBans, enemyPicks, ownAssignments, enemyAssignments),
   };
 }

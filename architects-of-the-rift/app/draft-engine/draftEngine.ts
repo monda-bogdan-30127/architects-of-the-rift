@@ -371,10 +371,9 @@ export function swapAssignedRoles(
   const nextAssignments = { ...userAssignments };
   nextAssignments[sourceRole] = targetChampion;
   nextAssignments[targetRole] = sourceChampion;
-  // §1.2: rolurile blocate urmează swap-ul.
-  const pickRoles = { ...getPickRoles(game, side), [sourceChampion]: targetRole, [targetChampion]: sourceRole };
-  const swapped = replaceAssignments(game, side, nextAssignments);
-  return side === "blue" ? { ...swapped, pickRolesBlue: pickRoles } : { ...swapped, pickRolesRed: pickRoles };
+  // RESULTS_DIALOG_TABS §3.1: swap-ul userului schimbă doar asignarea (sloturile), nu și `pickRoles`:
+  // rolurile blocate la pick sunt doar ale AI-ului; altfel fiecare swap normal apărea ca o „mutare” în raport.
+  return replaceAssignments(game, side, nextAssignments);
 }
 
 export function evaluateDraftGame(
