@@ -64,6 +64,7 @@ export const rakan = createChampion({
         { championId: "heimerdinger", level: 2, phase: "lane" },
         { championId: "sona", level: 2, phase: "lane" },
         { championId: "soraka", level: 2, phase: "lane" },
+        { championId: "alistar", level: 2, phase: "all" },
       ],
       mustWith: ["xayah"],
       stats: {

@@ -67,6 +67,7 @@ export const corki = createChampion({
     adc: {
       goodVs: [
         { championId: "kogmaw", level: 2, phase: "lane" },
+        { championId: "jhin", level: 1, phase: "lane" },
         { championId: "ezreal", level: 1, phase: "all" },
       ],
       stats: {

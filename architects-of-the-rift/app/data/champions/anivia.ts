@@ -86,7 +86,10 @@ export const anivia = createChampion({
       },
     },
     support: {
-      goodVs: [],
+      goodVs: [
+        { championId: "ryze", level: 2, phase: "all"}, 
+        { championId: "cassiopea", level: 2, phase: "lane"}, 
+      ],
       stats: null,
     },
   },

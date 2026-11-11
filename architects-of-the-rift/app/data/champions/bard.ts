@@ -66,6 +66,7 @@ export const bard = createChampion({
       goodVs: [
         { championId: "sona", level: 2, phase: "lane" },
         { championId: "yuumi", level: 2, phase: "lane" },
+        { championId: "nautilus", level: 1, phase: "all" },
       ],
       stats: {
         picks: 3,
