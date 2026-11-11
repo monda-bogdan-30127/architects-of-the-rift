@@ -47,6 +47,7 @@ import { getBotPairTier } from "@/app/draft-engine/mustWithPriority";
 import { buildDraftContext } from "@/app/draft-engine/draftContext";
 import { DEFAULT_AI_CONFIG } from "@/app/draft-engine/draftTypes";
 import { getTeamStyle } from "@/app/draft-engine/teamStyle";
+import { getOpenRolesForPickedChampions } from "@/app/draft-engine/draftRoleResolver";
 import { evaluateIntents } from "@/app/draft-engine/draftDecision";
 import { getResolvedChampionPool } from "@/app/utils/championMasteryUtils";
 import { computeSeriesMvp, type SeriesGameSummary } from "@/app/draft-engine/mvpStorage";
@@ -1298,6 +1299,70 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     "R15.9 creativity 2 → primul candidat ≥ 90%; creativity 9 → 40–70%",
     rateLow >= 0.9 && rateHigh >= 0.4 && rateHigh <= 0.7,
     `creativity 2: ${(rateLow * 100).toFixed(1)}%, creativity 9: ${(rateHigh * 100).toFixed(1)}%`,
+  );
+}
+
+// ─── DRAFT_REALISM §15.6–7: ban 2 țintit ─────────────────────────────────────
+{
+  // 6. Adversarul (blue) are 3 pick-uri de dive și midul liber → ban-urile roșii din ban 2 vizează campioni
+  //    care le completează dive-ul pe un rol liber sau counterii pick-urilor noastre, nu meta pură.
+  const diveFit = (id: string, role: Role) => getCandidateIdentityFit(champions.find((c) => c.id === id)!, role, "dive");
+  const bestDive = (role: Role, exclude: string[]) =>
+    champions
+      .filter((c) => c.roles.includes(role) && !exclude.includes(c.id))
+      .sort((a, b) => diveFit(b.id, role) - diveFit(a.id, role) || a.id.localeCompare(b.id))[0].id;
+  const diveTop = bestDive("top", []);
+  const diveJungle = bestDive("jungle", [diveTop]);
+  const diveSupport = bestDive("support", [diveTop, diveJungle]);
+  const save = makeSave();
+  const series = newSeries("r10a", BLUE, RED);
+  const game: DraftGameState = {
+    ...series.games[0],
+    bansBlue: ["azir", "jayce", "orianna"], bansRed: ["sejuani", "ksante", "rumble"],
+    picksBlue: [diveTop, diveJungle, diveSupport], pickRolesBlue: { [diveTop]: "top", [diveJungle]: "jungle", [diveSupport]: "support" },
+    picksRed: ["nocturne", "syndra", "ezreal"], pickRolesRed: { nocturne: "jungle", syndra: "mid", ezreal: "adc" },
+    phaseIndex: 12,
+  };
+  const choice = getAiChoice(series, game, getCurrentStep(game)!, save);
+  const w = choice?.bucketWeights ?? {};
+  const part = (bucket: "compDeny" | "protect" | "power") => (choice?.buckets?.[bucket] ?? 0) * (w[bucket] ?? 1);
+  const targeted = hasTag(choice, "identity-deny") || part("protect") > 0 || part("compDeny") > part("power");
+  check(
+    "R15.6 Ban 2 vs 3 pick-uri de dive cu midul liber → ban țintit (dive pe rol liber / counter la noi), nu meta pură",
+    Boolean(choice) && targeted,
+    `ei: ${diveTop}/${diveJungle}/${diveSupport}; ban R4: ${choice?.championId} (${champions.find((c) => c.id === choice?.championId)?.roles.join("/")}) compDeny ${part("compDeny").toFixed(1)} · protect ${part("protect").toFixed(1)} · power ${part("power").toFixed(1)}; tags ${choice?.reasonTags?.filter((t) => ["identity-deny", "season-plan"].includes(t)).join(",") || "—"}`,
+  );
+
+  // 7. Ban 2: niciun ban pe un rol deja completat de adversar (pe 30 de drafturi AI vs AI).
+  let ban2 = 0;
+  const wasted: string[] = [];
+  for (let index = 0; index < 30; index += 1) {
+    const blue = teams[(index * 3 + 2) % teams.length].slug;
+    const red = teams[(index * 3 + 17) % teams.length].slug;
+    if (blue === red) continue;
+    const { game: done, log } = runDraft({ series: newSeries(`r10b${index}`, blue, red), save, bans: [] });
+    void done;
+    let picksBlue: string[] = [];
+    let picksRed: string[] = [];
+    log.forEach((entry, step) => {
+      if (entry.action === "pick") {
+        if (entry.side === "blue") picksBlue = [...picksBlue, entry.championId];
+        else picksRed = [...picksRed, entry.championId];
+        return;
+      }
+      if (step < 12 || step > 15) return;
+      ban2 += 1;
+      const enemyPicks = entry.side === "blue" ? picksRed : picksBlue;
+      const enemyRoster = save.updatedTeamRosters[entry.side === "blue" ? red : blue] ?? {};
+      const open = getOpenRolesForPickedChampions(enemyPicks, enemyRoster);
+      const roles = champions.find((c) => c.id === entry.championId)?.roles ?? [];
+      if (!roles.some((role) => open.includes(role))) wasted.push(`${entry.championId} (${roles.join("/")}; liber: ${open.join("/")})`);
+    });
+  }
+  check(
+    "R15.7 Ban 2: niciun ban pe un rol deja completat de adversar",
+    ban2 > 0 && wasted.length === 0,
+    `${ban2} ban-uri în ban 2; pe roluri completate: ${wasted.length}${wasted.length ? ` (${wasted.slice(0, 3).join("; ")})` : ""}`,
   );
 }
 

@@ -204,7 +204,7 @@ export const DRAFT_THINKING_CONFIG = {
     windowBase: 0.2,
     windowStep: 0.8,
     temperatureBase: -0.2,
-    temperatureStep: 0.32,
+    temperatureStep: 0.52,
     offMetaBase: 1.3,
     offMetaStep: 0.06,
     /** riskLevel ≥ atât → răspunsul „plan” la favoriții de sezon; ≤ atât → „ban”. */
@@ -229,6 +229,21 @@ export const DRAFT_THINKING_CONFIG = {
     /** La ban: fereastra fixă și temperatura × banTemperatureFactor. */
     banWindow: 1.5,
     banTemperatureFactor: 0.7,
+  },
+
+  // DRAFT_REALISM §9 — ban-uri realiste.
+  bans: {
+    /** §9.1 — favorit de sezon cu răspuns „plan”: −atât în `hygiene` (nu-l banăm, avem counter). */
+    seasonPlanHold: 1.5,
+    /** §9.2 — ban 2: le completează identitatea dominantă (fit ≥ atât) pe un rol încă liber. */
+    identityFitMin: 2,
+    /** … +atât × strength-ul identității lor (cel puțin identityMinStrength) în `compDeny`. */
+    identityCompletion: 3,
+    identityMinStrength: 0.4,
+    /** §9.2 — ban 2: membrii noului lor cel mai bun duo, cu ambele roluri bot libere. */
+    enemyDuoBan2: 2,
+    /** §9.2 — ban 2: ban pe un rol deja completat de ei × atât. */
+    roleCoveredBan2Factor: 1.5,
   },
 
   // DRAFT_REALISM §6 — priority value (priorityValue.ts): cât e de contestat un campion.

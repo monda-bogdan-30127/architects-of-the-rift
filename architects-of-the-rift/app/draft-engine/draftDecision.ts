@@ -270,7 +270,12 @@ export function chooseFinal(ranked: DraftCandidateBreakdown[], ctx: DraftContext
   // §9.3: la ban, aceeași alegere, cu fereastră mai mică și temperatura × 0.7.
   const banSeed = `${series.seriesId}:${series.currentGameNumber}:${game.phaseIndex}:ban:${step.side}`;
   const CHOICE = DRAFT_THINKING_CONFIG.choice;
-  return withChoiceRank(chooseSoftmax(ranked, CHOICE.banWindow, ctx.style.variance.temperature * CHOICE.banTemperatureFactor, banSeed), ranked);
+  // Fereastra de ban = banWindow la creativity 5, proporțională cu fereastra stilului (o fereastră fixă tăia
+  // varianța echipelor creative: scenariul §15.9).
+  const STYLE = DRAFT_THINKING_CONFIG.style;
+  const windowAtFive = STYLE.windowBase + STYLE.windowStep * 5;
+  const banWindow = CHOICE.banWindow * (ctx.style.variance.window / windowAtFive);
+  return withChoiceRank(chooseSoftmax(ranked, banWindow, ctx.style.variance.temperature * CHOICE.banTemperatureFactor, banSeed), ranked);
 }
 
 // ─── Pipeline ────────────────────────────────────────────────────────────────

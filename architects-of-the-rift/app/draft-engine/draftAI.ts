@@ -1854,11 +1854,30 @@ export function scoreBanCandidate(
     }
   }
 
+  // DRAFT_REALISM §9 — ban-uri realiste.
+  const BANS = DRAFT_THINKING_CONFIG.bans;
+  const isBan2 = ctx.phase === "ban2";
+  // Rolurile lor încă libere pe care le poate juca candidatul.
+  const enemyOpenRolesForCandidate = candidate.roles.filter((role) => ctx.enemy.openRoles.includes(role));
+  // §9.2: în ban 2, jucătorii lor contează doar pe rolurile încă libere.
+  const targetScale = isBan2 && enemyOpenRolesForCandidate.length === 0 ? 0 : 1;
+  // §9.2: campionii care le completează identitatea pe un rol încă liber; noul lor cel mai bun duo (botlane liber).
+  let identityCompletion = 0;
+  if (isBan2 && ctx.enemy.identity.dominant) {
+    const fit = Math.max(-3, ...enemyOpenRolesForCandidate.map((role) => getCandidateIdentityFit(candidate, role, ctx.enemy.identity.dominant!)));
+    if (fit >= BANS.identityFitMin) identityCompletion = BANS.identityCompletion * Math.max(BANS.identityMinStrength, ctx.enemy.identity.strength);
+  }
+  const enemyBestDuo = ctx.mustWith.enemyDuo.best;
+  const duoDenyBan2 =
+    isBan2 && enemyBestDuo && (enemyBestDuo.adcId === candidate.id || enemyBestDuo.supportId === candidate.id) ? BANS.enemyDuoBan2 : 0;
+  // §9.1: amenințările de sezon cu răspuns „plan” nu se banează (le lăsăm, avem counter-ul).
+  const seasonPlanHold = seasonResponse?.kind === "plan" && !seasonBanResponse ? -BANS.seasonPlanHold : 0;
+
   // DRAFT_REALISM §4.2: termenii existenți, grupați pe bucket-uri; `hygiene` e mereu × 1.
   const buckets: Record<BanBucketId, number> = {
     power: metaPriority * 0.95 + (candidate.roles.length >= 2 ? 0.8 : 0) + priorityBan,
     // Jucătorii lor. §7.4: banul de sezon nu se adună peste mastery / target ban: se ia maximul.
-    target:
+    target: targetScale * (
       enemyComfortPressure * 1.1 +
       signatureBonus * 1.4 +
       Math.max(enemyMasteryBan.bonus + targetBan.bonus, seasonBan) +
@@ -1867,7 +1886,7 @@ export function scoreBanCandidate(
       seriesAwareBan +
       comfortRepeatThreat +
       // §7.1 — fearless: jucătorul lor mai are puține opțiuni ≥ B pe un rol liber → ban-ul îl strânge.
-      (isScarcePoolChampion(candidate, ctx.enemy.roster, getScarcity(ctx).enemy) ? DRAFT_THINKING_CONFIG.intents.scarcePowerBonus : 0),
+      (isScarcePoolChampion(candidate, ctx.enemy.roster, getScarcity(ctx).enemy) ? DRAFT_THINKING_CONFIG.intents.scarcePowerBonus : 0)),
     // Pick-urile noastre.
     protect:
       protectOwnCompBonus +          // DRAFT FINAL FIX 3
@@ -1879,11 +1898,15 @@ export function scoreBanCandidate(
       mustWithBanBonus +
       planAdaptiveBanBonus +
       identityBanBonus +             // §6.1: întărește identitatea inamicului
+      identityCompletion +           // §9.2: le completează identitatea pe un rol încă liber
+      duoDenyBan2 +                  // §9.2: noul lor cel mai bun duo, cu botlane liber
       enemyCounterWindow,
     predict: predictiveBan.bonus,
     hygiene:
-      redundantBanPenalty -
+      // §9.2: un ban pe un rol deja completat de ei e risipit (× 1.5 în ban 2).
+      redundantBanPenalty * (isBan2 ? BANS.roleCoveredBan2Factor : 1) -
       banRepeatPenalty +
+      seasonPlanHold +
       trapBanReduction +
       ownMustWithBanBlock +
       firstPickInsteadOfBan,
@@ -1916,6 +1939,8 @@ export function scoreBanCandidate(
     priority: { value: priority.value, tier: priority.tier, enemyWant: priority.enemyWant, ownUsable: priority.ownUsable },
     reasonTags: [
       ...(banTag ? [banTag] : []),
+      ...(seasonPlanHold < 0 ? ["season-plan"] : []),
+      ...(identityCompletion > 0 ? ["identity-deny"] : []),
       ...(seasonBan > 0 ? ["season-ban"] : []),
       userBias > 1 || signatureBonus > 2 ? "user-pattern" : "meta-ban",
       candidate.roles.length >= 2 ? "flex" : "single-role",
