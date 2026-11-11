@@ -94,7 +94,6 @@ import {
   derivePlayerArchetypeAffinity,
   derivePlayerAdaptationProfile,
 } from "./playerProfileSystem";
-import { getAdaptivePriorityBonus } from "./adaptivePrioritySystem";
 import { getContestabilityPenalty } from "./draftContestability";
 import { getLookaheadValue, getScarcity, getWaitPenalty, isScarcePoolChampion } from "./draftIntents";
 import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
@@ -1029,13 +1028,6 @@ export function scorePickCandidate(
   const winCondition = ctx.ownWinCondition;
   const winConditionEffect = getWinConditionEffect(candidate, winCondition, ownState.picks);
 
-  const adaptivePriority = getAdaptivePriorityBonus({
-    candidate,
-    side: step.side,
-    game,
-    enemyChampionIds: enemyState.picks,
-  });
-
   const contestability = getContestabilityPenalty({
     candidate,
     side: step.side,
@@ -1288,10 +1280,10 @@ export function scorePickCandidate(
   buckets.power += loseRisk + scarcePower;
   buckets.deny += lookahead.denyValue;
 
-  // În afara ponderilor: `adaptivePriority` (se șterge în §11) și partenerul non-bot mustWith (§5.4),
+  // În afara ponderilor: partenerul non-bot mustWith (§5.4; lock-ul e în chooseFinal),
   // care e un mecanism de lock (30 de puncte ca să iasă primul, apoi `nonBotLockChance` în chooseFinal),
   // nu o preferință de compoziție: cu × comp (0.6 în pick1-open) partenerul pierdea locul 1.
-  const unweighted = adaptivePriority + nonBotMustWith.bonus - invalidRolePenalty;
+  const unweighted = nonBotMustWith.bonus - invalidRolePenalty;
   const totalScore = sumBuckets(buckets, weights) + unweighted;
 
   const explanation = [
