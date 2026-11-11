@@ -11,6 +11,7 @@ import { getCarryArchetype } from "./draftArchetypes";
 import { getChampionById } from "./draftEvaluator";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { ROLE_ORDER } from "./draftTypes";
+import { getResourceDemand } from "./championResource";
 
 const WIN = DRAFT_THINKING_CONFIG.winCondition;
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -52,20 +53,23 @@ export function getWinCondition(
   roster: Partial<Record<Role, string>> = {},
 ): WinCondition | null {
   if (!identity.dominant || ownPicks.length === 0) return null;
-  let best: { championId: string; role: Role; score: number; grade: number; order: number } | null = null;
+  let best: { championId: string; role: Role; score: number; demand: number; grade: number; order: number } | null = null;
   ownPicks.forEach((championId, order) => {
     const champion = getChampionById(championId);
     const role = ROLE_ORDER.find((entry) => roles[entry] === championId);
     if (!champion || !role) return;
+    // COMP_ATTRIBUTES_EXPANSION §2.2: un campion weakside (cerere < 3) nu poate fi win condition.
+    const demand = getResourceDemand(championId, role);
+    if (demand < DRAFT_THINKING_CONFIG.attributes.winConditionMinDemand) return;
     const score = getCandidateIdentityFit(champion, role, identity.dominant!) + carryContribution(champion, role);
     const player = roster[role] ? playersById.get(roster[role]!) : undefined;
     const grade = player ? GRADE_RANK[getChampionGrade(player, championId)] : 0;
     if (
       !best ||
       score > best.score + 1e-9 ||
-      (Math.abs(score - best.score) <= 1e-9 && (grade > best.grade || (grade === best.grade && order < best.order)))
+      (Math.abs(score - best.score) <= 1e-9 && (demand > best.demand || (demand === best.demand && (grade > best.grade || (grade === best.grade && order < best.order)))))
     ) {
-      best = { championId, role, score, grade, order };
+      best = { championId, role, score, demand, grade, order };
     }
   });
   if (!best) return null;

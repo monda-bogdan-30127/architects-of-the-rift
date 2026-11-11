@@ -57,6 +57,7 @@ import { getResolvedChampionPool } from "@/app/utils/championMasteryUtils";
 import { computeSeriesMvp, type SeriesGameSummary } from "@/app/draft-engine/mvpStorage";
 import { evaluateContextualNeedStatuses, getContextualNeeds, setContextualNeedsOverride } from "@/app/draft-engine/contextualNeeds";
 import type { ChampionOffer, ResourceDemand } from "@/app/types/champion";
+import { evaluateTeamfight } from "@/app/draft-engine/teamfightSystem";
 
 // ─── Infrastructură ──────────────────────────────────────────────────────────
 
@@ -1691,6 +1692,89 @@ function withTestData<T>(patch: { offers?: Record<string, ChampionOffer[]>; reso
     );
   } finally {
     setContextualNeedsOverride(null);
+  }
+}
+
+// ─── COMP_ATTRIBUTES_EXPANSION §6.4: resurse și efecte în simulare (date de test injectate) ──
+{
+  const save = makeSave();
+  const score = (id: string, game: DraftGameState, series: ActiveDraftSeries) =>
+    scoreDraftCandidate(champions.find((c) => c.id === id)!, getCurrentStep(game)!, game, series, save);
+
+  // R1. Două carry-uri cu resourceDemand 5 (Jayce top, Azir mid) + al treilea cu 4 (Kalista adc) → resource-conflict.
+  {
+    const series = newSeries("rc1", BLUE, RED);
+    const game: DraftGameState = {
+      ...series.games[0],
+      bansBlue: ["vi", "sejuani", "orianna"], bansRed: ["ksante", "rumble", "syndra"],
+      picksBlue: ["ornn", "lee-sin", "ahri"], picksRed: ["jayce", "azir"], phaseIndex: 11,
+    };
+    const demand = { jayce: { top: 5 as const }, azir: { mid: 5 as const }, kalista: { adc: 4 as const } };
+    const plain = score("kalista", game, series);
+    const conflict = withTestData({ resourceDemand: demand }, () => score("kalista", game, series));
+    check(
+      "R1. Jayce (5) + Azir (5) + Kalista (4) → resource-conflict, comp mai mic",
+      hasTag(conflict, "resource-conflict") && (conflict.buckets?.comp ?? 0) < (plain.buckets?.comp ?? 0),
+      `comp Kalista ${(plain.buckets?.comp ?? 0).toFixed(2)} → ${(conflict.buckets?.comp ?? 0).toFixed(2)}; „${conflict.explanation?.find((line) => line.startsWith("Resource conflict")) ?? "—"}”`,
+    );
+  }
+
+  // R2. Focus "bot": același top (scor de bază egal) e preferat weakside (2) față de cerere 5.
+  {
+    // O stare cu focusul pe bot: căutăm printre echipe (roșii la R1, ambele roluri bot libere).
+    let found: { series: ActiveDraftSeries; game: DraftGameState } | null = null;
+    for (const team of teams) {
+      if (team.slug === BLUE || found) continue;
+      const series = newSeries(`rc2-${team.slug}`, BLUE, team.slug);
+      const game: DraftGameState = { ...series.games[0], bansBlue: ["vi", "sejuani", "orianna"], bansRed: ["ksante", "rumble", "syndra"], picksBlue: ["ahri"], phaseIndex: 7 };
+      if (buildDraftContext(getCurrentStep(game)!, game, series, save, DEFAULT_AI_CONFIG).botFocus === "bot") found = { series, game };
+    }
+    const top = "ornn";
+    const weak = found ? withTestData({ resourceDemand: { [top]: { top: 2 } } }, () => score(top, found!.game, found!.series)) : null;
+    const hungry = found ? withTestData({ resourceDemand: { [top]: { top: 5 } } }, () => score(top, found!.game, found!.series)) : null;
+    check(
+      "R2. Focus bot: top weakside (2) > același top cu cerere 5",
+      Boolean(weak && hungry && weak.totalScore > hungry.totalScore),
+      found ? `${found.series.redTeamSlug}: Ornn top weakside ${weak!.totalScore.toFixed(2)} vs cerere 5 ${hungry!.totalScore.toFixed(2)} (comp ${(weak!.buckets?.comp ?? 0).toFixed(2)} / ${(hungry!.buckets?.comp ?? 0).toFixed(2)})` : "nicio stare cu focus bot",
+    );
+  }
+
+  // R3. Simulare: trei carry-uri care vor gold → execution mai mic.
+  {
+    const series = newSeries("rc3", BLUE, RED);
+    const finished: DraftGameState = {
+      ...series.games[0],
+      bansBlue: ["vi", "sejuani", "orianna"], bansRed: ["ksante", "rumble", "syndra"],
+      picksBlue: ["jayce", "lee-sin", "azir", "kalista", "rell"], picksRed: ["ornn", "viego", "ahri", "ezreal", "nautilus"], phaseIndex: 20,
+    };
+    const resolved = resolveFinishedDraftAssignments(finished, series, save);
+    const base = simulateDraftResult(resolved, series, save).bluePhaseScores.execution;
+    const conflict = withTestData(
+      { resourceDemand: { jayce: { top: 5 }, azir: { mid: 5 }, kalista: { adc: 4 } } },
+      () => simulateDraftResult(resolved, series, save).bluePhaseScores.execution,
+    );
+    check("R3. Simulare: 3 carry-uri care vor gold → execution −0.3", conflict < base, `execution albaștri ${base} → ${conflict}`);
+  }
+
+  // T1–T2. Teamfight: aceeași compoziție de tancuri contra unei echipe cu antiTank / antiCC vs fără.
+  {
+    const tanks = { top: "ornn", jungle: "sejuani", mid: "ahri", adc: "ezreal", support: "rell" };
+    const enemy = { top: "jayce", jungle: "lee-sin", mid: "azir", adc: "vayne", support: "morgana" };
+    const plain = evaluateTeamfight({ blueAssignments: tanks, redAssignments: enemy });
+    const withAttrs = withTestData(
+      { offers: { vayne: [{ type: "antiTank", strength: 5 }], "lee-sin": [{ type: "antiTank", strength: 3 }], morgana: [{ type: "antiCC", strength: 5 }] } },
+      () => evaluateTeamfight({ blueAssignments: tanks, redAssignments: enemy }),
+    );
+    check(
+      "T1. Simulare: antiTank-ul lor (8) → frontlinePresence al tancurilor mai mic",
+      withAttrs.blue.frontlinePresence < plain.blue.frontlinePresence,
+      `frontlinePresence ${plain.blue.frontlinePresence.toFixed(2)} → ${withAttrs.blue.frontlinePresence.toFixed(2)}`,
+    );
+    check(
+      "T2. Simulare: antiCC-ul lor (5) → engageQuality și ccChainPower mai mici",
+      withAttrs.blue.engageQuality < plain.blue.engageQuality && withAttrs.blue.ccChainPower < plain.blue.ccChainPower,
+      `engage ${plain.blue.engageQuality.toFixed(2)} → ${withAttrs.blue.engageQuality.toFixed(2)}, CC ${plain.blue.ccChainPower.toFixed(2)} → ${withAttrs.blue.ccChainPower.toFixed(2)}`,
+    );
   }
 }
 

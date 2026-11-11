@@ -25,6 +25,7 @@ import {
   getChampionByIdSafe,
 } from "./matchSimulationUtils";
 import { ROLE_ORDER } from "./draftTypes";
+import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -337,6 +338,33 @@ function evaluateSpecialInteractions(
   return clamp(score, 0, 10);
 }
 
+// ─── COMP_ATTRIBUTES_EXPANSION §4: atributele adversarului reduc ce e al tău ──
+
+/** Suma `offers` de un tip pe o compoziție (rol → campion). */
+function offerSum(assignments: Partial<Record<Role, string>>, type: string): number {
+  let total = 0;
+  for (const role of ROLE_ORDER) {
+    const champion = getChampionByIdSafe(assignments[role] ?? null);
+    for (const offer of champion?.offers ?? []) if (offer.type === type) total += offer.strength;
+  }
+  return total;
+}
+
+/** value × (1 − min(cap, puncte × perPoint)); fără puncte (date goale), neschimbat. */
+function reduceBy(value: number, enemyPoints: number, perPoint: number, cap: number): number {
+  return enemyPoints > 0 ? value * (1 - Math.min(cap, enemyPoints * perPoint)) : value;
+}
+
+/** antiTank-ul lor topește frontline-ul tău; antiCC-ul lor reduce engage-ul și lanțul de CC. */
+function applyEnemyAttributes(own: TeamfightEvaluation, enemyAssignments: Partial<Record<Role, string>>) {
+  const A = DRAFT_THINKING_CONFIG.attributes;
+  const antiTank = offerSum(enemyAssignments, "antiTank");
+  const antiCC = offerSum(enemyAssignments, "antiCC");
+  own.frontlinePresence = reduceBy(own.frontlinePresence, antiTank, A.simAntiTankPerPoint, A.simAntiTankCap);
+  own.engageQuality = reduceBy(own.engageQuality, antiCC, A.simAntiCCPerPoint, A.simAntiCCCap);
+  own.ccChainPower = reduceBy(own.ccChainPower, antiCC, A.simAntiCCPerPoint, A.simAntiCCCap);
+}
+
 // ─── Main entry point ───────────────────────────────────────────────────────
 
 export function evaluateTeamfight(args: {
@@ -369,6 +397,9 @@ export function evaluateTeamfight(args: {
     specialInteractions: evaluateSpecialInteractions(redProfiles, blueProfiles),
     teamfightTotal: 0,
   };
+
+  applyEnemyAttributes(blue, args.redAssignments);
+  applyEnemyAttributes(red, args.blueAssignments);
 
   // Composite teamfight score
   blue.teamfightTotal = round1(clamp(

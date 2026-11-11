@@ -21,6 +21,8 @@ import type { MatchProfile, OutcomeFactor, OutcomeFactorKey, PhaseBreakdown, Pla
 import { computeTendencyEvents } from "./tendencyEventSystem";
 import { computeTeamChemistry, getPlayerPersonalityModifiers } from "./personalitySystem";
 import { evaluateTeamfight } from "./teamfightSystem";
+import { getResourceConflictExcess } from "./championResource";
+import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { getChampionRoleProfile } from "./championProfileSystem";
 import { evaluateLanePhase } from "./laneEvaluator";
 import { getMatchupValueVsTeam } from "./matchupScoring";
@@ -257,6 +259,12 @@ function computeExecutionTeamScore(
   });
 
   return round1(average(values));
+}
+
+/** −simResourceConflict pentru fiecare carry (cerere ≥ highDemandMin) peste maxHighDemand; fără conflict, neschimbat. */
+function applyResourceConflict(execution: number, assignments: Partial<Record<Role, string>>) {
+  const excess = getResourceConflictExcess(assignments);
+  return excess > 0 ? round1(clamp(execution - DRAFT_THINKING_CONFIG.attributes.simResourceConflict * excess, 0, 10)) : execution;
 }
 
 function computeClutchTeamScore(roster: Partial<Record<Role, string>>) {
@@ -1003,8 +1011,9 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   const blueObjectives = objectiveControlScore(blueChampionIds);
   const redObjectives = objectiveControlScore(redChampionIds);
 
-  const blueExecution = computeExecutionTeamScore(blueRoster, assignmentsBlue);
-  const redExecution = computeExecutionTeamScore(redRoster, assignmentsRed);
+  // COMP_ATTRIBUTES_EXPANSION §2.2: ≥ 3 carry-uri care vor gold → execution mai mic (gold împărțit).
+  const blueExecution = applyResourceConflict(computeExecutionTeamScore(blueRoster, assignmentsBlue), assignmentsBlue);
+  const redExecution = applyResourceConflict(computeExecutionTeamScore(redRoster, assignmentsRed), assignmentsRed);
 
   const blueClutch = computeClutchTeamScore(blueRoster);
   const redClutch = computeClutchTeamScore(redRoster);

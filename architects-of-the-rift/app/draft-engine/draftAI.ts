@@ -99,6 +99,7 @@ import { getContestabilityPenalty } from "./draftContestability";
 import { getLookaheadValue, getScarcity, getWaitPenalty, isScarcePoolChampion } from "./draftIntents";
 import { getComboPartners, getGamesRemainingPossible, getPairFactor, isPartnerOnlyBannedThisGame } from "./pairPriority";
 import { contextualNeedLabel, evaluateContextualNeedStatuses, getContextualNeedFill } from "./contextualNeeds";
+import { describeResourceConflict, getHighDemandPicks, getResourceDemand } from "./championResource";
 import type { PriorityValue } from "./priorityValue";
 import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
@@ -981,6 +982,8 @@ export function scorePickCandidate(
   const needFill = getNeedFillScore(ownState.picks, candidate);
   // COMP_ATTRIBUTES_EXPANSION §3.3 — nevoile din compoziția lor (oprite până se completează datele).
   const contextualFill = getContextualNeedFill(evaluateContextualNeedStatuses(ownState.picks, enemyState.picks), candidate);
+  // COMP_ATTRIBUTES_EXPANSION §2.2 — resurse: prea multe carry-uri care vor gold, focusul pe bot / în altă parte.
+  const resourceEffect = getResourcePickEffect(candidate, projected.projectedRole, ctx);
   const counterResult = getCounterValueScore({
     enemyPicks: enemyState.picks,
     candidate,
@@ -1252,7 +1255,8 @@ export function scorePickCandidate(
         splitIdentity.penalty) * commitment - // §5.2: identitate împărțită
       weaknessPenalty * adjustedConfig.weaknessWeight -
       comboDependencyPenalty -
-      carryNeedPenalty,
+      carryNeedPenalty +
+      resourceEffect.bonus,          // COMP_ATTRIBUTES §2.2: conflict de resurse / focus
     counter:
       counterValue * adjustedConfig.counterWeight +
       predictiveCounter.bonus +
@@ -1311,6 +1315,7 @@ export function scorePickCandidate(
     ...compCounter.lines,
     ...(seasonPunish ? [describeSeasonCounter(seasonPunish.championId, seasonPunish.wins, seasonPunish.games)] : []),
     ...(losingLanes.line ? [losingLanes.line] : []),
+    ...(resourceEffect.line ? [resourceEffect.line] : []),
     ...(contextualFill.answered
       ? [`${candidate.name} answers ${contextualFill.answered.subject} (${contextualNeedLabel(contextualFill.answered)})`]
       : []),
@@ -1377,6 +1382,7 @@ export function scorePickCandidate(
       ...(seasonPunish ? ["season-counter"] : []),
       ...(losingLanes.tag ? [losingLanes.tag] : []),
       ...(contextualFill.answered ? ["contextual-need"] : []),
+      ...(resourceEffect.tag ? [resourceEffect.tag] : []),
       ...(masteryGate.blocked ? ["mastery-f"] : []),
       ...(masteryGate.soft ? ["mastery-d"] : []),
       ...(badSynergies.length ? ["bad-synergy"] : []),
@@ -2024,6 +2030,40 @@ export function getPickCandidatePool(
   const playable = filteredPool.filter((champion) => !gradeById.get(champion.id)?.allBlocked);
   if (playable.length) filteredPool = playable;
   return filteredPool;
+}
+
+/**
+ * COMP_ATTRIBUTES_EXPANSION §2.2 — cererea de resurse a candidatului pe rolul proiectat:
+ *   conflict: cu el, peste `maxHighDemand` carry-uri (cerere ≥ highDemandMin) → −penalty pentru fiecare în plus;
+ *   focus "bot": non-bot cu cerere mare −focusCarryPenalty, top / jungle weakside (≤ weaksideMax) +focusWeaksideBonus;
+ *   focus "elsewhere": invers pentru botlane.
+ * Cu cererea 3 (lipsă în date) peste tot, totul e 0.
+ */
+function getResourcePickEffect(candidate: Champion, role: Role | null, ctx: DraftContext) {
+  const ATTRS = DRAFT_THINKING_CONFIG.attributes;
+  const result = { bonus: 0, line: null as string | null, tag: null as string | null };
+  if (!role) return result;
+  const demand = getResourceDemand(candidate.id, role);
+  const high = demand >= ATTRS.highDemandMin;
+  if (high) {
+    const carries = [...getHighDemandPicks(ctx.own.assignments).filter((entry) => entry.championId !== candidate.id), { championId: candidate.id, role }];
+    const excess = carries.length - ATTRS.maxHighDemand;
+    if (excess > 0) {
+      result.bonus -= ATTRS.resourceConflictPenalty * excess;
+      result.line = describeResourceConflict(carries);
+      result.tag = "resource-conflict";
+    }
+  }
+  const bot = role === "adc" || role === "support";
+  const weakside = demand <= ATTRS.weaksideMax;
+  if (ctx.botFocus === "bot" && !bot) {
+    if (high) result.bonus -= ATTRS.focusCarryPenalty;
+    else if (weakside && (role === "top" || role === "jungle")) result.bonus += ATTRS.focusWeaksideBonus;
+  } else if (ctx.botFocus === "elsewhere" && bot) {
+    if (high) result.bonus -= ATTRS.focusCarryPenalty;
+    else if (weakside) result.bonus += ATTRS.focusWeaksideBonus;
+  }
+  return result;
 }
 
 /** Etichetele pick-urilor adversarului până la următorul nostru pick: „R1–R2”. */

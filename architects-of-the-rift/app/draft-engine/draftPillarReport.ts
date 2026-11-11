@@ -11,6 +11,7 @@ import { COMP_COUNTER_MATRIX, getCandidateIdentityFit, isCompatible, readCompIde
 import { getDirectOpponents } from "./compCounter";
 import { buildCompVector } from "./draftEvaluator";
 import { evaluateContextualNeedStatuses, getBestCoverAttribute, getContextualCover } from "./contextualNeeds";
+import { describeResourceConflict, getHighDemandPicks, getResourceConflictExcess, getResourceDemand } from "./championResource";
 import { COMP_ATTRIBUTE_INFO } from "@/app/types/compAttributes";
 import { getOpenRolesForPickedChampions } from "./draftRoleResolver";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
@@ -130,6 +131,20 @@ function compositionPillar(ownPicks: string[], ownAssignments: Assignments, rost
   if ((vector.engage ?? 0) < required && (vector.disengage ?? 0) < required) {
     points -= 1;
     notes.add("No engage or disengage");
+  }
+  // COMP_ATTRIBUTES_EXPANSION §2.2 — resursele: prea multe carry-uri care vor gold (−1) sau un weakside asumat
+  // (top / jungle / mid cu cerere ≤ 2, lângă cel puțin un carry: resursele merg în altă parte).
+  const carries = getHighDemandPicks(ownAssignments);
+  if (getResourceConflictExcess(ownAssignments) > 0) {
+    points -= 1;
+    notes.add(describeResourceConflict(carries), "Gold and jungle attention are split between them");
+  } else if (carries.length) {
+    for (const role of ["top", "jungle", "mid"] as const) {
+      const championId = ownAssignments[role];
+      if (championId && getResourceDemand(championId, role) <= DRAFT_THINKING_CONFIG.attributes.weaksideMax) {
+        notes.add(`Weakside: ${name(championId)} (${role})`, `Resources go to ${carries.map((entry) => name(entry.championId)).join(", ")}`);
+      }
+    }
   }
   // COMP_ATTRIBUTES_EXPANSION §3.3 — nevoile din compoziția lor: „No answer to their frontline (3 tanks)”
   // (priority ≥ 2 scade nota, ca nevoile de bază) sau cine le răspunde: „Anti-tank: Vayne answers their frontline”.
