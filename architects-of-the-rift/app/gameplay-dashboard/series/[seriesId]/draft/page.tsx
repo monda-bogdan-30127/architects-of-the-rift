@@ -39,6 +39,8 @@ const CHAMPION_GRID_COLUMNS = 6;
 const MINI_SLOT_SIZE = 34;
 /** §7.3: hover-ul pe campion apare după atât. */
 const HOVER_DELAY_MS = 250;
+// DUO_PRIORITY_AND_FEARLESS §4: panoul cu favoriții de sezon ai adversarului e ascuns (codul rămâne).
+const SHOW_SEASON_SCOUTING = false;
 
 const ROLE_ORDER: Role[] = ["top", "jungle", "mid", "adc", "support"];
 const FILTERS: Array<{ key: Role | "all"; label: string; icon: string }> = [
@@ -456,7 +458,7 @@ export default function DraftPage() {
 
   // DRAFT_THINKING §7.6: scouting înainte de primul ban — favoriții de sezon ai adversarului (read-only).
   const scoutedTeam = userSide === "blue" ? redTeam : blueTeam;
-  const seasonScouting = currentGame.phaseIndex === 0 && scoutedTeam.slug
+  const seasonScouting = SHOW_SEASON_SCOUTING && currentGame.phaseIndex === 0 && scoutedTeam.slug
     ? getSeasonFavorites(scoutedTeam.slug, getTeamRosterFromSources({ team: scoutedTeam, save: draftSave }), 3)
     : [];
 
