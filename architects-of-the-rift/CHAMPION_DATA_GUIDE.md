@@ -303,9 +303,12 @@ profile: {
 4. Adaugă gradele de mastery în `championMasteryOverrides.ts` (manual sau cu scriptul Python de mai jos).
 5. Dacă e un ADC cu `carryProfile` special, adaugă-l în `carryProfileOverrides` din `index.ts`.
 
-**După orice modificare de date**
+**După orice modificare de date: `npm run check`** (obligatoriu, înainte de commit)
+
+`npm run check` = `tsc --noEmit` + `npm run lint` + `npm run validate:matchups`. Trebuie să treacă fără erori: o greșeală de date (ex. `mustWith` către el însuși, un id greșit în `goodVs`) strică draftul fără să crape nimic vizibil.
 
 ```bash
+npm run check                      # tsc + lint + validate:matchups, toate odată
 npm run validate:matchups          # structura roleData, level/phase, contradicții, mustWith (+ perechi), badSynergyWith, profile + acoperire
 npm run matchups -- jax            # Bate / E bătut de (cu fișierul sursă) / mustWith / synergyWith, toate rolurile
 npm run matchups -- jax top        # un singur rol

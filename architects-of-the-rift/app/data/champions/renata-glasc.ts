@@ -68,7 +68,7 @@ export const renataGlasc = createChampion({
         { championId: "rell", level: 2, phase: "all", note: "R turns the engage against the team diving in" },
       ],
       
-      mustWith: ["renata-glasc"],
+      mustWith: ["kalista"],
 
       stats: {
         picks: 16,

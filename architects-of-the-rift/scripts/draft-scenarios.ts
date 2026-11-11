@@ -501,8 +501,9 @@ function firstPickThenR2(id: string, roster: Partial<Record<Role, string>>, firs
   const support = playerWith("support", "renata-glasc");
   const r2 = firstPickThenR2("s10b", { adc, support }, "renata-glasc");
   check(
-    "10b. Renata prima → Kalista NU e forțată",
-    !isLock(r2),
+    // DUO_PRIORITY_AND_FEARLESS §1 / §5.1: Renata are acum `mustWith: ["kalista"]` (perechea e reciprocă).
+    "10b. Renata prima → R2 Kalista (mustwith-lock)",
+    r2?.championId === "kalista" && isLock(r2),
     `R2=${r2?.championId}, lock=${isLock(r2)} (adc ${adc}: Kalista ${grade(adc, "kalista")})`,
   );
 }
