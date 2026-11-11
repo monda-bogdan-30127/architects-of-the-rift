@@ -23,6 +23,9 @@ import {
 } from "./draftAI";
 import type { DraftPlan } from "./draftPlanSystem";
 import { getBotFocus, type BotFocus } from "./botDuoPlan";
+import { champions } from "@/app/data/champions";
+import type { Champion } from "@/app/types/champion";
+import { createPriorityLookup, type PriorityValue } from "./priorityValue";
 
 export type TeamDraftState = {
   side: Side;
@@ -70,6 +73,12 @@ export type DraftContext = {
   ownWinCondition: WinCondition | null;
   /** FEEDBACK_FIXES §10.3 — „jucăm prin bot?” (doar cu ambele roluri bot libere contează). */
   botFocus: BotFocus;
+  /** DRAFT_REALISM §6 — priority value din perspectiva echipei care draftează (cache pe acțiune). */
+  priorityOf: (champion: Champion) => PriorityValue;
+  /** Campionul disponibil cu cel mai mare priority value folosibil de noi (calculat la cerere). */
+  topOwnUsablePriority: () => { championId: string; priority: PriorityValue } | null;
+  /** Același lucru din perspectiva adversarului (pentru red la ban 1, §6.1). */
+  enemyPriorityOf: (champion: Champion) => PriorityValue;
   lookahead: DraftLookahead;
   seriesPressure: { eliminationGame: boolean; leading: boolean };
 };
@@ -158,6 +167,28 @@ export function buildDraftContext(
   const plan = getCachedPlan({ side, game, series, save });
   const ownWinCondition = getWinCondition(own.picks, own.assignments, own.identity, own.roster);
   const clutch = getClutchContext(series);
+  const unavailableIds = mustWith.own.unavailable;
+  const priorityOf = createPriorityLookup({
+    ownRoster: own.roster, ownOpenRoles: own.openRoles,
+    enemyRoster: enemy.roster, enemyOpenRoles: enemy.openRoles,
+    enemyTeamSlug: enemy.teamSlug, unavailable: unavailableIds,
+  });
+  const enemyPriorityOf = createPriorityLookup({
+    ownRoster: enemy.roster, ownOpenRoles: enemy.openRoles,
+    enemyRoster: own.roster, enemyOpenRoles: own.openRoles,
+    enemyTeamSlug: own.teamSlug, unavailable: unavailableIds,
+  });
+  let topCache: { championId: string; priority: PriorityValue } | null | undefined;
+  const topOwnUsablePriority = () => {
+    if (topCache !== undefined) return topCache;
+    topCache = null;
+    for (const champion of champions) {
+      if (unavailableIds.has(champion.id)) continue;
+      const priority = priorityOf(champion);
+      if (priority.ownUsable && (!topCache || priority.value > topCache.priority.value)) topCache = { championId: champion.id, priority };
+    }
+    return topCache;
+  };
   const ownWins = countWins(series, side);
   const enemyWins = countWins(series, enemySide);
   const ctx: DraftContext = {
@@ -183,6 +214,9 @@ export function buildDraftContext(
       identity: own.identity.dominant,
       winConditionRole: ownWinCondition?.role ?? null,
     }),
+    priorityOf,
+    enemyPriorityOf,
+    topOwnUsablePriority,
     lookahead: getLookahead(game.phaseIndex, side),
     seriesPressure: {
       eliminationGame: side === "blue" ? clutch.blueAtElimination : clutch.redAtElimination,

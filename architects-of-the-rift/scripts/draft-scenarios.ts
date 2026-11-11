@@ -700,10 +700,17 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
   // 18. În faza 1 de ban, AI-ul nu-și banează membrii celui mai bun duo propriu (clar peste al doilea).
   let violations = 0;
   let protectedSeen = 0;
-  // Toate echipele, în perechi: destule ture în care cel mai bun duo e clar peste al doilea.
+  // Echipele care au de la start un duo clar peste al doilea (altfel nu e nimic de protejat), ca blue și ca red.
   const slugs = teams.map((team) => team.slug ?? team.id);
+  const startSave = makeSave();
+  const withProtectedDuo = slugs.filter((slug) =>
+    getBotDuoState({ ownPicks: [], roster: startSave.updatedTeamRosters[slug] ?? {}, unavailable: new Set(), lockedRoles: {} }, []).protectedIds.length > 0,
+  );
   const pairs: [string, string][] = [];
-  for (let index = 0; index + 1 < slugs.length; index += 2) pairs.push([slugs[index], slugs[index + 1]]);
+  withProtectedDuo.forEach((slug, index) => {
+    const other = slugs.find((entry) => entry !== slug && !withProtectedDuo.includes(entry)) ?? slugs[(index + 1) % slugs.length];
+    pairs.push([slug, other], [other, slug]);
+  });
   for (const [blue, red] of pairs) {
     const save = makeSave();
     const series = newSeries(`s18-${blue}`, blue, red);
@@ -1135,6 +1142,41 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
       `B4=${choice?.championId} (${choice?.projectedRole}) fallback=${hasTag(choice, "duo-fallback")}; Alistar fallback: ${hasTag(alistar, "duo-fallback")}; tier 2 pentru Kalista: ${tier2.join(", ") || "—"}`,
     );
   }
+}
+
+// ─── DRAFT_REALISM §15.1–2: ban sau first pick ───────────────────────────────
+{
+  let cases = 0;
+  let blueBanned = 0;
+  let takenAtB1 = 0;
+  let redAnswered = 0;
+  const examples: string[] = [];
+  for (let index = 0; index < 30; index += 1) {
+    const blue = teams[(index * 5 + 1) % teams.length].slug;
+    const red = teams[(index * 5 + 8) % teams.length].slug;
+    if (blue === red) continue;
+    const series = newSeries(`r7s${index}`, blue, red);
+    const save = makeSave();
+    const start = series.games[0];
+    const ctx = buildDraftContext(getCurrentStep(start)!, start, series, save, DEFAULT_AI_CONFIG);
+    const top = ctx.topOwnUsablePriority();
+    const rank = top?.priority.ownBestGrade ? RANK[top.priority.ownBestGrade] : -1;
+    if (!top || top.priority.tier !== 1 || rank < 4) continue;
+    cases += 1;
+    const { log } = runDraft({ series, save, bans: [], stop: (entries) => Boolean(nthPick(entries, "blue", 1)) });
+    const bans1 = log.filter((entry) => entry.action === "ban");
+    if (bans1.some((entry) => entry.side === "blue" && entry.championId === top.championId)) blueBanned += 1;
+    const redBan = bans1.find((entry) => entry.side === "red" && entry.championId === top.championId);
+    const b1 = nthPick(log, "blue", 1);
+    if (b1?.championId === top.championId) takenAtB1 += 1;
+    if (redBan) redAnswered += 1;
+    if (examples.length < 3) examples.push(`${blue}: ${top.championId} (${top.priority.value.toFixed(1)}) → ${redBan ? "banat de red" : b1?.championId === top.championId ? "B1" : `B1=${b1?.championId}`}`);
+  }
+  check(
+    "R15.1 Blue nu-și banează tier 1-ul de first pick (îl ia la B1 dacă rămâne)",
+    cases > 0 && blueBanned === 0,
+    `${cases} cazuri; banat de blue: ${blueBanned}; luat la B1: ${takenAtB1}; banat de red: ${redAnswered}; ${examples.join("; ")}`,
+  );
 }
 
 // ─── Raport ──────────────────────────────────────────────────────────────────

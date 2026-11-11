@@ -2,6 +2,7 @@ import { teams } from "@/app/data/teams";
 import { players } from "@/app/data/players";
 import type { Champion, Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
+import { GRADE_RANK } from "@/app/utils/championMasteryUtils";
 import type {
   ActiveDraftSeries,
   DraftCandidateBreakdown,
@@ -1221,11 +1222,15 @@ export function scorePickCandidate(
     (seasonReady ? DRAFT_THINKING_CONFIG.season.counterReadyBonus : 0);
   const seasonComfortBonus = seasonPickBonus - seasonCounterBonus;
   const mustWithDenyValue = Math.max(mustWithDeny.bonus, duoDeny);
+  // DRAFT_REALISM §6: cât e de contestat; în `power` doar dacă îl putem juca (altfel e ban / deny).
+  const priority = ctx.priorityOf(candidate);
+  const priorityPick = priority.ownUsable ? priority.value * DRAFT_THINKING_CONFIG.priority.pickWeight : 0;
   const buckets: Record<PickBucketId, number> = {
     power:
       metaPriority * adjustedConfig.metaWeight +
       proPickTiming +
-      contestedUrgency -
+      contestedUrgency +
+      priorityPick -
       offMetaPenalty,
     comp:
       compSynergy * adjustedConfig.synergyWeight +
@@ -1334,6 +1339,7 @@ export function scorePickCandidate(
     buckets,
     bucketWeights: weights,
     phase: ctx.phase,
+    priority: { value: priority.value, tier: priority.tier, enemyWant: priority.enemyWant, ownUsable: priority.ownUsable },
     ...(compCounter.ours && compCounter.theirs ? { compCounterValue: compCounter.value } : {}),
     ...(ownIdentity.dominant
       ? { identity: { dominant: ownIdentity.dominant, fit: getCandidateIdentityFit(candidate, projected.projectedRole, ownIdentity.dominant) } }
@@ -1817,9 +1823,36 @@ export function scoreBanCandidate(
     ? MUSTWITH_CONFIG.ownPartnerBanScore
     : 0;
 
+  // DRAFT_REALISM §6 / §6.1 — priority la ban 1, „ban sau first pick”.
+  const PRIORITY = DRAFT_THINKING_CONFIG.priority;
+  const priority = ctx.priorityOf(candidate);
+  let priorityBan = 0;
+  let firstPickInsteadOfBan = 0;
+  let banTag: string | null = null;
+  if (ctx.phase === "ban1") {
+    if (priority.enemyWant >= PRIORITY.banMinEnemyWant || priority.tier === 1) priorityBan = priority.value * PRIORITY.banWeight;
+    const ownGradeRank = priority.ownBestGrade ? GRADE_RANK[priority.ownBestGrade] : -1;
+    if (step.side === "blue" && priority.tier === 1 && priority.ownUsable && ownGradeRank >= PRIORITY.firstPickMinRank) {
+      // Blue nu banează tier 1-ul pe care îl ia la B1 (cel mai mare priority value folosibil de noi).
+      if (ctx.topOwnUsablePriority()?.championId === candidate.id) {
+        firstPickInsteadOfBan = -PRIORITY.firstPickInsteadOfBan;
+        banTag = "first-pick-instead";
+      }
+    }
+    if (step.side === "red") {
+      // Red: tier 1 pe care blue îl poate lua la B1 (un jucător de-al lor ≥ A) → îl banează (sau îl lasă cu counter, §9).
+      const forBlue = ctx.enemyPriorityOf(candidate);
+      const blueRank = forBlue.ownBestGrade ? GRADE_RANK[forBlue.ownBestGrade] : -1;
+      if (forBlue.tier === 1 && forBlue.ownUsable && blueRank >= PRIORITY.firstPickMinRank) {
+        priorityBan += PRIORITY.redDenyFirstPick;
+        banTag = "deny-first-pick";
+      }
+    }
+  }
+
   // DRAFT_REALISM §4.2: termenii existenți, grupați pe bucket-uri; `hygiene` e mereu × 1.
   const buckets: Record<BanBucketId, number> = {
-    power: metaPriority * 0.95 + (candidate.roles.length >= 2 ? 0.8 : 0),
+    power: metaPriority * 0.95 + (candidate.roles.length >= 2 ? 0.8 : 0) + priorityBan,
     // Jucătorii lor. §7.4: banul de sezon nu se adună peste mastery / target ban: se ia maximul.
     target:
       enemyComfortPressure * 1.1 +
@@ -1846,7 +1879,8 @@ export function scoreBanCandidate(
       redundantBanPenalty -
       banRepeatPenalty +
       trapBanReduction +
-      ownMustWithBanBlock,
+      ownMustWithBanBlock +
+      firstPickInsteadOfBan,
   };
   const totalScore = sumBuckets(buckets, weights);
 
@@ -1873,7 +1907,9 @@ export function scoreBanCandidate(
     ...(seasonResponse && seasonResponse.kind !== "ignore"
       ? { seasonThreat: { championId: candidate.id, threat: seasonResponse.threat, kind: seasonResponse.kind } }
       : {}),
+    priority: { value: priority.value, tier: priority.tier, enemyWant: priority.enemyWant, ownUsable: priority.ownUsable },
     reasonTags: [
+      ...(banTag ? [banTag] : []),
       ...(seasonBan > 0 ? ["season-ban"] : []),
       userBias > 1 || signatureBonus > 2 ? "user-pattern" : "meta-ban",
       candidate.roles.length >= 2 ? "flex" : "single-role",

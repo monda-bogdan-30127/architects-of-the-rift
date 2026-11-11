@@ -235,6 +235,8 @@ export type DraftCandidateBreakdown = {
   explanation?: string[];
   /** Locul alegerii în lista de candidați valizi, sortată (0 = primul). Lipsă la acțiunile forțate. */
   choiceRank?: number;
+  /** DRAFT_REALISM §6 — cât e de contestat candidatul (din perspectiva echipei care draftează). */
+  priority?: { value: number; tier: 1 | 2 | 3; enemyWant: number; ownUsable: boolean };
   /** DRAFT_REALISM §4.3 — subtotalul fiecărui bucket, înainte de ponderi. */
   buckets?: Partial<Record<BucketId, number>>;
   /** Ponderile folosite (totalul = Σ bucket × pondere). */

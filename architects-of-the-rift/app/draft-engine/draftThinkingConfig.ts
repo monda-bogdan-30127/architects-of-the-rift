@@ -160,8 +160,9 @@ export const DRAFT_THINKING_CONFIG = {
      * Ban: + min(threat × banWeight, banCap); nu se adună peste mastery / target ban (max).
      * Spec: 0.45 / 3.5 — prea puțin: un 6–1 (amenințare 5.5) rămânea cu ~4 puncte sub al 3-lea ban meta.
      */
-    banWeight: 1.4,
-    banCap: 8,
+    banWeight: 2.0,
+    /** REALISM §6: cu priority value în `power` la ban 1, 1.4 / 8 lăsa Olaf 6–1 sub ban-urile de meta (scenariul 23). */
+    banCap: 11,
     /** Pick: counter pregătit (campionul lor e liber) / pedepsit (l-au luat). */
     counterReadyBonus: 1.0,
     counterPunishBonus: 2.0,
@@ -189,6 +190,35 @@ export const DRAFT_THINKING_CONFIG = {
     /** §5.3 — fostele scalări pe pick înlocuite de ponderile de fază. */
     flexAmbiguityBonus: 1.0,
     contestabilityAnswerWeight: 0.32,
+  },
+
+  // DRAFT_REALISM §6 — priority value (priorityValue.ts): cât e de contestat un campion.
+  priority: {
+    weights: { meta: 0.4, flex: 0.2, blindSafety: 0.2, enemyWant: 0.2 },
+    /**
+     * Spec: 7.5 / 6. Cu formula de mai sus maximul real e ~7 (meta 9.4 la Nocturne, dar flex 0), deci tier 1
+     * nu apărea niciodată, iar tier 2 doar la ~2% din campioni. Calibrare la B1 pe 5 perechi: 6.0 → top ~2–3%
+     * (Cassiopeia, Rumble, Nocturne, Syndra), 5.0 → top ~6%.
+     */
+    tier1Min: 6.0,
+    tier2Min: 5.0,
+    /** Cât îl vrea adversarul, după gradul jucătorului de pe un rol liber al lor. */
+    gradeWant: { SS: 10, S: 8.5, A: 7, B: 5, C: 3, D: 0, F: 0 } as Record<string, number>,
+    /** Amenințarea de sezon a lor × atât, peste gradeWant. */
+    seasonWantWeight: 0.3,
+    /** Blind safety: −atât pe fiecare counter „strong” încă disponibil pe un rol liber al lor. */
+    blindCounterPenalty: 1.5,
+    /** Pick: priorityValue × pickWeight în `power`, doar dacă ownUsable (actualizare 9 nov: 0.5, nu 0.8). */
+    pickWeight: 0.5,
+    /** Ban 1: priorityValue × banWeight în `power`, dacă enemyWant ≥ banMinEnemyWant sau tier 1. */
+    banWeight: 0.6,
+    banMinEnemyWant: 5,
+    /** §6.1 — blue nu banează tier 1-ul pe care îl ia la B1 (`hygiene`). */
+    firstPickInsteadOfBan: 6,
+    /** … jucătorul nostru îl are cel puțin la acest grad (A). */
+    firstPickMinRank: 4,
+    /** §6.1 — red: tier 1 pe care blue îl poate lua (grad ≥ A) → +atât în `power` la ban 1. */
+    redDenyFirstPick: 2,
   },
 
   // FEEDBACK_FIXES §5 — raportul de draft pe piloni (draftPillarReport.ts)
