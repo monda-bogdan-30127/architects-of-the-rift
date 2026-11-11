@@ -55,6 +55,8 @@ import { ROLE_ORDER } from "@/app/draft-engine/draftTypes";
 import { evaluateIntents } from "@/app/draft-engine/draftDecision";
 import { getResolvedChampionPool } from "@/app/utils/championMasteryUtils";
 import { computeSeriesMvp, type SeriesGameSummary } from "@/app/draft-engine/mvpStorage";
+import { evaluateContextualNeedStatuses, getContextualNeeds, setContextualNeedsOverride } from "@/app/draft-engine/contextualNeeds";
+import type { ChampionOffer, ResourceDemand } from "@/app/types/champion";
 
 // ─── Infrastructură ──────────────────────────────────────────────────────────
 
@@ -1608,6 +1610,87 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
       hasTag(entry, "orphan-combo") && ![...blueBans, ...log.filter((e) => e.side === "red" && e.action === "ban").map((e) => e.championId)].includes("renata-glasc"),
       `ban-uri: ${log.filter((e) => e.action === "ban").map((e) => e.championId).join(", ")}`,
     );
+  }
+}
+
+// ─── COMP_ATTRIBUTES_EXPANSION §6.4: nevoi contextuale (date de test injectate, nu în fișiere) ──
+/** Adaugă temporar offers / resourceDemand pe campioni (în memorie) și le restaurează după `run`. */
+function withTestData<T>(patch: { offers?: Record<string, ChampionOffer[]>; resourceDemand?: Record<string, Partial<Record<Role, ResourceDemand>>> }, run: () => T): T {
+  const restore: (() => void)[] = [];
+  for (const [id, offers] of Object.entries(patch.offers ?? {})) {
+    const champion = champions.find((entry) => entry.id === id)!;
+    const before = champion.offers;
+    champion.offers = [...before, ...offers];
+    restore.push(() => { champion.offers = before; });
+  }
+  for (const [id, byRole] of Object.entries(patch.resourceDemand ?? {})) {
+    const champion = champions.find((entry) => entry.id === id)!;
+    for (const [role, value] of Object.entries(byRole) as [Role, ResourceDemand][]) {
+      const entry = champion.roleData[role]!;
+      const before = entry.resourceDemand;
+      entry.resourceDemand = value;
+      restore.push(() => { if (before === undefined) delete entry.resourceDemand; else entry.resourceDemand = before; });
+    }
+  }
+  try {
+    return run();
+  } finally {
+    for (const undo of restore.reverse()) undo();
+  }
+}
+
+{
+  setContextualNeedsOverride(true);
+  try {
+    // C1. Ei au 3 tancuri (Ornn, Sejuani, Rell) → vs-frontline; Vayne cu antiTank 5 primește contextualNeedFill.
+    const series = newSeries("ca1", BLUE, RED);
+    const save = makeSave();
+    const game: DraftGameState = {
+      ...series.games[0],
+      bansBlue: ["azir", "jayce", "orianna"], bansRed: ["ksante", "vi", "syndra"],
+      picksBlue: ["ornn", "sejuani", "rell"], picksRed: ["ahri", "lee-sin"], phaseIndex: 11,
+    };
+    const step = getCurrentStep(game)!;
+    const vayne = champions.find((c) => c.id === "vayne")!;
+    const needs = getContextualNeeds(game.picksBlue);
+    const without = scoreDraftCandidate(vayne, step, game, series, save);
+    const withAntiTank = withTestData({ offers: { vayne: [{ type: "antiTank", strength: 5 }] } }, () => {
+      setContextualNeedsOverride(true); // golește cache-ul de statusuri
+      return scoreDraftCandidate(vayne, step, game, series, save);
+    });
+    check(
+      "C1. Ei au 3 tancuri → vs-frontline; Vayne cu antiTank 5 primește contextualNeedFill (tag contextual-need)",
+      step.side === "red" && needs.some((need) => need.id === "vs-frontline") && hasTag(withAntiTank, "contextual-need") &&
+        (withAntiTank.buckets?.counter ?? 0) > (without.buckets?.counter ?? 0),
+      `${step.label}; nevoi: ${needs.map((need) => `${need.id} p${need.priority}`).join(", ")}; counter Vayne ${(without.buckets?.counter ?? 0).toFixed(2)} → ${(withAntiTank.buckets?.counter ?? 0).toFixed(2)} cu antiTank 5; „${withAntiTank.explanation?.find((line) => line.includes("answers their frontline")) ?? "—"}”`,
+    );
+
+    // C2. Compoziția finală fără anti-tank (și puțin sustained damage) → raportul: „No answer to their frontline”.
+    const finished: DraftGameState = {
+      ...series.games[0],
+      bansBlue: ["azir", "jayce", "orianna"], bansRed: ["ksante", "vi", "syndra"],
+      picksBlue: ["ornn", "sejuani", "rell", "ahri", "ezreal"], picksRed: ["rumble", "lee-sin", "taliyah", "rakan", "xayah"], phaseIndex: 20,
+    };
+    const resolved = resolveFinishedDraftAssignments(finished, series, save);
+    const rosters = { blue: save.updatedTeamRosters[BLUE] ?? {}, red: save.updatedTeamRosters[RED] ?? {} };
+    const red = buildDraftPillarReport(resolved, "red", series, save, rosters);
+    const status = evaluateContextualNeedStatuses(resolved.picksRed, resolved.picksBlue).find((need) => need.id === "vs-frontline");
+    check(
+      "C2. Fără anti-tank contra a 3 tancuri → Composition: „No answer to their frontline”",
+      Boolean(status && status.missing > 0) && red.composition.notes.some((note) => note.startsWith("No answer to their frontline")),
+      `vs-frontline: ${status ? `${status.current.toFixed(1)} / ${status.required}` : "—"}; Composition ${red.composition.grade}: ${red.composition.notes.join(" | ")}`,
+    );
+
+    // C3. Cu flag-ul oprit, nimic din toate astea nu se activează.
+    setContextualNeedsOverride(false);
+    const off = withTestData({ offers: { vayne: [{ type: "antiTank", strength: 5 }] } }, () => scoreDraftCandidate(vayne, step, game, series, save));
+    check(
+      "C3. contextualNeedsEnabled oprit → fără nevoi contextuale, fără contextual-need",
+      getContextualNeeds(game.picksBlue).length === 0 && !hasTag(off, "contextual-need"),
+      `counter Vayne (oprit, antiTank 5): ${(off.buckets?.counter ?? 0).toFixed(2)}`,
+    );
+  } finally {
+    setContextualNeedsOverride(null);
   }
 }
 

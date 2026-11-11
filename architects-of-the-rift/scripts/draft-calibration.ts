@@ -7,6 +7,8 @@
 // --seeds K (implicit 3): fiecare pereche se joacă cu K seed-uri (seriesId diferit), pentru diversitate.
 // --compare: tabelul de diferențe față de o rulare anterioară + verificarea „decizii identice” (§4.4).
 // Seed-urile depind doar de seriesId, deci rulările înainte/după sunt comparabile.
+// --contextual-needs: pornește nevoile contextuale (COMP_ATTRIBUTES_EXPANSION §3) peste config și raportează
+// cât de des se activează fiecare (pe compozițiile finale).
 
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname } from "path";
@@ -22,6 +24,7 @@ import { getBotPairTier, getCompletedMustWithPairs, isExplicitBotPair } from "@/
 import { readCompIdentity } from "@/app/draft-engine/compIdentity";
 import { buildDraftPillarReport } from "@/app/draft-engine/draftPillarReport";
 import { isComboPiece } from "@/app/draft-engine/pairPriority";
+import { evaluateContextualNeedStatuses, setContextualNeedsOverride } from "@/app/draft-engine/contextualNeeds";
 import { hasThinPool } from "@/app/draft-engine/draftMasteryGate";
 import { DRAFT_PHASE_IDS, type DraftPhaseId } from "@/app/draft-engine/draftPhase";
 import { ROLE_ORDER, type Side } from "@/app/draft-engine/draftTypes";
@@ -42,6 +45,11 @@ const gameCount = Number(named.games ?? positional[0] ?? 300);
 const seedsPerPair = Math.max(1, Number(named.seeds ?? 3));
 const outFile = named.out ?? positional[1];
 const compareFile = named.compare;
+const contextualNeedsOn = named["contextual-needs"] === "true";
+if (contextualNeedsOn) setContextualNeedsOverride(true);
+/** id → câte compoziții finale au nevoia activă / nesatisfăcută / cu priority ≥ 2 (față de compoziția adversarului). */
+const contextualStats: Record<string, { active: number; unmet: number; high: number }> = {};
+let contextualTeams = 0;
 
 const save = makeSave();
 const championsById = new Map(champions.map((champion) => [champion.id, champion]));
@@ -137,6 +145,17 @@ for (const entry of schedule) {
       const championId = assignments[role];
       const champion = championId ? championsById.get(championId) : undefined;
       if (champion && !champion.roles.includes(role)) offRole.push(`${champion.id}:${role}`);
+    }
+  }
+  if (contextualNeedsOn) {
+    for (const [own, enemy] of [[resolved.picksBlue, resolved.picksRed], [resolved.picksRed, resolved.picksBlue]]) {
+      contextualTeams += 1;
+      for (const need of evaluateContextualNeedStatuses(own, enemy)) {
+        const entry = (contextualStats[need.id] ??= { active: 0, unmet: 0, high: 0 });
+        entry.active += 1;
+        if (need.missing > 0) entry.unmet += 1;
+        if (need.priority >= 2) entry.high += 1;
+      }
     }
   }
   const simulation = simulateDraftResult(resolved, series, save);
@@ -530,6 +549,19 @@ const markdown = [
   `Identități finale: ${Object.entries(compIdentities).sort((a, b) => b[1] - a[1]).map(([id, count]) => `${id} ${count}`).join(", ")}`,
   `mustWith: lock-uri ${mustWith.locks}, perechi bot ${mustWith.botPairs}, alte perechi ${mustWith.otherPairs} · counterValue mediu ales ${mean(chosenCounter).toFixed(3)}`,
   ...(fExamples.length ? ["", `Exemple F: ${fExamples.join("; ")}`] : []),
+  ...(contextualNeedsOn
+    ? [
+        "",
+        `## Nevoi contextuale (pornite; ${contextualTeams} compoziții finale)`,
+        "",
+        "| Nevoie | Activă | Nesatisfăcută | Priority ≥ 2 |",
+        "|---|---|---|---|",
+        ...["vs-frontline", "vs-cc", "vs-poke", "vs-sidelane"].map((id) => {
+          const entry = contextualStats[id] ?? { active: 0, unmet: 0, high: 0 };
+          return `| ${id} | ${(pct(entry.active, contextualTeams) * 100).toFixed(1)}% | ${(pct(entry.unmet, contextualTeams) * 100).toFixed(1)}% | ${(pct(entry.high, contextualTeams) * 100).toFixed(1)}% |`;
+        }),
+      ]
+    : []),
   "",
 ].join("\n");
 

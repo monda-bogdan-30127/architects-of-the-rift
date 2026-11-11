@@ -98,6 +98,7 @@ import {
 import { getContestabilityPenalty } from "./draftContestability";
 import { getLookaheadValue, getScarcity, getWaitPenalty, isScarcePoolChampion } from "./draftIntents";
 import { getComboPartners, getGamesRemainingPossible, getPairFactor, isPartnerOnlyBannedThisGame } from "./pairPriority";
+import { contextualNeedLabel, evaluateContextualNeedStatuses, getContextualNeedFill } from "./contextualNeeds";
 import type { PriorityValue } from "./priorityValue";
 import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
@@ -978,6 +979,8 @@ export function scorePickCandidate(
     return relation ? [{ partnerId: pickedId, level: relation.level, note: relation.note }] : [];
   });
   const needFill = getNeedFillScore(ownState.picks, candidate);
+  // COMP_ATTRIBUTES_EXPANSION §3.3 — nevoile din compoziția lor (oprite până se completează datele).
+  const contextualFill = getContextualNeedFill(evaluateContextualNeedStatuses(ownState.picks, enemyState.picks), candidate);
   const counterResult = getCounterValueScore({
     enemyPicks: enemyState.picks,
     candidate,
@@ -1257,7 +1260,8 @@ export function scorePickCandidate(
       matchupHistoryBias +           // DRAFT FINAL FIX 2
       compCounter.value +            // §6.1 / §6.2: comp counter (redus la tunnel vision)
       losingLanes.bonus +            // §6.3: liniile pierdute
-      seasonCounterBonus,            // §7.4: counter de sezon (pregătit / pedepsit)
+      seasonCounterBonus +           // §7.4: counter de sezon (pregătit / pedepsit)
+      contextualFill.value * DRAFT_THINKING_CONFIG.attributes.contextualNeedWeight, // COMP_ATTRIBUTES §3.3
     comfort:
       comfortScore * adjustedConfig.comfortWeight +
       playerFitScore * adjustedConfig.fitWeight +
@@ -1307,6 +1311,9 @@ export function scorePickCandidate(
     ...compCounter.lines,
     ...(seasonPunish ? [describeSeasonCounter(seasonPunish.championId, seasonPunish.wins, seasonPunish.games)] : []),
     ...(losingLanes.line ? [losingLanes.line] : []),
+    ...(contextualFill.answered
+      ? [`${candidate.name} answers ${contextualFill.answered.subject} (${contextualNeedLabel(contextualFill.answered)})`]
+      : []),
     ...(winConditionEffect.line ? [winConditionEffect.line] : []),
     ...(duoPick.line ? [duoPick.line] : []),
     ...(duoFallback.line ? [duoFallback.line] : []),
@@ -1369,6 +1376,7 @@ export function scorePickCandidate(
       ...(compCounter.tunnelVision ? ["tunnel-vision"] : []),
       ...(seasonPunish ? ["season-counter"] : []),
       ...(losingLanes.tag ? [losingLanes.tag] : []),
+      ...(contextualFill.answered ? ["contextual-need"] : []),
       ...(masteryGate.blocked ? ["mastery-f"] : []),
       ...(masteryGate.soft ? ["mastery-d"] : []),
       ...(badSynergies.length ? ["bad-synergy"] : []),

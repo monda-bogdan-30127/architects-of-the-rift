@@ -152,6 +152,8 @@ export type TeamDraftEvaluation = {
   compIdentity: "front-to-back" | "pick" | "dive" | "poke" | "teamfight" | "protect-carry" | "balanced";
   draftPower: number;
   missingNeeds: NeedStatus[];
+  /** COMP_ATTRIBUTES_EXPANSION §3 — nevoile din compoziția adversarului (lipsă cu mecanismul oprit). */
+  contextualNeeds?: { id: string; priority: 1 | 2 | 3; current: number; required: number; missing: number; reason: string }[];
   topStrengths: Array<{ type: CompAttribute; value: number }>;
   accessScore?: number;
   threatScore?: number;

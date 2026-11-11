@@ -415,11 +415,15 @@ export const DRAFT_THINKING_CONFIG = {
     contextualAnswerUrgency: 2,
     /** Se activează doar de la atâtea pick-uri ale adversarului. */
     contextualMinEnemyPicks: 2,
-    /** Pragurile pe vectorul adversarului: [prag, prag pentru priority mai mare]. */
+    /**
+     * Pragurile pe vectorul adversarului: [prag, prag pentru priority mai mare]. Calibrate pe compozițiile finale
+     * (300 de jocuri): frontline ≥ 8 în ~35% (spec: 25–40%); cc pornea de la 14 (spec), dar mediana e 17 și
+     * se activa în 64% → 24 (~30%); poke și side lanes sunt rare în meta (p95 = 8).
+     */
     thresholds: {
       frontline: [8, 12],
-      cc: [14, 20],
-      poke: [9, 13],
+      cc: [24, 28],
+      poke: [8, 12],
       sidelane: [8, Infinity],
     },
     /** §4 — simulare: reducerile din teamfight (plafon, per punct de atribut al adversarului). */

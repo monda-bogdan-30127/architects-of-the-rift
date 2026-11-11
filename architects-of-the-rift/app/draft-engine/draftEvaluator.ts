@@ -15,6 +15,7 @@ import { MUSTWITH_CONFIG, getCompletedMustWithPairs, hadAvailableUnusedPartner }
 import { getBadSynergyPenalty } from "./badSynergy";
 import { resolveRoleAssignments } from "./draftRoleResolver";
 import { readCompIdentity } from "./compIdentity";
+import { evaluateContextualNeedStatuses } from "./contextualNeeds";
 import { evaluateTeamIdentity } from "./teamIdentitySystem";
 import { evaluateSimulationReadiness } from "./simulationReadinessSystem";
 import {
@@ -460,8 +461,11 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
   const vector = buildCompVector(context.championIds);
   const enemyVector = buildCompVector(context.enemyChampionIds);
   const missingNeeds = evaluateNeedStatuses(context.championIds);
-  const satisfiedNeeds = missingNeeds.filter((need) => need.missing === 0).length;
-  const needScore = clamp((satisfiedNeeds / Math.max(1, missingNeeds.length)) * 10, 0, 10);
+  // COMP_ATTRIBUTES_EXPANSION §3.3: nevoile contextuale (din compoziția lor) contează ca nevoile fixe.
+  const contextualNeeds = evaluateContextualNeedStatuses(context.championIds, context.enemyChampionIds);
+  const satisfiedNeeds =
+    missingNeeds.filter((need) => need.missing === 0).length + contextualNeeds.filter((need) => need.missing === 0).length;
+  const needScore = clamp((satisfiedNeeds / Math.max(1, missingNeeds.length + contextualNeeds.length)) * 10, 0, 10);
   const hasAssignments = (value?: Partial<Record<Role, string>>): value is Partial<Record<Role, string>> =>
     Boolean(value && Object.values(value).some(Boolean));
   const assignments = hasAssignments(context.assignments)
@@ -587,6 +591,7 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
     compIdentity,
     draftPower,
     missingNeeds,
+    ...(contextualNeeds.length ? { contextualNeeds } : {}),
     topStrengths: getTopStrengths(vector),
     accessScore,
     threatScore,

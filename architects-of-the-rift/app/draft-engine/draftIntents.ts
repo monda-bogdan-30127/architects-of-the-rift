@@ -10,6 +10,7 @@ import { getCandidateIdentityFit } from "./compIdentity";
 import { getDirectOpponents } from "./compCounter";
 import type { DraftContext } from "./draftContext";
 import { buildCompVector, evaluateNeedStatuses } from "./draftEvaluator";
+import { evaluateContextualNeedStatuses } from "./contextualNeeds";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import type { BucketId, IntentId } from "./draftTypes";
 import { getWeaknessCoverage, WEAKNESS_COVER_CONFIG } from "./matchupGrades";
@@ -196,10 +197,18 @@ function answer(ctx: DraftContext): Intent {
     }
   }
   const seasonPlan = ctx.season.punish.size > 0 ? INTENTS.answerSeasonBonus : 0;
-  const urgency = clamp10(Math.max(0, best?.value ?? 0) * INTENTS.answerScale + seasonPlan);
-  const reason = best && best.value > 0
+  // COMP_ATTRIBUTES_EXPANSION §3.3: o nevoie contextuală nesatisfăcută (priority ≥ 2) crește urgența.
+  const ATTRS = DRAFT_THINKING_CONFIG.attributes;
+  const openNeed = evaluateContextualNeedStatuses(ctx.own.picks, ctx.enemy.picks).find(
+    (need) => need.missing > 0 && need.priority >= ATTRS.contextualAnswerMinPriority,
+  );
+  const contextual = openNeed ? ATTRS.contextualAnswerUrgency : 0;
+  const urgency = clamp10(Math.max(0, best?.value ?? 0) * INTENTS.answerScale + seasonPlan + contextual);
+  const laneReason = best && best.value > 0
     ? `${name(best.counterId)} answers their ${name(best.enemyId)}${seasonPlan ? " (their season favorite)" : ""}`
-    : "No lane to answer yet";
+    : null;
+  const needReason = openNeed ? `no answer to ${openNeed.subject} yet` : null;
+  const reason = laneReason && needReason ? `${laneReason}; ${needReason}` : laneReason ?? (needReason ? needReason[0].toUpperCase() + needReason.slice(1) : "No lane to answer yet");
   return { id: "answer", urgency, reason, ...(best ? { targets: [best.counterId] } : {}) };
 }
 

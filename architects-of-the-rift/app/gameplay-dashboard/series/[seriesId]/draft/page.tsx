@@ -486,8 +486,8 @@ export default function DraftPage() {
   // §7.1 / §7.2: identitatea și atributele fiecărei echipe (informație publică pentru ambele).
   const identityBlue = getIdentitySummary(currentGame.picksBlue, analysisBlue);
   const identityRed = getIdentitySummary(currentGame.picksRed, analysisRed);
-  const attributesBlue = getTeamAttributes(currentGame.picksBlue);
-  const attributesRed = getTeamAttributes(currentGame.picksRed);
+  const attributesBlue = getTeamAttributes(currentGame.picksBlue, currentGame.picksRed);
+  const attributesRed = getTeamAttributes(currentGame.picksRed, currentGame.picksBlue);
 
   // §7.3: hover — preview dacă e rândul userului la pick, matchup-uri contra pick-urilor adversarului.
   const hoveredChampion = hovered ? getChampionById(hovered.championId) ?? null : null;

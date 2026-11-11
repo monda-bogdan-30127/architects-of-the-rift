@@ -8,6 +8,7 @@ import { getMatchupRelations } from "./championMatchups";
 import { isCompatible, readCompIdentity, type CompIdentity } from "./compIdentity";
 import { getDirectOpponents } from "./compCounter";
 import { buildCompVector } from "./draftEvaluator";
+import { contextualNeedLabel, evaluateContextualNeedStatuses } from "./contextualNeeds";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { describeMatchupDetailed, type MatchupKind } from "./matchupGrades";
 
@@ -60,13 +61,15 @@ export const TEAM_ATTRIBUTE_KEYS: CompAttribute[] = ["engage", "peel", "frontlin
 const ATTRIBUTE_FULL = 10;
 
 export type TeamAttribute = { key: CompAttribute; label: string; value: number };
-export type TeamAttributes = { attributes: TeamAttribute[]; ad: number; ap: number };
+/** COMP_ATTRIBUTES_EXPANSION §3.3 — nevoie contextuală nesatisfăcută: chip „Needs anti-tank” (+ motivul ca tooltip). */
+export type TeamAttributeWarning = { id: string; label: string; reason: string };
+export type TeamAttributes = { attributes: TeamAttribute[]; ad: number; ap: number; warnings: TeamAttributeWarning[] };
 
 /**
  * Atributele echipei (0..10): suma `offers` pe compoziție (vectorul din evaluator), plafonată la 10,
  * plus împărțirea AD / AP din `damageProfile` (mixt = jumătate-jumătate).
  */
-export function getTeamAttributes(picks: string[]): TeamAttributes {
+export function getTeamAttributes(picks: string[], enemyPicks: string[] = []): TeamAttributes {
   const vector = buildCompVector(picks) as unknown as Record<string, number>;
   let ad = 0;
   let ap = 0;
@@ -88,6 +91,9 @@ export function getTeamAttributes(picks: string[]): TeamAttributes {
     })),
     ad,
     ap,
+    warnings: evaluateContextualNeedStatuses(picks, enemyPicks)
+      .filter((need) => need.missing > 0)
+      .map((need) => ({ id: need.id, label: `Needs ${contextualNeedLabel(need)}`, reason: need.reason })),
   };
 }
 

@@ -10,6 +10,8 @@ import { getMatchupRelations } from "./championMatchups";
 import { COMP_COUNTER_MATRIX, getCandidateIdentityFit, isCompatible, readCompIdentity } from "./compIdentity";
 import { getDirectOpponents } from "./compCounter";
 import { buildCompVector } from "./draftEvaluator";
+import { evaluateContextualNeedStatuses, getBestCoverAttribute, getContextualCover } from "./contextualNeeds";
+import { COMP_ATTRIBUTE_INFO } from "@/app/types/compAttributes";
 import { getOpenRolesForPickedChampions } from "./draftRoleResolver";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import type { ActiveDraftSeries, DraftGameState, DraftPillar, DraftPillarReport, DraftSave, PillarGrade, Side } from "./draftTypes";
@@ -71,7 +73,7 @@ function mainDamage(champion: Champion): DamageKind {
   return ad && !ap ? "AD" : ap && !ad ? "AP" : "mixed";
 }
 
-function compositionPillar(ownPicks: string[], ownAssignments: Assignments, roster: Assignments): DraftPillar {
+function compositionPillar(ownPicks: string[], ownAssignments: Assignments, roster: Assignments, enemyPicks: string[] = []): DraftPillar {
   const config = REPORT.composition;
   const reading = readCompIdentity(ownPicks, ownAssignments);
   const notes = new Notes();
@@ -128,6 +130,18 @@ function compositionPillar(ownPicks: string[], ownAssignments: Assignments, rost
   if ((vector.engage ?? 0) < required && (vector.disengage ?? 0) < required) {
     points -= 1;
     notes.add("No engage or disengage");
+  }
+  // COMP_ATTRIBUTES_EXPANSION §3.3 — nevoile din compoziția lor: „No answer to their frontline (3 tanks)”
+  // (priority ≥ 2 scade nota, ca nevoile de bază) sau cine le răspunde: „Anti-tank: Vayne answers their frontline”.
+  for (const need of evaluateContextualNeedStatuses(ownPicks, enemyPicks)) {
+    if (need.missing > 0) {
+      if (need.priority >= 2) points -= 1;
+      notes.add(`No answer to ${need.subject}`, need.reason);
+      continue;
+    }
+    const answerer = [...ownPicks].sort((a, b) => getContextualCover(championsById[b], need) - getContextualCover(championsById[a], need))[0];
+    const attribute = answerer ? getBestCoverAttribute(championsById[answerer], need) : null;
+    if (answerer && attribute) notes.add(`${COMP_ATTRIBUTE_INFO[attribute].label}: ${name(answerer)} answers ${need.subject.replace(/ \(.*\)$/, "")}`);
   }
   const kinds = ownPicks.map((id) => championsById[id]).filter((champion): champion is Champion => Boolean(champion)).map(mainDamage);
   for (const kind of ["AD", "AP"] as const) {
@@ -390,7 +404,7 @@ export function buildDraftPillarReport(
   const roster = rosters[side];
   const enemyRoster = rosters[enemySide];
   return {
-    composition: compositionPillar(ownPicks, ownAssignments, roster),
+    composition: compositionPillar(ownPicks, ownAssignments, roster, enemyPicks),
     lanes: lanesPillar(ownPicks, enemyPicks, ownAssignments, enemyAssignments),
     players: playersPillar(ownAssignments, roster, pickRoles, series.userSide === side),
     preparation: preparationPillar(game, series, side, enemyTeamSlug, { own: roster, enemy: enemyRoster }, ownPicks, ownBans, enemyPicks, ownAssignments, enemyAssignments),

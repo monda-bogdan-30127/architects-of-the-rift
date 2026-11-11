@@ -97,6 +97,19 @@ export function TeamAttributesPanel({ attributes, alignRight = false }: { attrib
             <AttributeRow key={attribute.key} attribute={attribute} alignRight={alignRight} />
           ))}
           <DamageSplit ad={attributes.ad} ap={attributes.ap} alignRight={alignRight} />
+          {attributes.warnings.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 3, justifyContent: alignRight ? "flex-end" : "flex-start" }}>
+              {attributes.warnings.map((warning) => (
+                <span
+                  key={warning.id}
+                  title={warning.reason}
+                  style={{ fontSize: 9, fontFamily: FONT, color: "var(--warning)", border: "1px solid var(--warning)", borderRadius: 4, padding: "1px 5px", cursor: "help" }}
+                >
+                  {warning.label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
