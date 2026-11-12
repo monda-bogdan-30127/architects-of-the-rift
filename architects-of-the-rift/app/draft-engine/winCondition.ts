@@ -12,6 +12,7 @@ import { getChampionById } from "./draftEvaluator";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { ROLE_ORDER } from "./draftTypes";
 import { getResourceDemand } from "./championResource";
+import { hasTrait } from "@/app/utils/playerTraitUtils";
 
 const WIN = DRAFT_THINKING_CONFIG.winCondition;
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -53,7 +54,7 @@ export function getWinCondition(
   roster: Partial<Record<Role, string>> = {},
 ): WinCondition | null {
   if (!identity.dominant || ownPicks.length === 0) return null;
-  let best: { championId: string; role: Role; score: number; demand: number; grade: number; order: number } | null = null;
+  let best: { championId: string; role: Role; score: number; demand: number; hog: number; grade: number; order: number } | null = null;
   ownPicks.forEach((championId, order) => {
     const champion = getChampionById(championId);
     const role = ROLE_ORDER.find((entry) => roles[entry] === championId);
@@ -64,12 +65,14 @@ export function getWinCondition(
     const score = getCandidateIdentityFit(champion, role, identity.dominant!) + carryContribution(champion, role);
     const player = roster[role] ? playersById.get(roster[role]!) : undefined;
     const grade = player ? GRADE_RANK[getChampionGrade(player, championId)] : 0;
-    if (
-      !best ||
-      score > best.score + 1e-9 ||
-      (Math.abs(score - best.score) <= 1e-9 && (demand > best.demand || (demand === best.demand && (grade > best.grade || (grade === best.grade && order < best.order)))))
-    ) {
-      best = { championId, role, score, demand, grade, order };
+    // PLAYER_TRAITS §4.3: la egalitate (după cerere), câștigă campionul jucat de un resource_hog. Nu depinde de
+    // resourceDemand (egalitățile de scor sunt dese), deci e în spatele unui flag, ca botFocusEnabled.
+    const hog = DRAFT_THINKING_CONFIG.traits.winConditionHogTieEnabled && hasTrait(player, "resource_hog") ? 1 : 0;
+    const tieBreak = (current: NonNullable<typeof best>) =>
+      demand > current.demand ||
+      (demand === current.demand && (hog > current.hog || (hog === current.hog && (grade > current.grade || (grade === current.grade && order < current.order)))));
+    if (!best || score > best.score + 1e-9 || (Math.abs(score - best.score) <= 1e-9 && tieBreak(best))) {
+      best = { championId, role, score, demand, hog, grade, order };
     }
   });
   if (!best) return null;

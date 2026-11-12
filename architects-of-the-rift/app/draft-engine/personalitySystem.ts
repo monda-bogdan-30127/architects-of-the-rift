@@ -20,6 +20,8 @@ import {
   getPlayerByIdSafe,
 } from "./matchSimulationUtils";
 import { ROLE_ORDER } from "./draftTypes";
+import { NEUTRAL_RESOURCE_DEMAND, getResourceDemand } from "./championResource";
+import { getTrait } from "@/app/utils/playerTraitUtils";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -121,7 +123,10 @@ export function computeTeamChemistry(
 export function getPlayerPersonalityModifiers(
   playerId: string | null,
   championTags: Set<string>,
-  closeness: number
+  closeness: number,
+  /** PLAYER_TRAITS §5.1 — campionul și rolul, pentru `resourceDemand` (lipsă → doar tag-urile). */
+  championId: string | null = null,
+  role: Role | null = null,
 ): PlayerPersonalityModifiers {
   const player = getPlayerByIdSafe(playerId);
   if (!player) {
@@ -145,10 +150,15 @@ export function getPlayerPersonalityModifiers(
 
   // ─── Greed → carry/risk amplification ─────────────────────────────────
   // Only affects carry-type champions positively
-  const isCarryChamp = championTags.has("dps") || championTags.has("burst") ||
-    championTags.has("carry") || championTags.has("self-sufficient");
-  const isUtilityChamp = championTags.has("utility") || championTags.has("warden") ||
-    championTags.has("enchanter") || championTags.has("tank");
+  // PLAYER_TRAITS §5.1: cu resourceDemand ≠ 3 în date, cererea decide carry (≥ 4) / utility (≤ 2); cu 3 (sau
+  // lipsă), detecția pe tag-uri de până acum.
+  const demand = championId && role ? getResourceDemand(championId, role) : NEUTRAL_RESOURCE_DEMAND;
+  const isCarryChamp = demand !== NEUTRAL_RESOURCE_DEMAND
+    ? demand >= 4
+    : championTags.has("dps") || championTags.has("burst") || championTags.has("carry") || championTags.has("self-sufficient");
+  const isUtilityChamp = demand !== NEUTRAL_RESOURCE_DEMAND
+    ? demand <= 2
+    : championTags.has("utility") || championTags.has("warden") || championTags.has("enchanter") || championTags.has("tank");
 
   let greedCarryAmplifier = 0;
   let greedRiskAmplifier = 0;
@@ -161,6 +171,14 @@ export function getPlayerPersonalityModifiers(
     // Greedy player on utility → slight penalty (doesn't play selflessly)
     greedCarryAmplifier = clamp((greed - 60) / 100 * -0.15, -0.15, 0);
     greedRiskAmplifier = clamp((greed - 60) / 100 * 0.1, 0, 0.1);
+    // PLAYER_TRAITS §5.1 — pe un campion cu cerere mică (≤ 2): weakside_ready nu are malus, resource_hog îl are mai mare.
+    if (demand <= 2) {
+      const weakside = getTrait(player, "weakside_ready");
+      const hog = getTrait(player, "resource_hog");
+      const scale = weakside ? 0 : hog ? 1 + 0.5 * hog.intensity : 1;
+      greedCarryAmplifier *= scale;
+      greedRiskAmplifier *= scale;
+    }
   }
 
   // ─── Composure → clutch scaling ───────────────────────────────────────

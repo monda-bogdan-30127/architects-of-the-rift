@@ -58,6 +58,10 @@ import { computeSeriesMvp, type SeriesGameSummary } from "@/app/draft-engine/mvp
 import { evaluateContextualNeedStatuses, getContextualNeeds, setContextualNeedsOverride } from "@/app/draft-engine/contextualNeeds";
 import type { ChampionOffer, ResourceDemand } from "@/app/types/champion";
 import { evaluateTeamfight } from "@/app/draft-engine/teamfightSystem";
+import type { PlayerTrait } from "@/app/types/playerTraits";
+import { computeSeriesSpiritDeltas } from "@/app/draft-engine/playerSpiritEngine";
+import { getPlayerPersonalityModifiers } from "@/app/draft-engine/personalitySystem";
+import { DRAFT_THINKING_CONFIG } from "@/app/draft-engine/draftThinkingConfig";
 
 // ─── Infrastructură ──────────────────────────────────────────────────────────
 
@@ -1616,8 +1620,17 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
 
 // ─── COMP_ATTRIBUTES_EXPANSION §6.4: nevoi contextuale (date de test injectate, nu în fișiere) ──
 /** Adaugă temporar offers / resourceDemand pe campioni (în memorie) și le restaurează după `run`. */
-function withTestData<T>(patch: { offers?: Record<string, ChampionOffer[]>; resourceDemand?: Record<string, Partial<Record<Role, ResourceDemand>>> }, run: () => T): T {
+function withTestData<T>(
+  patch: { offers?: Record<string, ChampionOffer[]>; resourceDemand?: Record<string, Partial<Record<Role, ResourceDemand>>>; traits?: Record<string, PlayerTrait[]> },
+  run: () => T,
+): T {
   const restore: (() => void)[] = [];
+  for (const [playerId, traits] of Object.entries(patch.traits ?? {})) {
+    const player = players.find((entry) => entry.id === playerId)!;
+    const before = player.traits;
+    player.traits = traits;
+    restore.push(() => { player.traits = before; });
+  }
   for (const [id, offers] of Object.entries(patch.offers ?? {})) {
     const champion = champions.find((entry) => entry.id === id)!;
     const before = champion.offers;
@@ -1774,6 +1787,103 @@ function withTestData<T>(patch: { offers?: Record<string, ChampionOffer[]>; reso
       "T2. Simulare: antiCC-ul lor (5) → engageQuality și ccChainPower mai mici",
       withAttrs.blue.engageQuality < plain.blue.engageQuality && withAttrs.blue.ccChainPower < plain.blue.ccChainPower,
       `engage ${plain.blue.engageQuality.toFixed(2)} → ${withAttrs.blue.engageQuality.toFixed(2)}, CC ${plain.blue.ccChainPower.toFixed(2)} → ${withAttrs.blue.ccChainPower.toFixed(2)}`,
+    );
+  }
+}
+
+// ─── PLAYER_TRAITS §6.4: trait-urile de resurse (date de test injectate) ─────
+{
+  const save = makeSave();
+  const hog = (intensity: 1 | 2 = 1): PlayerTrait[] => [{ id: "resource_hog", intensity, source: "manual" }];
+  const weak: PlayerTrait[] = [{ id: "weakside_ready", intensity: 1, source: "manual" }];
+  const score = (id: string, game: DraftGameState, series: ActiveDraftSeries) =>
+    scoreDraftCandidate(champions.find((c) => c.id === id)!, getCurrentStep(game)!, game, series, save);
+
+  // P1. Mid resource_hog: același candidat cu cerere 4 vs 2 (scor de bază egal) → cererea 4 câștigă, „wants resources”.
+  {
+    const series = newSeries("pt1", BLUE, RED);
+    const midId = save.updatedTeamRosters[RED]!.mid!;
+    const game: DraftGameState = { ...series.games[0], bansBlue: ["azir", "jayce", "orianna"], bansRed: ["ksante", "vi", "sejuani"], picksBlue: ["ahri"], phaseIndex: 7 };
+    const fits = withTestData({ traits: { [midId]: hog() }, resourceDemand: { syndra: { mid: 4 } } }, () => score("syndra", game, series));
+    const starved = withTestData({ traits: { [midId]: hog() }, resourceDemand: { syndra: { mid: 2 } } }, () => score("syndra", game, series));
+    check(
+      "P1. Mid resource_hog: candidatul cu cerere 4 > același cu cerere 2; „wants resources” / trait-starved",
+      fits.totalScore > starved.totalScore && hasTag(fits, "trait-fit") && hasTag(starved, "trait-starved") &&
+        Boolean(fits.explanation?.some((line) => line.includes("wants resources"))),
+      `${playersById.get(midId)?.name}: Syndra cerere 4 ${fits.totalScore.toFixed(2)} vs cerere 2 ${starved.totalScore.toFixed(2)}; „${fits.explanation?.find((line) => line.includes("wants resources")) ?? "—"}” / „${starved.explanation?.find((line) => line.includes("starved")) ?? "—"}”`,
+    );
+  }
+
+  // P2. Top weakside_ready cu focus "bot" → candidatul cu cerere 2 primește ambele bonusuri (focus + trait).
+  {
+    let found: { series: ActiveDraftSeries; game: DraftGameState; topId: string } | null = null;
+    for (const team of teams) {
+      if (team.slug === BLUE || found) continue;
+      const series = newSeries(`pt2-${team.slug}`, BLUE, team.slug);
+      const game: DraftGameState = { ...series.games[0], bansBlue: ["vi", "sejuani", "orianna"], bansRed: ["ksante", "rumble", "syndra"], picksBlue: ["ahri"], phaseIndex: 7 };
+      const topId = save.updatedTeamRosters[team.id]?.top;
+      if (topId && buildDraftContext(getCurrentStep(game)!, game, series, save, DEFAULT_AI_CONFIG).botFocus === "bot") found = { series, game, topId };
+    }
+    const neutral = found ? score("ornn", found.game, found.series) : null;
+    const both = found ? withTestData({ traits: { [found.topId]: weak }, resourceDemand: { ornn: { top: 2 } } }, () => score("ornn", found!.game, found!.series)) : null;
+    const expected = DRAFT_THINKING_CONFIG.attributes.focusWeaksideBonus + DRAFT_THINKING_CONFIG.traits.weaksideFitBonus;
+    const gain = both && neutral ? (both.buckets?.comp ?? 0) - (neutral.buckets?.comp ?? 0) : 0;
+    check(
+      "P2. Top weakside_ready, focus bot: Ornn cu cerere 2 primește focus + trait (+0.9 în comp)",
+      Boolean(both && hasTag(both, "trait-fit") && Math.abs(gain - expected) < 1e-6),
+      found ? `${found.series.redTeamSlug} (${playersById.get(found.topId)?.name}): comp Ornn ${(neutral!.buckets?.comp ?? 0).toFixed(2)} → ${(both!.buckets?.comp ?? 0).toFixed(2)} (+${gain.toFixed(2)}, așteptat +${expected.toFixed(2)})` : "nicio stare cu focus bot",
+    );
+  }
+
+  // P3–P4. Spirit: hog înfometat; serie pierdută cu doi hogs pe carry → ego_clash pentru amândoi.
+  {
+    const roster = save.updatedTeamRosters[RED]!;
+    const games = (champs: Partial<Record<Role, string>>, winnerSide: Side, count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        gameNumber: index + 1, winnerSide, controlledSide: "red" as const, bans: [] as string[],
+        playerEntries: ROLE_ORDER.map((role) => ({ playerId: roster[role]!, score: 6, championId: champs[role] ?? null, role, side: "red" as const, isGameMvp: false })),
+      }));
+    const ctx = (snapshots: ReturnType<typeof games>) => ({
+      seriesId: "spirit-traits", controlledTeamSlug: RED, controlledRoster: roster, playersById, bo: 3 as const,
+      games: snapshots, seriesMvpPlayerId: null, currentSpirits: {}, currentStreaks: {}, leadershipCycleCounter: 1,
+    });
+    const reasons = (results: ReturnType<typeof computeSeriesSpiritDeltas>, playerId: string) =>
+      results.find((entry) => entry.playerId === playerId)?.events.map((event) => event.reason) ?? [];
+    const champs = { top: "ornn", jungle: "sejuani", mid: "taliyah", adc: "kalista", support: "rell" };
+    const starved = withTestData({ traits: { [roster.mid!]: hog() }, resourceDemand: { taliyah: { mid: 2 } } }, () =>
+      computeSeriesSpiritDeltas(ctx(games(champs, "red", 2))));
+    const starvedEvent = starved.find((entry) => entry.playerId === roster.mid)?.events.find((event) => event.reason === "starved_of_resources");
+    check(
+      "P3. Spirit: resource_hog cu 2 jocuri pe cerere 2 → starved_of_resources",
+      Boolean(starvedEvent && starvedEvent.delta < 0),
+      `${playersById.get(roster.mid!)?.name}: ${starvedEvent ? `${starvedEvent.delta} „${starvedEvent.details}”` : "—"}`,
+    );
+    const clash = withTestData(
+      { traits: { [roster.mid!]: hog(), [roster.adc!]: hog() }, resourceDemand: { taliyah: { mid: 4 }, kalista: { adc: 5 } } },
+      () => computeSeriesSpiritDeltas(ctx(games(champs, "blue", 2))),
+    );
+    check(
+      "P4. Spirit: serie pierdută cu 2 hogs pe carry → ego_clash pentru amândoi",
+      reasons(clash, roster.mid!).includes("ego_clash") && reasons(clash, roster.adc!).includes("ego_clash"),
+      clash.filter((entry) => entry.events.some((event) => event.reason === "ego_clash")).map((entry) => `${playersById.get(entry.playerId)?.name}: „${entry.events.find((event) => event.reason === "ego_clash")!.details}”`).join("; ") || "—",
+    );
+  }
+
+  // P5. Simulare: weakside_ready pe un campion cu cerere 2 nu are malusul de greed pe utility; resource_hog îl are mai mare.
+  {
+    // Malusul de greed apare de la greed > 60: jucătorul cu greed maxim, pe un campion de-al rolului lui (cerere 2).
+    const greedy = [...players].sort((a, b) => b.advancedProfile.hiddenTraits.greed - a.advancedProfile.hiddenTraits.greed)[0]!;
+    const championId = champions.find((c) => c.roles.includes(greedy.role))!.id;
+    const modifiers = (traits: PlayerTrait[]) =>
+      withTestData({ traits: { [greedy.id]: traits }, resourceDemand: { [championId]: { [greedy.role]: 2 } } }, () =>
+        getPlayerPersonalityModifiers(greedy.id, new Set<string>(), 0.5, championId, greedy.role));
+    const base = modifiers([]);
+    const weakside = modifiers(weak);
+    const hogged = modifiers(hog(1));
+    check(
+      "P5. Simulare: weakside_ready pe cerere 2 → fără malus de greed; resource_hog → malus mai mare",
+      base.greedCarryAmplifier < 0 && weakside.greedCarryAmplifier === 0 && hogged.greedCarryAmplifier < base.greedCarryAmplifier,
+      `${greedy.name} (greed ${greedy.advancedProfile.hiddenTraits.greed.toFixed(0)}) pe ${championId} (${greedy.role}): fără trait ${base.greedCarryAmplifier}, weakside ${weakside.greedCarryAmplifier}, hog ${hogged.greedCarryAmplifier}`,
     );
   }
 }

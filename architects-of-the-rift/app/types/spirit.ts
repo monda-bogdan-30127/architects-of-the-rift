@@ -31,7 +31,11 @@ export type SpiritReason =
   | "leadership_boost"   // team leader spirit ≥ 65 → +2
   | "leadership_drain"   // team leader spirit < 45 → -2
   | "win_streak_3"       // 3 consecutive series wins
-  | "loss_streak_3";     // 3 consecutive series losses
+  | "loss_streak_3"      // 3 consecutive series losses
+  // PLAYER_TRAITS §5.2 — trait-urile de resurse
+  | "starved_of_resources" // resource_hog cu ≥ 2 jocuri pe campioni cu resourceDemand ≤ 2
+  | "playstyle_fulfilled"  // serie câștigată pe stilul trait-ului (hog pe carry, weakside pe cerere mică)
+  | "ego_clash";           // serie pierdută cu ≥ 2 resource_hog pe carry-uri
 
 // ─── Spirit label ───────────────────────────────────────────────────────────
 

@@ -57,6 +57,9 @@ const REASON_LABEL: Record<SpiritReason, string> = {
   leadership_drain:        "Leadership drain",
   win_streak_3:            "3-win streak",
   loss_streak_3:           "3-loss streak",
+  starved_of_resources:    "Starved of resources",
+  playstyle_fulfilled:     "Playstyle fulfilled",
+  ego_clash:               "Ego clash",
 };
 
 const LEADERSHIP_REASONS = new Set<SpiritReason>(["leadership_boost", "leadership_drain"]);

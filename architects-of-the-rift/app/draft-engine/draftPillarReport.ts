@@ -12,6 +12,7 @@ import { getDirectOpponents } from "./compCounter";
 import { buildCompVector } from "./draftEvaluator";
 import { evaluateContextualNeedStatuses, getBestCoverAttribute, getContextualCover } from "./contextualNeeds";
 import { describeResourceConflict, getHighDemandPicks, getResourceConflictExcess, getResourceDemand } from "./championResource";
+import { hasTrait } from "@/app/utils/playerTraitUtils";
 import { COMP_ATTRIBUTE_INFO } from "@/app/types/compAttributes";
 import { getOpenRolesForPickedChampions } from "./draftRoleResolver";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
@@ -145,6 +146,19 @@ function compositionPillar(ownPicks: string[], ownAssignments: Assignments, rost
         notes.add(`Weakside: ${name(championId)} (${role})`, `Resources go to ${carries.map((entry) => name(entry.championId)).join(", ")}`);
       }
     }
+  }
+  // PLAYER_TRAITS §4.4 — resource_hog pe un campion cu cerere mică (înfometat) sau mai mulți pe carry-uri.
+  const hogsOnCarries: string[] = [];
+  for (const role of ROLE_ORDER) {
+    const championId = ownAssignments[role];
+    const player = roster[role] ? playersById.get(roster[role]!) : undefined;
+    if (!championId || !player || !hasTrait(player, "resource_hog")) continue;
+    const demand = getResourceDemand(championId, role);
+    if (demand <= DRAFT_THINKING_CONFIG.attributes.weaksideMax) notes.add(`${player.name} (Resource Hog) starved on ${name(championId)}`);
+    else if (demand >= DRAFT_THINKING_CONFIG.attributes.highDemandMin) hogsOnCarries.push(player.name);
+  }
+  if (hogsOnCarries.length >= 2) {
+    notes.add(`${hogsOnCarries.length === 2 ? "Two" : hogsOnCarries.length} Resource Hogs on carries: ${hogsOnCarries.join(", ")}`);
   }
   // COMP_ATTRIBUTES_EXPANSION §3.3 — nevoile din compoziția lor: „No answer to their frontline (3 tanks)”
   // (priority ≥ 2 scade nota, ca nevoile de bază) sau cine le răspunde: „Anti-tank: Vayne answers their frontline”.

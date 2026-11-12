@@ -100,6 +100,7 @@ import { getLookaheadValue, getScarcity, getWaitPenalty, isScarcePoolChampion } 
 import { getComboPartners, getGamesRemainingPossible, getPairFactor, isPartnerOnlyBannedThisGame } from "./pairPriority";
 import { contextualNeedLabel, evaluateContextualNeedStatuses, getContextualNeedFill } from "./contextualNeeds";
 import { describeResourceConflict, getHighDemandPicks, getResourceDemand } from "./championResource";
+import { getTrait } from "@/app/utils/playerTraitUtils";
 import type { PriorityValue } from "./priorityValue";
 import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
@@ -1315,7 +1316,7 @@ export function scorePickCandidate(
     ...compCounter.lines,
     ...(seasonPunish ? [describeSeasonCounter(seasonPunish.championId, seasonPunish.wins, seasonPunish.games)] : []),
     ...(losingLanes.line ? [losingLanes.line] : []),
-    ...(resourceEffect.line ? [resourceEffect.line] : []),
+    ...resourceEffect.lines,
     ...(contextualFill.answered
       ? [`${candidate.name} answers ${contextualFill.answered.subject} (${contextualNeedLabel(contextualFill.answered)})`]
       : []),
@@ -1382,7 +1383,7 @@ export function scorePickCandidate(
       ...(seasonPunish ? ["season-counter"] : []),
       ...(losingLanes.tag ? [losingLanes.tag] : []),
       ...(contextualFill.answered ? ["contextual-need"] : []),
-      ...(resourceEffect.tag ? [resourceEffect.tag] : []),
+      ...resourceEffect.tags,
       ...(masteryGate.blocked ? ["mastery-f"] : []),
       ...(masteryGate.soft ? ["mastery-d"] : []),
       ...(badSynergies.length ? ["bad-synergy"] : []),
@@ -2037,11 +2038,14 @@ export function getPickCandidatePool(
  *   conflict: cu el, peste `maxHighDemand` carry-uri (cerere ≥ highDemandMin) → −penalty pentru fiecare în plus;
  *   focus "bot": non-bot cu cerere mare −focusCarryPenalty, top / jungle weakside (≤ weaksideMax) +focusWeaksideBonus;
  *   focus "elsewhere": invers pentru botlane.
+ * PLAYER_TRAITS §4.1 — trait-ul jucătorului de pe rol: resource_hog pe cerere mare +, pe cerere mică −;
+ *   weakside_ready pe cerere mică +.
  * Cu cererea 3 (lipsă în date) peste tot, totul e 0.
  */
 function getResourcePickEffect(candidate: Champion, role: Role | null, ctx: DraftContext) {
   const ATTRS = DRAFT_THINKING_CONFIG.attributes;
-  const result = { bonus: 0, line: null as string | null, tag: null as string | null };
+  const TRAITS = DRAFT_THINKING_CONFIG.traits;
+  const result = { bonus: 0, lines: [] as string[], tags: [] as string[] };
   if (!role) return result;
   const demand = getResourceDemand(candidate.id, role);
   const high = demand >= ATTRS.highDemandMin;
@@ -2050,9 +2054,26 @@ function getResourcePickEffect(candidate: Champion, role: Role | null, ctx: Draf
     const excess = carries.length - ATTRS.maxHighDemand;
     if (excess > 0) {
       result.bonus -= ATTRS.resourceConflictPenalty * excess;
-      result.line = describeResourceConflict(carries);
-      result.tag = "resource-conflict";
+      result.lines.push(describeResourceConflict(carries));
+      result.tags.push("resource-conflict");
     }
+  }
+  const playerId = ctx.own.roster[role];
+  const player = playerId ? playersById.get(playerId) : undefined;
+  const hog = getTrait(player, "resource_hog");
+  const weaksideTrait = getTrait(player, "weakside_ready");
+  if (player && hog && high) {
+    result.bonus += TRAITS.hogFitBonus * hog.intensity;
+    result.lines.push(`${player.name} wants resources: ${candidate.name} fits`);
+    result.tags.push("trait-fit");
+  } else if (player && hog && demand <= ATTRS.weaksideMax) {
+    result.bonus -= TRAITS.hogStarvedPenalty * hog.intensity;
+    result.lines.push(`${player.name} will be starved on ${candidate.name}`);
+    result.tags.push("trait-starved");
+  } else if (player && weaksideTrait && demand <= ATTRS.weaksideMax) {
+    result.bonus += TRAITS.weaksideFitBonus * weaksideTrait.intensity;
+    result.lines.push(`${player.name} is fine on weakside`);
+    result.tags.push("trait-fit");
   }
   const bot = role === "adc" || role === "support";
   const weakside = demand <= ATTRS.weaksideMax;

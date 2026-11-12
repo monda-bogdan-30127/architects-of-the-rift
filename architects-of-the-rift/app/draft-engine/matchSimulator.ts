@@ -658,7 +658,7 @@ function buildPlayerScores(args: {
       const starPower = computeStarPower(entry.playerId);
       const champProfile = getChampionRoleProfile(getChampionById(entry.championId), role);
       const champTags = new Set(champProfile?.tags ?? []);
-      const personality = getPlayerPersonalityModifiers(entry.playerId, champTags, args.closeness);
+      const personality = getPlayerPersonalityModifiers(entry.playerId, champTags, args.closeness, entry.championId, role);
 
       // ═══ PLAYER RATING v2: match performance first ═══════════════════
       //

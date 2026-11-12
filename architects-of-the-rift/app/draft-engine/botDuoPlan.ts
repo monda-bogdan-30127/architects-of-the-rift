@@ -14,6 +14,7 @@ import { getCarryArchetype } from "./draftArchetypes";
 import { getMetaPriorityScore } from "./draftEvaluator";
 import { getOpenRolesForPickedChampions, resolveRoleAssignments } from "./draftRoleResolver";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
+import { hasTrait } from "@/app/utils/playerTraitUtils";
 import { MUSTWITH_CONFIG, getBotPairTier, getEligiblePartners, type MustWithTeamContext } from "./mustWithPriority";
 
 const DUO = DRAFT_THINKING_CONFIG.duo;
@@ -181,6 +182,17 @@ export function getBotFocus(args: {
     (best && other !== null && other - best.score >= DUO.focusMargin)
   ) {
     return "elsewhere";
+  }
+  // PLAYER_TRAITS §4.2: doar când celelalte semnale dau „neutral” (și cu flag-ul pornit).
+  if (DRAFT_THINKING_CONFIG.traits.botFocusEnabled) {
+    const playerOn = (role: Role) => {
+      const playerId = args.ctx.roster[role];
+      return playerId ? playersById.get(playerId) : undefined;
+    };
+    const hogOffBot = (["top", "jungle", "mid"] as const).some((role) => hasTrait(playerOn(role), "resource_hog"));
+    const adc = playerOn("adc");
+    if (hasTrait(adc, "resource_hog") && !hogOffBot) return "bot";
+    if (hogOffBot && hasTrait(adc, "weakside_ready")) return "elsewhere";
   }
   return "neutral";
 }

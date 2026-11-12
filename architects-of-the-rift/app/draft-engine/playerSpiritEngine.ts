@@ -10,6 +10,10 @@
 
 import type { Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
+import { championsById } from "@/app/data/champions";
+import { getTrait, hasTrait } from "@/app/utils/playerTraitUtils";
+import { getResourceDemand } from "./championResource";
+import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { getChampionGrade } from "@/app/utils/championMasteryUtils";
 import {
   SPIRIT_INITIAL_VALUE,
@@ -57,6 +61,12 @@ const DELTA_OVERPERFORM_OFF_COMFORT = +2; // ≥1 game with score ≥7.5 on C/D 
 const DELTA_CLOSE_LOSS_CUSHION = +2;      // applied on close losses (1-2 in Bo3, 2-3 in Bo5)
 const DELTA_CARRIED_ALONE_LOST = -3;      // personal ≥7 avg in loss, teammates avg ≤5.5
 const DELTA_MVP_LOSS_CUSHION   = +3;      // Series MVP in a lost series — soften the loss
+// PLAYER_TRAITS §5.2 — trait-urile de resurse (resourceDemand pe campion și rol; cu 3 peste tot nu se activează)
+const DELTA_STARVED            = -4;      // resource_hog, ≥ 2 jocuri pe cerere ≤ 2
+const DELTA_STARVED_STRONG     = -6;      // idem, intensity 2
+const DELTA_PLAYSTYLE_FULFILLED = +2;     // serie câștigată: hog ≥ 2 jocuri pe cerere ≥ 4 / weakside ≥ 2 pe cerere ≤ 2
+const DELTA_EGO_CLASH          = -3;      // serie pierdută, ≥ 2 hogs din roster cu ≥ 2 jocuri fiecare pe cerere ≥ 4
+const TRAIT_GAMES_NEEDED       = 2;
 
 const HIGH_SCORE_THRESHOLD = 7.5;
 const LOW_SCORE_THRESHOLD  = 4.5;
@@ -208,6 +218,7 @@ type PlayerGameRow = {
   gameNumber: number;
   score: number;
   championId: string | null;
+  role: Role;
   grade: ChampionMasteryGrade;
   isWinner: boolean;
   isGameMvp: boolean;
@@ -230,6 +241,7 @@ function buildPlayerGameRows(
       gameNumber: game.gameNumber,
       score: entry.score,
       championId: entry.championId,
+      role: entry.role,
       grade: getChampionGrade(player, entry.championId),
       isWinner: entry.side === game.winnerSide,
       isGameMvp: entry.isGameMvp,
@@ -410,6 +422,67 @@ function applyComfortTriggers(
         : `Excelled on ${overperformOffComfort} off-comfort champions`,
       seriesId,
     ));
+  }
+}
+
+// ─── Trigger: trait-urile de resurse (PLAYER_TRAITS §5.2) ───────────────────
+
+const RESOURCE = DRAFT_THINKING_CONFIG.attributes;
+const demandOf = (row: PlayerGameRow) => (row.championId ? getResourceDemand(row.championId, row.role) : 3);
+const carryGames = (rows: PlayerGameRow[]) => rows.filter((row) => demandOf(row) >= RESOURCE.highDemandMin);
+const weaksideGames = (rows: PlayerGameRow[]) => rows.filter((row) => demandOf(row) <= RESOURCE.weaksideMax);
+const championNames = (rows: PlayerGameRow[]) => {
+  const names = [...new Set(rows.map((row) => championsById[row.championId ?? ""]?.name ?? row.championId ?? "?"))];
+  return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0] ?? "";
+};
+
+/**
+ * resource_hog înfometat (≥ 2 jocuri pe cerere mică), stilul împlinit într-o serie câștigată și „ego clash” într-o
+ * serie pierdută cu ≥ 2 hogs pe carry-uri. Înainte de multiplicatorul de composure / volatility.
+ */
+function applyTraitTriggers(
+  events: SpiritEvent[],
+  playerId: string,
+  player: Player,
+  rows: PlayerGameRow[],
+  ctx: SpiritSeriesContext,
+  isWin: boolean,
+  isLoss: boolean,
+): void {
+  const hog = getTrait(player, "resource_hog");
+  const weakside = getTrait(player, "weakside_ready");
+  const starvedRows = weaksideGames(rows);
+  const carryRows = carryGames(rows);
+
+  if (hog && starvedRows.length >= TRAIT_GAMES_NEEDED) {
+    events.push(buildEvent(
+      playerId, hog.intensity === 2 ? DELTA_STARVED_STRONG : DELTA_STARVED, "starved_of_resources",
+      `Played ${championNames(starvedRows)}: starved of resources`,
+      ctx.seriesId,
+    ));
+  }
+  if (isWin && ((hog && carryRows.length >= TRAIT_GAMES_NEEDED) || (weakside && starvedRows.length >= TRAIT_GAMES_NEEDED))) {
+    events.push(buildEvent(
+      playerId, DELTA_PLAYSTYLE_FULFILLED, "playstyle_fulfilled",
+      hog ? "Won on carries: playstyle fulfilled" : "Won on weakside picks: playstyle fulfilled",
+      ctx.seriesId,
+    ));
+  }
+  if (isLoss && hog && carryRows.length >= TRAIT_GAMES_NEEDED) {
+    const rivals: string[] = [];
+    for (const role of ["top", "jungle", "mid", "adc", "support"] as Role[]) {
+      const otherId = ctx.controlledRoster[role];
+      const other = otherId && otherId !== playerId ? ctx.playersById.get(otherId) : undefined;
+      if (!other || !hasTrait(other, "resource_hog")) continue;
+      if (carryGames(buildPlayerGameRows(ctx, other.id, other)).length >= TRAIT_GAMES_NEEDED) rivals.push(other.name);
+    }
+    if (rivals.length) {
+      events.push(buildEvent(
+        playerId, DELTA_EGO_CLASH, "ego_clash",
+        `Lost fighting ${rivals.join(" and ")} for resources`,
+        ctx.seriesId,
+      ));
+    }
   }
 }
 
@@ -739,6 +812,7 @@ export function computeSeriesSpiritDeltas(
     applyScoreTriggers(events, playerId, rows, ctx.seriesId);
     applyMvpTriggers(events, playerId, rows, ctx.seriesMvpPlayerId, ctx.seriesId, isLoss);
     applyComfortTriggers(events, playerId, rows, ctx.seriesId);
+    applyTraitTriggers(events, playerId, player, rows, ctx, isWin, isLoss);
     applyCarriedAloneTrigger(events, playerId, rows, isLoss, ctx);
 
     const prevStreaks = ctx.currentStreaks[playerId] ?? emptyStreaks();

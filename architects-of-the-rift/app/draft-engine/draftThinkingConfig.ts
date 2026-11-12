@@ -436,4 +436,22 @@ export const DRAFT_THINKING_CONFIG = {
     /** §4 — globalPressure la presiunea de macro (mid / late), lângă roamPressure. */
     simGlobalPressureWeight: 0.5,
   },
+
+  // PLAYER_TRAITS §4 — trait-urile jucătorilor (familia resources). Efectele pe pick depind de resourceDemand
+  // (≥ 4 / ≤ 2), deci cu datele goale nu se activează.
+  traits: {
+    /** resource_hog pe un candidat cu cerere mare: + atât × intensity. */
+    hogFitBonus: 0.4,
+    /** resource_hog pe un candidat cu cerere mică: − atât × intensity. */
+    hogStarvedPenalty: 0.6,
+    /** weakside_ready pe un candidat cu cerere mică: + atât × intensity. */
+    weaksideFitBonus: 0.4,
+    /** §4.2 — trait-urile decid focusul pe bot când celelalte semnale dau „neutral”. Oprit până la calibrare. */
+    botFocusEnabled: false,
+    /**
+     * §4.3 — la egalitate de scor între candidații la win condition, câștigă cel jucat de un resource_hog. Ca
+     * botFocusEnabled, nu depinde de resourceDemand: pornit, schimba 40 / 120 de drafturi cu datele goale. Oprit.
+     */
+    winConditionHogTieEnabled: false,
+  },
 } as const;
