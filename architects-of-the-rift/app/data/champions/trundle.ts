@@ -73,6 +73,7 @@ export const trundle = createChampion({
         { championId: "skarner", level: 2, phase: "all", note: "R steals the tank's resistances" },
         { championId: "zac", level: 2, phase: "all", note: "R steals the tank's resistances" },
         { championId: "ivern", level: 2, phase: "lane" },
+        { championId: "xin-zhao", level: 2, phase: "lane" },
       ],
       stats: {
         picks: 10,

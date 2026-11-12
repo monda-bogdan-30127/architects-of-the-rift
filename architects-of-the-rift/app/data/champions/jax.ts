@@ -75,6 +75,7 @@ export const jax = createChampion({
         { championId: "riven", level: 2, phase: "late" },
         { championId: "sett", level: 2, phase: "late" },
         { championId: "volibear", level: 2, phase: "late" },
+        { championId: "olaf", level: 2, phase: "lane" },
       ],
       stats: {
         picks: 7,
