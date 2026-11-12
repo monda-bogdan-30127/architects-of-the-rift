@@ -8,8 +8,11 @@ import { players } from "@/app/data/players";
 import type { Role } from "@/app/types/champion";
 import type { Player, PlayerHiddenTraits, PlayerPlaystyleProfile } from "@/app/types/player";
 import {
+  ACTIVE_TRAIT_FAMILIES,
+  LOW_RESOURCE_TRAITS,
   MAX_PLAYER_TRAITS,
   PLAYER_TRAIT_INFO,
+  isTraitAllowedOnRole,
   type PlayerTrait,
   type PlayerTraitFamily,
   type PlayerTraitId,
@@ -17,56 +20,129 @@ import {
 import { DRAFT_THINKING_CONFIG } from "@/app/draft-engine/draftThinkingConfig";
 
 /**
- * Pragurile de derivare (§1.3). Ținta: resource_hog ~20–30% din non-support, weakside_ready ~15–25% din top / jungle / adc.
- * Calibrate cu scripts/trait-inventory.ts: pragurile de pornire din spec (72 / 60, 48 / 55) dădeau 6% și 7%
- * (greed are p90 = 61, deci „greed ≥ 72” pentru intensity 2 nu apărea niciodată).
+ * PLAYER_TRAITS §1.3 — derivarea familiei Resources, relativă la rol: pragurile absolute descriau rolul, nu
+ * jucătorul (aproape toți ADC-ii erau Resource Hog, aproape toți junglerii Weakside Ready). Pentru fiecare rol se ia
+ * percentila lui `carryResourceUsage` printre jucătorii de pe acel rol; filtrul absolut rămâne o condiție în plus.
+ * `share` = fracția din rol peste (high) / sub (low) prag. Intensity 2: treimea de sus a celor care au primit
+ * trait-ul pe rol, după cât de departe sunt de prag.
  */
 export const TRAIT_DERIVATION = {
-  resourceHog: { minCarryUsage: 70, minGreed: 52, strongCarryUsage: 84, strongGreed: 56 },
-  weaksideReady: { roles: ["top", "jungle", "adc"] as readonly Role[], maxCarryUsage: 55, minStyleFlex: 55, strongCarryUsage: 48 },
+  resource_hog: {
+    direction: "high",
+    share: { top: 0.2, jungle: 0.1, mid: 0.3, adc: 0.35 } as Partial<Record<Role, number>>,
+    filter: (source: TraitSource) => source.hiddenTraits.greed >= 50,
+    filterLabel: "greed ≥ 50",
+  },
+  weakside_ready: {
+    direction: "low",
+    share: { top: 0.25, adc: 0.15 } as Partial<Record<Role, number>>,
+    filter: (source: TraitSource) => source.playstyle.styleFlex >= 55,
+    filterLabel: "styleFlex ≥ 55",
+  },
+  enabler: {
+    direction: "low",
+    share: { jungle: 0.25, mid: 0.15 } as Partial<Record<Role, number>>,
+    filter: (source: TraitSource) => source.playstyle.utilityComfort >= 55,
+    filterLabel: "utilityComfort ≥ 55",
+  },
 } as const;
+/** Fracția celor cu trait-ul (pe rol) care primesc intensity 2. */
+export const TRAIT_STRONG_SHARE = 1 / 3;
 
 export type ManualTraitInput = { id: PlayerTraitId; intensity?: 1 | 2 };
+export type TraitOverride = { traits?: ManualTraitInput[]; noDerivedTraits?: PlayerTraitId[] };
 
-type TraitSource = { role: Role; playstyle: PlayerPlaystyleProfile; hiddenTraits: PlayerHiddenTraits };
+type TraitSource = { id: string; role: Role; playstyle: PlayerPlaystyleProfile; hiddenTraits: PlayerHiddenTraits };
 
-/** Trait-urile derivate din stats (fallback, doar pe familiile fără trait manual). */
-export function derivePlayerTraits({ role, playstyle, hiddenTraits }: TraitSource): PlayerTrait[] {
-  const traits: PlayerTrait[] = [];
-  const hog = TRAIT_DERIVATION.resourceHog;
-  const weak = TRAIT_DERIVATION.weaksideReady;
-  const carry = playstyle.carryResourceUsage;
-  if (role !== "support" && carry >= hog.minCarryUsage && hiddenTraits.greed >= hog.minGreed) {
-    traits.push({ id: "resource_hog", intensity: carry >= hog.strongCarryUsage && hiddenTraits.greed >= hog.strongGreed ? 2 : 1, source: "derived" });
-  } else if (weak.roles.includes(role) && carry <= weak.maxCarryUsage && playstyle.styleFlex >= weak.minStyleFlex) {
-    traits.push({ id: "weakside_ready", intensity: carry <= weak.strongCarryUsage ? 2 : 1, source: "derived" });
+/** Pragul pe rol: valoarea de la percentila `share` (de sus pentru high, de jos pentru low). */
+function roleThreshold(values: number[], share: number, direction: "high" | "low"): number {
+  const sorted = [...values].sort((a, b) => (direction === "high" ? b - a : a - b));
+  const index = Math.max(0, Math.min(sorted.length - 1, Math.ceil(share * sorted.length) - 1));
+  return sorted[index] ?? (direction === "high" ? Infinity : -Infinity);
+}
+
+/** Trait-urile derivate pentru toată liga (playerId → trait-uri, cu scorul de derivare = distanța de prag). */
+export function deriveLeagueTraits(sources: TraitSource[]): Map<string, { trait: PlayerTrait; score: number }[]> {
+  const result = new Map<string, { trait: PlayerTrait; score: number }[]>();
+  for (const [id, rule] of Object.entries(TRAIT_DERIVATION) as [PlayerTraitId, (typeof TRAIT_DERIVATION)[keyof typeof TRAIT_DERIVATION]][]) {
+    for (const [role, share] of Object.entries(rule.share) as [Role, number][]) {
+      const inRole = sources.filter((source) => source.role === role);
+      const threshold = roleThreshold(inRole.map((source) => source.playstyle.carryResourceUsage), share, rule.direction);
+      const recipients = inRole
+        .map((source) => ({ source, score: rule.direction === "high" ? source.playstyle.carryResourceUsage - threshold : threshold - source.playstyle.carryResourceUsage }))
+        .filter((entry) => entry.score >= 0 && rule.filter(entry.source))
+        .sort((a, b) => b.score - a.score);
+      const strong = Math.ceil(recipients.length * TRAIT_STRONG_SHARE);
+      recipients.forEach((entry, index) => {
+        const list = result.get(entry.source.id) ?? [];
+        list.push({ trait: { id, intensity: index < strong ? 2 : 1, source: "derived" }, score: entry.score });
+        result.set(entry.source.id, list);
+      });
+    }
   }
-  return traits;
+  return result;
 }
 
 /**
- * Trait-urile finale: cele manuale întâi (cel mult unul pe familie), apoi cele derivate pe familiile fără trait
- * manual și neblocate (`noDerivedTraits`). Fără excluderi reciproce, cel mult MAX_PLAYER_TRAITS.
+ * Trait-urile finale: cele manuale întâi, apoi cele derivate (după scorul de derivare) care nu sunt blocate
+ * (`noDerivedTraits`). Cel mult unul pe familie (până la faza 2), fără excluderi reciproce, doar pe rolurile permise,
+ * cel mult MAX_PLAYER_TRAITS. Un trait manual pe un rol nepermis e ignorat aici și raportat de validare.
  */
 export function resolvePlayerTraits(
-  source: TraitSource,
-  override?: { traits?: ManualTraitInput[]; noDerivedTraits?: PlayerTraitFamily[] },
+  role: Role,
+  derived: { trait: PlayerTrait; score: number }[],
+  override?: TraitOverride,
 ): PlayerTrait[] {
   const result: PlayerTrait[] = [];
   const families = new Set<PlayerTraitFamily>();
   const add = (trait: PlayerTrait) => {
     const info = PLAYER_TRAIT_INFO[trait.id];
-    if (!info || families.has(info.family) || result.length >= MAX_PLAYER_TRAITS) return;
+    if (!info || !isTraitAllowedOnRole(trait.id, role) || families.has(info.family) || result.length >= MAX_PLAYER_TRAITS) return;
     if (result.some((entry) => info.excludes.includes(entry.id) || PLAYER_TRAIT_INFO[entry.id].excludes.includes(trait.id))) return;
     families.add(info.family);
     result.push(trait);
   };
   for (const manual of override?.traits ?? []) add({ id: manual.id, intensity: manual.intensity ?? 1, source: "manual" });
   const blocked = new Set(override?.noDerivedTraits ?? []);
-  for (const derived of derivePlayerTraits(source)) {
-    if (!blocked.has(PLAYER_TRAIT_INFO[derived.id].family)) add(derived);
+  const active = derived.filter((entry) => ACTIVE_TRAIT_FAMILIES.includes(PLAYER_TRAIT_INFO[entry.trait.id].family));
+  for (const entry of [...active].sort((a, b) => b.score - a.score)) {
+    if (!blocked.has(entry.trait.id)) add(entry.trait);
   }
   return result;
+}
+
+/** Atribuie trait-urile întregii ligi (după ce toți jucătorii există: pragurile sunt percentile pe rol). */
+export function assignPlayerTraits(list: Player[], overrides: Record<string, TraitOverride | undefined>) {
+  const derived = deriveLeagueTraits(
+    list.map((player) => ({ id: player.id, role: player.role, playstyle: player.advancedProfile.playstyle, hiddenTraits: player.advancedProfile.hiddenTraits })),
+  );
+  for (const player of list) player.traits = resolvePlayerTraits(player.role, derived.get(player.id) ?? [], overrides[player.id]);
+}
+
+/** §1.1 — override-uri invalide: trait pe un rol nepermis, trait-uri care se exclud, id-uri necunoscute. */
+export function validatePlayerTraitOverrides(
+  list: Pick<Player, "id" | "role" | "name">[],
+  overrides: Record<string, TraitOverride | undefined>,
+): string[] {
+  const errors: string[] = [];
+  const byId = new Map(list.map((player) => [player.id, player]));
+  for (const [playerId, override] of Object.entries(overrides)) {
+    if (!override?.traits?.length && !override?.noDerivedTraits?.length) continue;
+    const player = byId.get(playerId);
+    if (!player) {
+      errors.push(`${playerId}: override de trait-uri pentru un jucător inexistent`);
+      continue;
+    }
+    const ids = override.traits?.map((entry) => entry.id) ?? [];
+    for (const id of [...ids, ...(override.noDerivedTraits ?? [])]) {
+      if (!PLAYER_TRAIT_INFO[id]) errors.push(`${playerId}: trait necunoscut "${id}"`);
+    }
+    for (const id of ids) {
+      if (PLAYER_TRAIT_INFO[id] && !isTraitAllowedOnRole(id, player.role)) errors.push(`${playerId}: ${id} nu poate exista pe ${player.role}`);
+      if (PLAYER_TRAIT_INFO[id]?.excludes.some((other) => ids.includes(other))) errors.push(`${playerId}: ${id} se exclude cu alt trait manual`);
+    }
+  }
+  return errors;
 }
 
 export const hasTrait = (player: Pick<Player, "traits"> | null | undefined, id: PlayerTraitId) =>
@@ -75,11 +151,16 @@ export const hasTrait = (player: Pick<Player, "traits"> | null | undefined, id: 
 export const getTrait = (player: Pick<Player, "traits"> | null | undefined, id: PlayerTraitId) =>
   player?.traits?.find((trait) => trait.id === id) ?? null;
 
+/** weakside_ready sau enabler (aceleași efecte de resurse): trait-ul jucătorului, dacă îl are. */
+export const getLowResourceTrait = (player: Pick<Player, "traits"> | null | undefined) =>
+  player?.traits?.find((trait) => LOW_RESOURCE_TRAITS.includes(trait.id)) ?? null;
+
 // ─── §2 Team Fit ─────────────────────────────────────────────────────────────
 
 export type TeamFit = {
   hogs: { playerId: string; role: Role }[];
   weakside: { playerId: string; role: Role }[];
+  enablers: { playerId: string; role: Role }[];
   /** Engleză. */
   warnings: string[];
   /** Engleză, pozitive. */
@@ -88,30 +169,47 @@ export type TeamFit = {
 
 const ROLE_ORDER: Role[] = ["top", "jungle", "mid", "adc", "support"];
 
+/** „Chovy and Ruler”, „A, B and C”. */
+const joinNames = (names: string[]) => (names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0] ?? "");
+
 export function computeTeamFit(roster: Partial<Record<Role, string>>, lookup?: (playerId: string) => Player | undefined): TeamFit {
   const find = lookup ?? ((playerId: string) => players.find((player) => player.id === playerId));
-  const fit: TeamFit = { hogs: [], weakside: [], warnings: [], notes: [] };
+  const fit: TeamFit = { hogs: [], weakside: [], enablers: [], warnings: [], notes: [] };
   for (const role of ROLE_ORDER) {
     const playerId = roster[role];
     const player = playerId ? find(playerId) : undefined;
     if (!playerId || !player) continue;
     if (hasTrait(player, "resource_hog")) fit.hogs.push({ playerId, role });
     if (hasTrait(player, "weakside_ready")) fit.weakside.push({ playerId, role });
+    if (hasTrait(player, "enabler")) fit.enablers.push({ playerId, role });
   }
-  const name = (playerId: string) => find(playerId)?.name ?? playerId;
-  const names = (list: { playerId: string }[]) => list.map((entry) => name(entry.playerId)).join(", ");
+  const names = (list: { playerId: string }[]) => list.map((entry) => find(entry.playerId)?.name ?? entry.playerId);
 
   if (fit.hogs.length > DRAFT_THINKING_CONFIG.attributes.maxHighDemand) {
-    fit.warnings.push(`${fit.hogs.length} players want resources (${names(fit.hogs)})`);
+    fit.warnings.push(`${fit.hogs.length} players want resources (${names(fit.hogs).join(", ")})`);
   }
-  const adcId = roster.adc;
-  if (fit.hogs.length === 2 && !fit.hogs.some((entry) => entry.role === "adc") && adcId && !fit.weakside.some((entry) => entry.role === "adc")) {
+  if (fit.hogs.length === 2 && !fit.hogs.some((entry) => entry.role === "adc") && roster.adc && !fit.weakside.some((entry) => entry.role === "adc")) {
     fit.warnings.push("Two carries off bot lane: the ADC will be starved");
   }
-  const split = fit.weakside.filter((entry) => !fit.hogs.some((hog) => hog.role === entry.role));
-  if (fit.hogs.length >= 1 && split.length >= 1) {
-    fit.notes.push(`Clear resource split: ${names(fit.hogs)} ${fit.hogs.length > 1 ? "carry" : "carries"}, ${names(split)} ${split.length > 1 ? "play" : "plays"} weakside`);
+  if (fit.hogs.length >= 1 && fit.weakside.length + fit.enablers.length >= 1) {
+    const parts = [`${joinNames(names(fit.hogs))} ${fit.hogs.length > 1 ? "carry" : "carries"}`];
+    if (fit.weakside.length) parts.push(`${joinNames(names(fit.weakside))} ${fit.weakside.length > 1 ? "play" : "plays"} weakside`);
+    if (fit.enablers.length) parts.push(`${joinNames(names(fit.enablers))} ${fit.enablers.length > 1 ? "enable" : "enables"}`);
+    fit.notes.push(`Clear resource split: ${parts.join(", ")}`);
   }
   if (fit.hogs.length === 0) fit.notes.push("No resource-hungry carry: flexible, but no obvious win condition");
   return fit;
+}
+
+// ─── §3 Colorarea pe draftul de campioni ─────────────────────────────────────
+
+export type TraitTone = "good" | "bad" | "neutral";
+
+/** Cum se potrivește trait-ul cu un campion de cererea dată (resource_hog: ≥ 4 verde, ≤ 2 roșu; low-resource: ≤ 2 verde). */
+export function getTraitTone(id: PlayerTraitId, demand: number | null): TraitTone {
+  if (demand === null) return "neutral";
+  const { highDemandMin, weaksideMax } = DRAFT_THINKING_CONFIG.attributes;
+  if (id === "resource_hog") return demand >= highDemandMin ? "good" : demand <= weaksideMax ? "bad" : "neutral";
+  if (LOW_RESOURCE_TRAITS.includes(id)) return demand <= weaksideMax ? "good" : "neutral";
+  return "neutral";
 }

@@ -5,6 +5,9 @@
 // Iese cu cod 1 dacă există erori.
 
 import { validateChampionRoleMatchups } from "@/app/utils/championMatchupValidation";
+import { players } from "@/app/data/players";
+import { playerProfileOverrides } from "@/app/data/playerProfileOverrides";
+import { validatePlayerTraitOverrides } from "@/app/utils/playerTraitUtils";
 
 const result = validateChampionRoleMatchups();
 
@@ -47,7 +50,15 @@ for (let index = 0; index < coverage.missing.length; index += 5) {
   console.log("  " + coverage.missing.slice(index, index + 5).map((entry) => `${entry.key} (${entry.presence})`.padEnd(28)).join(" "));
 }
 
+// PLAYER_TRAITS §1.1 — override-urile de trait-uri (rol nepermis, trait-uri care se exclud, id-uri necunoscute).
+const traitErrors = validatePlayerTraitOverrides(players, playerProfileOverrides);
+if (traitErrors.length) {
+  console.log(`\nERORI trait-uri de jucător (${traitErrors.length})`);
+  for (const message of traitErrors) console.log(`  ${message}`);
+}
+
+const ok = result.ok && traitErrors.length === 0;
 console.log(
-  `\n${result.ok ? "OK" : "EȘUAT"} — ${result.errorCount} erori, ${result.warningCount} warnings`,
+  `\n${ok ? "OK" : "EȘUAT"} — ${result.errorCount + traitErrors.length} erori, ${result.warningCount} warnings`,
 );
-process.exit(result.ok ? 0 : 1);
+process.exit(ok ? 0 : 1);

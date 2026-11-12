@@ -1888,6 +1888,45 @@ function withTestData<T>(
   }
 }
 
+// ─── PLAYER_TRAITS §1.5: enabler (jungler pe un campion cu cerere 2) ─────────
+{
+  const save = makeSave();
+  const enabler: PlayerTrait[] = [{ id: "enabler", intensity: 1, source: "manual" }];
+  const roster = save.updatedTeamRosters[RED]!;
+  const jungleId = roster.jungle!;
+  const jungler = playersById.get(jungleId)!;
+  const series = newSeries("pt6", BLUE, RED);
+  const game: DraftGameState = { ...series.games[0], bansBlue: ["azir", "jayce", "orianna"], bansRed: ["ksante", "vi", "syndra"], picksBlue: ["ahri"], phaseIndex: 7 };
+  const sejuani = champions.find((c) => c.id === "sejuani")!;
+  const plain = withTestData({ resourceDemand: { sejuani: { jungle: 2 } } }, () => scoreDraftCandidate(sejuani, getCurrentStep(game)!, game, series, save));
+  const withTrait = withTestData({ traits: { [jungleId]: enabler }, resourceDemand: { sejuani: { jungle: 2 } } }, () =>
+    scoreDraftCandidate(sejuani, getCurrentStep(game)!, game, series, save));
+  // Greed: jucătorul cu greed maxim de pe jungle, pe Sejuani cu cerere 2.
+  const greedyJungler = [...players].filter((player) => player.role === "jungle").sort((a, b) => b.advancedProfile.hiddenTraits.greed - a.advancedProfile.hiddenTraits.greed)[0]!;
+  const greed = (traits: PlayerTrait[]) =>
+    withTestData({ traits: { [greedyJungler.id]: traits }, resourceDemand: { sejuani: { jungle: 2 } } }, () =>
+      getPlayerPersonalityModifiers(greedyJungler.id, new Set<string>(), 0.5, "sejuani", "jungle").greedCarryAmplifier);
+  // Spirit: serie câștigată, 2 jocuri pe Sejuani.
+  const snapshots = Array.from({ length: 2 }, (_, index) => ({
+    gameNumber: index + 1, winnerSide: "red" as const, controlledSide: "red" as const, bans: [] as string[],
+    playerEntries: ROLE_ORDER.map((role) => ({
+      playerId: roster[role]!, score: 6, championId: role === "jungle" ? "sejuani" : ({ top: "ornn", mid: "taliyah", adc: "kalista", support: "rell" } as Record<string, string>)[role], role, side: "red" as const, isGameMvp: false,
+    })),
+  }));
+  const spirit = withTestData({ traits: { [jungleId]: enabler }, resourceDemand: { sejuani: { jungle: 2 } } }, () =>
+    computeSeriesSpiritDeltas({
+      seriesId: "spirit-enabler", controlledTeamSlug: RED, controlledRoster: roster, playersById, bo: 3, games: snapshots,
+      seriesMvpPlayerId: null, currentSpirits: {}, currentStreaks: {}, leadershipCycleCounter: 1,
+    }));
+  const fulfilled = spirit.find((entry) => entry.playerId === jungleId)?.events.find((event) => event.reason === "playstyle_fulfilled");
+  check(
+    "P6. Enabler jungler pe cerere 2: bonus în draft, fără malus de greed, playstyle_fulfilled la o serie câștigată",
+    hasTag(withTrait, "trait-fit") && (withTrait.buckets?.comp ?? 0) > (plain.buckets?.comp ?? 0) &&
+      greed([]) < 0 && greed(enabler) === 0 && Boolean(fulfilled),
+    `${jungler.name}: comp Sejuani ${(plain.buckets?.comp ?? 0).toFixed(2)} → ${(withTrait.buckets?.comp ?? 0).toFixed(2)} „${withTrait.explanation?.find((line) => line.includes("enable")) ?? "—"}”; greed ${greedyJungler.name}: ${greed([])} → ${greed(enabler)}; Spirit: ${fulfilled ? `+${fulfilled.delta} „${fulfilled.details}”` : "—"}`,
+  );
+}
+
 // ─── Raport ──────────────────────────────────────────────────────────────────
 for (const result of results) {
   console.log(`${result.pass ? "PASS" : "FAIL"}  ${result.name}\n      ${result.detail}`);

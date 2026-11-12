@@ -15,7 +15,7 @@ import type { Role } from "../types/champion";
 import { calculateRosterPoints } from "../utils/playerUtils";
 import { playerProfileOverrides } from "./playerProfileOverrides";
 import { getPlayerStyleInfo } from "../utils/playerStyleUtils";
-import { resolvePlayerTraits } from "../utils/playerTraitUtils";
+import { assignPlayerTraits } from "../utils/playerTraitUtils";
 
 const clamp = (value: number, min = 35, max = 99): number => Math.max(min, Math.min(max, Math.round(value)));
 const clampStat100 = (value: number): number => Math.max(10, Math.min(100, Math.round(value)));
@@ -434,11 +434,6 @@ const createPlayer = (
     displayPrimary: styleInfo.primary,
     displaySecondary: styleInfo.secondary,
   };
-  // PLAYER_TRAITS §1.3: manual din playerProfileOverrides, altfel derivate din stats.
-  const traits = resolvePlayerTraits(
-    { role: base.role, playstyle: advancedProfile.playstyle, hiddenTraits: advancedProfile.hiddenTraits },
-    overrides,
-  );
 
   return {
     id: base.id,
@@ -452,7 +447,8 @@ const createPlayer = (
     championPool,
     advancedProfile,
     playstyleIdentity,
-    traits,
+    // PLAYER_TRAITS §1.3: se atribuie după ce toată liga există (pragurile sunt percentile pe rol), mai jos.
+    traits: [],
     stats,
     rosterPoints: calculateRosterPoints(stats),
     sortOrder: base.sortOrder,
@@ -3010,3 +3006,6 @@ export const players: Player[] = [
     sortOrder: 226,
   }),
 ];
+
+// PLAYER_TRAITS §1.3: trait-urile manuale (playerProfileOverrides) și cele derivate, relative la rol.
+assignPlayerTraits(players, playerProfileOverrides);

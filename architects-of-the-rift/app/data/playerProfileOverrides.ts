@@ -1,5 +1,5 @@
 import type { PlayerAdaptationProfile, PlayerArchetypeAffinity, PlayerPhaseProfile, PlayerStyleLabel } from "@/app/types/player";
-import type { PlayerTraitFamily, PlayerTraitId } from "@/app/types/playerTraits";
+import type { PlayerTraitId } from "@/app/types/playerTraits";
 
 // ─── PATCH: 3 câmpuri noi față de versiunea anterioară ───────────────────────
 // primaryStyle         → override intern al labelului primary (PlayerStyleLabel)
@@ -12,8 +12,7 @@ import type { PlayerTraitFamily, PlayerTraitId } from "@/app/types/playerTraits"
 //                          remove: elimini taguri corect calculate dar înșelătoare
 //                          (PLAYER_TRAITS: tag-urile nu se mai afișează; au rămas doar ca date istorice)
 // traits               → PLAYER_TRAITS: trait-uri manuale (au prioritate față de cele derivate din stats)
-// noDerivedTraits      → familiile pe care nu se derivă trait-uri (ex. ["resources"]: jucătorul nu primește
-//                          resource_hog / weakside_ready automat)
+// noDerivedTraits      → trait-urile care nu se derivă pentru jucător (când derivarea e greșită pentru el)
 type PlayerProfileOverride = {
   phaseProfile?: PlayerPhaseProfile;
   archetypeAffinity?: Partial<PlayerArchetypeAffinity>;
@@ -26,7 +25,7 @@ type PlayerProfileOverride = {
     remove?: string[];
   };
   traits?: { id: PlayerTraitId; intensity?: 1 | 2 }[];
-  noDerivedTraits?: PlayerTraitFamily[];
+  noDerivedTraits?: PlayerTraitId[];
 };
 
 export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
@@ -86,6 +85,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Lane Dominant", "Scaling", "Roaming"] },
   },
   "deokdam": {
+    traits: [{ id: "weakside_ready" }],
+    noDerivedTraits: ["resource_hog"],
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
     secondaryStyle: "weakside",
@@ -170,6 +171,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   // LCK — Gen.G  ★ SUPERSTARS
   // ══════════════════════════════════════════════════════════════════
   "kiin": {
+    traits: [{ id: "weakside_ready", intensity: 2 }],
+    noDerivedTraits: ["resource_hog"],
     // Kiin is a brawler duelist — 7 solo kills at First Stand, consistently aggressive
     primaryStyle: "brawler",
     primaryDisplayOverride: "Brawler",
@@ -191,6 +194,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Objective", "Systematic", "Pathing", "Stable"] },
   },
   "chovy": {
+    traits: [{ id: "resource_hog", intensity: 2 }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     // Chovy: best laner in the world, dominant carry, late-game monster
     phaseProfile: {
       early: { laneControl: 9.5, skirmish: 8.1, stability: 9.4, mapPlay: 8.3, teamfight: 8.5, clutch: 8.4 },
@@ -205,6 +210,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Lane Dominant", "Systematic", "Late Game", "Scaling"] },
   },
   "ruler": {
+    traits: [{ id: "resource_hog", intensity: 2 }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     // Ruler: premier scaling ADC, consistent and methodical
     primaryStyle: "scaler",
     primaryDisplayOverride: "Scaler",
@@ -256,6 +263,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   // LCK — HLE
   // ══════════════════════════════════════════════════════════════════
   "zeus": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     // Zeus: aggressive carry top who can also teamfight well
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
@@ -279,6 +288,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Lane Dominant", "Early Game", "Snowball", "Teamfight"] },
   },
   "gumayusi": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
     secondaryStyle: "weakside",
@@ -315,6 +326,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Systematic", "Late Game", "Stable", "Flexible"] },
   },
   "aiming": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
     secondaryStyle: "aggressive",
@@ -366,6 +379,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   // LCK — T1  ★ SUPERSTARS: Faker, Keria
   // ══════════════════════════════════════════════════════════════════
   "doran": {
+    traits: [{ id: "weakside_ready" }],
+    noDerivedTraits: ["resource_hog"],
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
     secondaryStyle: "brawler",
@@ -385,6 +400,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Early Game", "Snowball", "Invader", "Dive"] },
   },
   "faker": {
+    traits: [{ id: "enabler" }],
+    noDerivedTraits: ["resource_hog"],
     // Faker in 2026: cerebral macro god. Not a laner anymore — plays for
     // team structure, IQ wins, and knowledge edge. Controller identity.
     phaseProfile: {
@@ -400,6 +417,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Systematic", "Late Game", "Flexible", "Vision"] },
   },
   "peyz": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
     secondaryStyle: "aggressive",
@@ -425,6 +444,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   // Free Agents
   // ══════════════════════════════════════════════════════════════════
   "theshy": {
+    traits: [{ id: "resource_hog", intensity: 2 }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
     secondaryStyle: "aggressive",
@@ -455,6 +476,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Creative", "Flexible", "Roaming"] },
   },
   "rookie": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     primaryStyle: "playmaker",
     primaryDisplayOverride: "Playmaker",
     secondaryStyle: "carry",
@@ -526,6 +549,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Scaling", "Lane Dominant", "Flexible"] },
   },
   "upset": {
+    traits: [{ id: "resource_hog", intensity: 2 }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
     secondaryStyle: "weakside",
@@ -542,6 +567,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   // LEC — G2 Esports  ★ LEC BEST PER ROLE: BB, SkewMond, Caps, Hans, Labrov
   // ══════════════════════════════════════════════════════════════════
   "brokenblade": {
+    traits: [{ id: "weakside_ready" }],
+    noDerivedTraits: ["resource_hog"],
     primaryStyle: "tank",
     primaryDisplayOverride: "Controller",
     secondaryStyle: "brawler",
@@ -556,6 +583,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Tempo", "Early Game", "Pathing", "Objective"] },
   },
   "caps": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     // Caps: high-variance aggressive mid. Known for solo kills, risky plays,
     // occasional feeding but enormous ceiling. NOT systematic.
     primaryStyle: "playmaker",
@@ -564,6 +593,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Creative", "High Risk", "Snowball", "Volatile"] },
   },
   "hans-sama": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     // Hans Sama at First Stand: NOT weakside. High vision score (1.58 VSPM),
     // aggressive early, carry-focused. Second ADC by GPM.
     primaryStyle: "carry",
@@ -866,6 +897,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   // LPL — Anyone's Legend (Tarzan's team)
   // ══════════════════════════════════════════════════════════════════
   "flandre": {
+    traits: [{ id: "weakside_ready", intensity: 2 }],
+    noDerivedTraits: ["resource_hog"],
     primaryStyle: "tank",
     primaryDisplayOverride: "Controller",
     secondaryStyle: "carry",
@@ -904,6 +937,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   // LPL — BLG  ★ SUPERSTARS: Bin, Knight, Viper + strong: ON, XUN
   // ══════════════════════════════════════════════════════════════════
   "bin": {
+    traits: [{ id: "resource_hog", intensity: 2 }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     // Bin: THE brawler. Most aggressive top in the world. 80% WR at First Stand,
     // 4 solo kills, dominates every laning phase physically.
     phaseProfile: {
@@ -926,6 +961,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Early Game", "Invader", "Snowball", "Tempo"] },
   },
   "knight": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     // Knight: best mid in LPL. Dominant laner (8 solo kills at FS), carry threat.
     // 80% WR, 5.3 KDA. NOT a poke player — mechanical carry with roaming.
     phaseProfile: {
@@ -941,6 +978,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Lane Dominant", "Early Game", "Snowball", "Creative"] },
   },
   "viper": {
+    traits: [{ id: "resource_hog", intensity: 2 }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     // Viper: 9RP ADC. Best ADC at First Stand — highest damage%, highest GPM.
     // Aggressive, NOT weakside. Very dominant in lane.
     primaryStyle: "carry",
@@ -995,6 +1034,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   // LPL — Invictus Gaming
   // ══════════════════════════════════════════════════════════════════
   "breathe": {
+    traits: [{ id: "weakside_ready" }],
+    noDerivedTraits: ["resource_hog"],
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
     secondaryStyle: "tank",
@@ -1049,6 +1090,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Scaling", "Teamfight", "Flexible"] },
   },
   "gala": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     // GALA: 8RP ADC. Systematic, scaling. Very stable and consistent.
     primaryStyle: "scaler",
     primaryDisplayOverride: "Scaler",
@@ -1225,6 +1268,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Lane Dominant", "Scaling", "Teamfight"] },
   },
   "jackeylove": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
     secondaryStyle: "aggressive",
@@ -1362,6 +1407,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Stable", "Systematic", "Late Game", "Teamfight"] },
   },
   "elk": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     // Elk: 8RP ADC. Lane dominant and aggressive. NOT weakside.
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
@@ -1656,5 +1703,10 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     primaryDisplayOverride: "Utility",
     secondaryStyle: "setup",
     tagOverrides: { add: ["Vision", "Stable"] },
+  },
+  // PLAYER_TRAITS §1.5: corectură manuală.
+  "bwipo": {
+    traits: [{ id: "weakside_ready", intensity: 2 }],
+    noDerivedTraits: ["resource_hog"],
   },
 };

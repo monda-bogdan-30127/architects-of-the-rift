@@ -21,7 +21,7 @@ import {
 } from "./matchSimulationUtils";
 import { ROLE_ORDER } from "./draftTypes";
 import { NEUTRAL_RESOURCE_DEMAND, getResourceDemand } from "./championResource";
-import { getTrait } from "@/app/utils/playerTraitUtils";
+import { getLowResourceTrait, getTrait } from "@/app/utils/playerTraitUtils";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -171,9 +171,9 @@ export function getPlayerPersonalityModifiers(
     // Greedy player on utility → slight penalty (doesn't play selflessly)
     greedCarryAmplifier = clamp((greed - 60) / 100 * -0.15, -0.15, 0);
     greedRiskAmplifier = clamp((greed - 60) / 100 * 0.1, 0, 0.1);
-    // PLAYER_TRAITS §5.1 — pe un campion cu cerere mică (≤ 2): weakside_ready nu are malus, resource_hog îl are mai mare.
+    // PLAYER_TRAITS §5.1 — pe un campion cu cerere mică (≤ 2): weakside_ready / enabler nu au malus, resource_hog îl are mai mare.
     if (demand <= 2) {
-      const weakside = getTrait(player, "weakside_ready");
+      const weakside = getLowResourceTrait(player);
       const hog = getTrait(player, "resource_hog");
       const scale = weakside ? 0 : hog ? 1 + 0.5 * hog.intensity : 1;
       greedCarryAmplifier *= scale;

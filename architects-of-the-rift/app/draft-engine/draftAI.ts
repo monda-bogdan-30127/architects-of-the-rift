@@ -100,7 +100,7 @@ import { getLookaheadValue, getScarcity, getWaitPenalty, isScarcePoolChampion } 
 import { getComboPartners, getGamesRemainingPossible, getPairFactor, isPartnerOnlyBannedThisGame } from "./pairPriority";
 import { contextualNeedLabel, evaluateContextualNeedStatuses, getContextualNeedFill } from "./contextualNeeds";
 import { describeResourceConflict, getHighDemandPicks, getResourceDemand } from "./championResource";
-import { getTrait } from "@/app/utils/playerTraitUtils";
+import { getLowResourceTrait, getTrait } from "@/app/utils/playerTraitUtils";
 import type { PriorityValue } from "./priorityValue";
 import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
@@ -2039,7 +2039,7 @@ export function getPickCandidatePool(
  *   focus "bot": non-bot cu cerere mare −focusCarryPenalty, top / jungle weakside (≤ weaksideMax) +focusWeaksideBonus;
  *   focus "elsewhere": invers pentru botlane.
  * PLAYER_TRAITS §4.1 — trait-ul jucătorului de pe rol: resource_hog pe cerere mare +, pe cerere mică −;
- *   weakside_ready pe cerere mică +.
+ *   weakside_ready / enabler pe cerere mică +.
  * Cu cererea 3 (lipsă în date) peste tot, totul e 0.
  */
 function getResourcePickEffect(candidate: Champion, role: Role | null, ctx: DraftContext) {
@@ -2061,7 +2061,7 @@ function getResourcePickEffect(candidate: Champion, role: Role | null, ctx: Draf
   const playerId = ctx.own.roster[role];
   const player = playerId ? playersById.get(playerId) : undefined;
   const hog = getTrait(player, "resource_hog");
-  const weaksideTrait = getTrait(player, "weakside_ready");
+  const lowResource = getLowResourceTrait(player);
   if (player && hog && high) {
     result.bonus += TRAITS.hogFitBonus * hog.intensity;
     result.lines.push(`${player.name} wants resources: ${candidate.name} fits`);
@@ -2070,9 +2070,9 @@ function getResourcePickEffect(candidate: Champion, role: Role | null, ctx: Draf
     result.bonus -= TRAITS.hogStarvedPenalty * hog.intensity;
     result.lines.push(`${player.name} will be starved on ${candidate.name}`);
     result.tags.push("trait-starved");
-  } else if (player && weaksideTrait && demand <= ATTRS.weaksideMax) {
-    result.bonus += TRAITS.weaksideFitBonus * weaksideTrait.intensity;
-    result.lines.push(`${player.name} is fine on weakside`);
+  } else if (player && lowResource && demand <= ATTRS.weaksideMax) {
+    result.bonus += TRAITS.weaksideFitBonus * lowResource.intensity;
+    result.lines.push(lowResource.id === "enabler" ? `${player.name} is happy to enable` : `${player.name} is fine on weakside`);
     result.tags.push("trait-fit");
   }
   const bot = role === "adc" || role === "support";

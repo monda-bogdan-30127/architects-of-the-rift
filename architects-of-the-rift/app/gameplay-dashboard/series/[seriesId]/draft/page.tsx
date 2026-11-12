@@ -32,6 +32,9 @@ import type { Player } from "@/app/types/player";
 import type { ChampionMasteryGrade } from "@/app/types/championMastery";
 import { getChampionGrade } from "@/app/utils/championMasteryUtils";
 import { getSeasonFavorites } from "@/app/draft-engine/seasonThreatSystem";
+import { getResourceDemand } from "@/app/draft-engine/championResource";
+import { PLAYER_TRAIT_INFO, isActiveTrait } from "@/app/types/playerTraits";
+import { getTraitTone } from "@/app/utils/playerTraitUtils";
 
 const CHAMPION_CARD_SIZE = 86;
 const CHAMPION_CARD_GAP = 5;
@@ -499,6 +502,18 @@ export default function DraftPage() {
     const pickRoles = userSide === "blue" ? currentGame.pickRolesBlue : currentGame.pickRolesRed;
     return getPickPreview(ownPicks, hoveredChampion.id, getAnalysisRoles([...ownPicks, hoveredChampion.id], roster, pickRoles));
   })();
+  // PLAYER_TRAITS §1.5 pct. 4: la hover pe un campion (rândul userului, pick), trait-urile jucătorului de pe rolul
+  // proiectat se colorează după el (preview).
+  const traitPreview = (() => {
+    if (!hoveredChampion || !hovered || hovered.side !== userSide || !isUserTurn || currentStep?.action !== "pick") return null;
+    const ownPicks = userSide === "blue" ? currentGame.picksBlue : currentGame.picksRed;
+    if (ownPicks.includes(hoveredChampion.id)) return null;
+    const roster = userSide === "blue" ? rosterBlue : rosterRed;
+    const pickRoles = userSide === "blue" ? currentGame.pickRolesBlue : currentGame.pickRolesRed;
+    const roles = getAnalysisRoles([...ownPicks, hoveredChampion.id], roster, pickRoles);
+    const role = ROLE_ORDER.find((entry) => roles[entry] === hoveredChampion.id);
+    return role ? { role, championId: hoveredChampion.id } : null;
+  })();
   const contextChampion = contextMenu ? getChampionById(contextMenu.championId) ?? null : null;
   const userTeam = userSide === "blue" ? blueTeam : redTeam;
   const enemyTeam = userSide === "blue" ? redTeam : blueTeam;
@@ -595,6 +610,7 @@ export default function DraftPage() {
           lockedChampionIds={blueLockedChampionIds}
           identity={identityBlue}
           attributes={attributesBlue}
+          traitPreview={userSide === "blue" ? traitPreview : null}
           onChampionHover={handleChampionHover}
           onChampionHoverEnd={handleChampionHoverEnd}
           roster={getTeamRosterFromSources({ team: blueTeam, save: draftSave })}
@@ -791,6 +807,7 @@ export default function DraftPage() {
           lockedChampionIds={redLockedChampionIds}
           identity={identityRed}
           attributes={attributesRed}
+          traitPreview={userSide === "red" ? traitPreview : null}
           onChampionHover={handleChampionHover}
           onChampionHoverEnd={handleChampionHoverEnd}
           roster={getTeamRosterFromSources({ team: redTeam, save: draftSave })}
@@ -880,7 +897,7 @@ function SidebarPanel({
   side, team, score, assignments, showSwap, openSwapRole,
   onSwapToggle, onSwapSelect, swapMenuContainerRef,
   lockedChampionIds, roster, currentStep, isUserTurn, alignRight = false, showMasteryWarnings = false,
-  identity, attributes, onChampionHover, onChampionHoverEnd,
+  identity, attributes, onChampionHover, onChampionHoverEnd, traitPreview = null,
 }: {
   side: Side;
   team: { name: string; abbreviation: string; logo: string; slug?: string };
@@ -903,6 +920,8 @@ function SidebarPanel({
   attributes: TeamAttributes;
   onChampionHover: (championId: string, side: Side, element: HTMLElement) => void;
   onChampionHoverEnd: () => void;
+  /** PLAYER_TRAITS §1.5 — campionul din hover, pe rolul proiectat: preview-ul culorii trait-urilor. */
+  traitPreview?: { role: Role; championId: string } | null;
 }) {
   const swapButtonRefs = useRef<Partial<Record<Role, HTMLButtonElement | null>>>({});
   // Poziția e legată de rolul pentru care a fost măsurată: la închidere sau la
@@ -1123,6 +1142,35 @@ function SidebarPanel({
                     }}>
                       {getRoleLabel(role)}
                     </span>
+                    {/* PLAYER_TRAITS §3: trait-urile jucătorului, colorate după campionul din slot (sau din hover) */}
+                    {(() => {
+                      const player = roster?.[role] ? players.find((entry) => entry.id === roster[role]) : undefined;
+                      const traits = (player?.traits ?? []).filter(isActiveTrait);
+                      if (!traits.length) return null;
+                      const colorChampionId = championId ?? (traitPreview?.role === role ? traitPreview.championId : null);
+                      const demand = colorChampionId ? getResourceDemand(colorChampionId, role) : null;
+                      return traits.map((trait) => {
+                        const tone = getTraitTone(trait.id, demand);
+                        return (
+                          <span
+                            key={trait.id}
+                            title={`${PLAYER_TRAIT_INFO[trait.id].label}${trait.intensity === 2 ? " (Strong)" : ""}: ${PLAYER_TRAIT_INFO[trait.id].description}`}
+                            style={{
+                              fontSize: "8px",
+                              fontFamily: '"Spiegel", sans-serif',
+                              fontWeight: 700,
+                              letterSpacing: "0.04em",
+                              textTransform: "uppercase",
+                              whiteSpace: "nowrap",
+                              color: tone === "good" ? "var(--success)" : tone === "bad" ? "var(--danger)" : "var(--text-muted)",
+                              cursor: "help",
+                            }}
+                          >
+                            · {PLAYER_TRAIT_INFO[trait.id].label}{trait.intensity === 2 ? " ●" : ""}
+                          </span>
+                        );
+                      });
+                    })()}
                   </div>
 
                   {/* Player name */}

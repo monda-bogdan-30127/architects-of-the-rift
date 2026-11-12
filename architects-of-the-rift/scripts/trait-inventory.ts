@@ -10,7 +10,7 @@ import { players } from "@/app/data/players";
 import { teams } from "@/app/data/teams";
 import type { Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
-import { PLAYER_TRAIT_IDS, PLAYER_TRAIT_INFO, type PlayerTraitId } from "@/app/types/playerTraits";
+import { PLAYER_TRAIT_IDS, PLAYER_TRAIT_INFO, isTraitAllowedOnRole, type PlayerTraitId } from "@/app/types/playerTraits";
 import { TRAIT_DERIVATION, computeTeamFit } from "@/app/utils/playerTraitUtils";
 import { parseArgs } from "./draftHarness";
 
@@ -29,45 +29,36 @@ const traitLabel = (player: Player) =>
 const lines: string[] = [`# Inventar trait-uri de jucător (${players.length} jucători)`, ""];
 lines.push("● = intensity 2 · (m) = manual (playerProfileOverrides), restul derivate.", "");
 
-const eligible: Record<PlayerTraitId, (player: Player) => boolean> = {
-  resource_hog: (player) => player.role !== "support",
-  weakside_ready: (player) => TRAIT_DERIVATION.weaksideReady.roles.includes(player.role),
-};
-lines.push("## Distribuție", "", "| Trait | Total | Din eligibili | Țintă | Manual | Intensity 2 | " + ROLES.join(" | ") + " |", "|---|---|---|---|---|---|" + ROLES.map(() => "---|").join(""));
-const targets: Record<PlayerTraitId, string> = { resource_hog: "20–30% din non-support", weakside_ready: "15–25% din top / jungle / adc" };
+lines.push(
+  "## Distribuție",
+  "",
+  "Pe rol: cu trait / jucători pe rol (țintă din TRAIT_DERIVATION.share, înainte de filtrul absolut). Manual = din playerProfileOverrides.",
+  "",
+  "| Trait | Total | Manual | Intensity 2 | " + ROLES.join(" | ") + " |",
+  "|---|---|---|---|" + ROLES.map(() => "---|").join(""),
+);
 for (const id of PLAYER_TRAIT_IDS) {
   const withTrait = players.filter((player) => player.traits.some((trait) => trait.id === id));
-  const pool = players.filter(eligible[id]);
+  const share = TRAIT_DERIVATION[id].share as Partial<Record<Role, number>>;
   const byRole = ROLES.map((role) => {
+    if (!isTraitAllowedOnRole(id, role)) return "—";
     const total = players.filter((player) => player.role === role).length;
     const count = withTrait.filter((player) => player.role === role).length;
-    return `${count}/${total}`;
+    return `${count}/${total} (${pct(count, total)}${share[role] ? `, țintă ${Math.round(share[role]! * 100)}%` : ""})`;
   });
   lines.push(
-    `| ${PLAYER_TRAIT_INFO[id].label} | ${withTrait.length} | ${pct(withTrait.length, pool.length)} (${withTrait.length}/${pool.length}) | ${targets[id]} | ${withTrait.filter((p) => p.traits.some((t) => t.id === id && t.source === "manual")).length} | ${withTrait.filter((p) => p.traits.some((t) => t.id === id && t.intensity === 2)).length} | ${byRole.join(" | ")} |`,
+    `| ${PLAYER_TRAIT_INFO[id].label} | ${withTrait.length} | ${withTrait.filter((p) => p.traits.some((t) => t.id === id && t.source === "manual")).length} | ${withTrait.filter((p) => p.traits.some((t) => t.id === id && t.intensity === 2)).length} | ${byRole.join(" | ")} |`,
   );
 }
-lines.push("", "| Regiune | Jucători | Resource Hog | Weakside Ready |", "|---|---|---|---|");
+lines.push("", "| Regiune | Jucători | " + PLAYER_TRAIT_IDS.map((id) => PLAYER_TRAIT_INFO[id].label).join(" | ") + " |", "|---|---|" + PLAYER_TRAIT_IDS.map(() => "---|").join(""));
 for (const region of regions) {
   const list = players.filter((player) => regionOf(player) === region);
   const count = (id: PlayerTraitId) => list.filter((player) => player.traits.some((trait) => trait.id === id)).length;
-  lines.push(`| ${region} | ${list.length} | ${count("resource_hog")} | ${count("weakside_ready")} |`);
+  lines.push(`| ${region} | ${list.length} | ${PLAYER_TRAIT_IDS.map(count).join(" | ")} |`);
 }
-
-// Percentilele câmpurilor din care se derivă (pentru calibrarea pragurilor).
-const quantiles = (values: number[]) => {
-  const sorted = [...values].sort((a, b) => a - b);
-  const q = (p: number) => sorted[Math.floor(p * (sorted.length - 1))]?.toFixed(0);
-  return `p25 ${q(0.25)} · p50 ${q(0.5)} · p75 ${q(0.75)} · p90 ${q(0.9)}`;
-};
-const nonSupport = players.filter((player) => player.role !== "support");
 lines.push(
   "",
-  "Câmpurile din care se derivă:",
-  `- carryResourceUsage (non-support): ${quantiles(nonSupport.map((p) => p.advancedProfile.playstyle.carryResourceUsage))}`,
-  `- greed (non-support): ${quantiles(nonSupport.map((p) => p.advancedProfile.hiddenTraits.greed))}`,
-  `- styleFlex (top / jungle / adc): ${quantiles(players.filter(eligible.weakside_ready).map((p) => p.advancedProfile.playstyle.styleFlex))}`,
-  `- praguri: resource_hog carryResourceUsage ≥ ${TRAIT_DERIVATION.resourceHog.minCarryUsage} și greed ≥ ${TRAIT_DERIVATION.resourceHog.minGreed}; weakside_ready carryResourceUsage ≤ ${TRAIT_DERIVATION.weaksideReady.maxCarryUsage} și styleFlex ≥ ${TRAIT_DERIVATION.weaksideReady.minStyleFlex}`,
+  "Filtre absolute: " + PLAYER_TRAIT_IDS.map((id) => `${id}: ${TRAIT_DERIVATION[id].filterLabel}`).join("; ") + ". Intensity 2: treimea de sus a celor cu trait-ul pe rol (după distanța de prag).",
 );
 
 // ─── Pe echipă: titularii (rosterul de bază) și Team Fit ─────────────────────
@@ -79,6 +70,8 @@ const rosterOf = (teamId: string) => {
 const playersById = new Map(players.map((player) => [player.id, player]));
 const manyHogs: string[] = [];
 const noResourceTraits: string[] = [];
+const noHog: string[] = [];
+const noLowResource: string[] = [];
 lines.push("", "## Pe echipă (titularii)", "", "| Echipă | Top | Jungle | Mid | ADC | Support | Team Fit |", "|---|---|---|---|---|---|---|");
 for (const team of [...teams].sort((a, b) => a.region.localeCompare(b.region) || a.sortOrder - b.sortOrder)) {
   const roster = rosterOf(team.id);
@@ -88,14 +81,20 @@ for (const team of [...teams].sort((a, b) => a.region.localeCompare(b.region) ||
     return player ? `${player.name}: ${traitLabel(player)}` : "—";
   };
   if (fit.hogs.length >= 3) manyHogs.push(`${team.abbreviation} (${fit.hogs.length})`);
-  if (fit.hogs.length === 0 && fit.weakside.length === 0) noResourceTraits.push(team.abbreviation);
+  if (fit.hogs.length === 0 && fit.weakside.length === 0 && fit.enablers.length === 0) noResourceTraits.push(team.abbreviation);
+  if (fit.hogs.length === 0) noHog.push(team.abbreviation);
+  if (fit.weakside.length === 0 && fit.enablers.length === 0) noLowResource.push(team.abbreviation);
   lines.push(`| ${team.abbreviation} (${team.region}) | ${ROLES.map(cell).join(" | ")} | ${[...fit.warnings.map((w) => `⚠ ${w}`), ...fit.notes].join("<br>")} |`);
 }
 lines.push(
   "",
   `Echipe cu ≥ 3 Resource Hog titulari (${manyHogs.length}): ${manyHogs.join(", ") || "—"}`,
   "",
-  `Echipe fără Resource Hog și fără Weakside Ready (${noResourceTraits.length}): ${noResourceTraits.join(", ") || "—"}`,
+  `Echipe fără niciun trait de resurse (${noResourceTraits.length}): ${noResourceTraits.join(", ") || "—"}`,
+  "",
+  `Echipe fără Resource Hog (${noHog.length}): ${noHog.join(", ") || "—"}`,
+  "",
+  `Echipe fără Weakside Ready și fără Enabler (${noLowResource.length}): ${noLowResource.join(", ") || "—"}`,
   "",
 );
 

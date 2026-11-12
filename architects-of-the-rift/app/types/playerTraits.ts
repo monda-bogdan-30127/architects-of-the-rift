@@ -2,9 +2,15 @@
 // Cel mult un trait pe familie și cel mult 3 în total. Un trait nu ascunde informație: schimbă cât contează
 // informația vizibilă (grade-uri, `resourceDemand`) pentru jucătorul respectiv.
 
-export const PLAYER_TRAIT_IDS = ["resource_hog", "weakside_ready"] as const; // se extinde pe familii
+import type { Role } from "./champion";
+
+export const PLAYER_TRAIT_IDS = [
+  // faza 1
+  "resource_hog", "weakside_ready", "enabler",
+  // fazele 2–4 se adaugă când se implementează
+] as const;
 export type PlayerTraitId = (typeof PLAYER_TRAIT_IDS)[number];
-export type PlayerTraitFamily = "resources" | "macro" | "draft" | "mental";
+export type PlayerTraitFamily = "resources" | "draft" | "macro" | "mental";
 
 export type PlayerTrait = {
   id: PlayerTraitId;
@@ -24,21 +30,40 @@ export const PLAYER_TRAIT_INFO: Record<
     description: string;
     /** Trait-uri care nu pot sta împreună. */
     excludes: PlayerTraitId[];
+    /** Rolurile pe care trait-ul poate exista (și manual, și derivat). Lipsă = toate. */
+    roles?: Role[];
   }
 > = {
   resource_hog: {
     family: "resources",
     label: "Resource Hog",
     description: "Wants gold, levels and jungle attention. Higher ceiling on carries, unhappy when starved.",
-    excludes: ["weakside_ready"],
+    excludes: ["weakside_ready", "enabler"],
+    roles: ["top", "jungle", "mid", "adc"],
   },
+  // „Weakside” e un concept de lane (partea pentru care junglerul nu joacă): doar top și botlane.
   weakside_ready: {
     family: "resources",
     label: "Weakside Ready",
-    description: "Plays well with few resources and no jungle help. Happy to enable others.",
+    description: "Holds his lane alone with few resources and no jungle help.",
     excludes: ["resource_hog"],
+    roles: ["top", "adc"],
+  },
+  // Un jungler / mid cu puține resurse face setup pentru alții: aceleași efecte de resurse, fără efectul de lane.
+  enabler: {
+    family: "resources",
+    label: "Enabler",
+    description: "Happy on low-resource picks that set up others: tanks, engage, utility.",
+    excludes: ["resource_hog"],
+    roles: ["jungle", "mid"],
   },
 };
+
+/** Trait-ul poate exista pe rol? */
+export const isTraitAllowedOnRole = (id: PlayerTraitId, role: Role) => !PLAYER_TRAIT_INFO[id].roles || PLAYER_TRAIT_INFO[id].roles!.includes(role);
+
+/** Trait-urile care se bucură de resurse puține (aceleași efecte de resurse în draft, simulare, Spirit). */
+export const LOW_RESOURCE_TRAITS: readonly PlayerTraitId[] = ["weakside_ready", "enabler"];
 
 /** Cel mult atâtea trait-uri pe jucător. */
 export const MAX_PLAYER_TRAITS = 3;

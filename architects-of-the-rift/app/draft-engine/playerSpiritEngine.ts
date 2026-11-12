@@ -11,7 +11,7 @@
 import type { Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
 import { championsById } from "@/app/data/champions";
-import { getTrait, hasTrait } from "@/app/utils/playerTraitUtils";
+import { getLowResourceTrait, getTrait, hasTrait } from "@/app/utils/playerTraitUtils";
 import { getResourceDemand } from "./championResource";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { getChampionGrade } from "@/app/utils/championMasteryUtils";
@@ -450,7 +450,7 @@ function applyTraitTriggers(
   isLoss: boolean,
 ): void {
   const hog = getTrait(player, "resource_hog");
-  const weakside = getTrait(player, "weakside_ready");
+  const weakside = getLowResourceTrait(player); // weakside_ready sau enabler
   const starvedRows = weaksideGames(rows);
   const carryRows = carryGames(rows);
 
@@ -464,7 +464,7 @@ function applyTraitTriggers(
   if (isWin && ((hog && carryRows.length >= TRAIT_GAMES_NEEDED) || (weakside && starvedRows.length >= TRAIT_GAMES_NEEDED))) {
     events.push(buildEvent(
       playerId, DELTA_PLAYSTYLE_FULFILLED, "playstyle_fulfilled",
-      hog ? "Won on carries: playstyle fulfilled" : "Won on weakside picks: playstyle fulfilled",
+      hog ? "Won on carries: playstyle fulfilled" : weakside?.id === "enabler" ? "Won enabling the team: playstyle fulfilled" : "Won on weakside picks: playstyle fulfilled",
       ctx.seriesId,
     ));
   }
