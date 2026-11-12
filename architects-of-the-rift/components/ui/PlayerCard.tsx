@@ -6,6 +6,7 @@ import type { Player } from "@/app/types/player";
 import { teams } from "@/app/data/teams";
 import { champions } from "@/app/data/champions";
 import { getPlayerStyleInfo } from "@/app/utils/playerStyleUtils";
+import { PLAYER_TRAIT_INFO, isActiveTrait } from "@/app/types/playerTraits";
 import PlayerCardTooltip from "@/components/ui/PlayerCardTooltip";
 
 type Props = {
@@ -226,9 +227,11 @@ export default function PlayerCard({
               alignContent: "flex-start",
             }}
           >
-            {styleInfo.tags.map((tag) => (
+            {/* PLAYER_TRAITS §3: trait-urile active în locul tag-urilor de playstyle. */}
+            {(player.traits ?? []).filter(isActiveTrait).map((trait) => (
               <span
-                key={tag}
+                key={trait.id}
+                title={PLAYER_TRAIT_INFO[trait.id].description}
                 className="player-card__tag button"
                 style={{
                   fontSize: 10,
@@ -240,7 +243,8 @@ export default function PlayerCard({
                   alignItems: "center",
                 }}
               >
-                {tag}
+                {PLAYER_TRAIT_INFO[trait.id].label}
+                {trait.intensity === 2 ? " ●" : ""}
               </span>
             ))}
           </div>

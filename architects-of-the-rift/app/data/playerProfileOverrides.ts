@@ -1,4 +1,5 @@
 import type { PlayerAdaptationProfile, PlayerArchetypeAffinity, PlayerPhaseProfile, PlayerStyleLabel } from "@/app/types/player";
+import type { PlayerTraitFamily, PlayerTraitId } from "@/app/types/playerTraits";
 
 // ─── PATCH: 3 câmpuri noi față de versiunea anterioară ───────────────────────
 // primaryStyle         → override intern al labelului primary (PlayerStyleLabel)
@@ -9,6 +10,10 @@ import type { PlayerAdaptationProfile, PlayerArchetypeAffinity, PlayerPhaseProfi
 // tagOverrides         → control manual asupra tagurilor după auto-derivare
 //                          add:    injectezi taguri specifice jucătorului
 //                          remove: elimini taguri corect calculate dar înșelătoare
+//                          (PLAYER_TRAITS: tag-urile nu se mai afișează; au rămas doar ca date istorice)
+// traits               → PLAYER_TRAITS: trait-uri manuale (au prioritate față de cele derivate din stats)
+// noDerivedTraits      → familiile pe care nu se derivă trait-uri (ex. ["resources"]: jucătorul nu primește
+//                          resource_hog / weakside_ready automat)
 type PlayerProfileOverride = {
   phaseProfile?: PlayerPhaseProfile;
   archetypeAffinity?: Partial<PlayerArchetypeAffinity>;
@@ -20,6 +25,8 @@ type PlayerProfileOverride = {
     add?: string[];
     remove?: string[];
   };
+  traits?: { id: PlayerTraitId; intensity?: 1 | 2 }[];
+  noDerivedTraits?: PlayerTraitFamily[];
 };
 
 export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {

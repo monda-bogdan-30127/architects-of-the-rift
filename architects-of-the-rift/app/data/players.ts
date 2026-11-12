@@ -15,6 +15,7 @@ import type { Role } from "../types/champion";
 import { calculateRosterPoints } from "../utils/playerUtils";
 import { playerProfileOverrides } from "./playerProfileOverrides";
 import { getPlayerStyleInfo } from "../utils/playerStyleUtils";
+import { resolvePlayerTraits } from "../utils/playerTraitUtils";
 
 const clamp = (value: number, min = 35, max = 99): number => Math.max(min, Math.min(max, Math.round(value)));
 const clampStat100 = (value: number): number => Math.max(10, Math.min(100, Math.round(value)));
@@ -355,7 +356,6 @@ const derivePlaystyleIdentity = (
     // after getPlayerStyleInfo is called. Never use these directly.
     displayPrimary: "",
     displaySecondary: "",
-    displayTags: [] as string[],
   };
 };
 
@@ -386,7 +386,7 @@ const createAdvancedProfile = (role: Role, seed: PlayerSeed, bestChampions: stri
 };
 
 const createPlayer = (
-  base: Omit<Player, "rosterPoints" | "comfortChampions" | "championPool" | "stats" | "advancedProfile" | "playstyleIdentity"> & {
+  base: Omit<Player, "rosterPoints" | "comfortChampions" | "championPool" | "stats" | "advancedProfile" | "playstyleIdentity" | "traits"> & {
     seed: PlayerSeed;
     comfortChampions?: string[];
     championPool?: string[];
@@ -422,7 +422,7 @@ const createPlayer = (
   const shellPlayer = {
     ...base,
     advancedProfile,
-    playstyleIdentity: { ...internalIdentity, displayPrimary: "", displaySecondary: "", displayTags: [] as string[] },
+    playstyleIdentity: { ...internalIdentity, displayPrimary: "", displaySecondary: "" },
     archetypeAffinity,
     adaptationProfile,
   } as unknown as Player;
@@ -433,8 +433,12 @@ const createPlayer = (
     ...internalIdentity,
     displayPrimary: styleInfo.primary,
     displaySecondary: styleInfo.secondary,
-    displayTags: styleInfo.tags,
   };
+  // PLAYER_TRAITS §1.3: manual din playerProfileOverrides, altfel derivate din stats.
+  const traits = resolvePlayerTraits(
+    { role: base.role, playstyle: advancedProfile.playstyle, hiddenTraits: advancedProfile.hiddenTraits },
+    overrides,
+  );
 
   return {
     id: base.id,
@@ -448,6 +452,7 @@ const createPlayer = (
     championPool,
     advancedProfile,
     playstyleIdentity,
+    traits,
     stats,
     rosterPoints: calculateRosterPoints(stats),
     sortOrder: base.sortOrder,

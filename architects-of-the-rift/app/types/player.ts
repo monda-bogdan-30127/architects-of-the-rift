@@ -1,4 +1,5 @@
 import type { Role } from "./champion";
+import type { PlayerTrait } from "./playerTraits";
 
 export type PlayerRating = number;
 
@@ -181,7 +182,6 @@ export type PlayerStyleIdentity = {
   //    and gameplay — do NOT recalculate via getPlayerStyleInfo at runtime) ───
   displayPrimary: string;
   displaySecondary: string;
-  displayTags: string[];
 };
 
 export type Player = {
@@ -194,6 +194,8 @@ export type Player = {
   stats: PlayerStats;
   advancedProfile: PlayerAdvancedProfile;
   playstyleIdentity: PlayerStyleIdentity;
+  /** PLAYER_TRAITS — cel mult 3, cel mult unul pe familie (manual din playerProfileOverrides, altfel derivate). */
+  traits: PlayerTrait[];
   bestChampions: string[];
   comfortChampions: string[];
   championPool: string[];

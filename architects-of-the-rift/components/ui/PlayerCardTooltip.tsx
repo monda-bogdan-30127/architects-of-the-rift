@@ -4,6 +4,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useIsClient } from "@/app/hooks/useClientStorage";
 import { createPortal } from "react-dom";
 import type { Player } from "@/app/types/player";
+import { PLAYER_TRAIT_INFO, isActiveTrait } from "@/app/types/playerTraits";
 
 type Props = {
   player: Player;
@@ -50,48 +51,15 @@ const STYLE_DESCRIPTIONS: Record<string, string> = {
   Splitpush:    "Prefers side lanes over teamfights. Creates pressure through the threat of splitting.",
 };
 
-// ─── Tag descriptions ─────────────────────────────────────────────────────────
-const TAG_DESCRIPTIONS: Record<string, string> = {
-  "Early Game":     "Strong in the first 15 minutes. Exerts early pressure and fades after enemy spikes.",
-  "Late Game":      "Becomes more dangerous every minute. The game is his at 30+ minutes.",
-  "Snowball":       "Exploits leads aggressively. Dangerous when ahead, less relevant when behind.",
-  "Volatile":       "High variance. Great days and bad days. Unpredictable.",
-  "Systematic":     "Disciplined, plays structured, does the right things repeatedly.",
-  "Stable":         "Consistent game to game. No big swings, reliable floor.",
-  "Flexible":       "Large pool, adapts to meta and draft, not one-dimensional.",
-  "Objective":      "Prioritizes Dragon/Baron/Herald over kill pressure.",
-  "Tempo":          "Creates windows of action through timing and fast rotations.",
-  "Invader":        "Pressure in enemy jungle. Contestes early, dominates first 10 minutes.",
-  "Dive":           "Gets under tower, targets enemy carries. Calculated or reckless risk.",
-  "Teamfight":      "Consistent output in full 5v5 fights. Positioning and sustained damage.",
-  "Scaling":        "Progressively stronger. Spike is gradual, peaks in late game.",
-  "Poke":           "Chip damage at range. Wears down before committing.",
-  "Aggressive":     "Combat constant. Does not accept passive farming.",
-  "High Risk":      "Big impact plays with potential for both success and failure.",
-  "Lane Dominant":  "Wins the lane in the majority of matchups.",
-  "Counterpick":    "Exploits favorable matchups. Pool built around counters.",
-  "Weakside":       "Functions without resources. Does not require team attention.",
-  "Priority Lane":  "Wins lane priority consistently, influences objectives.",
-  "Farm First":     "Indexes on farm over fights. Prefers to grow in peace.",
-  "Carry Focused":  "Builds the game around the carry. Prioritizes camps and lanes for gold.",
-  "Self-Sufficient":"Does not need setup or peel. Creates independently.",
-  "Vision":         "Dominant vision control. Structures the game through information.",
-  "Roaming":        "Leaves lane to create impact across the map.",
-  "Setup":          "Creates combos with teammates. Requires follow-up.",
-  "Peel":           "Protects carries. Anti-dive. Stays behind the front line.",
-  "Creative":       "Unorthodox solutions, unexpected plays, high adaptability.",
-  "Lane Pressure":  "Dominates laning phase alongside ADC. Not passive.",
-  "Utility":        "Full toolbox, value in all phases of the game.",
-  "Pathing":        "Reads and executes efficient rotations. Does not enter blind.",
-};
-
 export default function PlayerCardTooltip({ player, anchorRef, visible }: Props) {
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const mounted = useIsClient();
   const [position, setPosition] = useState<TooltipPosition>({ top: 0, left: 0 });
 
   const { seed } = player.advancedProfile;
-  const { displayPrimary, displaySecondary, displayTags } = player.playstyleIdentity;
+  const { displayPrimary, displaySecondary } = player.playstyleIdentity;
+  // PLAYER_TRAITS §3: trait-urile (doar familiile cu efecte implementate) în locul tag-urilor de playstyle.
+  const traits = (player.traits ?? []).filter(isActiveTrait);
 
   const primaryDesc  = STYLE_DESCRIPTIONS[displayPrimary]  ?? "A dominant playstyle that defines this player's approach to the game.";
   const secondaryDesc = STYLE_DESCRIPTIONS[displaySecondary] ?? "A complementary tendency that colours how this player operates.";
@@ -201,17 +169,18 @@ export default function PlayerCardTooltip({ player, anchorRef, visible }: Props)
 
       </div>
 
-      {/* Tags row */}
-      {displayTags.length > 0 && (
+      {/* Traits row */}
+      {traits.length > 0 && (
         <div style={colStyle}>
-          <SectionLabel>Tags</SectionLabel>
+          <SectionLabel>Traits</SectionLabel>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {displayTags.map((tag) => (
-              <div key={tag} style={{ fontSize: 12, lineHeight: 1.5, color: "var(--text-primary, rgba(255,255,255,0.9))" }}>
-                <span style={{ color: "var(--text-highlight, #e2b96a)", fontWeight: 600 }}>{tag}</span>
-                {TAG_DESCRIPTIONS[tag] ? (
-                  <span style={{ color: "var(--text-secondary, rgba(255,255,255,0.55))" }}> · {TAG_DESCRIPTIONS[tag]}</span>
+            {traits.map((trait) => (
+              <div key={trait.id} style={{ fontSize: 12, lineHeight: 1.5, color: "var(--text-primary, rgba(255,255,255,0.9))" }}>
+                <span style={{ color: "var(--text-highlight, #e2b96a)", fontWeight: 600 }}>{PLAYER_TRAIT_INFO[trait.id].label}</span>
+                {trait.intensity === 2 ? (
+                  <span style={{ color: "var(--text-highlight, #e2b96a)", fontSize: 10, fontWeight: 700, marginLeft: 6 }}>STRONG</span>
                 ) : null}
+                <span style={{ color: "var(--text-secondary, rgba(255,255,255,0.55))" }}> · {PLAYER_TRAIT_INFO[trait.id].description}</span>
               </div>
             ))}
           </div>

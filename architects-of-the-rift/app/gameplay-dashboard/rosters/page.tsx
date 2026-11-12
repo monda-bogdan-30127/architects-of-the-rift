@@ -8,6 +8,8 @@ import { players } from "@/app/data/players";
 import { teams } from "@/app/data/teams";
 import type { Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
+import { PLAYER_TRAIT_INFO, isActiveTrait } from "@/app/types/playerTraits";
+import { computeTeamFit } from "@/app/utils/playerTraitUtils";
 import useBackRedirect from "@/app/hooks/useBrowserBackRedirect";
 import { getRegisteredChampionById } from "@/app/draft-engine/championRegistry";
 import {
@@ -643,12 +645,12 @@ function PlayerCard({
 
   const playstylePrimary = player?.playstyleIdentity?.displayPrimary?.toUpperCase() ?? "";
   const playstyleSecondary = player?.playstyleIdentity?.displaySecondary?.toUpperCase() ?? "";
-  const playstyleTags = player?.playstyleIdentity?.displayTags ?? [];
+  // PLAYER_TRAITS §3: trait-urile (familiile cu efecte implementate) în locul tag-urilor de playstyle.
+  const playerTraits = (player?.traits ?? []).filter(isActiveTrait);
 
   const playstyleLine = [playstylePrimary, playstyleSecondary]
     .filter(Boolean)
     .join(" - ");
-  const tagsLine = playstyleTags.map((t) => t.toUpperCase()).join(", ");
 
   const [selectedTab, setActiveTab] = useState<PlayerTab>("stats");
   const [masterySort, setMasterySort] = useState<MasterySort>("grade");
@@ -741,7 +743,7 @@ function PlayerCard({
             </p>
           ) : null}
 
-          {tagsLine ? (
+          {playerTraits.length > 0 ? (
             <p
               className="uppercase text-[var(--text-secondary)]"
               style={{
@@ -752,7 +754,13 @@ function PlayerCard({
                 textAlign: "center",
               }}
             >
-              {tagsLine}
+              {playerTraits.map((trait, index) => (
+                <span key={trait.id} title={PLAYER_TRAIT_INFO[trait.id].description} style={{ cursor: "help" }}>
+                  {index > 0 ? ", " : ""}
+                  {PLAYER_TRAIT_INFO[trait.id].label}
+                  {trait.intensity === 2 ? <span className="text-[var(--text-highlight)]"> (Strong)</span> : null}
+                </span>
+              ))}
             </p>
           ) : null}
 
@@ -915,6 +923,33 @@ function PlayerCard({
         </div>
       </div>
     </section>
+  );
+}
+
+/** PLAYER_TRAITS §2 — câți jucători vor resurse, plus avertismentele / notele Team Fit. */
+function TeamFitBlock({ slots }: { slots: TeamRosterSlot[] }) {
+  const roster: Partial<Record<Role, string>> = {};
+  for (const slot of slots) if (slot.player) roster[slot.role] = slot.player.id;
+  const fit = computeTeamFit(roster);
+  return (
+    <div
+      className="flex flex-col items-center gap-[4px] rounded-[12px] bg-[var(--bg-surface)]"
+      style={{ padding: "10px 16px" }}
+    >
+      <p
+        className="uppercase text-[var(--text-secondary)]"
+        style={{ fontSize: 12, lineHeight: "16px", fontWeight: 600, letterSpacing: "0.04em" }}
+        title="How the players' resource traits fit together"
+      >
+        Team Fit · {fit.hogs.length} Resource {fit.hogs.length === 1 ? "Hog" : "Hogs"}
+      </p>
+      {fit.warnings.map((warning) => (
+        <p key={warning} className="body-small text-center text-[var(--warning)]">{warning}</p>
+      ))}
+      {fit.notes.map((note) => (
+        <p key={note} className="body-small text-center text-[var(--text-secondary)]">{note}</p>
+      ))}
+    </div>
   );
 }
 
@@ -1191,6 +1226,9 @@ export default function RostersPage() {
                     selectedRole={selectedRole}
                     onSelect={setSelectedRole}
                   />
+
+                  {/* PLAYER_TRAITS §2: Team Fit (cum se potrivesc trait-urile celor 5) */}
+                  <TeamFitBlock slots={currentGroup.slots} />
 
                   {/* Player card */}
                   <PlayerCard

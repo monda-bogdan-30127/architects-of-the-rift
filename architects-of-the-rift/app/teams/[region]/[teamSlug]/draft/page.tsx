@@ -13,6 +13,15 @@ import type { Role } from "@/app/types/champion";
 import type { ChampionMasteryGrade } from "@/app/types/championMastery";
 import { getChampionGrade } from "@/app/utils/championMasteryUtils";
 import useBackRedirect from "@/app/hooks/useBrowserBackRedirect";
+import { PLAYER_TRAIT_INFO, isActiveTrait } from "@/app/types/playerTraits";
+
+/** „Resource Hog (Strong), …”: trait-urile active ale jucătorului, pe un rând. */
+function formatTraitLine(player: Player): string {
+  return (player.traits ?? [])
+    .filter(isActiveTrait)
+    .map((trait) => `${PLAYER_TRAIT_INFO[trait.id].label}${trait.intensity === 2 ? " (Strong)" : ""}`)
+    .join(", ");
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -198,7 +207,8 @@ function ChampionMasteryPopup({
     .filter(Boolean)
     .join(" - ");
 
-  const tagsLine = (player.playstyleIdentity?.displayTags ?? []).join(", ");
+  // PLAYER_TRAITS §3: trait-urile (familiile cu efecte implementate) în locul tag-urilor de playstyle.
+  const tagsLine = formatTraitLine(player);
 
   if (typeof document === "undefined") return null;
 
@@ -808,9 +818,12 @@ export default function DraftPage() {
                       : ""}
                   </span>
 
-                  {hoveredPlayer.playstyleIdentity.displayTags.length > 0 && (
-                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>
-                      {hoveredPlayer.playstyleIdentity.displayTags.join(", ")}
+                  {formatTraitLine(hoveredPlayer) && (
+                    <span
+                      style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}
+                      title={(hoveredPlayer.traits ?? []).filter(isActiveTrait).map((trait) => `${PLAYER_TRAIT_INFO[trait.id].label}: ${PLAYER_TRAIT_INFO[trait.id].description}`).join("\n")}
+                    >
+                      {formatTraitLine(hoveredPlayer)}
                     </span>
                   )}
                 </div>
