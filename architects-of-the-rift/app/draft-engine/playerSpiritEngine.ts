@@ -11,7 +11,7 @@
 import type { Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
 import { championsById } from "@/app/data/champions";
-import { getLowResourceTrait, getTrait, hasTrait } from "@/app/utils/playerTraitUtils";
+import { getActiveTrait, getLowResourceTrait, getTrait, hasTrait } from "@/app/utils/playerTraitUtils";
 import { getResourceDemand } from "./championResource";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { getChampionGrade } from "@/app/utils/championMasteryUtils";
@@ -486,6 +486,16 @@ function applyTraitTriggers(
   }
 }
 
+/** signature_player: pool_pressure și off_comfort × signatureSpiritScale (înainte de composure / volatility). */
+function applySignatureScaling(events: SpiritEvent[], player: Player): void {
+  if (!getActiveTrait(player, "signature_player")) return;
+  for (const event of events) {
+    if (event.reason === "pool_pressure" || event.reason === "off_comfort") {
+      event.delta = Math.round(event.delta * DRAFT_THINKING_CONFIG.traits.signatureSpiritScale);
+    }
+  }
+}
+
 // ─── Trigger: cross-series off-comfort streak ───────────────────────────────
 
 function updateOffComfortStreakAndApply(
@@ -827,6 +837,9 @@ export function computeSeriesSpiritDeltas(
       prevStreaks, isWin, isLoss, newOffComfort,
     );
     applyStreakBonus(events, playerId, newStreaks.seriesWins, newStreaks.seriesLosses, ctx.seriesId);
+
+    // PLAYER_TRAITS §7.4: un signature_player resimte mai tare presiunea pe pool și campionii off-comfort.
+    applySignatureScaling(events, player);
 
     // Apply hidden-trait multiplier AFTER all triggers have produced raw
     // events but BEFORE the cap (so the cap evaluates personality-adjusted

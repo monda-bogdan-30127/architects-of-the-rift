@@ -139,6 +139,13 @@ export const MAX_TRAITS_PER_FAMILY = 2;
  * §3 — se afișează (și au efect) doar trait-urile din familiile cu efecte implementate. Trait-urile celorlalte familii
  * se derivă și se păstrează pe jucător (pentru inventar), dar nu se văd și nu au efect.
  */
-export const ACTIVE_TRAIT_FAMILIES: readonly PlayerTraitFamily[] = ["resources"];
+export const ACTIVE_TRAIT_FAMILIES: readonly PlayerTraitFamily[] = ["resources", "draft"];
 
-export const isActiveTrait = (trait: PlayerTrait) => ACTIVE_TRAIT_FAMILIES.includes(PLAYER_TRAIT_INFO[trait.id].family);
+/**
+ * Trait-uri dintr-o familie activă ale căror efecte vin într-un commit ulterior (faza 2, commit 7): până atunci nu se
+ * afișează și nu au efect, ca să nu repetăm etichetele fără efect.
+ */
+export const PENDING_TRAITS: readonly PlayerTraitId[] = ["needs_setup", "self_sufficient", "series_adapter", "fast_starter"];
+
+export const isActiveTraitId = (id: PlayerTraitId) => ACTIVE_TRAIT_FAMILIES.includes(PLAYER_TRAIT_INFO[id].family) && !PENDING_TRAITS.includes(id);
+export const isActiveTrait = (trait: PlayerTrait) => isActiveTraitId(trait.id);

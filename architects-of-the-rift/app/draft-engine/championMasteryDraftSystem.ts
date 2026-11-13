@@ -19,6 +19,8 @@ import {
 import type { ChampionMasteryGrade } from "@/app/types/championMastery";
 import type { Side, DraftGameState } from "./draftTypes";
 import { getMetaPriorityScore } from "./draftEvaluator";
+import { getActiveTrait } from "@/app/utils/playerTraitUtils";
+import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -322,7 +324,12 @@ export function applyMasteryToFit(
   if (!player || !championId) return baseFit;
   const grade = getChampionGrade(player, championId);
   if (grade === "F") return baseFit * 0.3;
-  return clamp(baseFit * getMasteryMultiplier(grade), 0, 10);
+  // PLAYER_TRAITS §7.4: signature_player — SS/S cresc mai mult, C/D scad mai mult (distanța față de 1 amplificată).
+  const signature = getActiveTrait(player, "signature_player");
+  const multiplier = signature
+    ? 1 + (getMasteryMultiplier(grade) - 1) * (1 + DRAFT_THINKING_CONFIG.traits.signatureMasteryScale * signature.intensity)
+    : getMasteryMultiplier(grade);
+  return clamp(baseFit * multiplier, 0, 10);
 }
 
 /**

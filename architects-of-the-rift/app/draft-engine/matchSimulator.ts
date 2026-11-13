@@ -22,6 +22,7 @@ import { computeTendencyEvents } from "./tendencyEventSystem";
 import { computeTeamChemistry, getPlayerPersonalityModifiers } from "./personalitySystem";
 import { evaluateTeamfight } from "./teamfightSystem";
 import { getResourceConflictExcess } from "./championResource";
+import { getLaneOrder } from "./laneOrder";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { getChampionRoleProfile } from "./championProfileSystem";
 import { evaluateLanePhase } from "./laneEvaluator";
@@ -964,6 +965,11 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     redRoster,
     assignmentsBlue,
     assignmentsRed,
+    // PLAYER_TRAITS §7.3: cine a ales primul pe fiecare lane, din secvența de pick-uri a jocului.
+    laneOrder: {
+      blue: getLaneOrder(input.game, "blue", { blue: assignmentsBlue, red: assignmentsRed }),
+      red: getLaneOrder(input.game, "red", { blue: assignmentsBlue, red: assignmentsRed }),
+    },
   });
 
   // UPGRADE 13: Jungle pathing events — discrete ganks modify lane scores

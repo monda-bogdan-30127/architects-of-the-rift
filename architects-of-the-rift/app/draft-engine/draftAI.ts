@@ -100,7 +100,7 @@ import { getLookaheadValue, getScarcity, getWaitPenalty, isScarcePoolChampion } 
 import { getComboPartners, getGamesRemainingPossible, getPairFactor, isPartnerOnlyBannedThisGame } from "./pairPriority";
 import { contextualNeedLabel, evaluateContextualNeedStatuses, getContextualNeedFill } from "./contextualNeeds";
 import { describeResourceConflict, getHighDemandPicks, getResourceDemand } from "./championResource";
-import { getLowResourceTrait, getTrait } from "@/app/utils/playerTraitUtils";
+import { getActiveTrait, getLowResourceTrait, getTrait } from "@/app/utils/playerTraitUtils";
 import type { PriorityValue } from "./priorityValue";
 import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
@@ -985,6 +985,8 @@ export function scorePickCandidate(
   const contextualFill = getContextualNeedFill(evaluateContextualNeedStatuses(ownState.picks, enemyState.picks), candidate);
   // COMP_ATTRIBUTES_EXPANSION §2.2 — resurse: prea multe carry-uri care vor gold, focusul pe bot / în altă parte.
   const resourceEffect = getResourcePickEffect(candidate, projected.projectedRole, ctx);
+  // PLAYER_TRAITS §7.4 — ordinea de pick pe lane: rolul unui counter-picker se lasă pentru mai târziu.
+  const laneOrderEffect = getLaneOrderPickEffect(projected.projectedRole, ctx);
   const counterResult = getCounterValueScore({
     enemyPicks: enemyState.picks,
     candidate,
@@ -1281,6 +1283,7 @@ export function scorePickCandidate(
       flexBonus +
       roleCoverage +
       counterpickPreservationBonus +
+      laneOrderEffect.bonus +        // PLAYER_TRAITS §7.4: counter_specialist / blind_safe
       sideAware +
       flexAmbiguity +
       userRoleBias -
@@ -1317,6 +1320,7 @@ export function scorePickCandidate(
     ...(seasonPunish ? [describeSeasonCounter(seasonPunish.championId, seasonPunish.wins, seasonPunish.games)] : []),
     ...(losingLanes.line ? [losingLanes.line] : []),
     ...resourceEffect.lines,
+    ...laneOrderEffect.lines,
     ...(contextualFill.answered
       ? [`${candidate.name} answers ${contextualFill.answered.subject} (${contextualNeedLabel(contextualFill.answered)})`]
       : []),
@@ -1384,6 +1388,7 @@ export function scorePickCandidate(
       ...(losingLanes.tag ? [losingLanes.tag] : []),
       ...(contextualFill.answered ? ["contextual-need"] : []),
       ...resourceEffect.tags,
+      ...laneOrderEffect.tags,
       ...(masteryGate.blocked ? ["mastery-f"] : []),
       ...(masteryGate.soft ? ["mastery-d"] : []),
       ...(badSynergies.length ? ["bad-synergy"] : []),
@@ -1571,7 +1576,8 @@ function getAiSignatureBanBonus(
     const player = playersById.get(playerId);
     if (!player) continue;
 
-    if (player.bestChampions?.includes(candidate.id)) bonus += 2.8;
+    // PLAYER_TRAITS §7.4: un signature_player e lovit mai tare de banul pe campionii lui de bază.
+    if (player.bestChampions?.includes(candidate.id)) bonus += 2.8 * (getActiveTrait(player, "signature_player") ? DRAFT_THINKING_CONFIG.traits.signatureBanScale : 1);
     else if (player.comfortChampions?.includes(candidate.id)) bonus += 1.5;
     else if (player.championPool?.includes(candidate.id)) bonus += 0.65;
   }
@@ -2083,6 +2089,32 @@ function getResourcePickEffect(candidate: Champion, role: Role | null, ctx: Draf
   } else if (ctx.botFocus === "elsewhere" && bot) {
     if (high) result.bonus -= ATTRS.focusCarryPenalty;
     else if (weakside) result.bonus += ATTRS.focusWeaksideBonus;
+  }
+  return result;
+}
+
+/**
+ * PLAYER_TRAITS §7.4 — trait-ul de ordine de pick al jucătorului de pe rolul proiectat:
+ *   counter_specialist, cât adversarul n-a ales pe rolul lui: − counterHoldPenalty × intensity (îl lăsăm pentru counter);
+ *   blind_safe, la primele pick-uri ale echipei: + blindSafeEarlyBonus × intensity.
+ */
+function getLaneOrderPickEffect(role: Role | null, ctx: DraftContext) {
+  const T = DRAFT_THINKING_CONFIG.traits;
+  const result = { bonus: 0, lines: [] as string[], tags: [] as string[] };
+  if (!role) return result;
+  const playerId = ctx.own.roster[role];
+  const player = playerId ? playersById.get(playerId) : undefined;
+  const counter = getActiveTrait(player, "counter_specialist");
+  const blindSafe = getActiveTrait(player, "blind_safe");
+  if (player && counter && !ctx.enemy.assignments[role]) {
+    result.bonus -= T.counterHoldPenalty * counter.intensity;
+    result.lines.push(`Keeping ${role} for last: ${player.name} counter-picks`);
+    result.tags.push("trait-hold-counter");
+  }
+  if (player && blindSafe && ctx.own.picks.length < T.blindSafeEarlyPicks) {
+    result.bonus += T.blindSafeEarlyBonus * blindSafe.intensity;
+    result.lines.push(`${player.name} is safe to blind-pick ${role}`);
+    result.tags.push("trait-blind-safe");
   }
   return result;
 }

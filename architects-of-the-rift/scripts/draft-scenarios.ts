@@ -58,6 +58,8 @@ import { computeSeriesMvp, type SeriesGameSummary } from "@/app/draft-engine/mvp
 import { evaluateContextualNeedStatuses, getContextualNeeds, setContextualNeedsOverride } from "@/app/draft-engine/contextualNeeds";
 import type { ChampionOffer, ResourceDemand } from "@/app/types/champion";
 import { evaluateTeamfight } from "@/app/draft-engine/teamfightSystem";
+import { evaluateLanePhase } from "@/app/draft-engine/laneEvaluator";
+import { applyMasteryToFit } from "@/app/draft-engine/championMasteryDraftSystem";
 import type { PlayerTrait } from "@/app/types/playerTraits";
 import { computeSeriesSpiritDeltas } from "@/app/draft-engine/playerSpiritEngine";
 import { getPlayerPersonalityModifiers } from "@/app/draft-engine/personalitySystem";
@@ -1925,6 +1927,71 @@ function withTestData<T>(
       greed([]) < 0 && greed(enabler) === 0 && Boolean(fulfilled),
     `${jungler.name}: comp Sejuani ${(plain.buckets?.comp ?? 0).toFixed(2)} → ${(withTrait.buckets?.comp ?? 0).toFixed(2)} „${withTrait.explanation?.find((line) => line.includes("enable")) ?? "—"}”; greed ${greedyJungler.name}: ${greed([])} → ${greed(enabler)}; Spirit: ${fulfilled ? `+${fulfilled.delta} „${fulfilled.details}”` : "—"}`,
   );
+}
+
+// ─── PLAYER_TRAITS §7.6: Draft & Series, partea de draft și lane ─────────────
+{
+  const save = makeSave();
+  const trait = (id: PlayerTrait["id"], intensity: 1 | 2 = 1): PlayerTrait[] => [{ id, intensity, source: "manual" }];
+
+  // Q1. Top counter_specialist, adversarul n-a ales pe top → candidatul de top e depunctat (îl lăsăm pentru counter).
+  {
+    const series = newSeries("q1", BLUE, RED);
+    const topId = save.updatedTeamRosters[RED]!.top!;
+    const game: DraftGameState = { ...series.games[0], bansBlue: ["azir", "jayce", "orianna"], bansRed: ["ksante", "vi", "syndra"], picksBlue: ["ahri"], phaseIndex: 7 };
+    const ornn = champions.find((c) => c.id === "ornn")!;
+    const plain = withTestData({ traits: { [topId]: [] } }, () => scoreDraftCandidate(ornn, getCurrentStep(game)!, game, series, save));
+    const held = withTestData({ traits: { [topId]: trait("counter_specialist") } }, () => scoreDraftCandidate(ornn, getCurrentStep(game)!, game, series, save));
+    check(
+      "Q1. Top counter_specialist, top-ul lor încă liber → Ornn top depunctat („Keeping top for last”)",
+      hasTag(held, "trait-hold-counter") && held.totalScore < plain.totalScore,
+      `${playersById.get(topId)?.name}: Ornn ${plain.totalScore.toFixed(2)} → ${held.totalScore.toFixed(2)}; „${held.explanation?.find((line) => line.startsWith("Keeping")) ?? "—"}”`,
+    );
+  }
+
+  // Q2–Q3. Același matchup: counter_specialist pe counter > pe blind; lane_dominator / matchup_resilient ajustează matchup-ul.
+  {
+    const rosters = { blue: save.updatedTeamRosters[BLUE]!, red: save.updatedTeamRosters[RED]! };
+    const assignmentsBlue = { top: "jayce", jungle: "lee-sin", mid: "ahri", adc: "ezreal", support: "rell" };
+    const assignmentsRed = { top: "ornn", jungle: "sejuani", mid: "azir", adc: "kalista", support: "nautilus" };
+    const topId = rosters.blue.top!;
+    const lane = (traits: PlayerTrait[], order: "blind" | "counter") =>
+      withTestData({ traits: { [topId]: traits } }, () =>
+        evaluateLanePhase({ blueRoster: rosters.blue, redRoster: rosters.red, assignmentsBlue, assignmentsRed, laneOrder: { blue: { top: order }, red: { top: order === "blind" ? "counter" : "blind" } } }).roles.find((entry) => entry.role === "top")!);
+    const none = lane([], "counter");
+    const counterOnCounter = lane(trait("counter_specialist"), "counter");
+    const counterOnBlind = lane(trait("counter_specialist"), "blind");
+    const matchup = getMatchupValue("jayce", "top", "ornn", "top", { phase: "early" });
+    check(
+      "Q2. Același matchup: counter_specialist pe counter are scor de lane mai mare decât pe blind",
+      counterOnCounter.blueScore > counterOnBlind.blueScore && counterOnBlind.blueScore < none.blueScore,
+      `Jayce vs Ornn (matchup ${matchup.toFixed(2)}): fără trait ${none.blueScore}, counter ${counterOnCounter.blueScore} („${counterOnCounter.note}”), blind ${counterOnBlind.blueScore} („${counterOnBlind.note}”)`,
+    );
+    const dominator = lane(trait("lane_dominator"), "counter");
+    const resilient = lane(trait("matchup_resilient"), "counter");
+    const won = matchup > 0;
+    check(
+      "Q3. lane_dominator crește un matchup câștigat; matchup_resilient nu schimbă unul câștigat (doar pe cele pierdute)",
+      won ? dominator.blueScore >= none.blueScore && resilient.blueScore === none.blueScore : dominator.blueScore === none.blueScore && resilient.blueScore >= none.blueScore,
+      `matchup ${matchup.toFixed(2)}: fără ${none.blueScore}, dominator ${dominator.blueScore}, resilient ${resilient.blueScore}`,
+    );
+  }
+
+  // Q4. signature_player: fit mai mare pe SS, mai mic pe C, decât fără trait.
+  {
+    const player = players.find((entry) => {
+      const grades = entry.championPool.map((id) => getChampionGrade(entry, id));
+      return grades.includes("SS") && champions.some((c) => getChampionGrade(entry, c.id) === "C");
+    })!;
+    const ss = player.championPool.find((id) => getChampionGrade(player, id) === "SS")!;
+    const c = champions.find((champion) => getChampionGrade(player, champion.id) === "C")!.id;
+    const fit = (traits: PlayerTrait[], championId: string) => withTestData({ traits: { [player.id]: traits } }, () => applyMasteryToFit(player, championId, 6));
+    check(
+      "Q4. signature_player: fit mai mare pe SS și mai mic pe C decât fără trait",
+      fit(trait("signature_player"), ss) > fit([], ss) && fit(trait("signature_player"), c) < fit([], c),
+      `${player.name}: ${ss} (SS) ${fit([], ss).toFixed(2)} → ${fit(trait("signature_player"), ss).toFixed(2)}; ${c} (C) ${fit([], c).toFixed(2)} → ${fit(trait("signature_player"), c).toFixed(2)}`,
+    );
+  }
 }
 
 // ─── Raport ──────────────────────────────────────────────────────────────────

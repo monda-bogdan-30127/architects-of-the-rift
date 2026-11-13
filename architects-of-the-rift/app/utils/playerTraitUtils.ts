@@ -16,6 +16,7 @@ import {
   MAX_PLAYER_TRAITS,
   MAX_TRAITS_PER_FAMILY,
   PLAYER_TRAIT_INFO,
+  isActiveTraitId,
   isTraitAllowedOnRole,
   type PlayerTrait,
   type PlayerTraitFamily,
@@ -408,7 +409,8 @@ export function computeTeamFit(
       const player = roster[role] ? find(roster[role]!) : undefined;
       return player ? [{ role, player }] : [];
     });
-    const withTrait = (id: PlayerTraitId) => members.filter((entry) => hasTrait(entry.player, id));
+    const withTrait = (id: PlayerTraitId) =>
+      options.includeInactive || isActiveTraitId(id) ? members.filter((entry) => hasTrait(entry.player, id)) : [];
     if (withTrait("counter_specialist").length >= 2) fit.warnings.push("Two counter-pickers: one of them will have to blind");
     const setupCarries = withTrait("needs_setup");
     if (setupCarries.length >= 2) fit.warnings.push("Two carries need setup: hard to draft for both");
@@ -430,12 +432,29 @@ export function computeTeamFit(
 
 export type TraitTone = "good" | "bad" | "neutral";
 
-/** Cum se potrivește trait-ul cu un campion de cererea dată (resource_hog: ≥ 4 verde, ≤ 2 roșu; low-resource: ≤ 2 verde). */
-export function getTraitTone(id: PlayerTraitId, demand: number | null): TraitTone {
-  if (demand === null) return "neutral";
+export type TraitToneContext = {
+  /** resourceDemand al campionului din slot (null = niciun campion). */
+  demand: number | null;
+  /** Grade-ul jucătorului pe campion (signature_player). */
+  grade?: ChampionMasteryGrade | null;
+  /** Ordinea pe lane: „counter” = adversarul a ales deja pe rolul lui, „blind” = alege primul. */
+  order?: "blind" | "counter";
+};
+
+/**
+ * §3 / §7.4 — culoarea trait-ului pe draftul de campioni:
+ *   resource_hog: cerere ≥ 4 verde, ≤ 2 roșu; weakside_ready / enabler: cerere ≤ 2 verde;
+ *   counter_specialist: verde pe counter, roșu pe blind; blind_safe: verde pe blind;
+ *   signature_player: verde pe SS / S, roșu pe C / D / F.
+ */
+export function getTraitTone(id: PlayerTraitId, context: TraitToneContext): TraitTone {
+  const { demand, grade, order } = context;
   const { highDemandMin, weaksideMax } = DRAFT_THINKING_CONFIG.attributes;
-  if (id === "resource_hog") return demand >= highDemandMin ? "good" : demand <= weaksideMax ? "bad" : "neutral";
-  if (LOW_RESOURCE_TRAITS.includes(id)) return demand <= weaksideMax ? "good" : "neutral";
+  if (id === "resource_hog") return demand === null ? "neutral" : demand >= highDemandMin ? "good" : demand <= weaksideMax ? "bad" : "neutral";
+  if (LOW_RESOURCE_TRAITS.includes(id)) return demand !== null && demand <= weaksideMax ? "good" : "neutral";
+  if (id === "counter_specialist") return order === "counter" ? "good" : order === "blind" ? "bad" : "neutral";
+  if (id === "blind_safe") return order === "blind" ? "good" : "neutral";
+  if (id === "signature_player" && grade) return grade === "SS" || grade === "S" ? "good" : grade === "C" || grade === "D" || grade === "F" ? "bad" : "neutral";
   return "neutral";
 }
 
@@ -453,3 +472,7 @@ export function getCommsInfo(player: Pick<Player, "advancedProfile">): { level: 
   const level: CommsLevel = communication >= 75 ? "Elite" : communication >= 60 ? "Good" : communication >= 45 ? "Average" : "Poor";
   return { level, leader: leadership >= LEADER_THRESHOLD };
 }
+
+/** Trait-ul jucătorului, doar dacă e activ (familie activă, efecte implementate). */
+export const getActiveTrait = (player: Pick<Player, "traits"> | null | undefined, id: PlayerTraitId) =>
+  isActiveTraitId(id) ? getTrait(player, id) : null;

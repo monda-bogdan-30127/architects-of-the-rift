@@ -456,5 +456,29 @@ export const DRAFT_THINKING_CONFIG = {
     winConditionHogTieEnabled: true,
     /** §4.3 — valoarea continuă de departajare: ofertele identității sau carry potential (damage + scaling). */
     winConditionTieValue: "carryPotential" as "identityOffers" | "carryPotential",
+
+    // ─── Faza 2 (§7.4): ordinea de pick, signature, matchup ───────────────────
+    /** Draft: rolul unui counter_specialist, cât adversarul n-a ales pe el: − atât × intensity (îl lăsăm pentru mai târziu). */
+    counterHoldPenalty: 0.5,
+    /** Draft: rolul unui blind_safe la primele pick-uri ale echipei: + atât × intensity. */
+    blindSafeEarlyBonus: 0.3,
+    blindSafeEarlyPicks: 2,
+    /** Lane: counter_specialist pe counter, termenul de matchup pozitiv × (1 + atât × intensity). */
+    counterLaneBoost: 0.25,
+    /** Lane: counter_specialist pe blind, − atât la scorul de lane. */
+    counterBlindPenalty: 0.3,
+    /** Lane: blind_safe pe blind, termenul de matchup negativ × (1 − atât × intensity). */
+    blindSafeShield: 0.2,
+    /** Lane: matchup_resilient, termenul negativ × (1 − atât × intensity); nu se cumulează cu blind_safe (cea mai mare reducere). */
+    resilientShield: 0.4,
+    /** Lane: lane_dominator, termenul pozitiv × (1 + atât × intensity); cu counter_specialist, multiplicatorul total ≤ cap. */
+    dominatorBoost: 0.25,
+    matchupBoostCap: 1.5,
+    /** Mastery: signature_player, distanța multiplicatorului față de 1 × (1 + atât × intensity). */
+    signatureMasteryScale: 0.25,
+    /** Ban AI: bonusul pe bestChampions ale unui signature_player × atât. */
+    signatureBanScale: 1.3,
+    /** Spirit: pool_pressure și off_comfort × atât pentru un signature_player. */
+    signatureSpiritScale: 1.5,
   },
 } as const;

@@ -35,6 +35,7 @@ import { getSeasonFavorites } from "@/app/draft-engine/seasonThreatSystem";
 import { getResourceDemand } from "@/app/draft-engine/championResource";
 import { PLAYER_TRAIT_INFO, isActiveTrait } from "@/app/types/playerTraits";
 import { getTraitTone } from "@/app/utils/playerTraitUtils";
+import { getLaneOrder, type LaneOrder } from "@/app/draft-engine/laneOrder";
 
 const CHAMPION_CARD_SIZE = 86;
 const CHAMPION_CARD_GAP = 5;
@@ -602,6 +603,8 @@ export default function DraftPage() {
           team={blueTeam}
           score={blueWins}
           assignments={previewAssignmentsBlue}
+          enemyAssignments={previewAssignmentsRed}
+          laneOrder={getLaneOrder(currentGame, "blue", { blue: previewAssignmentsBlue, red: previewAssignmentsRed })}
           showSwap={canSwapRoles && userSide === "blue"}
           openSwapRole={userSide === "blue" ? openSwapRole : null}
           onSwapToggle={handleSwapMenuToggle}
@@ -799,6 +802,8 @@ export default function DraftPage() {
           team={redTeam}
           score={redWins}
           assignments={previewAssignmentsRed}
+          enemyAssignments={previewAssignmentsBlue}
+          laneOrder={getLaneOrder(currentGame, "red", { blue: previewAssignmentsBlue, red: previewAssignmentsRed })}
           showSwap={canSwapRoles && userSide === "red"}
           openSwapRole={userSide === "red" ? openSwapRole : null}
           onSwapToggle={handleSwapMenuToggle}
@@ -897,7 +902,7 @@ function SidebarPanel({
   side, team, score, assignments, showSwap, openSwapRole,
   onSwapToggle, onSwapSelect, swapMenuContainerRef,
   lockedChampionIds, roster, currentStep, isUserTurn, alignRight = false, showMasteryWarnings = false,
-  identity, attributes, onChampionHover, onChampionHoverEnd, traitPreview = null,
+  identity, attributes, onChampionHover, onChampionHoverEnd, traitPreview = null, enemyAssignments, laneOrder,
 }: {
   side: Side;
   team: { name: string; abbreviation: string; logo: string; slug?: string };
@@ -922,6 +927,9 @@ function SidebarPanel({
   onChampionHoverEnd: () => void;
   /** PLAYER_TRAITS §1.5 — campionul din hover, pe rolul proiectat: preview-ul culorii trait-urilor. */
   traitPreview?: { role: Role; championId: string } | null;
+  /** PLAYER_TRAITS §7.4 — asignările adversarului și ordinea pe lane (culoarea counter / blind). */
+  enemyAssignments?: Partial<Record<Role, string>>;
+  laneOrder?: LaneOrder;
 }) {
   const swapButtonRefs = useRef<Partial<Record<Role, HTMLButtonElement | null>>>({});
   // Poziția e legată de rolul pentru care a fost măsurată: la închidere sau la
@@ -1149,8 +1157,11 @@ function SidebarPanel({
                       if (!traits.length) return null;
                       const colorChampionId = championId ?? (traitPreview?.role === role ? traitPreview.championId : null);
                       const demand = colorChampionId ? getResourceDemand(colorChampionId, role) : null;
+                      const grade = colorChampionId && player ? getChampionGrade(player, colorChampionId) : null;
+                      // Ordinea pe lane: rol deja ocupat la ei → din secvența de pick-uri; altfel, dacă au ales deja pe rol.
+                      const order = laneOrder?.[role] ?? (enemyAssignments?.[role] ? "counter" : "blind");
                       return traits.map((trait) => {
-                        const tone = getTraitTone(trait.id, demand);
+                        const tone = getTraitTone(trait.id, { demand, grade, order });
                         return (
                           <span
                             key={trait.id}

@@ -18,6 +18,9 @@ import {
 } from "./matchSimulationUtils";
 import { getHistoryAdjustedLaneBonus } from "./playerHistoryEvaluator";
 import { getChampionStatsForRole } from "./championRoleStatsSystem";
+import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
+import type { LaneOrder } from "./laneOrder";
+import { getActiveTrait } from "@/app/utils/playerTraitUtils";
 
 function earlyStatScore(championId: string | null, role: Role) {
   const champion = getChampionByIdSafe(championId);
@@ -52,7 +55,54 @@ type LaneContext = {
   redRoster: Partial<Record<Role, string>>;
   assignmentsBlue: Partial<Record<Role, string>>;
   assignmentsRed: Partial<Record<Role, string>>;
+  /** PLAYER_TRAITS §7.3 — cine a ales primul pe fiecare lane (lipsă = fără efectele de blind / counter). */
+  laneOrder?: { blue: LaneOrder; red: LaneOrder };
 };
+
+/**
+ * PLAYER_TRAITS §7.4 — trait-urile de lane ale jucătorului ajustează termenul de matchup:
+ *   pozitiv: × (1 + counterLaneBoost × int) pentru counter_specialist pe counter, + dominatorBoost × int pentru
+ *     lane_dominator; multiplicatorul total ≤ matchupBoostCap;
+ *   negativ: × (1 − cea mai mare reducere) dintre blind_safe pe blind (blindSafeShield) și matchup_resilient
+ *     (resilientShield), fără cumul;
+ *   counter_specialist pe blind: − counterBlindPenalty la scorul de lane.
+ * Fără trait-uri active, factorul e 1 și penalizarea 0 (comportament identic).
+ */
+function laneTraitEffect(playerId: string | null, matchup: number, order: "blind" | "counter" | undefined) {
+  const T = DRAFT_THINKING_CONFIG.traits;
+  const player = getPlayerByIdSafe(playerId);
+  const result = { factor: 1, penalty: 0, notes: [] as string[] };
+  if (!player) return result;
+  const counter = getActiveTrait(player, "counter_specialist");
+  const blindSafe = getActiveTrait(player, "blind_safe");
+  const resilient = getActiveTrait(player, "matchup_resilient");
+  const dominator = getActiveTrait(player, "lane_dominator");
+  if (matchup > 0) {
+    let boost = 0;
+    if (counter && order === "counter") {
+      boost += T.counterLaneBoost * counter.intensity;
+      result.notes.push("counter-pick edge");
+    }
+    if (dominator) {
+      boost += T.dominatorBoost * dominator.intensity;
+      result.notes.push("lane dominance");
+    }
+    result.factor = Math.min(T.matchupBoostCap, 1 + boost);
+  } else if (matchup < 0) {
+    const blindShield = blindSafe && order === "blind" ? T.blindSafeShield * blindSafe.intensity : 0;
+    const resilientShield = resilient ? T.resilientShield * resilient.intensity : 0;
+    const shield = Math.max(blindShield, resilientShield);
+    if (shield > 0) {
+      result.factor = 1 - shield;
+      result.notes.push(resilientShield >= blindShield ? "lane held" : "blind held");
+    }
+  }
+  if (counter && order === "blind") {
+    result.penalty = T.counterBlindPenalty;
+    result.notes.push("forced to blind");
+  }
+  return result;
+}
 
 function picksOf(assignments: Partial<Record<Role, string>>) {
   return Object.values(assignments).filter(Boolean) as string[];
@@ -99,6 +149,8 @@ function buildRoleBreakdown(
 ): LaneRoleBreakdown {
   const blueMatchup = laneMatchup(role, blueChampionId, lane.assignmentsBlue, lane.blueRoster, lane.assignmentsRed, lane.redRoster);
   const redMatchup = laneMatchup(role, redChampionId, lane.assignmentsRed, lane.redRoster, lane.assignmentsBlue, lane.blueRoster);
+  const blueTrait = laneTraitEffect(bluePlayerId, blueMatchup, lane.laneOrder?.blue[role]);
+  const redTrait = laneTraitEffect(redPlayerId, redMatchup, lane.laneOrder?.red[role]);
 
   const blueDraftFit = playerChampionDraftFit(bluePlayerId, blueChampionId);
   const redDraftFit = playerChampionDraftFit(redPlayerId, redChampionId);
@@ -145,9 +197,10 @@ function buildRoleBreakdown(
       blueConsistency * 0.08 +
       blueBlind * 0.06 +
       jungleInfluence(role, bluePlayerId, blueChampionId) * 0.14 +
-      blueMatchup * 0.42 +
+      blueMatchup * 0.42 * blueTrait.factor +
       blueHistoryMatchup * 0.3 +
-      blueHistoryLaneBonus * 0.7,
+      blueHistoryLaneBonus * 0.7 -
+      blueTrait.penalty,
     0,
     10
   );
@@ -160,9 +213,10 @@ function buildRoleBreakdown(
       redConsistency * 0.08 +
       redBlind * 0.06 +
       jungleInfluence(role, redPlayerId, redChampionId) * 0.14 +
-      redMatchup * 0.42 +
+      redMatchup * 0.42 * redTrait.factor +
       redHistoryMatchup * 0.3 +
-      redHistoryLaneBonus * 0.7,
+      redHistoryLaneBonus * 0.7 -
+      redTrait.penalty,
     0,
     10
   );
@@ -187,6 +241,9 @@ function buildRoleBreakdown(
   if (redHistoryLaneBonus - blueHistoryLaneBonus >= 0.45) noteParts.push("red player comfort edge");
   if (Math.abs(blueEarly - redEarly) >= 1.5) noteParts.push("early priority split");
   if (role === "jungle" && Math.abs(blueExec - redExec) >= 1.5) noteParts.push("pathing influence");
+  // PLAYER_TRAITS §7.4: „blue counter-pick edge”, „red blind held”, „blue lane dominance” …
+  for (const note of blueTrait.notes) noteParts.push(`blue ${note}`);
+  for (const note of redTrait.notes) noteParts.push(`red ${note}`);
 
   return {
     role,
@@ -206,6 +263,7 @@ export function evaluateLanePhase(args: {
   redRoster: Partial<Record<Role, string>>;
   assignmentsBlue: Partial<Record<Role, string>>;
   assignmentsRed: Partial<Record<Role, string>>;
+  laneOrder?: { blue: LaneOrder; red: LaneOrder };
 }): LanePhaseResult {
   const roles = ROLE_ORDER.map((role) =>
     buildRoleBreakdown(

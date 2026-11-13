@@ -12,7 +12,8 @@ import { getDirectOpponents } from "./compCounter";
 import { buildCompVector } from "./draftEvaluator";
 import { evaluateContextualNeedStatuses, getBestCoverAttribute, getContextualCover } from "./contextualNeeds";
 import { describeResourceConflict, getHighDemandPicks, getResourceConflictExcess, getResourceDemand } from "./championResource";
-import { hasTrait } from "@/app/utils/playerTraitUtils";
+import { getActiveTrait, hasTrait } from "@/app/utils/playerTraitUtils";
+import { getLaneOrder, type LaneOrder } from "./laneOrder";
 import { COMP_ATTRIBUTE_INFO } from "@/app/types/compAttributes";
 import { getOpenRolesForPickedChampions } from "./draftRoleResolver";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
@@ -187,7 +188,14 @@ function compositionPillar(ownPicks: string[], ownAssignments: Assignments, rost
 
 // ─── Lanes ───────────────────────────────────────────────────────────────────
 
-function lanesPillar(ownPicks: string[], enemyPicks: string[], ownAssignments: Assignments, enemyAssignments: Assignments): DraftPillar {
+function lanesPillar(
+  ownPicks: string[],
+  enemyPicks: string[],
+  ownAssignments: Assignments,
+  enemyAssignments: Assignments,
+  roster: Assignments = {},
+  laneOrder: LaneOrder = {},
+): DraftPillar {
   const notes = new Notes();
   let balance = 0;
   let won = 0;
@@ -220,6 +228,20 @@ function lanesPillar(ownPicks: string[], enemyPicks: string[], ownAssignments: A
   } else if (edge < -0.1) notes.add(`Their comp beats yours (${theirs.dominant} vs ${ours.dominant}); ${lanes}`);
   else notes.add(`Lanes: ${lanes}`);
   for (const entry of lostFromDraft) notes.add(entry.note, entry.reason);
+  // PLAYER_TRAITS §7.4 — trait-urile de lane: „Ruler turned a winning lane into a lead”, „Kiin held a losing lane”…
+  for (const role of ROLE_ORDER) {
+    const championId = ownAssignments[role];
+    const player = roster[role] ? playersById.get(roster[role]!) : undefined;
+    const opponents = role === "support" || !championId ? [] : getDirectOpponents(role, enemyAssignments);
+    if (!championId || !player || !opponents.length) continue;
+    const value = opponents.reduce((sum, opponent) => sum + getMatchupValue(championId, role, opponent.id, opponent.role, { phase: "early" }), 0);
+    const order = laneOrder[role];
+    if (value > 0.5 && getActiveTrait(player, "lane_dominator")) notes.add(`${player.name} turned a winning lane into a lead`, "Lane Dominator: winning matchups count more");
+    if (value > 0.5 && order === "counter" && getActiveTrait(player, "counter_specialist")) notes.add(`${player.name} counter-picked his lane`, "Counter-Pick Specialist: picked after his lane opponent");
+    if (order === "blind" && getActiveTrait(player, "counter_specialist")) notes.add(`${player.name} had to blind-pick`, "Counter-Pick Specialist: weaker when he picks first in his lane");
+    if (value < -0.5 && getActiveTrait(player, "matchup_resilient")) notes.add(`${player.name} held a losing lane`, "Matchup Resilient: losing matchups hurt him less");
+    else if (value < -0.5 && order === "blind" && getActiveTrait(player, "blind_safe")) notes.add(`${player.name} held a blind pick`, "Blind-Pick Safe: loses little when picking first");
+  }
   return notes.pillar(grade(balance / 3 + edge * 1.5, [1.5, 0, -1.5]));
 }
 
@@ -434,7 +456,7 @@ export function buildDraftPillarReport(
   const enemyRoster = rosters[enemySide];
   return {
     composition: compositionPillar(ownPicks, ownAssignments, roster, enemyPicks),
-    lanes: lanesPillar(ownPicks, enemyPicks, ownAssignments, enemyAssignments),
+    lanes: lanesPillar(ownPicks, enemyPicks, ownAssignments, enemyAssignments, roster, getLaneOrder(game, side)),
     players: playersPillar(ownAssignments, roster, pickRoles, series.userSide === side),
     preparation: preparationPillar(game, series, side, enemyTeamSlug, { own: roster, enemy: enemyRoster }, ownPicks, ownBans, enemyPicks, ownAssignments, enemyAssignments),
   };
