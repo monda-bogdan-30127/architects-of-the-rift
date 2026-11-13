@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import type { Player } from "@/app/types/player";
 import { teams } from "@/app/data/teams";
 import { champions } from "@/app/data/champions";
-import { getPlayerStyleInfo } from "@/app/utils/playerStyleUtils";
 import { PLAYER_TRAIT_INFO, isActiveTrait } from "@/app/types/playerTraits";
 import PlayerCardTooltip from "@/components/ui/PlayerCardTooltip";
 
@@ -43,7 +42,8 @@ export default function PlayerCard({
     )
     .slice(0, 4);
 
-  const styleInfo = getPlayerStyleInfo(player);
+  // PLAYER_TRAITS §3.1: stilul calculat o singură dată în createPlayer (nu se recalculează la runtime).
+  const { displayPrimary, displaySecondary } = player.playstyleIdentity;
 
   const clearHoverTimer = () => {
     if (hoverTimerRef.current !== null) {
@@ -212,7 +212,7 @@ export default function PlayerCard({
                 textAlign: "left",
               }}
             >
-              {styleInfo.primary} - {styleInfo.secondary}
+              {displayPrimary} - {displaySecondary}
             </div>
           </div>
 

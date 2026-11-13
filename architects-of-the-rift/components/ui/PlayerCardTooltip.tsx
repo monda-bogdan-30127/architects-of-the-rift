@@ -5,6 +5,7 @@ import { useIsClient } from "@/app/hooks/useClientStorage";
 import { createPortal } from "react-dom";
 import type { Player } from "@/app/types/player";
 import { PLAYER_TRAIT_INFO, isActiveTrait } from "@/app/types/playerTraits";
+import { COMMS_TOOLTIP, getCommsInfo } from "@/app/utils/playerTraitUtils";
 
 type Props = {
   player: Player;
@@ -60,6 +61,7 @@ export default function PlayerCardTooltip({ player, anchorRef, visible }: Props)
   const { displayPrimary, displaySecondary } = player.playstyleIdentity;
   // PLAYER_TRAITS §3: trait-urile (doar familiile cu efecte implementate) în locul tag-urilor de playstyle.
   const traits = (player.traits ?? []).filter(isActiveTrait);
+  const comms = getCommsInfo(player);
 
   const primaryDesc  = STYLE_DESCRIPTIONS[displayPrimary]  ?? "A dominant playstyle that defines this player's approach to the game.";
   const secondaryDesc = STYLE_DESCRIPTIONS[displaySecondary] ?? "A complementary tendency that colours how this player operates.";
@@ -186,6 +188,16 @@ export default function PlayerCardTooltip({ player, anchorRef, visible }: Props)
           </div>
         </div>
       )}
+
+      {/* PLAYER_TRAITS §3.1: comunicarea */}
+      <div style={colStyle}>
+        <SectionLabel>Comms</SectionLabel>
+        <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--text-primary, rgba(255,255,255,0.9))" }}>
+          <span style={{ color: "var(--text-highlight, #e2b96a)", fontWeight: 600 }}>{comms.level}</span>
+          {comms.leader ? <span style={{ color: "var(--text-highlight, #e2b96a)", fontWeight: 600 }}> · Leader</span> : null}
+          <span style={{ color: "var(--text-secondary, rgba(255,255,255,0.55))" }}> · {COMMS_TOOLTIP}</span>
+        </div>
+      </div>
     </div>,
     document.body,
   );

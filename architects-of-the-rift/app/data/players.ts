@@ -14,7 +14,7 @@ import type {
 import type { Role } from "../types/champion";
 import { calculateRosterPoints } from "../utils/playerUtils";
 import { playerProfileOverrides } from "./playerProfileOverrides";
-import { getPlayerStyleInfo } from "../utils/playerStyleUtils";
+import { areStylesIncompatible, getPlayerStyleInfo } from "../utils/playerStyleUtils";
 import { assignPlayerTraits } from "../utils/playerTraitUtils";
 
 const clamp = (value: number, min = 35, max = 99): number => Math.max(min, Math.min(max, Math.round(value)));
@@ -314,10 +314,12 @@ const pickDistinctSecondaryStyle = (
   const primaryGroup = redundancyGroups.find((group) => group.includes(primaryLabel)) ?? [];
 
   // Requires meaningful gap — if no candidate clears it, return "flex"
+  // PLAYER_TRAITS §3.1: fără perechi contradictorii (carry / tank, weakside / carry, farmer / roamer).
   const withGap = sortedStyles.find(
     ([style, score]) =>
       style !== primaryLabel &&
       !primaryGroup.includes(style) &&
+      !areStylesIncompatible(primaryLabel, style) &&
       primaryScore - score >= MIN_GAP,
   );
   if (withGap) return withGap[0];
@@ -331,6 +333,8 @@ const derivePlaystyleIdentity = (
   role: Role,
   secondaryOverride?: PlayerStyleLabel,
   primaryOverride?: PlayerStyleLabel,
+  /** PLAYER_TRAITS §3.1 — primary-ul afișat (primaryDisplayOverride), față de care se verifică override-ul de secondary. */
+  displayPrimary?: string,
 ): PlayerStyleIdentity => {
   const scores = deriveStyleScores(playstyle, primaryStats);
 
@@ -343,8 +347,9 @@ const derivePlaystyleIdentity = (
   const computedPrimary = sorted[0]?.[0] ?? "flex";
   const resolvedPrimary = primaryOverride ?? computedPrimary;
 
+  // Un override contradictoriu (ex. primary carry + secondaryStyle tank) se ignoră; validatorul dă warning.
   const secondary =
-    secondaryOverride && secondaryOverride !== resolvedPrimary
+    secondaryOverride && secondaryOverride !== resolvedPrimary && !areStylesIncompatible(displayPrimary ?? resolvedPrimary, secondaryOverride)
       ? secondaryOverride
       : pickDistinctSecondaryStyle(sorted, resolvedPrimary);
 
@@ -407,6 +412,7 @@ const createPlayer = (
     base.role,
     overrides?.secondaryStyle,
     overrides?.primaryStyle,
+    overrides?.primaryDisplayOverride,
   );
 
   const archetypeAffinity = overrides?.archetypeAffinity

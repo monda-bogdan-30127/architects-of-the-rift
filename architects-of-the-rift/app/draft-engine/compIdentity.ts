@@ -80,6 +80,11 @@ export function getIdentityTags(identity: CompIdentity): { desired: string[]; av
   return { desired: [...desired], avoid: [...avoid] };
 }
 
+/** Atributele din `offers` care definesc identitatea (pentru departajări continue, ex. win condition). */
+export function getIdentityOffers(identity: CompIdentity): readonly string[] {
+  return IDENTITY_TABLE[identity].offers;
+}
+
 function profileTags(champion: Champion, role: Role | null): Set<string> {
   const profile = role ? getChampionRoleProfile(champion, role) : getChampionRoleProfile(champion);
   return new Set(profile?.tags ?? []);

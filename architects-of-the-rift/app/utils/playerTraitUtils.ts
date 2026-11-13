@@ -22,30 +22,41 @@ import { DRAFT_THINKING_CONFIG } from "@/app/draft-engine/draftThinkingConfig";
 /**
  * PLAYER_TRAITS §1.3 — derivarea familiei Resources, relativă la rol: pragurile absolute descriau rolul, nu
  * jucătorul (aproape toți ADC-ii erau Resource Hog, aproape toți junglerii Weakside Ready). Pentru fiecare rol se ia
- * percentila lui `carryResourceUsage` printre jucătorii de pe acel rol; filtrul absolut rămâne o condiție în plus.
+ * percentila lui `carryResourceUsage` printre jucătorii de pe acel rol, apoi un filtru: `greed ≥ 50` (absolut) la
+ * resource_hog, peste percentila 25 a rolului la `styleFlex` / `utilityComfort` (filtrele absolute de 55 tăiau
+ * aproape toți ADC-ii și mid-ii cu cerere mică: valorile lor sunt sub mediana rolului).
  * `share` = fracția din rol peste (high) / sub (low) prag. Intensity 2: treimea de sus a celor care au primit
- * trait-ul pe rol, după cât de departe sunt de prag.
+ * trait-ul pe rol, după cât de departe sunt de prag. resource_hog la jungle e doar manual: greed-ul mare al
+ * junglerilor descrie stilul, nu cererea de gold.
  */
 export const TRAIT_DERIVATION = {
   resource_hog: {
     direction: "high",
-    share: { top: 0.2, jungle: 0.1, mid: 0.3, adc: 0.35 } as Partial<Record<Role, number>>,
+    share: { top: 0.2, mid: 0.3, adc: 0.35 } as Partial<Record<Role, number>>,
     filter: (source: TraitSource) => source.hiddenTraits.greed >= 50,
     filterLabel: "greed ≥ 50",
   },
   weakside_ready: {
     direction: "low",
     share: { top: 0.25, adc: 0.15 } as Partial<Record<Role, number>>,
-    filter: (source: TraitSource) => source.playstyle.styleFlex >= 55,
-    filterLabel: "styleFlex ≥ 55",
+    filter: (source: TraitSource, inRole: TraitSource[]) =>
+      source.playstyle.styleFlex > rolePercentile(inRole.map((entry) => entry.playstyle.styleFlex), 0.25),
+    filterLabel: "styleFlex peste p25 în rol",
   },
   enabler: {
     direction: "low",
     share: { jungle: 0.25, mid: 0.15 } as Partial<Record<Role, number>>,
-    filter: (source: TraitSource) => source.playstyle.utilityComfort >= 55,
-    filterLabel: "utilityComfort ≥ 55",
+    filter: (source: TraitSource, inRole: TraitSource[]) =>
+      source.playstyle.utilityComfort > rolePercentile(inRole.map((entry) => entry.playstyle.utilityComfort), 0.25),
+    filterLabel: "utilityComfort peste p25 în rol",
   },
 } as const;
+
+/** Valoarea de la percentila `p` (0..1, de jos) a unei liste. */
+function rolePercentile(values: number[], p: number): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor(p * (sorted.length - 1))] ?? 0;
+}
 /** Fracția celor cu trait-ul (pe rol) care primesc intensity 2. */
 export const TRAIT_STRONG_SHARE = 1 / 3;
 
@@ -70,7 +81,7 @@ export function deriveLeagueTraits(sources: TraitSource[]): Map<string, { trait:
       const threshold = roleThreshold(inRole.map((source) => source.playstyle.carryResourceUsage), share, rule.direction);
       const recipients = inRole
         .map((source) => ({ source, score: rule.direction === "high" ? source.playstyle.carryResourceUsage - threshold : threshold - source.playstyle.carryResourceUsage }))
-        .filter((entry) => entry.score >= 0 && rule.filter(entry.source))
+        .filter((entry) => entry.score >= 0 && rule.filter(entry.source, inRole))
         .sort((a, b) => b.score - a.score);
       const strong = Math.ceil(recipients.length * TRAIT_STRONG_SHARE);
       recipients.forEach((entry, index) => {
@@ -212,4 +223,19 @@ export function getTraitTone(id: PlayerTraitId, demand: number | null): TraitTon
   if (id === "resource_hog") return demand >= highDemandMin ? "good" : demand <= weaksideMax ? "bad" : "neutral";
   if (LOW_RESOURCE_TRAITS.includes(id)) return demand <= weaksideMax ? "good" : "neutral";
   return "neutral";
+}
+
+// ─── §3.1 Comunicarea (roster view, tooltip) ─────────────────────────────────
+
+export type CommsLevel = "Poor" | "Average" | "Good" | "Elite";
+export const COMMS_TOOLTIP = "How well he talks and coordinates with the team. Affects teamfights and clutch moments.";
+/** Pragul de leadership de la care jucătorul e marcat „Leader” (ca LEADERSHIP_TRAIT_THRESHOLD din Spirit), până la trait-ul shotcaller. */
+export const LEADER_THRESHOLD = 80;
+
+/** `hiddenTraits.communication` ca nivel: < 45 Poor, 45–59 Average, 60–74 Good, ≥ 75 Elite. */
+export function getCommsInfo(player: Pick<Player, "advancedProfile">): { level: CommsLevel; leader: boolean } {
+  const communication = player.advancedProfile?.hiddenTraits?.communication ?? 50;
+  const leadership = player.advancedProfile?.hiddenTraits?.leadership ?? 0;
+  const level: CommsLevel = communication >= 75 ? "Elite" : communication >= 60 ? "Good" : communication >= 45 ? "Average" : "Poor";
+  return { level, leader: leadership >= LEADER_THRESHOLD };
 }

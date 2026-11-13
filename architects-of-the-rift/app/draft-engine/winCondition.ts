@@ -6,7 +6,7 @@ import { players } from "@/app/data/players";
 import type { Champion, Role } from "@/app/types/champion";
 import { GRADE_RANK, getChampionGrade } from "@/app/utils/championMasteryUtils";
 import { getChampionRoleProfile } from "./championProfileSystem";
-import { getCandidateIdentityFit, type CompIdentityReading } from "./compIdentity";
+import { getCandidateIdentityFit, getIdentityOffers, type CompIdentityReading } from "./compIdentity";
 import { getCarryArchetype } from "./draftArchetypes";
 import { getChampionById } from "./draftEvaluator";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
@@ -35,6 +35,12 @@ function carryContribution(champion: Champion, role: Role): number {
   return bonus;
 }
 
+/** Suma `offers` ale campionului pe atributele care definesc identitatea (departajare continuă, §4.3). */
+function identityOfferSum(champion: Champion, identity: NonNullable<CompIdentityReading["dominant"]>): number {
+  const offers = getIdentityOffers(identity);
+  return (champion.offers ?? []).filter((offer) => offers.includes(String(offer.type))).reduce((sum, offer) => sum + offer.strength, 0);
+}
+
 function kindOf(champion: Champion, role: Role, identity: CompIdentityReading["dominant"]): WinCondition["kind"] {
   const tags = new Set(getChampionRoleProfile(champion, role)?.tags ?? []);
   if (role === "jungle" && (identity === "dive" || identity === "pick")) return "jungle-tempo";
@@ -54,7 +60,7 @@ export function getWinCondition(
   roster: Partial<Record<Role, string>> = {},
 ): WinCondition | null {
   if (!identity.dominant || ownPicks.length === 0) return null;
-  let best: { championId: string; role: Role; score: number; demand: number; hog: number; grade: number; order: number } | null = null;
+  let best: { championId: string; role: Role; score: number; demand: number; offerSum: number; hog: number; grade: number; order: number } | null = null;
   ownPicks.forEach((championId, order) => {
     const champion = getChampionById(championId);
     const role = ROLE_ORDER.find((entry) => roles[entry] === championId);
@@ -65,14 +71,18 @@ export function getWinCondition(
     const score = getCandidateIdentityFit(champion, role, identity.dominant!) + carryContribution(champion, role);
     const player = roster[role] ? playersById.get(roster[role]!) : undefined;
     const grade = player ? GRADE_RANK[getChampionGrade(player, championId)] : 0;
-    // PLAYER_TRAITS §4.3: la egalitate (după cerere), câștigă campionul jucat de un resource_hog. Nu depinde de
-    // resourceDemand (egalitățile de scor sunt dese), deci e în spatele unui flag, ca botFocusEnabled.
-    const hog = DRAFT_THINKING_CONFIG.traits.winConditionHogTieEnabled && hasTrait(player, "resource_hog") ? 1 : 0;
+    // PLAYER_TRAITS §4.3: la egalitate (după cerere), întâi o valoare continuă (suma ofertelor care definesc identitatea:
+    // scorul de identitate are prea puține valori, 51% din compoziții aveau egalitate exactă), apoi resource_hog.
+    // Nu depinde de resourceDemand, deci e în spatele unui flag, ca botFocusEnabled.
+    const tieRules = DRAFT_THINKING_CONFIG.traits.winConditionHogTieEnabled;
+    const offerSum = tieRules ? identityOfferSum(champion, identity.dominant!) : 0;
+    const hog = tieRules && hasTrait(player, "resource_hog") ? 1 : 0;
     const tieBreak = (current: NonNullable<typeof best>) =>
       demand > current.demand ||
-      (demand === current.demand && (hog > current.hog || (hog === current.hog && (grade > current.grade || (grade === current.grade && order < current.order)))));
+      (demand === current.demand && (offerSum > current.offerSum ||
+        (offerSum === current.offerSum && (hog > current.hog || (hog === current.hog && (grade > current.grade || (grade === current.grade && order < current.order)))))));
     if (!best || score > best.score + 1e-9 || (Math.abs(score - best.score) <= 1e-9 && tieBreak(best))) {
-      best = { championId, role, score, demand, hog, grade, order };
+      best = { championId, role, score, demand, offerSum, hog, grade, order };
     }
   });
   if (!best) return null;

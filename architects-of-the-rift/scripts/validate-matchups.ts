@@ -8,6 +8,7 @@ import { validateChampionRoleMatchups } from "@/app/utils/championMatchupValidat
 import { players } from "@/app/data/players";
 import { playerProfileOverrides } from "@/app/data/playerProfileOverrides";
 import { validatePlayerTraitOverrides } from "@/app/utils/playerTraitUtils";
+import { validateStyleOverrides } from "@/app/utils/playerStyleUtils";
 
 const result = validateChampionRoleMatchups();
 
@@ -57,8 +58,14 @@ if (traitErrors.length) {
   for (const message of traitErrors) console.log(`  ${message}`);
 }
 
+const styleWarnings = validateStyleOverrides();
+if (styleWarnings.length) {
+  console.log(`\nWARNINGS playstyle (${styleWarnings.length})`);
+  for (const message of styleWarnings) console.log(`  ${message}`);
+}
+
 const ok = result.ok && traitErrors.length === 0;
 console.log(
-  `\n${ok ? "OK" : "EȘUAT"} — ${result.errorCount + traitErrors.length} erori, ${result.warningCount} warnings`,
+  `\n${ok ? "OK" : "EȘUAT"} — ${result.errorCount + traitErrors.length} erori, ${result.warningCount + styleWarnings.length} warnings`,
 );
 process.exit(ok ? 0 : 1);

@@ -36,6 +36,21 @@ const byRoleFallback: Record<Player["role"], { secondary: string; tags: string[]
   support: { secondary: "Facilitator",tags: ["Utility", "Vision"]    },
 };
 
+// ─── PLAYER_TRAITS §3.1: perechi primary / secondary contradictorii ──────────
+// „Carry - Tank” nu are sens: secondary nu poate fi incompatibil cu primary (pe etichetele interne sau de afișare).
+const STYLE_CONFLICTS: [string[], string[]][] = [
+  [["carry", "hypercarry", "assassin"], ["tank", "utility"]],
+  [["weakside"], ["carry", "hypercarry"]],
+  [["farmer"], ["roamer"]],
+];
+const normalizeStyle = (style: string) => style.trim().toLowerCase().replace(/\s+/g, "_");
+export function areStylesIncompatible(a: string | undefined, b: string | undefined): boolean {
+  if (!a || !b) return false;
+  const x = normalizeStyle(a);
+  const y = normalizeStyle(b);
+  return STYLE_CONFLICTS.some(([left, right]) => (left.includes(x) && right.includes(y)) || (left.includes(y) && right.includes(x)));
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const uniquePush = (values: string[], next: string) => {
   if (!values.includes(next)) values.push(next);
@@ -827,10 +842,13 @@ export function getPlayerStyleInfo(player: Player): StyleInfo {
   const primaryStyle = sortedStyles[0]?.label ?? "Flexible";
 
   // ── PATCH: raised threshold 0.42 → 0.50 ──────────────────────────────────
+  // PLAYER_TRAITS §3.1: primul candidat compatibil cu primary (și cu override-ul de afișare al primary-ului).
+  const displayPrimaryOverride = playerProfileOverrides[player.id]?.primaryDisplayOverride;
+  const shownPrimary = displayPrimaryOverride ?? primaryStyle;
+  const compatible = (label: string) => !areStylesIncompatible(shownPrimary, label);
   const derivedSecondary =
-    sortedStyles[1] && sortedStyles[1].score >= 0.50
-      ? sortedStyles[1].label
-      : byRoleFallback[role].secondary;
+    sortedStyles.slice(1).find((entry) => entry.score >= 0.50 && entry.label !== primaryStyle && compatible(entry.label))?.label
+      ?? byRoleFallback[role].secondary;
 
   const overriddenSecondary = toDisplayStyleLabel(player.playstyleIdentity?.secondary);
   // Fix 1: Only use the overridden secondary if it's a valid display label for this role.
@@ -840,8 +858,9 @@ export function getPlayerStyleInfo(player: Player): StyleInfo {
     ? overriddenSecondary
     : undefined;
 
+  // „Flexible” vine din secondary-ul intern de rezervă („flex”): nu spune nimic, deci are prioritate cel derivat.
   const secondaryStyle =
-    sanitizedSecondary && sanitizedSecondary !== primaryStyle
+    sanitizedSecondary && sanitizedSecondary !== primaryStyle && sanitizedSecondary !== "Flexible" && compatible(sanitizedSecondary)
       ? sanitizedSecondary
       : derivedSecondary;
 
@@ -968,4 +987,15 @@ export function getPlayerStyleInfo(player: Player): StyleInfo {
     secondary: secondaryStyle,
     tags: finalTags,
   };
+}
+/** PLAYER_TRAITS §3.1 — override-uri `secondaryStyle` contradictorii cu primary-ul afișat (warning, nu eroare). */
+export function validateStyleOverrides(): string[] {
+  const warnings: string[] = [];
+  for (const [playerId, override] of Object.entries(playerProfileOverrides)) {
+    const shown = override.primaryDisplayOverride ?? override.primaryStyle;
+    if (override.secondaryStyle && areStylesIncompatible(shown, override.secondaryStyle)) {
+      warnings.push(`${playerId}: secondaryStyle "${override.secondaryStyle}" contrazice primary "${shown}" (ignorat)`);
+    }
+  }
+  return warnings;
 }

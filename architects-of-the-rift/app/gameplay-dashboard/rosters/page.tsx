@@ -9,7 +9,7 @@ import { teams } from "@/app/data/teams";
 import type { Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
 import { PLAYER_TRAIT_INFO, isActiveTrait } from "@/app/types/playerTraits";
-import { computeTeamFit } from "@/app/utils/playerTraitUtils";
+import { COMMS_TOOLTIP, computeTeamFit, getCommsInfo } from "@/app/utils/playerTraitUtils";
 import useBackRedirect from "@/app/hooks/useBrowserBackRedirect";
 import { getRegisteredChampionById } from "@/app/draft-engine/championRegistry";
 import {
@@ -743,24 +743,41 @@ function PlayerCard({
             </p>
           ) : null}
 
+          {/* PLAYER_TRAITS §3.1: trait-urile (chip-uri, tooltip cu descrierea) */}
           {playerTraits.length > 0 ? (
-            <p
-              className="uppercase text-[var(--text-secondary)]"
-              style={{
-                fontSize: 13,
-                lineHeight: "16px",
-                fontWeight: 500,
-                letterSpacing: "0.04em",
-                textAlign: "center",
-              }}
-            >
-              {playerTraits.map((trait, index) => (
-                <span key={trait.id} title={PLAYER_TRAIT_INFO[trait.id].description} style={{ cursor: "help" }}>
-                  {index > 0 ? ", " : ""}
+            <div className="flex flex-wrap justify-center gap-[6px]">
+              {playerTraits.map((trait) => (
+                <span
+                  key={trait.id}
+                  title={PLAYER_TRAIT_INFO[trait.id].description}
+                  className="uppercase text-[var(--text-secondary)]"
+                  style={{
+                    fontSize: 11,
+                    lineHeight: "14px",
+                    fontWeight: 600,
+                    letterSpacing: "0.04em",
+                    padding: "3px 8px",
+                    border: "1px solid var(--border-default)",
+                    borderRadius: 999,
+                    cursor: "help",
+                  }}
+                >
                   {PLAYER_TRAIT_INFO[trait.id].label}
-                  {trait.intensity === 2 ? <span className="text-[var(--text-highlight)]"> (Strong)</span> : null}
+                  {trait.intensity === 2 ? <span className="text-[var(--text-highlight)]"> ●</span> : null}
                 </span>
               ))}
+            </div>
+          ) : null}
+
+          {/* PLAYER_TRAITS §3.1: comunicarea, ca nivel (și „Leader” până la trait-ul shotcaller) */}
+          {player ? (
+            <p
+              className="uppercase text-[var(--text-secondary)]"
+              title={COMMS_TOOLTIP}
+              style={{ fontSize: 12, lineHeight: "16px", fontWeight: 500, letterSpacing: "0.04em", textAlign: "center", cursor: "help" }}
+            >
+              Comms: <span className="text-[var(--text-primary)]">{getCommsInfo(player).level}</span>
+              {getCommsInfo(player).leader ? <span className="text-[var(--text-highlight)]"> · Leader</span> : null}
             </p>
           ) : null}
 

@@ -14,6 +14,13 @@ import type { ChampionMasteryGrade } from "@/app/types/championMastery";
 import { getChampionGrade } from "@/app/utils/championMasteryUtils";
 import useBackRedirect from "@/app/hooks/useBrowserBackRedirect";
 import { PLAYER_TRAIT_INFO, isActiveTrait } from "@/app/types/playerTraits";
+import { COMMS_TOOLTIP, getCommsInfo } from "@/app/utils/playerTraitUtils";
+
+/** PLAYER_TRAITS §3.1: „Comms: Good · Leader”. */
+function formatCommsLine(player: Player): string {
+  const comms = getCommsInfo(player);
+  return `Comms: ${comms.level}${comms.leader ? " · Leader" : ""}`;
+}
 
 /** „Resource Hog (Strong), …”: trait-urile active ale jucătorului, pe un rând. */
 function formatTraitLine(player: Player): string {
@@ -344,6 +351,10 @@ function ChampionMasteryPopup({
                 {tagsLine.toUpperCase()}
               </span>
             )}
+
+            <span title={COMMS_TOOLTIP} style={{ fontSize: 11, color: "var(--text-secondary)", letterSpacing: "0.02em", cursor: "help" }}>
+              {formatCommsLine(player).toUpperCase()}
+            </span>
           </div>
         </div>
 
@@ -826,6 +837,10 @@ export default function DraftPage() {
                       {formatTraitLine(hoveredPlayer)}
                     </span>
                   )}
+
+                  <span title={COMMS_TOOLTIP} style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>
+                    {formatCommsLine(hoveredPlayer)}
+                  </span>
                 </div>
               ) : (
                 <span
