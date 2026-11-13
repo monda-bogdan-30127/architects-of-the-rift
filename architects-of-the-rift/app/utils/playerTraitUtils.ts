@@ -118,49 +118,49 @@ function signatureConcentration(player: Player): number | null {
  */
 export const DRAFT_TRAIT_DERIVATION: Partial<Record<PlayerTraitId, DraftTraitRule>> = {
   blind_safe: {
-    share: 0.15,
+    share: 0.08,
     metric: (player) => blindMinusCounter(player),
     label: "sus în rol la blindPickStrength − counterPickStrength",
   },
   counter_specialist: {
-    share: 0.15,
+    share: 0.08,
     metric: (player) => -blindMinusCounter(player),
     label: "jos în rol la blindPickStrength − counterPickStrength",
   },
   signature_player: {
-    share: 0.12,
+    share: 0.07,
     metric: (player) => signatureConcentration(player),
     label: "concentrarea pool-ului: multiplicatorul mediu pe primii 2 minus pe primii 8",
   },
   needs_setup: {
-    share: 0.12,
+    share: 0.06,
     metric: (player, { pct }) => pct(player, (entry) => playstyleOf(entry).setupDependence) - pct(player, (entry) => primaryOf(entry).mechanics),
     label: "percentila setupDependence minus percentila mechanics în rol",
   },
   self_sufficient: {
-    share: 0.12,
+    share: 0.06,
     metric: (player, { pct }) => pct(player, (entry) => primaryOf(entry).mechanics) - pct(player, (entry) => playstyleOf(entry).setupDependence),
     label: "percentila mechanics minus percentila setupDependence în rol",
   },
   series_adapter: {
-    share: 0.12,
+    share: 0.07,
     metric: (player) => matchupLearning(player),
     label: "matchupLearning sus în rol",
   },
   fast_starter: {
-    share: 0.1,
+    share: 0.06,
     metric: (player, { pct }) =>
       pct(player, (entry) => primaryOf(entry).currentForm) + pct(player, (entry) => primaryOf(entry).aggression) - pct(player, matchupLearning),
     label: "percentile currentForm + aggression − matchupLearning",
   },
   matchup_resilient: {
-    share: 0.12,
+    share: 0.06,
     metric: (player, { pct }) =>
       pct(player, (entry) => primaryOf(entry).consistency) + pct(player, (entry) => primaryOf(entry).discipline) - pct(player, (entry) => primaryOf(entry).aggression),
     label: "percentile consistency + discipline − aggression",
   },
   lane_dominator: {
-    share: 0.12,
+    share: 0.06,
     metric: (player, { pct }) => pct(player, (entry) => primaryOf(entry).laning) + pct(player, (entry) => primaryOf(entry).aggression),
     label: "percentile laning + aggression",
   },
@@ -177,10 +177,11 @@ export function registerTraitGradeProvider(grade: MasteryFns["grade"], multiplie
 }
 
 /**
- * Un singur trait derivat din familia Draft pe jucător: pe fiecare rol, trait-urile își umplu cota pe rând (round-robin),
- * fiecare cu următorul candidat din clasamentul lui care nu are deja un trait Draft derivat și nu se exclude cu
- * trait-ul lui de resurse sau cu cele manuale. Așa fiecare trait ajunge la țintă, iar vedetele (primele în mai multe
- * clasamente) primesc unul singur.
+ * Un singur trait derivat din familia Draft pe jucător, alocat greedy după scor: pe fiecare rol se sortează toate
+ * perechile (jucător, trait) după scorul de derivare (percentila metricii trait-ului în rol: cât de distinctiv e
+ * jucătorul pe acel trait), descrescător, și se atribuie în ordine. O pereche intră doar dacă trait-ul mai are loc în
+ * cotă, jucătorul n-are încă un trait Draft derivat și trait-ul e compatibil cu cel de resurse și cu cele manuale.
+ * Ordinea din listă nu contează.
  */
 function deriveDraftTraits(
   list: Player[],
@@ -194,42 +195,34 @@ function deriveDraftTraits(
   for (const role of ["top", "jungle", "mid", "adc", "support"] as Role[]) {
     const inRole = list.filter((player) => player.role === role);
     const context: RoleContext = { inRole, pct: (player, value) => rolePercentile(inRole, player, value) };
-    const queues = (Object.entries(DRAFT_TRAIT_DERIVATION) as [PlayerTraitId, DraftTraitRule][])
-      .filter(([id]) => isTraitAllowedOnRole(id, role))
-      .map(([id, rule]) => {
-        const manualCount = inRole.filter((player) => (manual.get(player.id) ?? []).includes(id)).length;
-        const quota = Math.max(0, Math.ceil(rule.share * inRole.length) - manualCount);
-        const ranked = inRole
-          .map((player) => ({ player, value: rule.metric(player, context) }))
-          .filter((entry): entry is { player: Player; value: number } => entry.value !== null)
-          .sort((a, b) => b.value - a.value)
-          .map((entry) => entry.player);
-        return { id, quota, ranked, cursor: 0, taken: [] as Player[] };
-      });
-    // Limita e pe trait-urile derivate; cele manuale trec peste ea (și sunt verificate la conflicte).
-    const hasDraftTrait = new Set<string>();
-    let progress = true;
-    while (progress) {
-      progress = false;
-      for (const queue of queues) {
-        if (queue.taken.length >= queue.quota) continue;
-        while (queue.cursor < queue.ranked.length) {
-          const candidate = queue.ranked[queue.cursor];
-          queue.cursor += 1;
-          if (hasDraftTrait.has(candidate.id) || conflicts(candidate, queue.id)) continue;
-          queue.taken.push(candidate);
-          hasDraftTrait.add(candidate.id);
-          progress = true;
-          break;
-        }
+    const quota = new Map<PlayerTraitId, number>();
+    const pairs: { player: Player; id: PlayerTraitId; score: number }[] = [];
+    for (const [id, rule] of Object.entries(DRAFT_TRAIT_DERIVATION) as [PlayerTraitId, DraftTraitRule][]) {
+      if (!isTraitAllowedOnRole(id, role)) continue;
+      const manualCount = inRole.filter((player) => (manual.get(player.id) ?? []).includes(id)).length;
+      quota.set(id, Math.max(0, Math.ceil(rule.share * inRole.length) - manualCount));
+      const values = new Map(inRole.map((player) => [player.id, rule.metric(player, context)]));
+      const valid = inRole.filter((player) => values.get(player.id) !== null);
+      for (const player of valid) {
+        pairs.push({ player, id, score: rolePercentile(valid, player, (entry) => values.get(entry.id) as number) });
       }
     }
-    for (const queue of queues) {
-      const strong = Math.ceil(queue.taken.length * TRAIT_STRONG_SHARE);
-      queue.taken.forEach((player, index) => {
-        const entries = result.get(player.id) ?? [];
-        entries.push({ trait: { id: queue.id, intensity: index < strong ? 2 : 1, source: "derived" }, score: 1 - index / Math.max(1, queue.quota) });
-        result.set(player.id, entries);
+    pairs.sort((a, b) => b.score - a.score);
+    const assigned = new Set<string>();
+    const taken = new Map<PlayerTraitId, { player: Player; score: number }[]>();
+    for (const pair of pairs) {
+      const list = taken.get(pair.id) ?? [];
+      if (list.length >= (quota.get(pair.id) ?? 0) || assigned.has(pair.player.id) || conflicts(pair.player, pair.id)) continue;
+      list.push({ player: pair.player, score: pair.score });
+      taken.set(pair.id, list);
+      assigned.add(pair.player.id);
+    }
+    for (const [id, entries] of taken) {
+      const strong = Math.ceil(entries.length * TRAIT_STRONG_SHARE);
+      entries.forEach(({ player, score }, index) => {
+        const current = result.get(player.id) ?? [];
+        current.push({ trait: { id, intensity: index < strong ? 2 : 1, source: "derived" }, score });
+        result.set(player.id, current);
       });
     }
   }
