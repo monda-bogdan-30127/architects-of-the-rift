@@ -61,7 +61,8 @@ import { evaluateTeamfight } from "@/app/draft-engine/teamfightSystem";
 import { evaluateLanePhase } from "@/app/draft-engine/laneEvaluator";
 import { applyMasteryToFit } from "@/app/draft-engine/championMasteryDraftSystem";
 import { getSeriesRatingEffect, teamSetupFor } from "@/app/draft-engine/traitEffects";
-import type { PlayerTrait } from "@/app/types/playerTraits";
+import { ACTIVE_TRAIT_FAMILIES, type PlayerTrait, type PlayerTraitFamily } from "@/app/types/playerTraits";
+import { computeTeamFit, previewTeamFitChange } from "@/app/utils/playerTraitUtils";
 import { computeSeriesSpiritDeltas } from "@/app/draft-engine/playerSpiritEngine";
 import { getPlayerPersonalityModifiers } from "@/app/draft-engine/personalitySystem";
 import { DRAFT_THINKING_CONFIG } from "@/app/draft-engine/draftThinkingConfig";
@@ -2057,6 +2058,71 @@ function withTestData<T>(
       effect(trait("series_adapter"), 1, 1) === 0 && effect(trait("fast_starter"), 1, 1) === 0,
       `adapter ${effect(trait("series_adapter"), 1, 1)}, starter ${effect(trait("fast_starter"), 1, 1)}`,
     );
+  }
+}
+
+// ─── TEAM_FIT_LIVE §7.1: Team Fit pe roster parțial, sfaturi, preview ────────
+{
+  const roster = makeSave().updatedTeamRosters[RED]!;
+  const ids = (roles: Role[]) => Object.fromEntries(roles.map((role) => [role, roster[role]!])) as Partial<Record<Role, string>>;
+  const hog: PlayerTrait[] = [{ id: "resource_hog", intensity: 1, source: "manual" }];
+  const weak: PlayerTrait[] = [{ id: "weakside_ready", intensity: 1, source: "manual" }];
+  const adviceIds = (fit: ReturnType<typeof computeTeamFit>) => fit.advice.map((entry) => entry.id);
+  // Fără trait-uri (și comms neutre) pe toată echipa, ca sfaturile să vină doar din ce injectăm.
+  const reset = Object.fromEntries(ROLE_ORDER.map((role) => [roster[role]!, [] as PlayerTrait[]]));
+  const commsBackup = ROLE_ORDER.map((role) => {
+    const player = playersById.get(roster[role]!)!;
+    const before = player.advancedProfile.hiddenTraits.communication;
+    player.advancedProfile.hiddenTraits.communication = 62;
+    return () => { player.advancedProfile.hiddenTraits.communication = before; };
+  });
+  try {
+    // V1. Roster gol → fără sfaturi; 2 hogs și 3 sloturi goale → resources-full; al treilea hog → resources-too-many.
+    const empty = computeTeamFit({});
+    const two = withTestData({ traits: { ...reset, [roster.mid!]: hog, [roster.adc!]: hog } }, () => computeTeamFit(ids(["mid", "adc"])));
+    const three = withTestData({ traits: { ...reset, [roster.mid!]: hog, [roster.adc!]: hog, [roster.top!]: hog } }, () => computeTeamFit(ids(["top", "mid", "adc"])));
+    check(
+      "V1. Team Fit: roster gol fără sfaturi; 2 hogs + 3 sloturi goale → resources-full; 3 hogs → resources-too-many",
+      empty.advice.length === 0 && adviceIds(two).includes("resources-full") && adviceIds(three).includes("resources-too-many"),
+      `gol: [${adviceIds(empty).join(", ")}]; 2 hogs: [${adviceIds(two).join(", ")}]; 3 hogs: [${adviceIds(three).join(", ")}] „${three.advice.find((entry) => entry.id === "resources-too-many")?.text ?? "—"}”`,
+    );
+
+    // V2. Preview: un weakside_ready pe top, cu 2 hogs și restul ocupat → resurse „better”, resources-full în resolved.
+    const preview = withTestData({ traits: { ...reset, [roster.mid!]: hog, [roster.adc!]: hog, [roster.top!]: weak } }, () =>
+      previewTeamFitChange(ids(["jungle", "mid", "adc", "support"]), playersById.get(roster.top!)!));
+    check(
+      "V2. Preview: weakside_ready pe top cu 2 hogs → resurse better, resources-full rezolvat",
+      preview.resources.level === "better" && preview.resolved.some((entry) => entry.id === "resources-full"),
+      `resurse ${preview.resources.from} → ${preview.resources.to} (${preview.resources.level}); added [${preview.added.map((entry) => entry.id).join(", ")}], resolved [${preview.resolved.map((entry) => entry.id).join(", ")}]`,
+    );
+
+    // V3. Comms: un jucător Poor → comms-poor-player, fără comms-low dublat.
+    const poorPlayer = playersById.get(roster.jungle!)!;
+    const poorBefore = poorPlayer.advancedProfile.hiddenTraits.communication;
+    poorPlayer.advancedProfile.hiddenTraits.communication = 30;
+    const poor = withTestData({ traits: reset }, () => computeTeamFit(ids(["top", "jungle"])));
+    poorPlayer.advancedProfile.hiddenTraits.communication = poorBefore;
+    check(
+      "V3. Comms: un jucător Poor → comms-poor-player, fără comms-low",
+      adviceIds(poor).includes("comms-poor-player") && !adviceIds(poor).includes("comms-low"),
+      `[${adviceIds(poor).join(", ")}] „${poor.advice.find((entry) => entry.id === "comms-poor-player")?.text ?? "—"}”; media ${poor.comms.average?.toFixed(0)} (${poor.comms.level})`,
+    );
+
+    // V4. Trait-urile unei familii inactive nu produc sfaturi (familia Draft scoasă temporar din cele active).
+    const sig: PlayerTrait[] = [{ id: "signature_player", intensity: 1, source: "manual" }];
+    const sigTraits = { ...reset, [roster.top!]: sig, [roster.mid!]: sig, [roster.adc!]: sig };
+    const active = withTestData({ traits: sigTraits }, () => computeTeamFit(ids(["top", "mid", "adc"])));
+    const families = ACTIVE_TRAIT_FAMILIES as PlayerTraitFamily[];
+    families.splice(families.indexOf("draft"), 1);
+    const inactive = withTestData({ traits: sigTraits }, () => computeTeamFit(ids(["top", "mid", "adc"])));
+    families.push("draft");
+    check(
+      "V4. Familie inactivă → fără sfaturi din ea (3 signature: cu Draft activ da, inactiv nu)",
+      adviceIds(active).includes("draft-signature-heavy") && !adviceIds(inactive).includes("draft-signature-heavy"),
+      `activ: [${adviceIds(active).join(", ")}]; inactiv: [${adviceIds(inactive).join(", ")}]`,
+    );
+  } finally {
+    for (const undo of commsBackup) undo();
   }
 }
 

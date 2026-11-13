@@ -356,14 +356,35 @@ export const getLowResourceTrait = (player: Pick<Player, "traits"> | null | unde
 
 // ─── §2 Team Fit ─────────────────────────────────────────────────────────────
 
+export type TeamFitLevel = "good" | "neutral" | "warning";
+
+/** TEAM_FIT_LIVE §1.3 — un sfat de analist (engleză). `id` e stabil, pentru diferențele din preview. */
+export type TeamFitAdvice = {
+  id: string;
+  dimension: "resources" | "comms" | "draft" | "shotcalling";
+  level: "warning" | "tip" | "good";
+  text: string;
+};
+
 export type TeamFit = {
   hogs: { playerId: string; role: Role }[];
   weakside: { playerId: string; role: Role }[];
   enablers: { playerId: string; role: Role }[];
-  /** Engleză. */
+  /** Engleză (pagina de rosters). */
   warnings: string[];
-  /** Engleză, pozitive. */
+  /** Engleză, pozitive (pagina de rosters). */
   notes: string[];
+  // TEAM_FIT_LIVE §1.1 — dimensiunile structurate (roster parțial: rolurile goale lipsesc).
+  filledRoles: Role[];
+  resources: { hogCount: number; max: number; level: TeamFitLevel; summary: string };
+  comms: {
+    /** Media `hiddenTraits.communication` pe sloturile completate. */
+    average: number | null;
+    level: CommsLevel | null;
+    weakest: { playerId: string; level: CommsLevel } | null;
+    summary: string;
+  };
+  advice: TeamFitAdvice[];
 };
 
 const ROLE_ORDER: Role[] = ["top", "jungle", "mid", "adc", "support"];
@@ -378,11 +399,18 @@ export function computeTeamFit(
   options: { includeInactive?: boolean } = {},
 ): TeamFit {
   const find = lookup ?? ((playerId: string) => players.find((player) => player.id === playerId));
-  const fit: TeamFit = { hogs: [], weakside: [], enablers: [], warnings: [], notes: [] };
+  const fit: TeamFit = {
+    hogs: [], weakside: [], enablers: [], warnings: [], notes: [],
+    filledRoles: [],
+    resources: { hogCount: 0, max: DRAFT_THINKING_CONFIG.attributes.maxHighDemand, level: "neutral", summary: "" },
+    comms: { average: null, level: null, weakest: null, summary: "" },
+    advice: [],
+  };
   for (const role of ROLE_ORDER) {
     const playerId = roster[role];
     const player = playerId ? find(playerId) : undefined;
     if (!playerId || !player) continue;
+    fit.filledRoles.push(role);
     if (hasTrait(player, "resource_hog")) fit.hogs.push({ playerId, role });
     if (hasTrait(player, "weakside_ready")) fit.weakside.push({ playerId, role });
     if (hasTrait(player, "enabler")) fit.enablers.push({ playerId, role });
@@ -425,7 +453,129 @@ export function computeTeamFit(
     if (withTrait("series_adapter").length >= 2) fit.notes.push("This roster gets better as the series goes on");
     if (withTrait("signature_player").length >= 3) fit.warnings.push("Three signature players: bans will hurt this roster");
   }
+  buildLiveTeamFit(fit, roster, find);
   return fit;
+}
+
+const ADVICE_LEVEL_ORDER: TeamFitAdvice["level"][] = ["warning", "tip", "good"];
+const ADVICE_DIMENSION_ORDER: TeamFitAdvice["dimension"][] = ["resources", "comms", "draft", "shotcalling"];
+
+/** TEAM_FIT_LIVE §1.3 — cel mult `limit` sfaturi: întâi warning, apoi tip, apoi good; la egalitate, după dimensiune. */
+export function topAdvice(advice: readonly TeamFitAdvice[], limit = 3): TeamFitAdvice[] {
+  return [...advice]
+    .sort((a, b) => ADVICE_LEVEL_ORDER.indexOf(a.level) - ADVICE_LEVEL_ORDER.indexOf(b.level) || ADVICE_DIMENSION_ORDER.indexOf(a.dimension) - ADVICE_DIMENSION_ORDER.indexOf(b.dimension))
+    .slice(0, limit);
+}
+
+/** TEAM_FIT_LIVE §1.1 / §1.3 — dimensiunile structurate și sfaturile (merg și pe roster parțial). */
+function buildLiveTeamFit(fit: TeamFit, roster: Partial<Record<Role, string>>, find: (playerId: string) => Player | undefined) {
+  const members = ROLE_ORDER.flatMap((role) => {
+    const player = roster[role] ? find(roster[role]!) : undefined;
+    return player ? [{ role, player }] : [];
+  });
+  const empty = ROLE_ORDER.length - members.length;
+  const add = (advice: TeamFitAdvice) => fit.advice.push(advice);
+  const nameOf = (playerId: string) => find(playerId)?.name ?? playerId;
+
+  // Resources
+  const hogCount = fit.hogs.length;
+  const max = fit.resources.max;
+  const split = fit.notes.find((note) => note.startsWith("Clear resource split"));
+  fit.resources = {
+    hogCount,
+    max,
+    level: hogCount > max ? "warning" : hogCount === max || (hogCount >= 1 && split) ? "good" : "neutral",
+    summary: `${hogCount}/${max} carries`,
+  };
+  if (hogCount > max) add({ id: "resources-too-many", dimension: "resources", level: "warning", text: `${hogCount} players want resources (${fit.hogs.map((entry) => nameOf(entry.playerId)).join(", ")})` });
+  if (fit.warnings.includes("Two carries off bot lane: the ADC will be starved")) {
+    add({ id: "resources-adc-starved", dimension: "resources", level: "warning", text: "Two carries off bot lane: the ADC will be starved" });
+  }
+  if (hogCount === max && empty > 0) add({ id: "resources-full", dimension: "resources", level: "tip", text: "You have your two carries. Look for weakside or enabler players" });
+  if (hogCount === 0 && empty <= 1 && members.length > 0) add({ id: "resources-no-carry", dimension: "resources", level: "tip", text: "No resource-hungry carry yet: consider one as your win condition" });
+  if (split) add({ id: "resources-split", dimension: "resources", level: "good", text: split });
+
+  // Comms (același câmp ca computeTeamChemistry; sfaturile doar de la 2 sloturi completate)
+  if (members.length) {
+    const values = members.map((entry) => ({ playerId: entry.player.id, value: entry.player.advancedProfile?.hiddenTraits?.communication ?? 50 }));
+    const average = values.reduce((sum, entry) => sum + entry.value, 0) / values.length;
+    const weakest = [...values].sort((a, b) => a.value - b.value)[0];
+    const level = getCommsLevel(average);
+    fit.comms = { average, level, weakest: { playerId: weakest.playerId, level: getCommsLevel(weakest.value) }, summary: `Team comms: ${level}` };
+    if (members.length >= 2) {
+      const poor = values.find((entry) => getCommsLevel(entry.value) === "Poor");
+      if (poor) add({ id: "comms-poor-player", dimension: "comms", level: "warning", text: `${nameOf(poor.playerId)}'s comms are Poor: teamfights will suffer` });
+      else if (average < 55) add({ id: "comms-low", dimension: "comms", level: "tip", text: `Team comms: ${level}. Look for players with Good or Elite comms` });
+      if (average >= 70) add({ id: "comms-high", dimension: "comms", level: "good", text: `Team comms: ${level}. Expect clean teamfights` });
+    }
+  }
+
+  // Draft (doar trait-urile active)
+  const withTrait = (id: PlayerTraitId) => (isActiveTraitId(id) ? members.filter((entry) => hasTrait(entry.player, id)) : []);
+  if (withTrait("counter_specialist").length >= 2) add({ id: "draft-two-counter", dimension: "draft", level: "warning", text: "Two counter-pickers: one of them will have to blind" });
+  const setupCarries = withTrait("needs_setup");
+  if (setupCarries.length >= 2) add({ id: "draft-two-setup", dimension: "draft", level: "warning", text: "Two carries need setup: hard to draft for both" });
+  if (setupCarries.length >= 1) {
+    const support = members.find((entry) => entry.role === "support")?.player;
+    const carry = setupCarries[0].player.name;
+    if (!support) add({ id: "draft-setup-no-engage", dimension: "draft", level: "tip", text: `${carry} needs setup: pick an engage support` });
+    else if (!["setup", "playmaker", "tank"].includes(support.playstyleIdentity.primary)) {
+      add({ id: "draft-setup-no-engage", dimension: "draft", level: "tip", text: `${carry} needs setup, but your support doesn't engage` });
+    }
+  }
+  if (withTrait("signature_player").length >= 3) add({ id: "draft-signature-heavy", dimension: "draft", level: "warning", text: "Three signature players: bans will hurt this roster" });
+  if (withTrait("series_adapter").length >= 2) add({ id: "draft-adapters", dimension: "draft", level: "good", text: "This roster gets better as the series goes on" });
+  if (withTrait("fast_starter").length >= 2) add({ id: "draft-fast-starters", dimension: "draft", level: "good", text: "Strong starts: aim to win game 1" });
+  // Shotcalling: vine cu faza 3 (trait-urile shotcaller / follower).
+}
+
+export type TeamFitChange = {
+  resources: { from: number; to: number; level: "better" | "worse" | "same" };
+  comms: { from: CommsLevel | null; to: CommsLevel | null; level: "better" | "worse" | "same" };
+  /** Sfaturi care apar. */
+  added: TeamFitAdvice[];
+  /** Sfaturi care dispar. */
+  resolved: TeamFitAdvice[];
+};
+
+/**
+ * TEAM_FIT_LIVE §1.2 — ce s-ar schimba în Team Fit dacă alegi candidatul: intră pe rolul lui și îl înlocuiește pe cel
+ * ales acolo. Dacă e deja ales pe rolul lui, arată ce s-ar schimba dacă l-ai scoate.
+ */
+export function previewTeamFitChange(
+  roster: Partial<Record<Role, string>>,
+  candidate: Pick<Player, "id" | "role">,
+  lookup?: (playerId: string) => Player | undefined,
+): TeamFitChange {
+  const next: Partial<Record<Role, string>> = { ...roster };
+  if (roster[candidate.role] === candidate.id) delete next[candidate.role];
+  else next[candidate.role] = candidate.id;
+  const before = computeTeamFit(roster, lookup);
+  const after = computeTeamFit(next, lookup);
+  const max = before.resources.max;
+  const from = before.resources.hogCount;
+  const to = after.resources.hogCount;
+  const lowBefore = before.weakside.length + before.enablers.length;
+  const lowAfter = after.weakside.length + after.enablers.length;
+  const resourcesLevel: "better" | "worse" | "same" =
+    to > max && to > from ? "worse"
+      : from > max && to < from ? "better"
+        : from === 0 && to === 1 ? "better"
+          : from >= max && lowAfter > lowBefore ? "better"
+            : from > 0 && to === 0 ? "worse"
+              : "same";
+  const rank = (level: CommsLevel | null) => (level ? COMMS_LEVEL_ORDER.indexOf(level) : -1);
+  const commsLevel = before.comms.level === null || after.comms.level === null || before.comms.level === after.comms.level
+    ? "same"
+    : rank(after.comms.level) > rank(before.comms.level) ? "better" : "worse";
+  const beforeIds = new Set(before.advice.map((entry) => entry.id));
+  const afterIds = new Set(after.advice.map((entry) => entry.id));
+  return {
+    resources: { from, to, level: resourcesLevel },
+    comms: { from: before.comms.level, to: after.comms.level, level: commsLevel },
+    added: after.advice.filter((entry) => !beforeIds.has(entry.id)),
+    resolved: before.advice.filter((entry) => !afterIds.has(entry.id)),
+  };
 }
 
 // ─── §3 Colorarea pe draftul de campioni ─────────────────────────────────────
@@ -470,12 +620,17 @@ export const COMMS_TOOLTIP = "How well he talks and coordinates with the team. A
 /** Pragul de leadership de la care jucătorul e marcat „Leader” (ca LEADERSHIP_TRAIT_THRESHOLD din Spirit), până la trait-ul shotcaller. */
 export const LEADER_THRESHOLD = 80;
 
-/** `hiddenTraits.communication` ca nivel: < 45 Poor, 45–59 Average, 60–74 Good, ≥ 75 Elite. */
+/** Nivelul de comunicare: < 45 Poor, 45–59 Average, 60–74 Good, ≥ 75 Elite (roster view, Team Fit). */
+export function getCommsLevel(value: number): CommsLevel {
+  return value >= 75 ? "Elite" : value >= 60 ? "Good" : value >= 45 ? "Average" : "Poor";
+}
+export const COMMS_LEVEL_ORDER: readonly CommsLevel[] = ["Poor", "Average", "Good", "Elite"];
+
+/** `hiddenTraits.communication` (același câmp ca în computeTeamChemistry) ca nivel, plus „Leader”. */
 export function getCommsInfo(player: Pick<Player, "advancedProfile">): { level: CommsLevel; leader: boolean } {
   const communication = player.advancedProfile?.hiddenTraits?.communication ?? 50;
   const leadership = player.advancedProfile?.hiddenTraits?.leadership ?? 0;
-  const level: CommsLevel = communication >= 75 ? "Elite" : communication >= 60 ? "Good" : communication >= 45 ? "Average" : "Poor";
-  return { level, leader: leadership >= LEADER_THRESHOLD };
+  return { level: getCommsLevel(communication), leader: leadership >= LEADER_THRESHOLD };
 }
 
 /** Trait-ul jucătorului, doar dacă e activ (familie activă, efecte implementate). */
