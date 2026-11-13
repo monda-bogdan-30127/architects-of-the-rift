@@ -103,6 +103,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   // LCK — DRX
   // ══════════════════════════════════════════════════════════════════
   "rich": {
+    traits: [{ id: "weakside_ready" }],
+    noDerivedTraits: ["resource_hog"],
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
     secondaryStyle: "weakside",
@@ -149,12 +151,16 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Early Game", "Dive", "Tempo"] },
   },
   "showmaker": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
     secondaryStyle: "playmaker",
     tagOverrides: { add: ["Lane Dominant", "Scaling", "Flexible", "Late Game"] },
   },
   "smash": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
     secondaryStyle: "aggressive",
@@ -699,12 +705,16 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Early Game", "Dive", "Snowball"] },
   },
   "jojopyun": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     primaryStyle: "playmaker",
     primaryDisplayOverride: "Playmaker",
     secondaryStyle: "scaler",
     tagOverrides: { add: ["Lane Dominant", "Scaling", "Roaming"] },
   },
   "supa": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
     secondaryStyle: "weakside",
@@ -1536,6 +1546,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
   // LCS — Sentinels
   // ══════════════════════════════════════════════════════════════════
   "impact": {
+    traits: [{ id: "weakside_ready", intensity: 2 }],
+    noDerivedTraits: ["resource_hog"],
     primaryStyle: "tank",
     primaryDisplayOverride: "Controller",
     secondaryStyle: "weakside",
@@ -1584,6 +1596,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Early Game", "Snowball", "Invader"] },
   },
   "quad": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     primaryStyle: "playmaker",
     primaryDisplayOverride: "Playmaker",
     secondaryStyle: "scaler",
@@ -1693,6 +1707,8 @@ export const playerProfileOverrides: Record<string, PlayerProfileOverride> = {
     tagOverrides: { add: ["Flexible"] },
   },
   "fbi": {
+    traits: [{ id: "resource_hog" }],
+    noDerivedTraits: ["weakside_ready", "enabler"],
     primaryStyle: "carry",
     primaryDisplayOverride: "Carry",
     secondaryStyle: "weakside",

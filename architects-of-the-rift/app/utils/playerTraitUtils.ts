@@ -22,9 +22,9 @@ import { DRAFT_THINKING_CONFIG } from "@/app/draft-engine/draftThinkingConfig";
 /**
  * PLAYER_TRAITS §1.3 — derivarea familiei Resources, relativă la rol: pragurile absolute descriau rolul, nu
  * jucătorul (aproape toți ADC-ii erau Resource Hog, aproape toți junglerii Weakside Ready). Pentru fiecare rol se ia
- * percentila lui `carryResourceUsage` printre jucătorii de pe acel rol, apoi un filtru: `greed ≥ 50` (absolut) la
- * resource_hog, peste percentila 25 a rolului la `styleFlex` / `utilityComfort` (filtrele absolute de 55 tăiau
- * aproape toți ADC-ii și mid-ii cu cerere mică: valorile lor sunt sub mediana rolului).
+ * percentila lui `carryResourceUsage` printre jucătorii de pe acel rol; la resource_hog, în plus, `greed ≥ 50`.
+ * weakside_ready / enabler nu au filtru: `styleFlex` / `utilityComfort` sunt corelate cu cererea mică de resurse,
+ * deci orice filtru pe ele îi tăia tocmai pe cei căutați.
  * `share` = fracția din rol peste (high) / sub (low) prag. Intensity 2: treimea de sus a celor care au primit
  * trait-ul pe rol, după cât de departe sunt de prag. resource_hog la jungle e doar manual: greed-ul mare al
  * junglerilor descrie stilul, nu cererea de gold.
@@ -39,24 +39,18 @@ export const TRAIT_DERIVATION = {
   weakside_ready: {
     direction: "low",
     share: { top: 0.25, adc: 0.15 } as Partial<Record<Role, number>>,
-    filter: (source: TraitSource, inRole: TraitSource[]) =>
-      source.playstyle.styleFlex > rolePercentile(inRole.map((entry) => entry.playstyle.styleFlex), 0.25),
-    filterLabel: "styleFlex peste p25 în rol",
+    filter: () => true,
+    filterLabel: "fără filtru",
   },
   enabler: {
     direction: "low",
     share: { jungle: 0.25, mid: 0.15 } as Partial<Record<Role, number>>,
-    filter: (source: TraitSource, inRole: TraitSource[]) =>
-      source.playstyle.utilityComfort > rolePercentile(inRole.map((entry) => entry.playstyle.utilityComfort), 0.25),
-    filterLabel: "utilityComfort peste p25 în rol",
+    filter: () => true,
+    filterLabel: "fără filtru",
   },
 } as const;
 
-/** Valoarea de la percentila `p` (0..1, de jos) a unei liste. */
-function rolePercentile(values: number[], p: number): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.floor(p * (sorted.length - 1))] ?? 0;
-}
+
 /** Fracția celor cu trait-ul (pe rol) care primesc intensity 2. */
 export const TRAIT_STRONG_SHARE = 1 / 3;
 
@@ -65,23 +59,31 @@ export type TraitOverride = { traits?: ManualTraitInput[]; noDerivedTraits?: Pla
 
 type TraitSource = { id: string; role: Role; playstyle: PlayerPlaystyleProfile; hiddenTraits: PlayerHiddenTraits };
 
-/** Pragul pe rol: valoarea de la percentila `share` (de sus pentru high, de jos pentru low). */
-function roleThreshold(values: number[], share: number, direction: "high" | "low"): number {
-  const sorted = [...values].sort((a, b) => (direction === "high" ? b - a : a - b));
-  const index = Math.max(0, Math.min(sorted.length - 1, Math.ceil(share * sorted.length) - 1));
-  return sorted[index] ?? (direction === "high" ? Infinity : -Infinity);
-}
-
-/** Trait-urile derivate pentru toată liga (playerId → trait-uri, cu scorul de derivare = distanța de prag). */
-export function deriveLeagueTraits(sources: TraitSource[]): Map<string, { trait: PlayerTrait; score: number }[]> {
+/**
+ * Trait-urile derivate pentru toată liga (playerId → trait-uri, cu scorul de derivare = distanța de prag).
+ * Ținta pe rol (`share`) e totală: cota derivată = ținta − jucătorii setați manual cu trait-ul pe acel rol, iar
+ * jucătorii cu un trait manual din aceeași familie nu mai intră în derivare.
+ */
+export function deriveLeagueTraits(
+  sources: TraitSource[],
+  manual: ReadonlyMap<string, readonly PlayerTraitId[]> = new Map(),
+): Map<string, { trait: PlayerTrait; score: number }[]> {
   const result = new Map<string, { trait: PlayerTrait; score: number }[]>();
   for (const [id, rule] of Object.entries(TRAIT_DERIVATION) as [PlayerTraitId, (typeof TRAIT_DERIVATION)[keyof typeof TRAIT_DERIVATION]][]) {
+    const family = PLAYER_TRAIT_INFO[id].family;
     for (const [role, share] of Object.entries(rule.share) as [Role, number][]) {
       const inRole = sources.filter((source) => source.role === role);
-      const threshold = roleThreshold(inRole.map((source) => source.playstyle.carryResourceUsage), share, rule.direction);
-      const recipients = inRole
+      const manualIds = (source: TraitSource) => manual.get(source.id) ?? [];
+      const manualCount = inRole.filter((source) => manualIds(source).includes(id)).length;
+      const quota = Math.max(0, Math.ceil(share * inRole.length) - manualCount);
+      const ranked = inRole
+        .filter((source) => !manualIds(source).some((other) => PLAYER_TRAIT_INFO[other]?.family === family))
+        .sort((a, b) => (rule.direction === "high" ? b.playstyle.carryResourceUsage - a.playstyle.carryResourceUsage : a.playstyle.carryResourceUsage - b.playstyle.carryResourceUsage))
+        .slice(0, quota);
+      const threshold = ranked[ranked.length - 1]?.playstyle.carryResourceUsage ?? 0;
+      const recipients = ranked
         .map((source) => ({ source, score: rule.direction === "high" ? source.playstyle.carryResourceUsage - threshold : threshold - source.playstyle.carryResourceUsage }))
-        .filter((entry) => entry.score >= 0 && rule.filter(entry.source, inRole))
+        .filter((entry) => rule.filter(entry.source))
         .sort((a, b) => b.score - a.score);
       const strong = Math.ceil(recipients.length * TRAIT_STRONG_SHARE);
       recipients.forEach((entry, index) => {
@@ -124,8 +126,12 @@ export function resolvePlayerTraits(
 
 /** Atribuie trait-urile întregii ligi (după ce toți jucătorii există: pragurile sunt percentile pe rol). */
 export function assignPlayerTraits(list: Player[], overrides: Record<string, TraitOverride | undefined>) {
+  const manual = new Map(
+    Object.entries(overrides).map(([playerId, override]) => [playerId, (override?.traits ?? []).map((entry) => entry.id)] as const),
+  );
   const derived = deriveLeagueTraits(
     list.map((player) => ({ id: player.id, role: player.role, playstyle: player.advancedProfile.playstyle, hiddenTraits: player.advancedProfile.hiddenTraits })),
+    manual,
   );
   for (const player of list) player.traits = resolvePlayerTraits(player.role, derived.get(player.id) ?? [], overrides[player.id]);
 }

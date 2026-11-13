@@ -453,5 +453,7 @@ export const DRAFT_THINKING_CONFIG = {
      * botFocusEnabled, nu depinde de resourceDemand: pornit, schimba 40 / 120 de drafturi cu datele goale. Oprit.
      */
     winConditionHogTieEnabled: false,
+    /** §4.3 — valoarea continuă de departajare: ofertele identității sau carry potential (damage + scaling). */
+    winConditionTieValue: "carryPotential" as "identityOffers" | "carryPotential",
   },
 } as const;

@@ -35,9 +35,14 @@ function carryContribution(champion: Champion, role: Role): number {
   return bonus;
 }
 
-/** Suma `offers` ale campionului pe atributele care definesc identitatea (departajare continuă, §4.3). */
+const CARRY_POTENTIAL_OFFERS = ["sustainedDamage", "burstDamage", "scaling"];
+
+/**
+ * Departajarea continuă (§4.3), după `traits.winConditionTieValue`: suma `offers` pe atributele care definesc identitatea
+ * („identityOffers”) sau pe damage și scaling („carryPotential”).
+ */
 function identityOfferSum(champion: Champion, identity: NonNullable<CompIdentityReading["dominant"]>): number {
-  const offers = getIdentityOffers(identity);
+  const offers = DRAFT_THINKING_CONFIG.traits.winConditionTieValue === "carryPotential" ? CARRY_POTENTIAL_OFFERS : getIdentityOffers(identity);
   return (champion.offers ?? []).filter((offer) => offers.includes(String(offer.type))).reduce((sum, offer) => sum + offer.strength, 0);
 }
 
