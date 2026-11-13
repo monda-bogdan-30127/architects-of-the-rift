@@ -66,8 +66,8 @@ for (const player of players) {
     const champion = championsById.get(championId);
     if (!champion) continue;
     fitNow.push(getPlayerChampionFitScore(player.stats, champion.playerScaling));
-    const scaled = Object.fromEntries(Object.entries(player.stats).map(([key, value]) => [key, value / 10])) as PlayerStats;
-    fitFixed.push(getPlayerChampionFitScore(scaled, champion.playerScaling));
+    // După reparație, getPlayerChampionFitScore normalizează singur (și e relativ la mediana ligii).
+    fitFixed.push(getPlayerChampionFitScore(player.stats, champion.playerScaling));
   }
 }
 lines.push(`| getPlayerChampionFitScore (jucător × bestChampions, ${fitNow.length}) | ${stats(fitNow)} | ${stats(fitFixed)} |`);

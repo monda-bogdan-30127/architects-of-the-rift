@@ -512,4 +512,12 @@ export const DRAFT_THINKING_CONFIG = {
     /** Draft: game 1, candidații SS / S ai unui fast_starter propriu + atât × intensity. */
     fastStarterComfortBonus: 0.3,
   },
+
+  // Scala stats-urilor vechi (legacyStats.ts): scorurile de jucător (player*Score, star power, fit-ul jucător–campion)
+  // intră în simulare și în draft relativ la mediana ligii, la nivelul de bază de dinainte (10 = jucătorul median,
+  // unde erau toți cât timp scorurile erau plafonate): valoare = 10 + (scor − mediana ligii) × playerSkillScale.
+  // playerSkillScale e reglajul cât contează diferența dintre jucători (ponderea, fără variație în plus).
+  simulation: {
+    playerSkillScale: 0.35,
+  },
 } as const;

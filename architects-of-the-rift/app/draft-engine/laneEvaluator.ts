@@ -9,11 +9,8 @@ import {
   getPlayerByIdSafe,
   matchupPowerAgainst,
   playerChampionDraftFit,
+  playerSkill,
   playerChampionMatchupHistoryEdge,
-  playerConsistencyScore,
-  playerExecutionScore,
-  playerLaningScore,
-  playerMacroScore,
   round1,
 } from "./matchSimulationUtils";
 import { getHistoryAdjustedLaneBonus } from "./playerHistoryEvaluator";
@@ -44,8 +41,8 @@ function jungleInfluence(role: Role, playerId: string | null, championId: string
     .filter((offer) => ["roamPressure", "engage", "earlyPrio", "reliableCC"].includes(offer.type))
     .reduce((sum, offer) => sum + offer.strength, 0);
 
-  const macro = playerMacroScore(playerId);
-  const execution = playerExecutionScore(playerId);
+  const macro = playerSkill("macro", playerId);
+  const execution = playerSkill("execution", playerId);
 
   return clamp(roam * 0.68 + macro * 0.82 + execution * 0.35, 0, 10);
 }
@@ -159,12 +156,13 @@ function buildRoleBreakdown(
   const blueDraftFit = playerChampionDraftFit(bluePlayerId, blueChampionId);
   const redDraftFit = playerChampionDraftFit(redPlayerId, redChampionId);
 
-  const blueExec = playerExecutionScore(bluePlayerId);
-  const redExec = playerExecutionScore(redPlayerId);
-  const blueLaning = playerLaningScore(bluePlayerId);
-  const redLaning = playerLaningScore(redPlayerId);
-  const blueConsistency = playerConsistencyScore(bluePlayerId);
-  const redConsistency = playerConsistencyScore(redPlayerId);
+  // Scorurile de jucător relativ la ligă (10 = jucătorul median, vezi skillAtLegacyBaseline).
+  const blueExec = playerSkill("execution", bluePlayerId);
+  const redExec = playerSkill("execution", redPlayerId);
+  const blueLaning = playerSkill("laning", bluePlayerId);
+  const redLaning = playerSkill("laning", redPlayerId);
+  const blueConsistency = playerSkill("consistency", bluePlayerId);
+  const redConsistency = playerSkill("consistency", redPlayerId);
 
   const blueEarly = earlyStatScore(blueChampionId, role);
   const redEarly = earlyStatScore(redChampionId, role);

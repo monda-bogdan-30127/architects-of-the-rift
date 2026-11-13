@@ -13,6 +13,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname } from "path";
 import { teams } from "@/app/data/teams";
+import { DRAFT_THINKING_CONFIG } from "@/app/draft-engine/draftThinkingConfig";
 import { champions } from "@/app/data/champions";
 import type { Role } from "@/app/types/champion";
 import {
@@ -46,6 +47,8 @@ const seedsPerPair = Math.max(1, Number(named.seeds ?? 3));
 const outFile = named.out ?? positional[1];
 const compareFile = named.compare;
 const contextualNeedsOn = named["contextual-needs"] === "true";
+// --skill-scale X: playerSkillScale (cât contează diferența dintre jucători) pentru rularea asta, peste config.
+if (named["skill-scale"]) (DRAFT_THINKING_CONFIG.simulation as { playerSkillScale: number }).playerSkillScale = Number(named["skill-scale"]);
 if (contextualNeedsOn) setContextualNeedsOverride(true);
 /** id → câte compoziții finale au nevoia activă / nesatisfăcută / cu priority ≥ 2 (față de compoziția adversarului). */
 const contextualStats: Record<string, { active: number; unmet: number; high: number }> = {};
@@ -104,6 +107,11 @@ type GameRecord = {
   pillarsRed: Record<string, string>;
   /** Campioni asignați pe un rol care nu e în `roles` lor. */
   offRole: string[];
+  /** Nivelul echipei (media rosterPoints a titularilor) și draftPower din draftEvaluator, per side. */
+  strengthBlue?: number;
+  strengthRed?: number;
+  draftPowerBlue?: number;
+  draftPowerRed?: number;
   actions: CompactAction[];
 };
 
@@ -118,6 +126,11 @@ function intentOf(action: TracedAction): string | null {
 }
 
 const roster = (slug: string) => save.updatedTeamRosters[teamsBySlug.get(slug)?.id ?? slug] ?? {};
+/** Media rosterPoints a titularilor (nivelul echipei, pentru metricile „favoritul câștigă”). */
+const teamStrength = (slug: string) => {
+  const values = Object.values(roster(slug)).map((playerId) => playersById.get(playerId ?? "")?.rosterPoints).filter((value): value is number => typeof value === "number");
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+};
 const started = Date.now();
 const records: GameRecord[] = [];
 const rawActions: TracedAction[][] = [];
@@ -191,6 +204,10 @@ for (const entry of schedule) {
     pillarsBlue: pillarGrades("blue"),
     pillarsRed: pillarGrades("red"),
     offRole,
+    strengthBlue: round4(teamStrength(entry.blue)),
+    strengthRed: round4(teamStrength(entry.red)),
+    draftPowerBlue: round4(evaluationBlue.draftPower),
+    draftPowerRed: round4(evaluationRed.draftPower),
     actions: actions.map((action) => ({
       i: action.stepIndex,
       s: action.side,
@@ -411,6 +428,16 @@ for (const record of records) {
 }
 
 type Metric = { id: string; label: string; value: number; target: string; ok: boolean | null; format: "int" | "pct" | "num" };
+// Cât contează nivelul jucătorilor și draftul: favoritul (rosterPoints) câștigă; la nivel aproape egal, draftul mai bun.
+const decided = records.filter((record) => record.winner && record.strengthBlue !== undefined && record.strengthRed !== undefined);
+const favoriteWins = (list: GameRecord[]) =>
+  list.filter((record) => (record.winner === "blue") === (record.strengthBlue! > record.strengthRed!)).length;
+const strengthDiff = (record: GameRecord) => Math.abs(record.strengthBlue! - record.strengthRed!);
+const unequal = decided.filter((record) => strengthDiff(record) > 0);
+const bigGap = decided.filter((record) => strengthDiff(record) >= 2 && strengthDiff(record) < 4);
+const evenGames = decided.filter((record) => strengthDiff(record) < 0.5 && record.draftPowerBlue !== record.draftPowerRed);
+const betterDraftWins = evenGames.filter((record) => (record.winner === "blue") === (record.draftPowerBlue! > record.draftPowerRed!)).length;
+
 const metrics: Metric[] = [
   { id: "offRole", label: "Campioni pe roluri care nu sunt în `roles`", value: offRolePicks, target: "0", ok: offRolePicks === 0, format: "int" },
   { id: "fPicks", label: "Pick-uri cu F (fără forced-off-pool / pool subțire)", value: fPicks, target: "0", ok: fPicks === 0, format: "int" },
@@ -431,6 +458,9 @@ const metrics: Metric[] = [
   { id: "preferredStyles", label: "Draftează un stil din preferredStyles (cu balanced)", value: pct(styleHits, styleGames), target: "≥ 40%", ok: pct(styleHits, styleGames) >= 0.4, format: "pct" },
   { id: "preferredStylesStrict", label: "… fără balanced", value: pct(styleStrictHits, styleStrictGames), target: "raportat", ok: null, format: "pct" },
   { id: "identicalDrafts", label: "Drafturi identice, aceeași pereche, seed-uri diferite", value: pct(identicalDrafts, seedComparisons), target: "< 10%", ok: pct(identicalDrafts, seedComparisons) < 0.1, format: "pct" },
+  { id: "favoriteWins", label: `Favoritul (media rosterPoints) câștigă (${unequal.length} jocuri)`, value: pct(favoriteWins(unequal), unequal.length), target: "~65–70%", ok: pct(favoriteWins(unequal), unequal.length) >= 0.62 && pct(favoriteWins(unequal), unequal.length) <= 0.72, format: "pct" },
+  { id: "favoriteWinsBigGap", label: `… la o diferență de 2–4 rosterPoints (${bigGap.length} jocuri)`, value: pct(favoriteWins(bigGap), bigGap.length), target: "~80–85%", ok: bigGap.length ? pct(favoriteWins(bigGap), bigGap.length) >= 0.77 && pct(favoriteWins(bigGap), bigGap.length) <= 0.88 : null, format: "pct" },
+  { id: "betterDraftEven", label: `Nivel aproape egal (< 0.5): câștigă draftul mai bun (${evenGames.length} jocuri)`, value: pct(betterDraftWins, evenGames.length), target: "~60–65%", ok: evenGames.length ? pct(betterDraftWins, evenGames.length) >= 0.57 && pct(betterDraftWins, evenGames.length) <= 0.68 : null, format: "pct" },
   { id: "lowCreativityFirst", label: "creativity ≤ 3: aleg primul candidat", value: pct(lowCreativity.first, lowCreativity.total), target: "≥ 80%", ok: pct(lowCreativity.first, lowCreativity.total) >= 0.8, format: "pct" },
 ];
 

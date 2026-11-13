@@ -1,5 +1,7 @@
 import { champions } from "@/app/data/champions";
 import { players } from "@/app/data/players";
+import { legacyStatScore, normalizeLegacyStats } from "@/app/utils/legacyStats";
+import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { COMP_ATTRIBUTE_ORDER } from "@/app/types/compAttributes";
 import type { Champion, ChampionPlayerScaling, Role } from "@/app/types/champion";
 import type { Player, PlayerStats } from "@/app/types/player";
@@ -336,17 +338,45 @@ export function getMetaPriorityScore(champion: Champion, role?: Role | null): nu
   return clamp((presenceRate * 0.53 + banRate * 0.22 + pickPriorityRate * 0.15 + blindRate * 0.1) * 10, 0, 10);
 }
 
-export function getPlayerChampionFitScore(playerStats: PlayerStats, scaling?: ChampionPlayerScaling): number {
-  if (!scaling) return 5;
+/** Fit-ul brut pe 0–10: media ponderată (playerScaling) a stats-urilor vechi normalizate. */
+function rawPlayerChampionFit(playerStats: PlayerStats, scaling?: ChampionPlayerScaling): number | null {
+  if (!scaling) return null;
   const entries = Object.entries(scaling) as Array<[keyof PlayerStats, number]>;
-  if (!entries.length) return 5;
+  if (!entries.length) return null;
+  const normalized = normalizeLegacyStats(playerStats);
   let weightedSum = 0;
   let totalWeight = 0;
   for (const [statKey, weight] of entries) {
-    weightedSum += playerStats[statKey] * weight;
+    weightedSum += normalized[statKey] * weight;
     totalWeight += weight;
   }
-  return totalWeight === 0 ? 5 : clamp(weightedSum / totalWeight, 0, 10);
+  return totalWeight === 0 ? null : weightedSum / totalWeight;
+}
+
+let medianFit: number | null = null;
+/** Mediana fit-ului brut pe ligă (jucător × campionii lui de bază). */
+function getMedianFit(): number {
+  if (medianFit !== null) return medianFit;
+  const values: number[] = [];
+  for (const player of players) {
+    for (const championId of player.bestChampions) {
+      const value = rawPlayerChampionFit(player.stats, championMap.get(championId)?.playerScaling);
+      if (value !== null) values.push(value);
+    }
+  }
+  values.sort((a, b) => a - b);
+  medianFit = values[Math.floor(values.length / 2)] ?? 7.5;
+  return medianFit;
+}
+
+/**
+ * Fit-ul jucător–campion din stats-urile vechi (`playerScaling`). Stats-urile sunt pe 10–100: normalizate, apoi relativ
+ * la mediana ligii la nivelul de bază de dinainte (10 = fit-ul median; înainte, fit-ul era 10 pentru toți).
+ */
+export function getPlayerChampionFitScore(playerStats: PlayerStats, scaling?: ChampionPlayerScaling): number {
+  const raw = rawPlayerChampionFit(playerStats, scaling);
+  if (raw === null) return 5;
+  return clamp(10 + (raw - getMedianFit()) * DRAFT_THINKING_CONFIG.simulation.playerSkillScale, 0, 12);
 }
 
 export function getProjectedPlayerChampionFitScore(player: Player | null, champion: Champion | null, role?: Role | null): number {
@@ -451,7 +481,7 @@ export function evaluatePlayerPower(roster: Partial<Record<Role, string>>, assig
     const comfort = getComfortScore(player, champion);
     const adjustedFit = getHistoryAdjustedDraftFit(fit, player.id, champion.id);
     const historyBonus = getPlayerChampionHistoryBonus(player.id, champion.id);
-    total += adjustedFit * 0.42 + comfort * 0.24 + advancedPrimary(player, "adaptability", player.stats.iq) * 0.16 + advancedPrimary(player, "teamfighting", player.stats.tfg) * 0.12 + (5 + historyBonus * 2) * 0.06;
+    total += adjustedFit * 0.42 + comfort * 0.24 + advancedPrimary(player, "adaptability", legacyStatScore(player, "iq")) * 0.16 + advancedPrimary(player, "teamfighting", legacyStatScore(player, "tfg")) * 0.12 + (5 + historyBonus * 2) * 0.06;
     count += 1;
   }
   return count === 0 ? 0 : total / count;

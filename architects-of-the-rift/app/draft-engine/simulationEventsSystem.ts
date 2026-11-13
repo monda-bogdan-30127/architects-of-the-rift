@@ -12,6 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import type { Champion, Role } from "@/app/types/champion";
+import { legacyStatScore } from "@/app/utils/legacyStats";
 import type { Player } from "@/app/types/player";
 import { getChampionByIdSafe, getPlayerByIdSafe, clamp, seededNoise } from "./matchSimulationUtils";
 import { getPlayerChampionHistoryMetrics } from "./playerHistoryEvaluator";
@@ -241,8 +242,8 @@ function getPlayerAttribute(player: Player, attr: "macro" | "consistency" | "dis
   const advanced = player.advancedProfile?.primary;
   if (!advanced) {
     // Fallback to legacy stats
-    if (attr === "macro") return player.stats?.mac ?? 5;
-    if (attr === "consistency") return player.stats?.con ?? 5;
+    if (attr === "macro") return legacyStatScore(player, "mac");
+    if (attr === "consistency") return legacyStatScore(player, "con");
     return 5;
   }
   if (attr === "macro") return (advanced.mapAwareness + advanced.objectiveControl) / 20;

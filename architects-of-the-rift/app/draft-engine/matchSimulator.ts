@@ -2,6 +2,7 @@ import { champions } from "@/app/data/champions";
 import { players } from "@/app/data/players";
 import { teams } from "@/app/data/teams";
 import type { Role } from "@/app/types/champion";
+import type { Player } from "@/app/types/player";
 import type {
   ActiveDraftSeries,
   DraftGameState,
@@ -85,11 +86,8 @@ import {
   objectiveControlScore,
   playerChampionArchetypeFit,
   playerChampionDraftFit,
-  playerClutchScore,
-  playerConsistencyScore,
-  playerExecutionScore,
-  playerLaningScore,
-  playerMacroScore,
+  playerSkill,
+  skillAtLegacyBaseline,
   playerTeamfightScore,
   round1,
   seededNoise,
@@ -255,7 +253,7 @@ function computeExecutionTeamScore(
   const values = ROLE_ORDER.map((role) => {
     const playerId = roster[role] ?? null;
     const championId = assignments[role] ?? null;
-    const playerExec = playerExecutionScore(playerId);
+    const playerExec = playerSkill("execution", playerId);
     const archetypeFit = playerChampionArchetypeFit(playerId, championId);
     const champDifficulty = championExecutionDifficulty(getChampionByIdSafe(championId));
     return clamp(playerExec * 0.58 + archetypeFit * 0.16 + (10 - champDifficulty) * 0.26, 0, 10);
@@ -292,9 +290,9 @@ function computeClutchTeamScore(roster: Partial<Record<Role, string>>) {
       ROLE_ORDER.map((role) => {
         const playerId = roster[role] ?? null;
         return clamp(
-          playerClutchScore(playerId) * 0.62 +
-          playerConsistencyScore(playerId) * 0.2 +
-          playerTeamfightScore(playerId) * 0.18,
+          playerSkill("clutch", playerId) * 0.62 +
+          playerSkill("consistency", playerId) * 0.2 +
+          playerSkill("teamfight", playerId) * 0.18,
           0,
           10
         );
@@ -307,9 +305,15 @@ function computeMetaAverage(assignments: Partial<Record<Role, string>>) {
   return round1(average(ROLE_ORDER.map((role) => championMetaPower(assignments[role] ?? null, role))));
 }
 
+/** Star power relativ la ligă (vezi skillAtLegacyBaseline); fără jucător, 10. */
 function computeStarPower(playerId: string | null) {
   const player = playerId ? getPlayerById(playerId) : null;
-  if (!player) return 5;
+  if (!player) return 10;
+  return skillAtLegacyBaseline("star", computeStarPowerRaw(player), computeStarPowerRaw);
+}
+
+/** Star power pe 0–10 (stats-urile vechi normalizate). */
+function computeStarPowerRaw(player: Player) {
 
   const stats = player.stats;
   const advanced = player.advancedProfile?.primary;
@@ -331,7 +335,7 @@ function computeStarPower(playerId: string | null) {
     stats.iq * 0.15 +
     stats.clt * 0.2;
 
-  return clamp(legacyStar * 0.38 + advancedStar * 0.62, 0, 10);
+  return clamp((legacyStar / 10) * 0.38 + advancedStar * 0.62, 0, 10);
 }
 
 function determineMatchProfile(args: {
@@ -665,19 +669,21 @@ function buildPlayerScores(args: {
       );
       const effectiveVariance = masteryVariance * spiritVariance;
       const champRoleProfile = getChampionRoleProfile(getChampionById(entry.championId), role);
-      const clutch = playerClutchScore(entry.playerId);
-      const execution = playerExecutionScore(entry.playerId);
-      const laning = playerLaningScore(entry.playerId);
-      const macro = playerMacroScore(entry.playerId);
+      // Scorurile de jucător relativ la ligă (10 = jucătorul median, vezi skillAtLegacyBaseline).
+      const clutch = playerSkill("clutch", entry.playerId);
+      const execution = playerSkill("execution", entry.playerId);
+      const laning = playerSkill("laning", entry.playerId);
+      const macro = playerSkill("macro", entry.playerId);
       // PLAYER_TRAITS §7.4: setup-ul celorlalți 4 (needs_setup / self_sufficient) și evoluția în serie.
       const teamPicks = Object.values(entry.side === "blue" ? args.assignmentsBlue : args.assignmentsRed);
       const setup = teamSetupFor(teamPicks, entry.championId);
       const traitModifier = getSetupRatingEffect(player, setup) + getSeriesRatingEffect(player, args.gameNumber, args.bo);
-      const teamfight = playerTeamfightScore(
+      const teamfight = playerSkill(
+        "teamfight",
         entry.playerId,
-        DRAFT_THINKING_CONFIG.traits.conditionalSetupTermEnabled ? setupDependenceFactor(player, setup) : undefined,
+        playerTeamfightScore(entry.playerId, DRAFT_THINKING_CONFIG.traits.conditionalSetupTermEnabled ? setupDependenceFactor(player, setup) : undefined),
       );
-      const consistency = playerConsistencyScore(entry.playerId);
+      const consistency = playerSkill("consistency", entry.playerId);
       const archetypeFit = playerChampionArchetypeFit(entry.playerId, entry.championId);
       const earlyAlign = getPhaseIdentityAlignment(entry.playerId, entry.championId, role, "early");
       const midAlign = getPhaseIdentityAlignment(entry.playerId, entry.championId, role, "mid");
@@ -1019,8 +1025,8 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
       mid: lane.roles.find((r) => r.role === "mid")?.redScore ?? 5,
       bot: lane.roles.find((r) => r.role === "adc")?.redScore ?? 5,
     },
-    blueJunglerMacro: playerMacroScore(blueRoster.jungle ?? null),
-    redJunglerMacro: playerMacroScore(redRoster.jungle ?? null),
+    blueJunglerMacro: playerSkill("macro", blueRoster.jungle ?? null),
+    redJunglerMacro: playerSkill("macro", redRoster.jungle ?? null),
     seriesId: input.series.seriesId,
     gameNumber: input.game.number,
   });
@@ -1275,16 +1281,16 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
 
   // UPGRADE 13: Comeback mechanics — close games can reverse (8-10%)
   let finalWinnerSide = winnerSide;
-  const blueMacroAvg = (playerMacroScore(blueRoster.top ?? null) +
-    playerMacroScore(blueRoster.jungle ?? null) +
-    playerMacroScore(blueRoster.mid ?? null) +
-    playerMacroScore(blueRoster.adc ?? null) +
-    playerMacroScore(blueRoster.support ?? null)) / 5;
-  const redMacroAvg = (playerMacroScore(redRoster.top ?? null) +
-    playerMacroScore(redRoster.jungle ?? null) +
-    playerMacroScore(redRoster.mid ?? null) +
-    playerMacroScore(redRoster.adc ?? null) +
-    playerMacroScore(redRoster.support ?? null)) / 5;
+  const blueMacroAvg = (playerSkill("macro", blueRoster.top ?? null) +
+    playerSkill("macro", blueRoster.jungle ?? null) +
+    playerSkill("macro", blueRoster.mid ?? null) +
+    playerSkill("macro", blueRoster.adc ?? null) +
+    playerSkill("macro", blueRoster.support ?? null)) / 5;
+  const redMacroAvg = (playerSkill("macro", redRoster.top ?? null) +
+    playerSkill("macro", redRoster.jungle ?? null) +
+    playerSkill("macro", redRoster.mid ?? null) +
+    playerSkill("macro", redRoster.adc ?? null) +
+    playerSkill("macro", redRoster.support ?? null)) / 5;
 
   const shouldReverse = checkComebackReversal({
     currentWinner: winnerSide,

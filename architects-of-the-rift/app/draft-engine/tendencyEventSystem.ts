@@ -18,8 +18,7 @@ import {
   seededNoise,
   getChampionByIdSafe,
   getPlayerByIdSafe,
-  playerExecutionScore,
-  playerLaningScore,
+  playerSkill,
 } from "./matchSimulationUtils";
 import { ROLE_ORDER } from "./draftTypes";
 
@@ -88,7 +87,7 @@ function evaluateInvadeEvent(
   const invadeFreq = getTendency(junglePlayer, "invadeFrequency");
   if (!tendencyTriggers(invadeFreq, `${seed}:invade:trigger`, 50)) return null;
 
-  const exec = playerExecutionScore(junglePlayer.id);
+  const exec = playerSkill("execution", junglePlayer.id);
   const enemyDiscipline = enemyJunglePlayer
     ? getPrimary(enemyJunglePlayer, "discipline") / 10
     : 5;
@@ -125,7 +124,7 @@ function evaluateTowerDiveEvent(
   const diveFreq = getTendency(player, "towerDiveFrequency");
   if (!tendencyTriggers(diveFreq, `${seed}:dive:trigger`, 55)) return null;
 
-  const exec = playerExecutionScore(player.id);
+  const exec = playerSkill("execution", player.id);
   const champProfile = getChampionRoleProfile(getChampionByIdSafe(championId), role);
   const diveCapability = champProfile
     ? (champProfile.accessProfile?.targetAccess ?? 5) * 0.4 +
@@ -229,7 +228,7 @@ function evaluateSplitPushEvent(
   const splitBias = getTendency(player, "splitPushBias");
   if (!tendencyTriggers(splitBias, `${seed}:split:trigger`, 55)) return null;
 
-  const laning = playerLaningScore(player.id);
+  const laning = playerSkill("laning", player.id);
   const champProfile = getChampionRoleProfile(getChampionByIdSafe(championId), role);
   const sidelanePower = champProfile?.roleSpecific?.top?.sideLaneControl ?? 5;
 
@@ -258,7 +257,7 @@ function evaluateFlankEvent(
   const flankPref = getTendency(player, "flankPreference");
   if (!tendencyTriggers(flankPref, `${seed}:flank:trigger`, 58)) return null;
 
-  const exec = playerExecutionScore(player.id);
+  const exec = playerSkill("execution", player.id);
   const champProfile = getChampionRoleProfile(getChampionByIdSafe(championId), role);
   const accessPower = champProfile
     ? (champProfile.accessProfile?.targetAccess ?? 5) * 0.5 +

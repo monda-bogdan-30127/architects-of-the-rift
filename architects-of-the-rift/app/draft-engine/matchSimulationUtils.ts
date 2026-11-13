@@ -6,7 +6,9 @@ import type { Role } from "@/app/types/champion";
 import { champions } from "@/app/data/champions";
 import { players } from "@/app/data/players";
 import type { Champion } from "@/app/types/champion";
-import type { Player } from "@/app/types/player";
+import type { Player, PlayerStats } from "@/app/types/player";
+import { legacyStatScore } from "@/app/utils/legacyStats";
+import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { getComfortScore, getMetaPriorityScore, getPlayerChampionFitScore } from "./draftEvaluator";
 import { getChampionStatsForRole } from "./championRoleStatsSystem";
 import { countStrongCounters, getMatchupValue, type MatchupContext } from "./matchupScoring";
@@ -42,10 +44,45 @@ export function getPlayerByIdSafe(playerId: string | null | undefined) {
   return playersById.get(playerId) ?? null;
 }
 
+/** Un stat vechi pe scala 0–10 (stats-urile vechi sunt pe 10–100, vezi legacyStats.ts). */
 export function statOf(player: Player | null, statKey: string, fallback = 5) {
   if (!player) return fallback;
-  const value = (player.stats as Record<string, number | undefined>)[statKey];
-  return typeof value === "number" ? value : fallback;
+  return legacyStatScore(player, statKey as keyof PlayerStats, fallback);
+}
+
+// ─── Scorurile de jucător relativ la ligă ────────────────────────────────────
+
+export type SkillKind = "clutch" | "execution" | "macro" | "laning" | "teamfight" | "consistency" | "star";
+const skillMedians = new Map<SkillKind, number>();
+
+/**
+ * Scorul unui jucător relativ la mediana ligii, la nivelul de bază de dinainte: 10 + (scor − mediana) × playerSkillScale.
+ * Cât timp scorurile erau plafonate, toți jucătorii erau la 10: pragurile și ponderile din simulare sunt calibrate pe
+ * acel nivel, iar acum contează doar diferența față de jucătorul median.
+ */
+export function skillAtLegacyBaseline(kind: SkillKind, value: number, raw: (player: Player) => number): number {
+  let median = skillMedians.get(kind);
+  if (median === undefined) {
+    const values = players.map(raw).sort((a, b) => a - b);
+    median = values[Math.floor(values.length / 2)] ?? 7.5;
+    skillMedians.set(kind, median);
+  }
+  return 10 + (value - median) * DRAFT_THINKING_CONFIG.simulation.playerSkillScale;
+}
+
+const RAW_SKILL: Record<Exclude<SkillKind, "star">, (playerId: string | null) => number> = {
+  clutch: (playerId) => playerClutchScore(playerId),
+  execution: (playerId) => playerExecutionScore(playerId),
+  macro: (playerId) => playerMacroScore(playerId),
+  laning: (playerId) => playerLaningScore(playerId),
+  teamfight: (playerId) => playerTeamfightScore(playerId),
+  consistency: (playerId) => playerConsistencyScore(playerId),
+};
+
+/** Scorul jucătorului relativ la ligă (vezi skillAtLegacyBaseline); fără jucător, 10 (nivelul de bază). */
+export function playerSkill(kind: Exclude<SkillKind, "star">, playerId: string | null, rawValue?: number): number {
+  if (!playerId || !getPlayerByIdSafe(playerId)) return 10;
+  return skillAtLegacyBaseline(kind, rawValue ?? RAW_SKILL[kind](playerId), (player) => RAW_SKILL[kind](player.id));
 }
 
 export function smoothWinRate(champion: Champion | null, role?: Role | null) {
@@ -346,7 +383,7 @@ export function lateGameScore(championIds: string[], rosterIds: string[], champi
     })
   );
 
-  const playerScore = average(rosterIds.map((id) => playerClutchScore(id)));
+  const playerScore = average(rosterIds.map((id) => playerSkill("clutch", id)));
   return clamp(champScore * 0.65 + playerScore * 0.35, 0, 10);
 }
 
