@@ -498,6 +498,8 @@ export const DRAFT_THINKING_CONFIG = {
     /** Rating: series_adapter pe fiecare joc după primul (max 3 jocuri) și extra-ul de fearless (toate seriile sunt fearless). */
     seriesAdapterPerGame: 0.1,
     seriesAdapterFearlessExtra: 0.05,
+    /** Plafonul total al bonusului de serie (fearless inclus), indiferent de intensity. */
+    seriesAdapterMax: 0.35,
     /** Lane: series_adapter care a pierdut lane-ul contra aceluiași jucător în jocul anterior: matchup negativ × (1 − atât × int). */
     seriesAdapterLaneShield: 0.2,
     /** Rating: fast_starter în game 1 / de la game 3 (pe joc, plafon). */

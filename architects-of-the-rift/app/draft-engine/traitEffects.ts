@@ -50,23 +50,23 @@ export function setupDependenceFactor(player: Player | null | undefined, setup: 
 /**
  * Rating, evoluția în serie (toate seriile sunt fearless: campionii jucați nu mai pot fi aleși):
  *   series_adapter: + (seriesAdapterPerGame × intensity + seriesAdapterFearlessExtra) pe fiecare joc după primul, plafonat
- *     la 3 jocuri;
+ *     la seriesAdapterMax (fearless inclus);
  *   fast_starter: + fastStarterGame1 × intensity în game 1, 0 în game 2, − fastStarterLatePerGame × intensity pe joc de la
- *     game 3, plafonat la fastStarterLateMax × intensity.
+ *     game 3, plafonat la fastStarterLateMax (indiferent de intensity).
  * Un singur joc (fără serie) → 0.
  */
 export function getSeriesRatingEffect(player: Player | null | undefined, gameNumber: number, bo: number): number {
   if (bo <= 1) return 0;
   const adapter = getActiveTrait(player, "series_adapter");
   if (adapter) {
-    const games = Math.min(3, Math.max(0, gameNumber - 1));
-    return games * (T.seriesAdapterPerGame * adapter.intensity + T.seriesAdapterFearlessExtra);
+    const games = Math.max(0, gameNumber - 1);
+    return Math.min(T.seriesAdapterMax, games * (T.seriesAdapterPerGame * adapter.intensity + T.seriesAdapterFearlessExtra));
   }
   const starter = getActiveTrait(player, "fast_starter");
   if (starter) {
     if (gameNumber === 1) return T.fastStarterGame1 * starter.intensity;
     if (gameNumber === 2) return 0;
-    return -Math.min(T.fastStarterLateMax * starter.intensity, (gameNumber - 2) * T.fastStarterLatePerGame * starter.intensity);
+    return -Math.min(T.fastStarterLateMax, (gameNumber - 2) * T.fastStarterLatePerGame * starter.intensity);
   }
   return 0;
 }
