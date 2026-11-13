@@ -11,7 +11,7 @@ import { teams } from "@/app/data/teams";
 import type { Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
 import { PLAYER_TRAIT_IDS, PLAYER_TRAIT_INFO, isTraitAllowedOnRole, type PlayerTraitId } from "@/app/types/playerTraits";
-import { DRAFT_TRAIT_DERIVATION, SIGNATURE_RULE, TRAIT_DERIVATION, computeTeamFit } from "@/app/utils/playerTraitUtils";
+import { DRAFT_TRAIT_DERIVATION, TRAIT_DERIVATION, computeTeamFit } from "@/app/utils/playerTraitUtils";
 // Grade-urile (signature_player) se înregistrează la încărcarea lui championMasteryUtils.
 import "@/app/utils/championMasteryUtils";
 import { ACTIVE_TRAIT_FAMILIES } from "@/app/types/playerTraits";
@@ -71,9 +71,8 @@ lines.push(
     [
       ...Object.entries(TRAIT_DERIVATION).map(([id, rule]) => `${id}: percentila carryResourceUsage, ${rule.filterLabel}`),
       ...Object.entries(DRAFT_TRAIT_DERIVATION).map(([id, rule]) => `${id}: ${rule!.label}`),
-      `signature_player: ≥ ${SIGNATURE_RULE.minSS} SS și ≤ ${SIGNATURE_RULE.maxAPlus} A+ pe championPool (țintă ~10–15%)`,
     ].join("; ") +
-    ". Intensity 2: treimea de sus a celor cu trait-ul pe rol.",
+    ". Intensity 2: treimea de sus a celor cu trait-ul pe rol. Cel mult un trait derivat din familia Draft pe jucător.",
 );
 const traitCount = players.map((player) => player.traits.length);
 lines.push("", `Trait-uri pe jucător: ${[0, 1, 2, 3].map((n) => `${n}: ${traitCount.filter((count) => count === n).length}`).join(" · ")}`);

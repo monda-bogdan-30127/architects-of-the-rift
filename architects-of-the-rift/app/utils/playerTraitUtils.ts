@@ -5,6 +5,7 @@
 // modulului), ca ciclul de import să nu conteze.
 
 import { players } from "@/app/data/players";
+import { championsById } from "@/app/data/champions";
 import type { Role } from "@/app/types/champion";
 import type { Player, PlayerHiddenTraits, PlayerPlaystyleProfile } from "@/app/types/player";
 import type { ChampionMasteryGrade } from "@/app/types/championMastery";
@@ -54,6 +55,9 @@ export const TRAIT_DERIVATION = {
 } as const;
 
 
+/** Cel mult atâtea trait-uri derivate dintr-o familie (manualele pot trece peste). */
+const MAX_DERIVED_PER_FAMILY: Partial<Record<PlayerTraitFamily, number>> = { draft: 1 };
+
 /** Fracția celor cu trait-ul (pe rol) care primesc intensity 2. */
 export const TRAIT_STRONG_SHARE = 1 / 3;
 
@@ -64,134 +68,170 @@ type TraitSource = { id: string; role: Role; playstyle: PlayerPlaystyleProfile; 
 
 // ─── Faza 2: Draft & Series (§7.2) ───────────────────────────────────────────
 
+type RoleContext = {
+  inRole: Player[];
+  /** Percentila (0..1, rang în rol) a unei valori a jucătorului printre jucătorii de pe rol. */
+  pct: (player: Player, value: (entry: Player) => number) => number;
+};
+
 type DraftTraitRule = {
   /** Ținta în rol (fracție), totală (manualele se scad din cotă). */
   share: number;
-  /** Metrica după care se aleg cei mai buni din rol (mai mare = mai potrivit). */
-  metric: (player: Player) => number;
-  /** Condiție suplimentară (poate folosi mediana rolului). */
-  eligible?: (player: Player, inRole: Player[]) => boolean;
+  /** Scorul după care se aleg primii din rol (mai mare = mai potrivit); null = nu se poate calcula. */
+  metric: (player: Player, context: RoleContext) => number | null;
   label: string;
 };
 
-const median = (values: number[]) => {
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.floor((sorted.length - 1) / 2)] ?? 0;
-};
 const primaryOf = (player: Player) => player.advancedProfile.primary;
-const roleMedian = (inRole: Player[], value: (player: Player) => number) => median(inRole.map(value));
+const playstyleOf = (player: Player) => player.advancedProfile.playstyle;
 const matchupLearning = (player: Player) => derivePlayerAdaptationProfile(player).matchupLearning;
+const blindMinusCounter = (player: Player) => primaryOf(player).blindPickStrength - primaryOf(player).counterPickStrength;
+
+/** Percentila prin rang în rol (0 = cel mai mic, 1 = cel mai mare). */
+function rolePercentile(inRole: Player[], player: Player, value: (entry: Player) => number): number {
+  if (inRole.length <= 1) return 0.5;
+  const own = value(player);
+  const below = inRole.filter((entry) => value(entry) < own).length;
+  const equal = inRole.filter((entry) => value(entry) === own).length;
+  return (below + (equal - 1) / 2) / (inRole.length - 1);
+}
+
+type MasteryFns = { grade: (player: Player, championId: string) => ChampionMasteryGrade; multiplier: (grade: ChampionMasteryGrade) => number };
+let masteryFns: MasteryFns | null = null;
+let lastAssignment: { list: Player[]; overrides: Record<string, TraitOverride | undefined> } | null = null;
+
+/** Concentrarea pool-ului: media multiplicatorului de mastery pe primii 2 campioni minus media pe primii 8. */
+function signatureConcentration(player: Player): number | null {
+  if (!masteryFns) return null;
+  const { grade, multiplier } = masteryFns;
+  const values = Object.keys(championsById).map((championId) => multiplier(grade(player, championId))).sort((a, b) => b - a);
+  const mean = (list: number[]) => list.reduce((sum, value) => sum + value, 0) / Math.max(1, list.length);
+  return mean(values.slice(0, 2)) - mean(values.slice(0, 8));
+}
 
 /**
- * PLAYER_TRAITS §7.2 — derivarea familiei Draft & Series, relativă la rol (cota pe rol după metrica trait-ului).
- * `signature_player` se derivă din grade-uri (vezi `registerTraitGradeProvider`).
+ * PLAYER_TRAITS §7.2 — derivarea familiei Draft & Series, relativă la rol: pe fiecare rol, primii `share` după scor.
+ *   blind_safe / counter_specialist: clasament după blindPickStrength − counterPickStrength (capetele opuse);
+ *   signature_player: concentrarea pool-ului (top 2 vs top 8, multiplicatorul de mastery);
+ *   needs_setup / self_sufficient: reziduul setupDependence față de mechanics (percentile în rol), în ambele sensuri;
+ *   matchup_resilient / lane_dominator: percentile compuse.
  */
 export const DRAFT_TRAIT_DERIVATION: Partial<Record<PlayerTraitId, DraftTraitRule>> = {
   blind_safe: {
     share: 0.15,
-    metric: (player) => primaryOf(player).blindPickStrength,
-    eligible: (player) => primaryOf(player).blindPickStrength >= primaryOf(player).counterPickStrength + 8,
-    label: "blindPickStrength sus în rol și ≥ counterPickStrength + 8",
+    metric: (player) => blindMinusCounter(player),
+    label: "sus în rol la blindPickStrength − counterPickStrength",
   },
   counter_specialist: {
     share: 0.15,
-    metric: (player) => primaryOf(player).counterPickStrength,
-    eligible: (player) => primaryOf(player).counterPickStrength >= primaryOf(player).blindPickStrength + 8,
-    label: "counterPickStrength sus în rol și ≥ blindPickStrength + 8",
+    metric: (player) => -blindMinusCounter(player),
+    label: "jos în rol la blindPickStrength − counterPickStrength",
+  },
+  signature_player: {
+    share: 0.12,
+    metric: (player) => signatureConcentration(player),
+    label: "concentrarea pool-ului: multiplicatorul mediu pe primii 2 minus pe primii 8",
   },
   needs_setup: {
-    share: 0.15,
-    metric: (player) => player.advancedProfile.playstyle.setupDependence,
-    eligible: (player, inRole) =>
-      player.advancedProfile.playstyle.carryResourceUsage > roleMedian(inRole, (entry) => entry.advancedProfile.playstyle.carryResourceUsage),
-    label: "setupDependence sus în rol, carryResourceUsage peste mediana rolului",
+    share: 0.12,
+    metric: (player, { pct }) => pct(player, (entry) => playstyleOf(entry).setupDependence) - pct(player, (entry) => primaryOf(entry).mechanics),
+    label: "percentila setupDependence minus percentila mechanics în rol",
   },
   self_sufficient: {
-    share: 0.15,
-    metric: (player) => -player.advancedProfile.playstyle.setupDependence,
-    eligible: (player, inRole) => primaryOf(player).mechanics > roleMedian(inRole, (entry) => primaryOf(entry).mechanics),
-    label: "setupDependence jos în rol, mechanics peste mediana rolului",
+    share: 0.12,
+    metric: (player, { pct }) => pct(player, (entry) => primaryOf(entry).mechanics) - pct(player, (entry) => playstyleOf(entry).setupDependence),
+    label: "percentila mechanics minus percentila setupDependence în rol",
   },
   series_adapter: {
     share: 0.12,
-    metric: matchupLearning,
+    metric: (player) => matchupLearning(player),
     label: "matchupLearning sus în rol",
   },
   fast_starter: {
     share: 0.1,
-    metric: (player) => (primaryOf(player).currentForm + primaryOf(player).aggression) / 2,
-    eligible: (player, inRole) => matchupLearning(player) < roleMedian(inRole, matchupLearning),
-    label: "matchupLearning sub mediana rolului, currentForm + aggression sus",
+    metric: (player, { pct }) =>
+      pct(player, (entry) => primaryOf(entry).currentForm) + pct(player, (entry) => primaryOf(entry).aggression) - pct(player, matchupLearning),
+    label: "percentile currentForm + aggression − matchupLearning",
   },
   matchup_resilient: {
     share: 0.12,
-    metric: (player) => (primaryOf(player).consistency + primaryOf(player).discipline) / 2,
-    eligible: (player, inRole) => primaryOf(player).aggression < roleMedian(inRole, (entry) => primaryOf(entry).aggression),
-    label: "consistency + discipline sus în rol, aggression sub mediană",
+    metric: (player, { pct }) =>
+      pct(player, (entry) => primaryOf(entry).consistency) + pct(player, (entry) => primaryOf(entry).discipline) - pct(player, (entry) => primaryOf(entry).aggression),
+    label: "percentile consistency + discipline − aggression",
   },
   lane_dominator: {
     share: 0.12,
-    metric: (player) => (primaryOf(player).laning + primaryOf(player).aggression) / 2,
-    label: "laning + aggression sus în rol",
+    metric: (player, { pct }) => pct(player, (entry) => primaryOf(entry).laning) + pct(player, (entry) => primaryOf(entry).aggression),
+    label: "percentile laning + aggression",
   },
 };
 
-/** signature_player: ≥ 1 SS și ≤ 4 A+ pe championPool (intensity 2: ≥ 2 SS și ≤ 3 A+). */
-export const SIGNATURE_RULE = { minSS: 1, maxAPlus: 4, strongMinSS: 2, strongMaxAPlus: 3 } as const;
-
-type GradeFn = (player: Player, championId: string) => ChampionMasteryGrade;
-let gradeProvider: GradeFn | null = null;
-let lastAssignment: { list: Player[]; overrides: Record<string, TraitOverride | undefined> } | null = null;
-
 /**
  * Grade-urile vin din `championMasteryUtils`, care depinde (prin `championMasteryOverrides`) de `players`: nu le
- * putem citi cât se încarcă `players.ts`. `championMasteryUtils` își înregistrează `getChampionGrade` aici după ce
- * s-a încărcat, iar trait-urile ligii se recalculează o dată, cu `signature_player`.
+ * putem citi cât se încarcă `players.ts`. `championMasteryUtils` își înregistrează funcțiile aici după ce s-a
+ * încărcat, iar trait-urile ligii se recalculează o dată, cu `signature_player`.
  */
-export function registerTraitGradeProvider(fn: GradeFn) {
-  gradeProvider = fn;
+export function registerTraitGradeProvider(grade: MasteryFns["grade"], multiplier: MasteryFns["multiplier"]) {
+  masteryFns = { grade, multiplier };
   if (lastAssignment) assignPlayerTraits(lastAssignment.list, lastAssignment.overrides);
 }
 
+/**
+ * Un singur trait derivat din familia Draft pe jucător: pe fiecare rol, trait-urile își umplu cota pe rând (round-robin),
+ * fiecare cu următorul candidat din clasamentul lui care nu are deja un trait Draft derivat și nu se exclude cu
+ * trait-ul lui de resurse sau cu cele manuale. Așa fiecare trait ajunge la țintă, iar vedetele (primele în mai multe
+ * clasamente) primesc unul singur.
+ */
 function deriveDraftTraits(
   list: Player[],
   manual: ReadonlyMap<string, readonly PlayerTraitId[]>,
   result: Map<string, { trait: PlayerTrait; score: number }[]>,
 ) {
-  const push = (playerId: string, trait: PlayerTrait, score: number) => {
-    const entries = result.get(playerId) ?? [];
-    entries.push({ trait, score });
-    result.set(playerId, entries);
+  const conflicts = (player: Player, id: PlayerTraitId) => {
+    const others = [...(manual.get(player.id) ?? []), ...(result.get(player.id) ?? []).map((entry) => entry.trait.id)];
+    return others.includes(id) || others.some((other) => PLAYER_TRAIT_INFO[id].excludes.includes(other) || PLAYER_TRAIT_INFO[other]?.excludes.includes(id));
   };
-  for (const [id, rule] of Object.entries(DRAFT_TRAIT_DERIVATION) as [PlayerTraitId, DraftTraitRule][]) {
-    const info = PLAYER_TRAIT_INFO[id];
-    for (const role of info.roles ?? (["top", "jungle", "mid", "adc", "support"] as Role[])) {
-      const inRole = list.filter((player) => player.role === role);
-      const manualIds = (player: Player) => manual.get(player.id) ?? [];
-      const manualCount = inRole.filter((player) => manualIds(player).includes(id)).length;
-      const quota = Math.max(0, Math.ceil(rule.share * inRole.length) - manualCount);
-      const recipients = inRole
-        .filter((player) => !manualIds(player).includes(id) && !manualIds(player).some((other) => info.excludes.includes(other)))
-        .filter((player) => !rule.eligible || rule.eligible(player, inRole))
-        .sort((a, b) => rule.metric(b) - rule.metric(a))
-        .slice(0, quota);
-      const strong = Math.ceil(recipients.length * TRAIT_STRONG_SHARE);
-      // Scorul de derivare: rangul în cotă (1 = cel mai potrivit), comparabil între trait-urile familiei.
-      recipients.forEach((player, index) =>
-        push(player.id, { id, intensity: index < strong ? 2 : 1, source: "derived" }, 1 - index / Math.max(1, quota)),
-      );
+  for (const role of ["top", "jungle", "mid", "adc", "support"] as Role[]) {
+    const inRole = list.filter((player) => player.role === role);
+    const context: RoleContext = { inRole, pct: (player, value) => rolePercentile(inRole, player, value) };
+    const queues = (Object.entries(DRAFT_TRAIT_DERIVATION) as [PlayerTraitId, DraftTraitRule][])
+      .filter(([id]) => isTraitAllowedOnRole(id, role))
+      .map(([id, rule]) => {
+        const manualCount = inRole.filter((player) => (manual.get(player.id) ?? []).includes(id)).length;
+        const quota = Math.max(0, Math.ceil(rule.share * inRole.length) - manualCount);
+        const ranked = inRole
+          .map((player) => ({ player, value: rule.metric(player, context) }))
+          .filter((entry): entry is { player: Player; value: number } => entry.value !== null)
+          .sort((a, b) => b.value - a.value)
+          .map((entry) => entry.player);
+        return { id, quota, ranked, cursor: 0, taken: [] as Player[] };
+      });
+    // Limita e pe trait-urile derivate; cele manuale trec peste ea (și sunt verificate la conflicte).
+    const hasDraftTrait = new Set<string>();
+    let progress = true;
+    while (progress) {
+      progress = false;
+      for (const queue of queues) {
+        if (queue.taken.length >= queue.quota) continue;
+        while (queue.cursor < queue.ranked.length) {
+          const candidate = queue.ranked[queue.cursor];
+          queue.cursor += 1;
+          if (hasDraftTrait.has(candidate.id) || conflicts(candidate, queue.id)) continue;
+          queue.taken.push(candidate);
+          hasDraftTrait.add(candidate.id);
+          progress = true;
+          break;
+        }
+      }
     }
-  }
-  if (!gradeProvider) return;
-  const grade = gradeProvider;
-  for (const player of list) {
-    if (manual.get(player.id)?.includes("signature_player")) continue;
-    const grades = player.championPool.map((championId) => grade(player, championId));
-    const ss = grades.filter((entry) => entry === "SS").length;
-    const aPlus = grades.filter((entry) => entry === "SS" || entry === "S" || entry === "A").length;
-    if (ss < SIGNATURE_RULE.minSS || aPlus > SIGNATURE_RULE.maxAPlus) continue;
-    const strong = ss >= SIGNATURE_RULE.strongMinSS && aPlus <= SIGNATURE_RULE.strongMaxAPlus;
-    push(player.id, { id: "signature_player", intensity: strong ? 2 : 1, source: "derived" }, 0.5 + 0.1 * ss - 0.05 * aPlus);
+    for (const queue of queues) {
+      const strong = Math.ceil(queue.taken.length * TRAIT_STRONG_SHARE);
+      queue.taken.forEach((player, index) => {
+        const entries = result.get(player.id) ?? [];
+        entries.push({ trait: { id: queue.id, intensity: index < strong ? 2 : 1, source: "derived" }, score: 1 - index / Math.max(1, queue.quota) });
+        result.set(player.id, entries);
+      });
+    }
   }
 }
 
@@ -249,6 +289,9 @@ export function resolvePlayerTraits(
     const info = PLAYER_TRAIT_INFO[trait.id];
     if (!info || !isTraitAllowedOnRole(trait.id, role) || result.length >= MAX_PLAYER_TRAITS) return;
     if ((families.get(info.family) ?? 0) >= MAX_TRAITS_PER_FAMILY || result.some((entry) => entry.id === trait.id)) return;
+    // Cel mult un trait derivat din familia Draft (vedetele adunau trait-uri corelate cu nivelul general).
+    const derivedInFamily = result.filter((entry) => entry.source === "derived" && PLAYER_TRAIT_INFO[entry.id].family === info.family).length;
+    if (trait.source === "derived" && derivedInFamily >= (MAX_DERIVED_PER_FAMILY[info.family] ?? MAX_TRAITS_PER_FAMILY)) return;
     if (result.some((entry) => info.excludes.includes(entry.id) || PLAYER_TRAIT_INFO[entry.id].excludes.includes(trait.id))) return;
     families.set(info.family, (families.get(info.family) ?? 0) + 1);
     result.push(trait);

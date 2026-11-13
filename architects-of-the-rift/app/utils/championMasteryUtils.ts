@@ -212,4 +212,4 @@ export const getBanPressureScore = (
 };
 // PLAYER_TRAITS §7.2: signature_player se derivă din grade-uri. Grade-urile depind de `players` (prin
 // championMasteryOverrides), deci trait-urile se recalculează abia aici, după ce ambele module sunt încărcate.
-registerTraitGradeProvider(getChampionGrade);
+registerTraitGradeProvider(getChampionGrade, getMasteryMultiplier);

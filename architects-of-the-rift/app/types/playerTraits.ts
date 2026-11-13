@@ -49,7 +49,7 @@ export const PLAYER_TRAIT_INFO: Record<
     family: "resources",
     label: "Weakside Ready",
     description: "Holds his lane alone with few resources and no jungle help.",
-    excludes: ["resource_hog"],
+    excludes: ["resource_hog", "needs_setup"],
     roles: ["top", "adc"],
   },
   // Un jungler / mid cu puține resurse face setup pentru alții: aceleași efecte de resurse, fără efectul de lane.
@@ -57,7 +57,7 @@ export const PLAYER_TRAIT_INFO: Record<
     family: "resources",
     label: "Enabler",
     description: "Happy on low-resource picks that set up others: tanks, engage, utility.",
-    excludes: ["resource_hog"],
+    excludes: ["resource_hog", "needs_setup"],
     roles: ["jungle", "mid"],
   },
 
@@ -86,7 +86,8 @@ export const PLAYER_TRAIT_INFO: Record<
     family: "draft",
     label: "Needs Setup",
     description: "A carry who thrives when the team engages and peels for him, fades when left alone.",
-    excludes: ["self_sufficient"],
+    // „Are nevoie de echipă” contrazice „se descurcă singur pe weakside” / „face setup pentru alții”.
+    excludes: ["self_sufficient", "weakside_ready", "enabler"],
     roles: ["top", "jungle", "mid", "adc"],
   },
   self_sufficient: {
