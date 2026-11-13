@@ -480,5 +480,34 @@ export const DRAFT_THINKING_CONFIG = {
     signatureBanScale: 1.3,
     /** Spirit: pool_pressure și off_comfort × atât pentru un signature_player. */
     signatureSpiritScale: 1.5,
+
+    // ─── Faza 2, commit 7: setup și serie ─────────────────────────────────────
+    /** Setup-ul celorlalți 4 (engage + followUp + peel + reliableCC): p25 / p75 pe 3000 de compoziții din calibrare. */
+    setupLow: 12,
+    setupHigh: 21,
+    /** Rating: needs_setup cu setup ≥ setupHigh / ≤ setupLow. */
+    needsSetupHighBonus: 0.25,
+    needsSetupLowPenalty: 0.3,
+    /** Draft: candidat pe alt rol care crește setup-ul spre setupHigh, cu un needs_setup în echipă: + atât × intensity × fracția. */
+    setupDraftBonus: 0.3,
+    /**
+     * Teamfight: termenul `setupDependence × 0.1` condiționat de setup-ul echipei (pentru toți jucătorii, nu doar cu
+     * trait). Schimbă amprenta și fără trait-uri, deci e separat și oprit.
+     */
+    conditionalSetupTermEnabled: false,
+    /** Rating: series_adapter pe fiecare joc după primul (max 3 jocuri) și extra-ul de fearless (toate seriile sunt fearless). */
+    seriesAdapterPerGame: 0.1,
+    seriesAdapterFearlessExtra: 0.05,
+    /** Lane: series_adapter care a pierdut lane-ul contra aceluiași jucător în jocul anterior: matchup negativ × (1 − atât × int). */
+    seriesAdapterLaneShield: 0.2,
+    /** Rating: fast_starter în game 1 / de la game 3 (pe joc, plafon). */
+    fastStarterGame1: 0.3,
+    fastStarterLatePerGame: 0.1,
+    fastStarterLateMax: 0.3,
+    /** Ban AI: de la game 3, campionii de bază ai unui series_adapter advers + atât („He is figuring us out”). */
+    adapterBanBonus: 0.5,
+    adapterBanMinGame: 3,
+    /** Draft: game 1, candidații SS / S ai unui fast_starter propriu + atât × intensity. */
+    fastStarterComfortBonus: 0.3,
   },
 } as const;

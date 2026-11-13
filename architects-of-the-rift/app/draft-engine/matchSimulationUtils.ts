@@ -275,14 +275,18 @@ export function playerLaningScore(playerId: string | null) {
   );
 }
 
-export function playerTeamfightScore(playerId: string | null) {
+/**
+ * `setupFactor` (PLAYER_TRAITS §7.4, flag conditionalSetupTermEnabled): termenul setupDependence ajută doar dacă echipa
+ * dă setup (0..1, vezi setupDependenceFactor). Lipsă = termenul necondiționat de până acum.
+ */
+export function playerTeamfightScore(playerId: string | null, setupFactor?: number) {
   const player = getPlayerByIdSafe(playerId);
   const legacyTfg = statOf(player, "tfg", 5);
   return clamp(
     legacyTfg * 0.34 +
       primaryStatScore(player, "teamfighting", legacyTfg) * 0.4 +
       primaryStatScore(player, "positioning", legacyTfg) * 0.16 +
-      playstyleScore(player, "setupDependence", 5) * 0.1,
+      playstyleScore(player, "setupDependence", 5) * 0.1 * (setupFactor ?? 1),
     0,
     10
   );

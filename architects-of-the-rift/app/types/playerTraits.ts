@@ -145,7 +145,7 @@ export const ACTIVE_TRAIT_FAMILIES: readonly PlayerTraitFamily[] = ["resources",
  * Trait-uri dintr-o familie activă ale căror efecte vin într-un commit ulterior (faza 2, commit 7): până atunci nu se
  * afișează și nu au efect, ca să nu repetăm etichetele fără efect.
  */
-export const PENDING_TRAITS: readonly PlayerTraitId[] = ["needs_setup", "self_sufficient", "series_adapter", "fast_starter"];
+export const PENDING_TRAITS: readonly PlayerTraitId[] = [];
 
 export const isActiveTraitId = (id: PlayerTraitId) => ACTIVE_TRAIT_FAMILIES.includes(PLAYER_TRAIT_INFO[id].family) && !PENDING_TRAITS.includes(id);
 export const isActiveTrait = (trait: PlayerTrait) => isActiveTraitId(trait.id);

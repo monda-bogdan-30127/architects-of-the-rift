@@ -60,6 +60,7 @@ import type { ChampionOffer, ResourceDemand } from "@/app/types/champion";
 import { evaluateTeamfight } from "@/app/draft-engine/teamfightSystem";
 import { evaluateLanePhase } from "@/app/draft-engine/laneEvaluator";
 import { applyMasteryToFit } from "@/app/draft-engine/championMasteryDraftSystem";
+import { getSeriesRatingEffect, teamSetupFor } from "@/app/draft-engine/traitEffects";
 import type { PlayerTrait } from "@/app/types/playerTraits";
 import { computeSeriesSpiritDeltas } from "@/app/draft-engine/playerSpiritEngine";
 import { getPlayerPersonalityModifiers } from "@/app/draft-engine/personalitySystem";
@@ -1990,6 +1991,71 @@ function withTestData<T>(
       "Q4. signature_player: fit mai mare pe SS și mai mic pe C decât fără trait",
       fit(trait("signature_player"), ss) > fit([], ss) && fit(trait("signature_player"), c) < fit([], c),
       `${player.name}: ${ss} (SS) ${fit([], ss).toFixed(2)} → ${fit(trait("signature_player"), ss).toFixed(2)}; ${c} (C) ${fit([], c).toFixed(2)} → ${fit(trait("signature_player"), c).toFixed(2)}`,
+    );
+  }
+}
+
+// ─── PLAYER_TRAITS §7.6: Draft & Series, partea de echipă și serie ───────────
+{
+  const save = makeSave();
+  const trait = (id: PlayerTrait["id"], intensity: 1 | 2 = 1): PlayerTrait[] => [{ id, intensity, source: "manual" }];
+
+  // R1. needs_setup pe mid: un support de engage primește bonusul de setup, unul de enchanter mai puțin.
+  {
+    const series = newSeries("rs1", BLUE, RED);
+    const midId = save.updatedTeamRosters[RED]!.mid!;
+    const game: DraftGameState = { ...series.games[0], bansBlue: ["azir", "jayce", "orianna"], bansRed: ["ksante", "vi", "sejuani"], picksBlue: ["ahri"], picksRed: [], phaseIndex: 7 };
+    const score = (id: string, traits: PlayerTrait[]) =>
+      withTestData({ traits: { [midId]: traits } }, () => scoreDraftCandidate(champions.find((c) => c.id === id)!, getCurrentStep(game)!, game, series, save));
+    const engage = { plain: score("rell", []), needs: score("rell", trait("needs_setup")) };
+    const enchanter = { plain: score("yuumi", []), needs: score("yuumi", trait("needs_setup")) };
+    const engageGain = (engage.needs.buckets?.comp ?? 0) - (engage.plain.buckets?.comp ?? 0);
+    const enchanterGain = (enchanter.needs.buckets?.comp ?? 0) - (enchanter.plain.buckets?.comp ?? 0);
+    check(
+      "U1. needs_setup pe mid: Rell (engage) primește mai mult bonus de setup decât Yuumi",
+      hasTag(engage.needs, "trait-setup") && engageGain > enchanterGain,
+      `${playersById.get(midId)?.name}: Rell +${engageGain.toFixed(2)} („${engage.needs.explanation?.find((line) => line.includes("set up for")) ?? "—"}”), Yuumi +${enchanterGain.toFixed(2)}`,
+    );
+  }
+
+  // R2. needs_setup în simulare: într-o compoziție fără setup, ratingul lui e mai mic decât fără trait.
+  {
+    const series = newSeries("rs2", BLUE, RED);
+    const midId = save.updatedTeamRosters[BLUE]!.mid!;
+    const finished: DraftGameState = {
+      ...series.games[0],
+      bansBlue: ["azir", "jayce", "orianna"], bansRed: ["ksante", "vi", "sejuani"],
+      picksBlue: ["jax", "kindred", "syndra", "ezreal", "karma"], picksRed: ["ornn", "lee-sin", "ahri", "kalista", "rell"], phaseIndex: 20,
+    };
+    const resolved = resolveFinishedDraftAssignments(finished, series, save);
+    const setup = teamSetupFor(Object.values(resolved.assignmentsBlue), resolved.assignmentsBlue.mid);
+    const rating = (traits: PlayerTrait[]) =>
+      withTestData({ traits: { [midId]: traits } }, () => simulateDraftResult(resolved, series, save).playerScores.find((entry) => entry.playerId === midId)?.score ?? 0);
+    const plain = rating([]);
+    const needs = rating(trait("needs_setup"));
+    check(
+      "U2. needs_setup fără setup (≤ setupLow) → rating mai mic decât fără trait",
+      setup <= DRAFT_THINKING_CONFIG.traits.setupLow && needs < plain,
+      `setup ${setup} (prag ${DRAFT_THINKING_CONFIG.traits.setupLow}); rating ${plain} → ${needs}`,
+    );
+  }
+
+  // R3–R4. Serie: series_adapter mai bun în game 3 decât în game 1, fast_starter invers; Bo1 fără efect.
+  {
+    const player = players[0];
+    const effect = (traits: PlayerTrait[], gameNumber: number, bo: number) =>
+      withTestData({ traits: { [player.id]: traits } }, () => getSeriesRatingEffect(player, gameNumber, bo));
+    const adapter = [effect(trait("series_adapter"), 1, 3), effect(trait("series_adapter"), 3, 3)];
+    const starter = [effect(trait("fast_starter"), 1, 3), effect(trait("fast_starter"), 3, 3)];
+    check(
+      "U3. series_adapter: game 3 > game 1; fast_starter: game 1 > game 3",
+      adapter[1] > adapter[0] && starter[0] > starter[1],
+      `adapter g1 ${adapter[0].toFixed(2)}, g3 ${adapter[1].toFixed(2)}; starter g1 ${starter[0].toFixed(2)}, g3 ${starter[1].toFixed(2)}`,
+    );
+    check(
+      "U4. Bo1 (un singur joc): niciun efect de serie",
+      effect(trait("series_adapter"), 1, 1) === 0 && effect(trait("fast_starter"), 1, 1) === 0,
+      `adapter ${effect(trait("series_adapter"), 1, 1)}, starter ${effect(trait("fast_starter"), 1, 1)}`,
     );
   }
 }

@@ -14,6 +14,7 @@ import { evaluateContextualNeedStatuses, getBestCoverAttribute, getContextualCov
 import { describeResourceConflict, getHighDemandPicks, getResourceConflictExcess, getResourceDemand } from "./championResource";
 import { getActiveTrait, hasTrait } from "@/app/utils/playerTraitUtils";
 import { getLaneOrder, type LaneOrder } from "./laneOrder";
+import { championSetup, setupLevel, teamSetupFor } from "./traitEffects";
 import { COMP_ATTRIBUTE_INFO } from "@/app/types/compAttributes";
 import { getOpenRolesForPickedChampions } from "./draftRoleResolver";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
@@ -457,9 +458,55 @@ export function buildDraftPillarReport(
   return {
     composition: compositionPillar(ownPicks, ownAssignments, roster, enemyPicks),
     lanes: lanesPillar(ownPicks, enemyPicks, ownAssignments, enemyAssignments, roster, getLaneOrder(game, side)),
-    players: playersPillar(ownAssignments, roster, pickRoles, series.userSide === side),
+    players: withTeamTraitNotes(playersPillar(ownAssignments, roster, pickRoles, series.userSide === side), ownAssignments, roster, enemyRoster, game, series),
     preparation: preparationPillar(game, series, side, enemyTeamSlug, { own: roster, enemy: enemyRoster }, ownPicks, ownBans, enemyPicks, ownAssignments, enemyAssignments),
   };
+}
+
+/**
+ * PLAYER_TRAITS §7.4 — notele trait-urilor de echipă și de serie, adăugate la pilonul Players:
+ *   needs_setup: „Chovy was left without setup” / „Rell and Vi set up for Chovy”;
+ *   series_adapter propriu din game 2: „Faker adapted after game 1”;
+ *   fast_starter advers din game 3: „Their fast starter faded in game 3 (Knight)”.
+ */
+function withTeamTraitNotes(
+  pillar: DraftPillar,
+  ownAssignments: Assignments,
+  roster: Assignments,
+  enemyRoster: Assignments,
+  game: DraftGameState,
+  series: ActiveDraftSeries,
+): DraftPillar {
+  const extra: { note: string; reason: string }[] = [];
+  const picks = Object.values(ownAssignments).filter((id): id is string => Boolean(id));
+  for (const role of ROLE_ORDER) {
+    const player = roster[role] ? playersById.get(roster[role]!) : undefined;
+    const championId = ownAssignments[role];
+    if (!player || !championId) continue;
+    if (getActiveTrait(player, "needs_setup")) {
+      const setup = teamSetupFor(picks, championId);
+      const level = setupLevel(setup);
+      if (level === "low") extra.push({ note: `${player.name} was left without setup`, reason: "Needs Setup: fades when the team doesn't engage or peel for him" });
+      if (level === "high") {
+        const helpers = picks.filter((id) => id !== championId).sort((a, b) => championSetup(b) - championSetup(a)).slice(0, 2).map(name);
+        extra.push({ note: `${helpers.join(" and ")} set up for ${player.name}`, reason: "Needs Setup: thrives when the team engages and peels for him" });
+      }
+    }
+    if (series.bo > 1 && game.number >= 2 && getActiveTrait(player, "series_adapter")) {
+      extra.push({ note: `${player.name} adapted after game 1`, reason: "Series Adapter: gets better from game to game" });
+    }
+  }
+  if (series.bo > 1 && game.number >= 3) {
+    for (const playerId of Object.values(enemyRoster)) {
+      const player = playerId ? playersById.get(playerId) : undefined;
+      if (player && getActiveTrait(player, "fast_starter")) {
+        extra.push({ note: `Their fast starter faded in game ${game.number} (${player.name})`, reason: "Fast Starter: opponents adjust to him as the series goes on" });
+      }
+    }
+  }
+  if (!extra.length) return pillar;
+  const reasons = pillar.reasons ?? pillar.notes.map(() => null);
+  return { ...pillar, notes: [...pillar.notes, ...extra.map((entry) => entry.note)], reasons: [...reasons, ...extra.map((entry) => entry.reason)] };
 }
 
 /** Raportul e în formatul curent (salvările vechi au alți piloni: priority / cohesion / …)? */

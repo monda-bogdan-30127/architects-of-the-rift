@@ -101,6 +101,7 @@ import { getComboPartners, getGamesRemainingPossible, getPairFactor, isPartnerOn
 import { contextualNeedLabel, evaluateContextualNeedStatuses, getContextualNeedFill } from "./contextualNeeds";
 import { describeResourceConflict, getHighDemandPicks, getResourceDemand } from "./championResource";
 import { getActiveTrait, getLowResourceTrait, getTrait } from "@/app/utils/playerTraitUtils";
+import { championSetup, teamSetupFor } from "./traitEffects";
 import type { PriorityValue } from "./priorityValue";
 import { getSeriesAwareBanBonus, getSeriesComfortRepeatThreat } from "./draftSeriesMemory";
 import { inferCarryNeedPenalty, getBotLaneArchetypeFit } from "./draftCarryNeeds";
@@ -987,6 +988,8 @@ export function scorePickCandidate(
   const resourceEffect = getResourcePickEffect(candidate, projected.projectedRole, ctx);
   // PLAYER_TRAITS §7.4 — ordinea de pick pe lane: rolul unui counter-picker se lasă pentru mai târziu.
   const laneOrderEffect = getLaneOrderPickEffect(projected.projectedRole, ctx);
+  // PLAYER_TRAITS §7.4 — setup pentru un needs_setup din echipă; fast_starter pe campionii lui de bază în game 1.
+  const teamTraitEffect = getTeamTraitPickEffect(candidate, projected.projectedRole, ctx, game);
   const counterResult = getCounterValueScore({
     enemyPicks: enemyState.picks,
     candidate,
@@ -1259,7 +1262,8 @@ export function scorePickCandidate(
       weaknessPenalty * adjustedConfig.weaknessWeight -
       comboDependencyPenalty -
       carryNeedPenalty +
-      resourceEffect.bonus,          // COMP_ATTRIBUTES §2.2: conflict de resurse / focus
+      resourceEffect.bonus +         // COMP_ATTRIBUTES §2.2: conflict de resurse / focus
+      teamTraitEffect.compBonus,     // PLAYER_TRAITS §7.4: setup pentru un needs_setup
     counter:
       counterValue * adjustedConfig.counterWeight +
       predictiveCounter.bonus +
@@ -1273,7 +1277,8 @@ export function scorePickCandidate(
       comfortScore * adjustedConfig.comfortWeight +
       playerFitScore * adjustedConfig.fitWeight +
       masteryPickFinal.total +
-      seasonComfortBonus -           // §7.4: favoriții noștri de sezon
+      seasonComfortBonus +           // §7.4: favoriții noștri de sezon
+      teamTraitEffect.comfortBonus - // PLAYER_TRAITS §7.4: fast_starter în game 1
       reassignment.penalty -         // §1.4: pick propriu mutat pe D / grad mult mai mic
       masteryGate.penalty,           // §1.5: D pe jucătorul proiectat
     deny:
@@ -1321,6 +1326,7 @@ export function scorePickCandidate(
     ...(losingLanes.line ? [losingLanes.line] : []),
     ...resourceEffect.lines,
     ...laneOrderEffect.lines,
+    ...teamTraitEffect.lines,
     ...(contextualFill.answered
       ? [`${candidate.name} answers ${contextualFill.answered.subject} (${contextualNeedLabel(contextualFill.answered)})`]
       : []),
@@ -1389,6 +1395,7 @@ export function scorePickCandidate(
       ...(contextualFill.answered ? ["contextual-need"] : []),
       ...resourceEffect.tags,
       ...laneOrderEffect.tags,
+      ...teamTraitEffect.tags,
       ...(masteryGate.blocked ? ["mastery-f"] : []),
       ...(masteryGate.soft ? ["mastery-d"] : []),
       ...(badSynergies.length ? ["bad-synergy"] : []),
@@ -1785,6 +1792,8 @@ export function scoreBanCandidate(
 
   // FIX #4: bonus pentru ban-uri signature pe campionii "best" ai inamicului
   const signatureBonus = getAiSignatureBanBonus(candidate, enemyTeamSlug, save);
+  // PLAYER_TRAITS §7.4: de la game 3, campionii de bază ai unui series_adapter advers („He is figuring us out”).
+  const adapterBan = getAdapterBanBonus(candidate, ctx, game);
 
   const banRepeatPenalty = getBanRepeatPenalty(candidate, game, series);
 
@@ -1915,6 +1924,7 @@ export function scoreBanCandidate(
       userFavoriteBan +
       userBias +
       seriesAwareBan +
+      adapterBan.bonus +
       comfortRepeatThreat +
       // §7.1 — fearless: jucătorul lor mai are puține opțiuni ≥ B pe un rol liber → ban-ul îl strânge.
       (isScarcePoolChampion(candidate, ctx.enemy.roster, getScarcity(ctx).enemy) ? DRAFT_THINKING_CONFIG.intents.scarcePowerBonus : 0)),
@@ -1964,7 +1974,7 @@ export function scoreBanCandidate(
     bucketWeights: weights,
     phase: ctx.phase,
     mustWithBonus: mustWithBanBonus + ownMustWithBanBlock,
-    ...(seasonBanLine ? { explanation: [seasonBanLine] } : {}),
+    ...(seasonBanLine || adapterBan.line ? { explanation: [seasonBanLine, adapterBan.line].filter((line): line is string => Boolean(line)) } : {}),
     ...(seasonResponse && seasonResponse.kind !== "ignore"
       ? { seasonThreat: { championId: candidate.id, threat: seasonResponse.threat, kind: seasonResponse.kind } }
       : {}),
@@ -1973,6 +1983,7 @@ export function scoreBanCandidate(
       ...(banTag ? [banTag] : []),
       ...(seasonPlanHold < 0 ? ["season-plan"] : []),
       ...(orphanComboBan < 0 ? ["orphan-combo"] : []),
+      ...(adapterBan.bonus > 0 ? ["trait-adapter-ban"] : []),
       ...(identityCompletion > 0 ? ["identity-deny"] : []),
       ...(seasonBan > 0 ? ["season-ban"] : []),
       userBias > 1 || signatureBonus > 2 ? "user-pattern" : "meta-ban",
@@ -2117,6 +2128,57 @@ function getLaneOrderPickEffect(role: Role | null, ctx: DraftContext) {
     result.tags.push("trait-blind-safe");
   }
   return result;
+}
+
+/**
+ * PLAYER_TRAITS §7.4 — trait-urile de echipă și de serie pe un pick:
+ *   needs_setup în echipă (alt rol decât al candidatului): + setupDraftBonus × intensity × fracția din drumul spre
+ *     setupHigh pe care o acoperă candidatul („Rell to set up for Chovy”);
+ *   fast_starter propriu în game 1, pe un candidat SS / S al lui: + fastStarterComfortBonus × intensity.
+ */
+function getTeamTraitPickEffect(candidate: Champion, role: Role | null, ctx: DraftContext, game: DraftGameState) {
+  const T = DRAFT_THINKING_CONFIG.traits;
+  const result = { compBonus: 0, comfortBonus: 0, lines: [] as string[], tags: [] as string[] };
+  if (!role) return result;
+  for (const [needsRole, playerId] of Object.entries(ctx.own.roster) as [Role, string | undefined][]) {
+    if (needsRole === role || !playerId) continue;
+    const player = playersById.get(playerId);
+    const needs = getActiveTrait(player, "needs_setup");
+    if (!player || !needs) continue;
+    const current = teamSetupFor(ctx.own.picks, ctx.own.assignments[needsRole]);
+    const gap = T.setupHigh - current;
+    if (gap <= 0) continue;
+    const gain = Math.min(gap, championSetup(candidate.id)) / gap;
+    if (gain <= 0) continue;
+    result.compBonus += T.setupDraftBonus * needs.intensity * gain;
+    result.lines.push(`${candidate.name} to set up for ${player.name}`);
+    result.tags.push("trait-setup");
+  }
+  const ownPlayerId = ctx.own.roster[role];
+  const ownPlayer = ownPlayerId ? playersById.get(ownPlayerId) : undefined;
+  const starter = getActiveTrait(ownPlayer, "fast_starter");
+  if (ownPlayer && starter && game.number === 1) {
+    const grade = getChampionGrade(ownPlayer, candidate.id);
+    if (grade === "SS" || grade === "S") {
+      result.comfortBonus += T.fastStarterComfortBonus * starter.intensity;
+      result.lines.push(`Fast start: ${ownPlayer.name} on his best (${grade})`);
+      result.tags.push("trait-fast-start");
+    }
+  }
+  return result;
+}
+
+/** PLAYER_TRAITS §7.4 — ban pe campionii de bază ai unui series_adapter advers, de la game adapterBanMinGame. */
+function getAdapterBanBonus(candidate: Champion, ctx: DraftContext, game: DraftGameState) {
+  const T = DRAFT_THINKING_CONFIG.traits;
+  if (game.number < T.adapterBanMinGame) return { bonus: 0, line: null as string | null };
+  for (const playerId of Object.values(ctx.enemy.roster)) {
+    const player = playerId ? playersById.get(playerId) : undefined;
+    if (player && getActiveTrait(player, "series_adapter") && player.bestChampions.includes(candidate.id)) {
+      return { bonus: T.adapterBanBonus, line: `He is figuring us out: ban ${player.name}'s ${candidate.name}` };
+    }
+  }
+  return { bonus: 0, line: null as string | null };
 }
 
 /** Etichetele pick-urilor adversarului până la următorul nostru pick: „R1–R2”. */

@@ -14,6 +14,7 @@ import { championsById } from "@/app/data/champions";
 import { getActiveTrait, getLowResourceTrait, getTrait, hasTrait } from "@/app/utils/playerTraitUtils";
 import { getResourceDemand } from "./championResource";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
+import { setupLevel, teamSetupFor } from "./traitEffects";
 import { getChampionGrade } from "@/app/utils/championMasteryUtils";
 import {
   SPIRIT_INITIAL_VALUE,
@@ -67,6 +68,11 @@ const DELTA_STARVED_STRONG     = -6;      // idem, intensity 2
 const DELTA_PLAYSTYLE_FULFILLED = +2;     // serie câștigată: hog ≥ 2 jocuri pe cerere ≥ 4 / weakside ≥ 2 pe cerere ≤ 2
 const DELTA_EGO_CLASH          = -3;      // serie pierdută, ≥ 2 hogs din roster cu ≥ 2 jocuri fiecare pe cerere ≥ 4
 const TRAIT_GAMES_NEEDED       = 2;
+// PLAYER_TRAITS §7.4 — Draft & Series
+const DELTA_LEFT_ALONE         = -3;      // needs_setup, ≥ 2 jocuri cu setup ≤ setupLow
+const DELTA_WELL_SET_UP        = +2;      // needs_setup, ≥ 2 jocuri cu setup ≥ setupHigh, serie câștigată
+const DELTA_FIGURED_THEM_OUT   = +3;      // series_adapter, serie câștigată după game 1 pierdut
+const DELTA_RAN_OUT_OF_STEAM   = -3;      // fast_starter, serie pierdută după game 1 câștigat
 
 const HIGH_SCORE_THRESHOLD = 7.5;
 const LOW_SCORE_THRESHOLD  = 4.5;
@@ -486,6 +492,38 @@ function applyTraitTriggers(
   }
 }
 
+/** PLAYER_TRAITS §7.4 — needs_setup (setup-ul celorlalți 4 pe joc) și evoluția în serie. */
+function applyDraftTraitTriggers(
+  events: SpiritEvent[],
+  playerId: string,
+  player: Player,
+  rows: PlayerGameRow[],
+  ctx: SpiritSeriesContext,
+  isWin: boolean,
+  isLoss: boolean,
+): void {
+  if (getActiveTrait(player, "needs_setup")) {
+    const setups = rows.map((row) => {
+      const snapshot = ctx.games.find((game) => game.gameNumber === row.gameNumber);
+      const side = snapshot?.playerEntries.find((entry) => entry.playerId === playerId)?.side;
+      const picks = (snapshot?.playerEntries ?? []).filter((entry) => entry.side === side).map((entry) => entry.championId);
+      return setupLevel(teamSetupFor(picks, row.championId));
+    });
+    if (setups.filter((level) => level === "low").length >= TRAIT_GAMES_NEEDED) {
+      events.push(buildEvent(playerId, DELTA_LEFT_ALONE, "left_alone", "Left without engage or peel around him", ctx.seriesId));
+    } else if (isWin && setups.filter((level) => level === "high").length >= TRAIT_GAMES_NEEDED) {
+      events.push(buildEvent(playerId, DELTA_WELL_SET_UP, "well_set_up", "The team set up for him and won", ctx.seriesId));
+    }
+  }
+  const first = rows.find((row) => row.gameNumber === 1);
+  if (first && isWin && !first.isWinner && getActiveTrait(player, "series_adapter")) {
+    events.push(buildEvent(playerId, DELTA_FIGURED_THEM_OUT, "figured_them_out", "Lost game 1, figured them out and won the series", ctx.seriesId));
+  }
+  if (first && isLoss && first.isWinner && getActiveTrait(player, "fast_starter")) {
+    events.push(buildEvent(playerId, DELTA_RAN_OUT_OF_STEAM, "ran_out_of_steam", "Won game 1, then they adjusted to him", ctx.seriesId));
+  }
+}
+
 /** signature_player: pool_pressure și off_comfort × signatureSpiritScale (înainte de composure / volatility). */
 function applySignatureScaling(events: SpiritEvent[], player: Player): void {
   if (!getActiveTrait(player, "signature_player")) return;
@@ -823,6 +861,7 @@ export function computeSeriesSpiritDeltas(
     applyMvpTriggers(events, playerId, rows, ctx.seriesMvpPlayerId, ctx.seriesId, isLoss);
     applyComfortTriggers(events, playerId, rows, ctx.seriesId);
     applyTraitTriggers(events, playerId, player, rows, ctx, isWin, isLoss);
+    applyDraftTraitTriggers(events, playerId, player, rows, ctx, isWin, isLoss);
     applyCarriedAloneTrigger(events, playerId, rows, isLoss, ctx);
 
     const prevStreaks = ctx.currentStreaks[playerId] ?? emptyStreaks();

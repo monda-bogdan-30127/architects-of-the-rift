@@ -36,6 +36,7 @@ import { getResourceDemand } from "@/app/draft-engine/championResource";
 import { PLAYER_TRAIT_INFO, isActiveTrait } from "@/app/types/playerTraits";
 import { getTraitTone } from "@/app/utils/playerTraitUtils";
 import { getLaneOrder, type LaneOrder } from "@/app/draft-engine/laneOrder";
+import { teamSetupFor } from "@/app/draft-engine/traitEffects";
 
 const CHAMPION_CARD_SIZE = 86;
 const CHAMPION_CARD_GAP = 5;
@@ -1161,7 +1162,8 @@ function SidebarPanel({
                       // Ordinea pe lane: rol deja ocupat la ei → din secvența de pick-uri; altfel, dacă au ales deja pe rol.
                       const order = laneOrder?.[role] ?? (enemyAssignments?.[role] ? "counter" : "blind");
                       return traits.map((trait) => {
-                        const tone = getTraitTone(trait.id, { demand, grade, order });
+                        const setup = teamSetupFor(Object.values(assignments), colorChampionId);
+                        const tone = getTraitTone(trait.id, { demand, grade, order, setup });
                         return (
                           <span
                             key={trait.id}

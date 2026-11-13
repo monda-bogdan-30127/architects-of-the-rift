@@ -23,6 +23,8 @@ import { computeTeamChemistry, getPlayerPersonalityModifiers } from "./personali
 import { evaluateTeamfight } from "./teamfightSystem";
 import { getResourceConflictExcess } from "./championResource";
 import { getLaneOrder } from "./laneOrder";
+import { getSeriesRatingEffect, getSetupRatingEffect, lostLaneLastGameVs, setupDependenceFactor, teamSetupFor } from "./traitEffects";
+import { getActiveTrait } from "@/app/utils/playerTraitUtils";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { getChampionRoleProfile } from "./championProfileSystem";
 import { evaluateLanePhase } from "./laneEvaluator";
@@ -260,6 +262,22 @@ function computeExecutionTeamScore(
   });
 
   return round1(average(values));
+}
+
+/** Rolurile pe care un series_adapter propriu a pierdut lane-ul contra aceluiași adversar în jocul anterior. */
+function adaptedRoles(
+  series: MatchSimulationInput["series"],
+  game: MatchSimulationInput["game"],
+  roster: Partial<Record<Role, string>>,
+  enemyRoster: Partial<Record<Role, string>>,
+): Partial<Record<Role, boolean>> {
+  const result: Partial<Record<Role, boolean>> = {};
+  for (const role of ROLE_ORDER) {
+    const playerId = roster[role];
+    if (!playerId || !getActiveTrait(getPlayerById(playerId), "series_adapter")) continue;
+    if (lostLaneLastGameVs(series, game, playerId, enemyRoster[role] ?? null)) result[role] = true;
+  }
+  return result;
 }
 
 /** −simResourceConflict pentru fiecare carry (cerere ≥ highDemandMin) peste maxHighDemand; fără conflict, neschimbat. */
@@ -590,6 +608,8 @@ function buildPlayerScores(args: {
   closeness: number;
   seriesId: string;
   gameNumber: number;
+  /** PLAYER_TRAITS §7.4 — lungimea seriei (efectele de serie). */
+  bo: number;
   // UPGRADE 10+11: team totals for win dominance + bad team performance
   scoreDiff: number;
   blueTeamTotal: number;
@@ -649,7 +669,14 @@ function buildPlayerScores(args: {
       const execution = playerExecutionScore(entry.playerId);
       const laning = playerLaningScore(entry.playerId);
       const macro = playerMacroScore(entry.playerId);
-      const teamfight = playerTeamfightScore(entry.playerId);
+      // PLAYER_TRAITS §7.4: setup-ul celorlalți 4 (needs_setup / self_sufficient) și evoluția în serie.
+      const teamPicks = Object.values(entry.side === "blue" ? args.assignmentsBlue : args.assignmentsRed);
+      const setup = teamSetupFor(teamPicks, entry.championId);
+      const traitModifier = getSetupRatingEffect(player, setup) + getSeriesRatingEffect(player, args.gameNumber, args.bo);
+      const teamfight = playerTeamfightScore(
+        entry.playerId,
+        DRAFT_THINKING_CONFIG.traits.conditionalSetupTermEnabled ? setupDependenceFactor(player, setup) : undefined,
+      );
       const consistency = playerConsistencyScore(entry.playerId);
       const archetypeFit = playerChampionArchetypeFit(entry.playerId, entry.championId);
       const earlyAlign = getPhaseIdentityAlignment(entry.playerId, entry.championId, role, "early");
@@ -824,6 +851,7 @@ function buildPlayerScores(args: {
         throwEventPenalty +
         macroMistakePenalty +
         masteryBonus +
+        traitModifier +
         rng;
 
       const isWinner = entry.side === args.winnerSide;
@@ -969,6 +997,11 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     laneOrder: {
       blue: getLaneOrder(input.game, "blue", { blue: assignmentsBlue, red: assignmentsRed }),
       red: getLaneOrder(input.game, "red", { blue: assignmentsBlue, red: assignmentsRed }),
+    },
+    // PLAYER_TRAITS §7.4: series_adapter care a pierdut lane-ul contra aceluiași jucător în jocul anterior.
+    adapted: {
+      blue: adaptedRoles(input.series, input.game, blueRoster, redRoster),
+      red: adaptedRoles(input.series, input.game, redRoster, blueRoster),
     },
   });
 
@@ -1295,6 +1328,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     closeness,
     seriesId: input.series.seriesId,
     gameNumber: input.game.number,
+    bo: input.series.bo,
     scoreDiff: blueScores.total - redScores.total,
     blueTeamTotal: blueScores.total,
     redTeamTotal: redScores.total,

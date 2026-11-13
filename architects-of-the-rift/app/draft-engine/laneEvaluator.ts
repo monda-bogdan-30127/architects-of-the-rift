@@ -57,6 +57,8 @@ type LaneContext = {
   assignmentsRed: Partial<Record<Role, string>>;
   /** PLAYER_TRAITS §7.3 — cine a ales primul pe fiecare lane (lipsă = fără efectele de blind / counter). */
   laneOrder?: { blue: LaneOrder; red: LaneOrder };
+  /** PLAYER_TRAITS §7.4 — roluri pe care un series_adapter a pierdut lane-ul contra aceluiași jucător în jocul anterior. */
+  adapted?: { blue: Partial<Record<Role, boolean>>; red: Partial<Record<Role, boolean>> };
 };
 
 /**
@@ -68,7 +70,7 @@ type LaneContext = {
  *   counter_specialist pe blind: − counterBlindPenalty la scorul de lane.
  * Fără trait-uri active, factorul e 1 și penalizarea 0 (comportament identic).
  */
-function laneTraitEffect(playerId: string | null, matchup: number, order: "blind" | "counter" | undefined) {
+function laneTraitEffect(playerId: string | null, matchup: number, order: "blind" | "counter" | undefined, adapted = false) {
   const T = DRAFT_THINKING_CONFIG.traits;
   const player = getPlayerByIdSafe(playerId);
   const result = { factor: 1, penalty: 0, notes: [] as string[] };
@@ -77,6 +79,7 @@ function laneTraitEffect(playerId: string | null, matchup: number, order: "blind
   const blindSafe = getActiveTrait(player, "blind_safe");
   const resilient = getActiveTrait(player, "matchup_resilient");
   const dominator = getActiveTrait(player, "lane_dominator");
+  const adapter = adapted ? getActiveTrait(player, "series_adapter") : null;
   if (matchup > 0) {
     let boost = 0;
     if (counter && order === "counter") {
@@ -91,10 +94,11 @@ function laneTraitEffect(playerId: string | null, matchup: number, order: "blind
   } else if (matchup < 0) {
     const blindShield = blindSafe && order === "blind" ? T.blindSafeShield * blindSafe.intensity : 0;
     const resilientShield = resilient ? T.resilientShield * resilient.intensity : 0;
-    const shield = Math.max(blindShield, resilientShield);
+    const adapterShield = adapter ? T.seriesAdapterLaneShield * adapter.intensity : 0;
+    const shield = Math.max(blindShield, resilientShield, adapterShield);
     if (shield > 0) {
       result.factor = 1 - shield;
-      result.notes.push(resilientShield >= blindShield ? "lane held" : "blind held");
+      result.notes.push(shield === resilientShield ? "lane held" : shield === adapterShield ? "adapted" : "blind held");
     }
   }
   if (counter && order === "blind") {
@@ -149,8 +153,8 @@ function buildRoleBreakdown(
 ): LaneRoleBreakdown {
   const blueMatchup = laneMatchup(role, blueChampionId, lane.assignmentsBlue, lane.blueRoster, lane.assignmentsRed, lane.redRoster);
   const redMatchup = laneMatchup(role, redChampionId, lane.assignmentsRed, lane.redRoster, lane.assignmentsBlue, lane.blueRoster);
-  const blueTrait = laneTraitEffect(bluePlayerId, blueMatchup, lane.laneOrder?.blue[role]);
-  const redTrait = laneTraitEffect(redPlayerId, redMatchup, lane.laneOrder?.red[role]);
+  const blueTrait = laneTraitEffect(bluePlayerId, blueMatchup, lane.laneOrder?.blue[role], lane.adapted?.blue[role]);
+  const redTrait = laneTraitEffect(redPlayerId, redMatchup, lane.laneOrder?.red[role], lane.adapted?.red[role]);
 
   const blueDraftFit = playerChampionDraftFit(bluePlayerId, blueChampionId);
   const redDraftFit = playerChampionDraftFit(redPlayerId, redChampionId);
@@ -264,6 +268,7 @@ export function evaluateLanePhase(args: {
   assignmentsBlue: Partial<Record<Role, string>>;
   assignmentsRed: Partial<Record<Role, string>>;
   laneOrder?: { blue: LaneOrder; red: LaneOrder };
+  adapted?: { blue: Partial<Record<Role, boolean>>; red: Partial<Record<Role, boolean>> };
 }): LanePhaseResult {
   const roles = ROLE_ORDER.map((role) =>
     buildRoleBreakdown(

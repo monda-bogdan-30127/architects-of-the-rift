@@ -439,21 +439,26 @@ export type TraitToneContext = {
   grade?: ChampionMasteryGrade | null;
   /** Ordinea pe lane: „counter” = adversarul a ales deja pe rolul lui, „blind” = alege primul. */
   order?: "blind" | "counter";
+  /** Setup-ul celorlalți campioni ai echipei (needs_setup). */
+  setup?: number;
 };
 
 /**
  * §3 / §7.4 — culoarea trait-ului pe draftul de campioni:
  *   resource_hog: cerere ≥ 4 verde, ≤ 2 roșu; weakside_ready / enabler: cerere ≤ 2 verde;
  *   counter_specialist: verde pe counter, roșu pe blind; blind_safe: verde pe blind;
- *   signature_player: verde pe SS / S, roșu pe C / D / F.
+ *   signature_player: verde pe SS / S, roșu pe C / D / F; needs_setup: verde la setup ≥ setupHigh, roșu ≤ setupLow.
  */
 export function getTraitTone(id: PlayerTraitId, context: TraitToneContext): TraitTone {
-  const { demand, grade, order } = context;
+  const { demand, grade, order, setup } = context;
   const { highDemandMin, weaksideMax } = DRAFT_THINKING_CONFIG.attributes;
   if (id === "resource_hog") return demand === null ? "neutral" : demand >= highDemandMin ? "good" : demand <= weaksideMax ? "bad" : "neutral";
   if (LOW_RESOURCE_TRAITS.includes(id)) return demand !== null && demand <= weaksideMax ? "good" : "neutral";
   if (id === "counter_specialist") return order === "counter" ? "good" : order === "blind" ? "bad" : "neutral";
   if (id === "blind_safe") return order === "blind" ? "good" : "neutral";
+  if (id === "needs_setup" && setup !== undefined) {
+    return setup >= DRAFT_THINKING_CONFIG.traits.setupHigh ? "good" : setup <= DRAFT_THINKING_CONFIG.traits.setupLow ? "bad" : "neutral";
+  }
   if (id === "signature_player" && grade) return grade === "SS" || grade === "S" ? "good" : grade === "C" || grade === "D" || grade === "F" ? "bad" : "neutral";
   return "neutral";
 }

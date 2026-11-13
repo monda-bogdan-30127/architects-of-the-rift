@@ -60,6 +60,10 @@ const REASON_LABEL: Record<SpiritReason, string> = {
   starved_of_resources:    "Starved of resources",
   playstyle_fulfilled:     "Playstyle fulfilled",
   ego_clash:               "Ego clash",
+  left_alone:              "Left without setup",
+  well_set_up:             "Well set up",
+  figured_them_out:        "Figured them out",
+  ran_out_of_steam:        "Ran out of steam",
 };
 
 const LEADERSHIP_REASONS = new Set<SpiritReason>(["leadership_boost", "leadership_drain"]);

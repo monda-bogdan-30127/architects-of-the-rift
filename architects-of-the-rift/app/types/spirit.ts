@@ -35,7 +35,12 @@ export type SpiritReason =
   // PLAYER_TRAITS §5.2 — trait-urile de resurse
   | "starved_of_resources" // resource_hog cu ≥ 2 jocuri pe campioni cu resourceDemand ≤ 2
   | "playstyle_fulfilled"  // serie câștigată pe stilul trait-ului (hog pe carry, weakside pe cerere mică)
-  | "ego_clash";           // serie pierdută cu ≥ 2 resource_hog pe carry-uri
+  | "ego_clash"            // serie pierdută cu ≥ 2 resource_hog pe carry-uri
+  // PLAYER_TRAITS §7.4 — Draft & Series
+  | "left_alone"           // needs_setup cu ≥ 2 jocuri fără setup
+  | "well_set_up"          // needs_setup cu ≥ 2 jocuri cu setup, serie câștigată
+  | "figured_them_out"     // series_adapter: serie câștigată după ce game 1 a fost pierdut
+  | "ran_out_of_steam";    // fast_starter: serie pierdută după ce game 1 a fost câștigat
 
 // ─── Spirit label ───────────────────────────────────────────────────────────
 
