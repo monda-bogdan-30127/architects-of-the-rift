@@ -1,13 +1,16 @@
 // PLAYER_TRAITS — trăsături de jucător cu efect (înlocuiesc `displayTags`, care erau doar afișate).
-// Cel mult un trait pe familie și cel mult 3 în total. Un trait nu ascunde informație: schimbă cât contează
+// Cel mult 2 trait-uri din aceeași familie și cel mult 3 în total. Un trait nu ascunde informație: schimbă cât contează
 // informația vizibilă (grade-uri, `resourceDemand`) pentru jucătorul respectiv.
 
 import type { Role } from "./champion";
 
 export const PLAYER_TRAIT_IDS = [
-  // faza 1
+  // faza 1: Resources
   "resource_hog", "weakside_ready", "enabler",
-  // fazele 2–4 se adaugă când se implementează
+  // faza 2: Draft & Series
+  "blind_safe", "counter_specialist", "signature_player", "needs_setup", "self_sufficient",
+  "series_adapter", "fast_starter", "matchup_resilient", "lane_dominator",
+  // fazele 3–4 se adaugă când se implementează
 ] as const;
 export type PlayerTraitId = (typeof PLAYER_TRAIT_IDS)[number];
 export type PlayerTraitFamily = "resources" | "draft" | "macro" | "mental";
@@ -57,6 +60,68 @@ export const PLAYER_TRAIT_INFO: Record<
     excludes: ["resource_hog"],
     roles: ["jungle", "mid"],
   },
+
+  // ─── Faza 2: Draft & Series (ordinea de pick, dependența de echipă, evoluția în serie, matchup-ul) ───
+  blind_safe: {
+    family: "draft",
+    label: "Blind-Pick Safe",
+    description: "Loses little when picking first in his lane.",
+    excludes: ["counter_specialist"],
+    roles: ["top", "mid", "adc", "support"],
+  },
+  counter_specialist: {
+    family: "draft",
+    label: "Counter-Pick Specialist",
+    description: "Shines when he picks after his lane opponent, struggles when he has to blind.",
+    excludes: ["blind_safe"],
+    roles: ["top", "mid", "adc", "support"],
+  },
+  signature_player: {
+    family: "draft",
+    label: "Signature Player",
+    description: "Elite on his very best champions, noticeably weaker off them.",
+    excludes: [],
+  },
+  needs_setup: {
+    family: "draft",
+    label: "Needs Setup",
+    description: "A carry who thrives when the team engages and peels for him, fades when left alone.",
+    excludes: ["self_sufficient"],
+    roles: ["top", "jungle", "mid", "adc"],
+  },
+  self_sufficient: {
+    family: "draft",
+    label: "Self-Sufficient",
+    description: "Makes his own plays. Doesn't need engage or peel around him.",
+    excludes: ["needs_setup"],
+    roles: ["top", "jungle", "mid", "adc"],
+  },
+  series_adapter: {
+    family: "draft",
+    label: "Series Adapter",
+    description: "Reads opponents fast: gets better from game to game in a series.",
+    excludes: ["fast_starter"],
+  },
+  fast_starter: {
+    family: "draft",
+    label: "Fast Starter",
+    description: "Hits hardest in game 1, opponents adjust to him as the series goes on.",
+    excludes: ["series_adapter"],
+  },
+  matchup_resilient: {
+    family: "draft",
+    label: "Matchup Resilient",
+    description: "Losing matchups hurt him much less.",
+    excludes: ["lane_dominator"],
+    roles: ["top", "mid", "adc", "support"],
+  },
+  lane_dominator: {
+    family: "draft",
+    label: "Lane Dominator",
+    description: "Turns winning matchups into big leads.",
+    excludes: ["matchup_resilient"],
+    roles: ["top", "mid", "adc", "support"],
+  },
 };
 
 /** Trait-ul poate exista pe rol? */
@@ -65,10 +130,14 @@ export const isTraitAllowedOnRole = (id: PlayerTraitId, role: Role) => !PLAYER_T
 /** Trait-urile care se bucură de resurse puține (aceleași efecte de resurse în draft, simulare, Spirit). */
 export const LOW_RESOURCE_TRAITS: readonly PlayerTraitId[] = ["weakside_ready", "enabler"];
 
-/** Cel mult atâtea trait-uri pe jucător. */
+/** Cel mult atâtea trait-uri pe jucător și cel mult atâtea din aceeași familie (§1.1). */
 export const MAX_PLAYER_TRAITS = 3;
+export const MAX_TRAITS_PER_FAMILY = 2;
 
-/** §3 — se afișează doar trait-urile din familiile cu efecte implementate. */
+/**
+ * §3 — se afișează (și au efect) doar trait-urile din familiile cu efecte implementate. Trait-urile celorlalte familii
+ * se derivă și se păstrează pe jucător (pentru inventar), dar nu se văd și nu au efect.
+ */
 export const ACTIVE_TRAIT_FAMILIES: readonly PlayerTraitFamily[] = ["resources"];
 
 export const isActiveTrait = (trait: PlayerTrait) => ACTIVE_TRAIT_FAMILIES.includes(PLAYER_TRAIT_INFO[trait.id].family);

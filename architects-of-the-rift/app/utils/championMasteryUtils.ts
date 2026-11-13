@@ -11,6 +11,7 @@ import type {
 } from "../types/championMastery";
 import { championMasteryOverrides } from "../data/championMasteryOverrides";
 import type { Player } from "../types/player";
+import { registerTraitGradeProvider } from "./playerTraitUtils";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -209,3 +210,6 @@ export const getBanPressureScore = (
     default:   return 0.00;
   }
 };
+// PLAYER_TRAITS §7.2: signature_player se derivă din grade-uri. Grade-urile depind de `players` (prin
+// championMasteryOverrides), deci trait-urile se recalculează abia aici, după ce ambele module sunt încărcate.
+registerTraitGradeProvider(getChampionGrade);

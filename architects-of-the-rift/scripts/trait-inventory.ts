@@ -1,6 +1,6 @@
 // PLAYER_TRAITS §1.4 — inventarul trait-urilor de jucător: distribuția pe trait, rol și regiune (manual vs derivat),
-// titularii fiecărei echipe cu trait-urile lor și Team Fit, plus echipele cu ≥ 3 resource_hog și cele fără niciun
-// trait de resurse. Doar raportează.
+// titularii fiecărei echipe cu trait-urile lor și Team Fit, plus cazurile-limită pe familii. Include și familiile încă
+// inactive (fără efecte, ascunse în UI), ca să le vedem înainte de commit-ul cu efecte. Doar raportează.
 //
 //   npx tsx scripts/trait-inventory.ts [--out scripts/.calibration/trait-inventory.md]
 
@@ -11,7 +11,10 @@ import { teams } from "@/app/data/teams";
 import type { Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
 import { PLAYER_TRAIT_IDS, PLAYER_TRAIT_INFO, isTraitAllowedOnRole, type PlayerTraitId } from "@/app/types/playerTraits";
-import { TRAIT_DERIVATION, computeTeamFit } from "@/app/utils/playerTraitUtils";
+import { DRAFT_TRAIT_DERIVATION, SIGNATURE_RULE, TRAIT_DERIVATION, computeTeamFit } from "@/app/utils/playerTraitUtils";
+// Grade-urile (signature_player) se înregistrează la încărcarea lui championMasteryUtils.
+import "@/app/utils/championMasteryUtils";
+import { ACTIVE_TRAIT_FAMILIES } from "@/app/types/playerTraits";
 import { parseArgs } from "./draftHarness";
 
 const { named } = parseArgs(process.argv.slice(2));
@@ -27,19 +30,25 @@ const traitLabel = (player: Player) =>
 
 // ─── Distribuția ─────────────────────────────────────────────────────────────
 const lines: string[] = [`# Inventar trait-uri de jucător (${players.length} jucători)`, ""];
-lines.push("● = intensity 2 · (m) = manual (playerProfileOverrides), restul derivate.", "");
+lines.push("● = intensity 2 · (m) = manual (playerProfileOverrides), restul derivate · [inactiv] = familie fără efecte încă (ascunsă în UI).", "");
 
 lines.push(
   "## Distribuție",
   "",
-  "Pe rol: cu trait / jucători pe rol (țintă din TRAIT_DERIVATION.share, înainte de filtrul absolut). Manual = din playerProfileOverrides.",
+  "Pe rol: cu trait / jucători pe rol (țintă pe rol, totală: manual + derivat). Manual = din playerProfileOverrides.",
   "",
-  "| Trait | Total | Manual | Intensity 2 | " + ROLES.join(" | ") + " |",
-  "|---|---|---|---|" + ROLES.map(() => "---|").join(""),
+  "| Trait | Familie | Total | Manual | Intensity 2 | " + ROLES.join(" | ") + " |",
+  "|---|---|---|---|---|" + ROLES.map(() => "---|").join(""),
 );
+const shareOf = (id: PlayerTraitId): Partial<Record<Role, number>> => {
+  if (id in TRAIT_DERIVATION) return TRAIT_DERIVATION[id as keyof typeof TRAIT_DERIVATION].share;
+  const rule = DRAFT_TRAIT_DERIVATION[id];
+  return rule ? Object.fromEntries(ROLES.filter((role) => isTraitAllowedOnRole(id, role)).map((role) => [role, rule.share])) : {};
+};
 for (const id of PLAYER_TRAIT_IDS) {
   const withTrait = players.filter((player) => player.traits.some((trait) => trait.id === id));
-  const share = TRAIT_DERIVATION[id].share as Partial<Record<Role, number>>;
+  const share = shareOf(id);
+  const family = PLAYER_TRAIT_INFO[id].family;
   const byRole = ROLES.map((role) => {
     if (!isTraitAllowedOnRole(id, role)) return "—";
     const total = players.filter((player) => player.role === role).length;
@@ -47,7 +56,7 @@ for (const id of PLAYER_TRAIT_IDS) {
     return `${count}/${total} (${pct(count, total)}${share[role] ? `, țintă ${Math.round(share[role]! * 100)}%` : ""})`;
   });
   lines.push(
-    `| ${PLAYER_TRAIT_INFO[id].label} | ${withTrait.length} | ${withTrait.filter((p) => p.traits.some((t) => t.id === id && t.source === "manual")).length} | ${withTrait.filter((p) => p.traits.some((t) => t.id === id && t.intensity === 2)).length} | ${byRole.join(" | ")} |`,
+    `| ${PLAYER_TRAIT_INFO[id].label} | ${family}${ACTIVE_TRAIT_FAMILIES.includes(family) ? "" : " [inactiv]"} | ${withTrait.length} | ${withTrait.filter((p) => p.traits.some((t) => t.id === id && t.source === "manual")).length} | ${withTrait.filter((p) => p.traits.some((t) => t.id === id && t.intensity === 2)).length} | ${byRole.join(" | ")} |`,
   );
 }
 lines.push("", "| Regiune | Jucători | " + PLAYER_TRAIT_IDS.map((id) => PLAYER_TRAIT_INFO[id].label).join(" | ") + " |", "|---|---|" + PLAYER_TRAIT_IDS.map(() => "---|").join(""));
@@ -58,8 +67,16 @@ for (const region of regions) {
 }
 lines.push(
   "",
-  "Filtre absolute: " + PLAYER_TRAIT_IDS.map((id) => `${id}: ${TRAIT_DERIVATION[id].filterLabel}`).join("; ") + ". Intensity 2: treimea de sus a celor cu trait-ul pe rol (după distanța de prag).",
+  "Reguli: " +
+    [
+      ...Object.entries(TRAIT_DERIVATION).map(([id, rule]) => `${id}: percentila carryResourceUsage, ${rule.filterLabel}`),
+      ...Object.entries(DRAFT_TRAIT_DERIVATION).map(([id, rule]) => `${id}: ${rule!.label}`),
+      `signature_player: ≥ ${SIGNATURE_RULE.minSS} SS și ≤ ${SIGNATURE_RULE.maxAPlus} A+ pe championPool (țintă ~10–15%)`,
+    ].join("; ") +
+    ". Intensity 2: treimea de sus a celor cu trait-ul pe rol.",
 );
+const traitCount = players.map((player) => player.traits.length);
+lines.push("", `Trait-uri pe jucător: ${[0, 1, 2, 3].map((n) => `${n}: ${traitCount.filter((count) => count === n).length}`).join(" · ")}`);
 
 // ─── Pe echipă: titularii (rosterul de bază) și Team Fit ─────────────────────
 const rosterOf = (teamId: string) => {
@@ -75,7 +92,7 @@ const noLowResource: string[] = [];
 lines.push("", "## Pe echipă (titularii)", "", "| Echipă | Top | Jungle | Mid | ADC | Support | Team Fit |", "|---|---|---|---|---|---|---|");
 for (const team of [...teams].sort((a, b) => a.region.localeCompare(b.region) || a.sortOrder - b.sortOrder)) {
   const roster = rosterOf(team.id);
-  const fit = computeTeamFit(roster);
+  const fit = computeTeamFit(roster, undefined, { includeInactive: true });
   const cell = (role: Role) => {
     const player = roster[role] ? playersById.get(roster[role]!) : undefined;
     return player ? `${player.name}: ${traitLabel(player)}` : "—";
@@ -95,6 +112,25 @@ lines.push(
   `Echipe fără Resource Hog (${noHog.length}): ${noHog.join(", ") || "—"}`,
   "",
   `Echipe fără Weakside Ready și fără Enabler (${noLowResource.length}): ${noLowResource.join(", ") || "—"}`,
+  "",
+);
+
+// ─── Cazuri-limită, faza 2 (Draft & Series) ───────────────────────────────────
+const teamsWith = (id: PlayerTraitId, min: number) =>
+  teams.filter((team) => {
+    const roster = rosterOf(team.id);
+    return Object.values(roster).filter((playerId) => playersById.get(playerId!)?.traits.some((trait) => trait.id === id)).length >= min;
+  }).map((team) => team.abbreviation);
+lines.push(
+  "## Cazuri-limită, Draft & Series",
+  "",
+  `≥ 2 Counter-Pick Specialist: ${teamsWith("counter_specialist", 2).join(", ") || "—"}`,
+  "",
+  `≥ 2 Needs Setup: ${teamsWith("needs_setup", 2).join(", ") || "—"}`,
+  "",
+  `≥ 3 Signature Player: ${teamsWith("signature_player", 3).join(", ") || "—"}`,
+  "",
+  `≥ 2 Fast Starter: ${teamsWith("fast_starter", 2).join(", ") || "—"} · ≥ 2 Series Adapter: ${teamsWith("series_adapter", 2).join(", ") || "—"}`,
   "",
 );
 
