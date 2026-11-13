@@ -449,10 +449,11 @@ export const DRAFT_THINKING_CONFIG = {
     /** §4.2 — trait-urile decid focusul pe bot când celelalte semnale dau „neutral”. Oprit până la calibrare. */
     botFocusEnabled: false,
     /**
-     * §4.3 — la egalitate de scor între candidații la win condition, câștigă cel jucat de un resource_hog. Ca
-     * botFocusEnabled, nu depinde de resourceDemand: pornit, schimba 40 / 120 de drafturi cu datele goale. Oprit.
+     * §4.3 — la egalitate de scor între candidații la win condition: întâi carry potential (damage + scaling; support = 0),
+     * apoi resource_hog. Scorul de identitate are puține valori (51% din compoziții aveau egalitate exactă, decisă până
+     * acum de ordinea din listă). Pe 600 de compoziții finale: 139 de schimbări, 16 (2.7%) decise de regula Hog. Pornit.
      */
-    winConditionHogTieEnabled: false,
+    winConditionHogTieEnabled: true,
     /** §4.3 — valoarea continuă de departajare: ofertele identității sau carry potential (damage + scaling). */
     winConditionTieValue: "carryPotential" as "identityOffers" | "carryPotential",
   },

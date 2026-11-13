@@ -41,8 +41,11 @@ const CARRY_POTENTIAL_OFFERS = ["sustainedDamage", "burstDamage", "scaling"];
  * Departajarea continuă (§4.3), după `traits.winConditionTieValue`: suma `offers` pe atributele care definesc identitatea
  * („identityOffers”) sau pe damage și scaling („carryPotential”).
  */
-function identityOfferSum(champion: Champion, identity: NonNullable<CompIdentityReading["dominant"]>): number {
-  const offers = DRAFT_THINKING_CONFIG.traits.winConditionTieValue === "carryPotential" ? CARRY_POTENTIAL_OFFERS : getIdentityOffers(identity);
+function identityOfferSum(champion: Champion, role: Role, identity: NonNullable<CompIdentityReading["dominant"]>): number {
+  const carryPotential = DRAFT_THINKING_CONFIG.traits.winConditionTieValue === "carryPotential";
+  // Un support nu câștigă win condition-ul la egalitate: doar dacă are deja scorul de identitate cel mai mare.
+  if (carryPotential && role === "support") return 0;
+  const offers = carryPotential ? CARRY_POTENTIAL_OFFERS : getIdentityOffers(identity);
   return (champion.offers ?? []).filter((offer) => offers.includes(String(offer.type))).reduce((sum, offer) => sum + offer.strength, 0);
 }
 
@@ -80,7 +83,7 @@ export function getWinCondition(
     // scorul de identitate are prea puține valori, 51% din compoziții aveau egalitate exactă), apoi resource_hog.
     // Nu depinde de resourceDemand, deci e în spatele unui flag, ca botFocusEnabled.
     const tieRules = DRAFT_THINKING_CONFIG.traits.winConditionHogTieEnabled;
-    const offerSum = tieRules ? identityOfferSum(champion, identity.dominant!) : 0;
+    const offerSum = tieRules ? identityOfferSum(champion, role, identity.dominant!) : 0;
     const hog = tieRules && hasTrait(player, "resource_hog") ? 1 : 0;
     const tieBreak = (current: NonNullable<typeof best>) =>
       demand > current.demand ||
