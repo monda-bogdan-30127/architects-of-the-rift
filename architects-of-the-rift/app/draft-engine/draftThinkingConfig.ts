@@ -519,5 +519,23 @@ export const DRAFT_THINKING_CONFIG = {
   // playerSkillScale e reglajul cât contează diferența dintre jucători (ponderea, fără variație în plus).
   simulation: {
     playerSkillScale: 0.35,
+    /**
+     * DRAFT_SIM_ALIGNMENT §2.2: compozitul de draft din simulare = draftPower × draftPower + meta × meta (+ mustWith).
+     * Nivelul jucătorilor (playerPower × 0.10) a ieșit: intră deja în faze și în scorul pe categorii. Ponderea lui
+     * s-a redistribuit proporțional (0.68 / 0.22 → ÷ 0.90).
+     */
+    draftComposite: { draftPower: 0.68 / 0.9, meta: 0.22 / 0.9 },
+  },
+
+  /** DRAFT_SIM_ALIGNMENT — evaluatorul de draft (draftEvaluator.ts), aliniat cu ce răsplătește simularea. */
+  draftEvaluation: {
+    /**
+     * §2.1 choiceFitScore: calitatea alegerii pentru jucător = q(campionul ales) − media q pe cei mai buni
+     * `choiceFitTopN` campioni ai lui pe rol, încă disponibili; q = fit × fitShare + comfort × (1 − fitShare)
+     * (raportul vechilor ponderi 0.14 / 0.10). Scorul = 5 + diferența × choiceFitScale, pe 0–10.
+     */
+    choiceFitTopN: 3,
+    choiceFitShare: 0.14 / 0.24,
+    choiceFitScale: 1,
   },
 } as const;

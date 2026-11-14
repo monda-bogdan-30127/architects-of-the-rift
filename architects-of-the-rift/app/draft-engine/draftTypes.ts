@@ -135,6 +135,8 @@ export type TeamDraftEvaluation = {
   metaScore: number;
   playerFitScore: number;
   comfortScore: number;
+  /** DRAFT_SIM_ALIGNMENT §2.1 — calitatea alegerii pentru jucător (5 = cea mai bună disponibilă). */
+  choiceFitScore: number;
   engageScore: number;
   frontlineScore: number;
   damageBalanceScore: number;

@@ -1089,18 +1089,17 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   const blueMustWithBonus = getMustWithCohesionBonus(assignmentsBlue);
   const redMustWithBonus = getMustWithCohesionBonus(assignmentsRed);
 
+  // DRAFT_SIM_ALIGNMENT §2.2: fără playerPower (nivelul jucătorilor e deja în faze și în categorii).
   const blueDraftComposite = clamp(
-    blueDraftEval.draftPower * 0.68 +
-    computeMetaAverage(assignmentsBlue) * 0.22 +
-    bluePlayerPower * 0.1 +
+    blueDraftEval.draftPower * DRAFT_THINKING_CONFIG.simulation.draftComposite.draftPower +
+    computeMetaAverage(assignmentsBlue) * DRAFT_THINKING_CONFIG.simulation.draftComposite.meta +
     blueMustWithBonus,
     0,
     10
   );
   const redDraftComposite = clamp(
-    redDraftEval.draftPower * 0.68 +
-    computeMetaAverage(assignmentsRed) * 0.22 +
-    redPlayerPower * 0.1 +
+    redDraftEval.draftPower * DRAFT_THINKING_CONFIG.simulation.draftComposite.draftPower +
+    computeMetaAverage(assignmentsRed) * DRAFT_THINKING_CONFIG.simulation.draftComposite.meta +
     redMustWithBonus,
     0,
     10

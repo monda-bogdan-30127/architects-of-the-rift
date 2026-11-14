@@ -487,6 +487,55 @@ export function evaluatePlayerPower(roster: Partial<Record<Role, string>>, assig
   return count === 0 ? 0 : total / count;
 }
 
+// ─── DRAFT_SIM_ALIGNMENT §2.1: calitatea alegerii, nu nivelul jucătorului ──────
+/** q = cât de bun e jucătorul pe campion (fit + comfort, fără istoric, ca referința să fie comparabilă). */
+function choiceQuality(player: Player, champion: Champion, role: Role) {
+  const share = DRAFT_THINKING_CONFIG.draftEvaluation.choiceFitShare;
+  return getProjectedPlayerChampionFitScore(player, champion, role) * share + getComfortScore(player, champion) * (1 - share);
+}
+
+/** jucător:rol → campionii care pot juca rolul, sortați descrescător după q (calculat o singură dată). */
+const choiceQualityCache = new Map<string, Array<[string, number]>>();
+function rankedChoices(player: Player, role: Role) {
+  const key = `${player.id}:${role}`;
+  let ranked = choiceQualityCache.get(key);
+  if (!ranked) {
+    ranked = champions
+      .filter((champion) => champion.roles.includes(role))
+      .map((champion) => [champion.id, choiceQuality(player, champion, role)] as [string, number])
+      .sort((a, b) => b[1] - a[1]);
+    choiceQualityCache.set(key, ranked);
+  }
+  return ranked;
+}
+
+/**
+ * 5 = a ales cât de bine se putea pentru jucător (media celor mai buni N campioni încă disponibili), sub 5 = sub
+ * nivelul lui. „Disponibil” = nebanat și neluat de adversar sau de coechipieri, pe starea draftului evaluată
+ * (aproximarea stării de la momentul pick-ului: evaluatorul nu are ordinea pick-urilor).
+ */
+function evaluateChoiceFit(
+  roster: Partial<Record<Role, string>>,
+  assignments: Partial<Record<Role, string>>,
+  playersById: Map<string, Player>,
+  unavailable: Set<string>
+) {
+  const { choiceFitTopN, choiceFitScale } = DRAFT_THINKING_CONFIG.draftEvaluation;
+  const values: number[] = [];
+  for (const role of ROLE_ORDER) {
+    const playerId = roster[role];
+    const championId = assignments[role];
+    const player = playerId ? playersById.get(playerId) ?? null : null;
+    const champion = championId ? getChampionById(championId) : null;
+    if (!player || !champion) continue;
+    const taken = new Set([...unavailable, ...Object.entries(assignments).filter(([other]) => other !== role).map(([, id]) => id)]);
+    const best = rankedChoices(player, role).filter(([id]) => id === champion.id || !taken.has(id)).slice(0, choiceFitTopN);
+    const reference = average(best.map(([, value]) => value));
+    values.push(clamp(5 + (choiceQuality(player, champion, role) - reference) * choiceFitScale, 0, 10));
+  }
+  return values.length ? average(values) : 5;
+}
+
 export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluation {
   const vector = buildCompVector(context.championIds);
   const enemyVector = buildCompVector(context.enemyChampionIds);
@@ -558,6 +607,12 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
   const playerFitScore = average(fitValues);
   // DRAFT_SIM_ALIGNMENT §1: rolurile reale (nu ordinea pick-urilor).
   const rosterExecutionScore = evaluatePlayerPower(context.roster, assignments);
+  const choiceFitScore = evaluateChoiceFit(
+    context.roster,
+    assignments,
+    context.playersById,
+    new Set([...(context.unavailableChampionIds ?? []), ...context.enemyChampionIds])
+  );
 
   let structurePenalty = 0;
   if (context.championIds.length >= 3 && engageScore < 4.2) structurePenalty += 0.8;
@@ -588,9 +643,11 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
   ]), 0, 10);
 
   const draftPower = clamp(
-    metaScore * 0.1 + comfortScore * 0.1 + playerFitScore * 0.14 + synergyScore * 0.11 + needScore * 0.08 + counterScore * 0.08 +
+    // DRAFT_SIM_ALIGNMENT §2.1: choiceFitScore × 0.18 în locul playerFit × 0.14 + comfort × 0.10 (nivelul jucătorului);
+    // rosterExecutionScore × 0.045 a ieșit (tot nivelul jucătorilor). Cele 0.06 rămase merg la puterea pe faze (§3.2).
+    metaScore * 0.1 + choiceFitScore * 0.18 + synergyScore * 0.11 + needScore * 0.08 + counterScore * 0.08 +
     engageScore * 0.045 + frontlineScore * 0.045 + damageBalanceScore * 0.04 + roleCoverageScore * 0.035 + executionEaseScore * 0.03 + protectionScore * 0.04 +
-    antiDiveScore * 0.03 + primaryEngageScore * 0.025 + followUpScore * 0.02 + rangeProfileScore * 0.02 + rosterExecutionScore * 0.045 + accessScore * 0.05 + threatScore * 0.05 +
+    antiDiveScore * 0.03 + primaryEngageScore * 0.025 + followUpScore * 0.02 + rangeProfileScore * 0.02 + accessScore * 0.05 + threatScore * 0.05 +
     roleProfileScore * 0.04 + teamIdentityScore * 0.03 + simulationReadinessScore * 0.055 - weaknessPenalty * 0.07 - shortRangePenalty * 0.2 - carryProtectionPenalty * 0.46 -
     executionDifficultyPenalty * 0.4 - structurePenalty,
     0,
@@ -606,6 +663,7 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
     metaScore,
     playerFitScore,
     comfortScore,
+    choiceFitScore,
     engageScore,
     frontlineScore,
     damageBalanceScore,
