@@ -343,12 +343,12 @@ export function getCommsLevel(value: number): CommsLevel {
 export const COMMS_LEVEL_ORDER: readonly CommsLevel[] = ["Poor", "Average", "Good", "Elite"];
 
 /**
- * `hiddenTraits.communication` (același câmp ca în computeTeamChemistry) ca nivel, plus „Shotcaller” (PLAYER_TRAITS
- * faza 3: trait-ul shotcaller înlocuiește vechea etichetă „Leader” = leadership ≥ 80).
+ * `hiddenTraits.communication` (același câmp ca în computeTeamChemistry) ca nivel. Vechea etichetă „Leader” a fost
+ * înlocuită de trait-ul shotcaller (PLAYER_TRAITS faza 3), afișat cu celelalte trait-uri.
  */
-export function getCommsInfo(player: Pick<Player, "advancedProfile" | "traits">): { level: CommsLevel; shotcaller: boolean } {
+export function getCommsInfo(player: Pick<Player, "advancedProfile">): { level: CommsLevel } {
   const communication = player.advancedProfile?.hiddenTraits?.communication ?? 50;
-  return { level: getCommsLevel(communication), shotcaller: hasTrait(player, "shotcaller") };
+  return { level: getCommsLevel(communication) };
 }
 
 /** Trait-ul jucătorului, doar dacă e activ (familie activă, efecte implementate). */

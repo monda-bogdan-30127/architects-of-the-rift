@@ -91,7 +91,6 @@ const OFF_COMFORT_STREAK_LIMIT = 3;   // consecutive C/D games (cross-series)
 const POOL_PRESSURE_A_PLUS_SOFT_THRESHOLD = 2;   // ≤2 A+ → soft penalty
 const POOL_PRESSURE_A_PLUS_HARD_THRESHOLD = 0;   // 0 A+ → hard penalty
 
-const LEADERSHIP_TRAIT_THRESHOLD     = 80;
 const LEADERSHIP_BOOST_SPIRIT_FLOOR  = 65;
 const LEADERSHIP_DRAIN_SPIRIT_CEIL   = 45;
 const LEADERSHIP_CYCLE_INTERVAL      = 2;   // every 2 controlled-team series
@@ -666,7 +665,8 @@ function applyLeadershipTriggers(
   const cycleAfterIncrement = ctx.leadershipCycleCounter + 1;
   if (cycleAfterIncrement % LEADERSHIP_CYCLE_INTERVAL !== 0) return;
 
-  // Find best leader (highest leadership trait) on the controlled roster.
+  // PLAYER_TRAITS faza 3: liderul e shotcaller-ul echipei (înainte: cel mai bun leadership, doar de la 80).
+  // Cu 2+ shotcalleri, cel cu leadership mai mare; fără shotcaller, fără influență.
   let bestLeaderId: string | null = null;
   let bestLeaderScore = -Infinity;
 
@@ -674,7 +674,7 @@ function applyLeadershipTriggers(
     const playerId = ctx.controlledRoster[role];
     if (!playerId) continue;
     const player = ctx.playersById.get(playerId);
-    if (!player) continue;
+    if (!player || !getActiveTrait(player, "shotcaller")) continue;
     const leadership = player.advancedProfile?.hiddenTraits?.leadership ?? 50;
     if (leadership > bestLeaderScore) {
       bestLeaderScore = leadership;
@@ -682,7 +682,7 @@ function applyLeadershipTriggers(
     }
   }
 
-  if (!bestLeaderId || bestLeaderScore < LEADERSHIP_TRAIT_THRESHOLD) return;
+  if (!bestLeaderId) return;
 
   const leaderSpirit = ctx.currentSpirits[bestLeaderId] ?? SPIRIT_INITIAL_VALUE;
 

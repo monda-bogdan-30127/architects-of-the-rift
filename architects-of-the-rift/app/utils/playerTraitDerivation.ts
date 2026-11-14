@@ -185,8 +185,8 @@ const hiddenOf = (player: Player) => player.advancedProfile.hiddenTraits;
  * follower: relativ la rol, cu alocarea greedy din faza 2: percentila discipline minus percentila leadership în rol
  *   (execută, nu conduce), doar cu communication peste percentila 25 a rolului (comunică bine apelurile).
  * topside_jungler / botside_jungler: tot din echipa de origine (PlayerTendencies nu are un semnal de parte a
- *   hărții). Junglerul joacă pentru resource_hog-ul echipei: hog pe top / mid → topside, pe ADC → botside. Cu mai mulți
- *   hogs contează cel cu intensity mai mare, la egalitate ADC-ul. Fără hog, fără trait. Doar intensity 1.
+ *   hărții). Junglerul joacă pentru resource_hog-ul echipei: hog pe top / mid → topside, pe ADC → botside. Cu hogs pe
+ *   ambele părți (top / mid și ADC), junglerul joacă flexibil: fără trait. Fără hog, fără trait. Doar intensity 1.
  */
 export const MACRO_TRAIT_DERIVATION: Partial<Record<PlayerTraitId, DraftTraitRule>> = {
   follower: {
@@ -201,7 +201,7 @@ export const MACRO_TRAIT_DERIVATION: Partial<Record<PlayerTraitId, DraftTraitRul
 
 export const SHOTCALLER_DERIVATION_LABEL = "un lider pe echipa de origine: leadership + communication maxim (intensity 2: treimea de sus)";
 export const JUNGLE_SIDE_DERIVATION_LABEL =
-  "partea resource_hog-ului din echipa de origine (top / mid → topside, ADC → botside; intensity mai mare, la egalitate ADC)";
+"partea resource_hog-ului din echipa de origine (top / mid → topside, ADC → botside; hogs pe ambele părți → fără trait)";
 
 const FREE_AGENT_TEAM = "free-agent";
 const leaderScore = (player: Player) => hiddenOf(player).leadership + hiddenOf(player).communication;
@@ -249,12 +249,11 @@ function deriveJungleSide(list: Player[]): Map<string, PlayerTraitId> {
     if (!jungler) continue;
     const hogs = members
       .filter((player) => player.role === "top" || player.role === "mid" || player.role === "adc")
-      .flatMap((player) => {
-        const hog = player.traits.find((trait) => trait.id === "resource_hog");
-        return hog ? [{ player, intensity: hog.intensity }] : [];
-      })
-      .sort((a, b) => b.intensity - a.intensity || Number(b.player.role === "adc") - Number(a.player.role === "adc"));
-    if (hogs[0]) sides.set(jungler.id, hogs[0].player.role === "adc" ? "botside_jungler" : "topside_jungler");
+      .filter((player) => player.traits.some((trait) => trait.id === "resource_hog"));
+    const bot = hogs.some((player) => player.role === "adc");
+    const top = hogs.some((player) => player.role !== "adc");
+    // Hogs pe ambele părți (top / mid și ADC): junglerul joacă flexibil între ei, fără trait de parte a hărții.
+    if (bot !== top) sides.set(jungler.id, bot ? "botside_jungler" : "topside_jungler");
   }
   return sides;
 }

@@ -753,7 +753,7 @@ function PlayerCard({
             </div>
           ) : null}
 
-          {/* PLAYER_TRAITS §3.1: comunicarea, ca nivel, și „Shotcaller” (trait-ul din faza 3 înlocuiește „Leader”) */}
+          {/* PLAYER_TRAITS §3.1: comunicarea, ca nivel (shotcaller apare cu celelalte trait-uri) */}
           {player ? (
             <p
               className="uppercase text-[var(--text-secondary)]"
@@ -761,7 +761,6 @@ function PlayerCard({
               style={{ fontSize: 12, lineHeight: "16px", fontWeight: 500, letterSpacing: "0.04em", textAlign: "center", cursor: "help" }}
             >
               Comms: <span className="text-[var(--text-primary)]">{getCommsInfo(player).level}</span>
-              {getCommsInfo(player).shotcaller ? <span className="text-[var(--text-highlight)]"> · Shotcaller</span> : null}
             </p>
           ) : null}
 

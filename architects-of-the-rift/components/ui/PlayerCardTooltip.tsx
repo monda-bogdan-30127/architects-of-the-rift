@@ -194,7 +194,6 @@ export default function PlayerCardTooltip({ player, anchorRef, visible }: Props)
         <SectionLabel>Comms</SectionLabel>
         <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--text-primary, rgba(255,255,255,0.9))" }}>
           <span style={{ color: "var(--text-highlight, #e2b96a)", fontWeight: 600 }}>{comms.level}</span>
-          {comms.shotcaller ? <span style={{ color: "var(--text-highlight, #e2b96a)", fontWeight: 600 }}> · Shotcaller</span> : null}
           <span style={{ color: "var(--text-secondary, rgba(255,255,255,0.55))" }}> · {COMMS_TOOLTIP}</span>
         </div>
       </div>
