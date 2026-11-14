@@ -532,7 +532,8 @@ export const DRAFT_THINKING_CONFIG = {
      * sd 0.5–1.3). championPhasePowerScaled = 5 + (putere − mediana pe rol și fază) × championPhaseScale (0–10);
      * în totalul echipei, nivelul se readuce la vechea mediană, deci doar diferențele dintre campioni se lărgesc.
      */
-    championPhaseScale: 1,
+    // §9: 2.0 aprobat după grila cu totalul reparat (contra „top 8 aleator” ~66%, nivel egal ~59%).
+    championPhaseScale: 2,
     /** §9: multiplicatorul termenului de matchup din scorul de lane (laneEvaluator, × 0.42). */
     laneMatchupScale: 1,
   },

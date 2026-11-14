@@ -1179,36 +1179,6 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     teamfightEdge: teamfight.redTeamfightEdge
   });
 
-  const blueScores = buildTeamPhaseScores({
-    draft: blueDraftComposite,
-    playerPower: bluePlayerPower,
-    assignment: blueAssignment,
-    lane: lane.blueScore,
-    objectives: blueObjectivesAdj,
-    execution: blueExecution,
-    clutch: blueClutchAdj,
-    late: blueLate,
-    rng: blueRng,
-    momentum: blueMomentum,
-    profile: matchProfile,
-    phases: bluePhases,
-  });
-
-  const redScores = buildTeamPhaseScores({
-    draft: redDraftComposite,
-    playerPower: redPlayerPower,
-    assignment: redAssignment,
-    lane: lane.redScore,
-    objectives: redObjectivesAdj,
-    execution: redExecution,
-    clutch: redClutchAdj,
-    late: redLate,
-    rng: redRng,
-    momentum: redMomentum,
-    profile: matchProfile,
-    phases: redPhases,
-  });
-
   // UPGRADE 12: Lane snowball — early advantage carries into mid/late (capped)
   const snowball = computeLaneSnowball({
     blueEarlyScore: bluePhases.early.phaseTotal,
@@ -1263,6 +1233,45 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   redPhases.early.phaseTotal *= (1 + (redEarlyMult - 1) * 0.4);
   redPhases.mid.phaseTotal *= (1 + (redMidMult - 1) * 0.4);
   redPhases.late.phaseTotal *= (1 + (redLateMult - 1) * 0.4);
+
+  // Fazele rămân pe 0–10 (ca în computePhaseBreakdown), ca fazele afișate, contribuțiile din „Why it ended”
+  // și totalul să plece din aceleași valori.
+  for (const phases of [bluePhases, redPhases]) {
+    for (const phase of [phases.early, phases.mid, phases.late]) phase.phaseTotal = clamp(phase.phaseTotal, 0, 10);
+  }
+
+  // DRAFT_SIM_ALIGNMENT §9 (bug): totalul se calculează DUPĂ toți termenii de fază (snowball, vârfuri de putere,
+  // matchup pe mid/late, power spikes). Înainte se calcula înaintea lor, deci câștigătorul îi ignora, deși fazele
+  // afișate și „Why it ended” îi conțineau.
+  const blueScores = buildTeamPhaseScores({
+    draft: blueDraftComposite,
+    playerPower: bluePlayerPower,
+    assignment: blueAssignment,
+    lane: lane.blueScore,
+    objectives: blueObjectivesAdj,
+    execution: blueExecution,
+    clutch: blueClutchAdj,
+    late: blueLate,
+    rng: blueRng,
+    momentum: blueMomentum,
+    profile: matchProfile,
+    phases: bluePhases,
+  });
+
+  const redScores = buildTeamPhaseScores({
+    draft: redDraftComposite,
+    playerPower: redPlayerPower,
+    assignment: redAssignment,
+    lane: lane.redScore,
+    objectives: redObjectivesAdj,
+    execution: redExecution,
+    clutch: redClutchAdj,
+    late: redLate,
+    rng: redRng,
+    momentum: redMomentum,
+    profile: matchProfile,
+    phases: redPhases,
+  });
 
 
   // ─── FIX WINNER PROBABILISTIC ─────────────────────────────────────────────
