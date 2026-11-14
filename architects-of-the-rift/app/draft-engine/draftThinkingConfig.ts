@@ -548,7 +548,17 @@ export const DRAFT_THINKING_CONFIG = {
      * edge_f = puterea campionilor noștri pe faza f − a adversarului pe rol (media ligii pe rol, dacă rolul lui e liber).
      */
     phasePowerScale: 4,
-    /** Ponderile din draftPower schimbate de aliniere (restul sunt în formula din draftEvaluator). */
-    weights: { meta: 0.04, choiceFit: 0.18, counter: 0.08, phasePower: 0.12 },
+    /**
+     * §8.3 executionDifficultyPenalty relativ la jucător: capacitatea lui (dificultatea medie playerScaling pe care o
+     * duce fără penalizare) = 3.8 + (percentila mechanics în ligă − 0.5) × 2 × executionCapacitySpread.
+     * Jucătorul median duce 3.8 (pragul vechi), cel mai bun 3.8 + spread, cel mai slab 3.8 − spread.
+     */
+    executionCapacitySpread: 0.7,
+    /**
+     * Ponderile din draftPower schimbate de aliniere (restul sunt în formula din draftEvaluator).
+     * §8.3: phasePower 0.12 → 0.20; damageBalance 0.04 → 0.02 (penaliza compozițiile AP-heavy, care sunt de fapt
+     * mai puternice); roleCoverageScore a ieșit (identic la ambele echipe).
+     */
+    weights: { meta: 0.04, choiceFit: 0.18, counter: 0.08, phasePower: 0.2, damageBalance: 0.02 },
   },
 } as const;

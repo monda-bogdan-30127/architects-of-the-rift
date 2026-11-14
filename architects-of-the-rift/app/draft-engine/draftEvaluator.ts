@@ -49,7 +49,9 @@ const ENGAGE_ATTRIBUTES = ["engage", "reliableCC", "pick", "roamPressure"];
 const FRONTLINE_ATTRIBUTES = ["frontline", "peel", "engage"];
 const EXECUTION_HELP_ATTRIBUTES = ["reliableCC", "peel", "disengage", "waveclear"];
 const PROTECTION_ATTRIBUTES = ["peel", "antiDive", "disengage", "frontline"];
-const ANTI_DIVE_ATTRIBUTES = ["antiDive", "peel", "disengage", "frontline"];
+// DRAFT_SIM_ALIGNMENT §8.3: era aceeași listă ca PROTECTION_ATTRIBUTES (deci antiDiveScore = protectionScore în
+// fiecare joc). Anti-dive = ce pedepsește un diver ajuns în backline: unelte antiDive, CC sigur, control de zonă.
+const ANTI_DIVE_ATTRIBUTES = ["antiDive", "reliableCC", "zoneControl"];
 const PRIMARY_ENGAGE_ATTRIBUTES = ["engage", "pick"];
 const FOLLOW_UP_ATTRIBUTES = ["followUp", "burstDamage"];
 const HARD_PROTECT_CARRY_IDS = new Set(["kogmaw", "jinx", "aphelios", "vayne", "yunara", "zeri"]);
@@ -299,14 +301,40 @@ function evaluateCarryProtectionPenalty(championIds: string[], vector: TeamCompV
   return clamp((required - protectionSupply) * 0.2, 0, 5.5);
 }
 
-function evaluateExecutionDifficultyPenalty(championIds: string[]) {
-  const difficulties = championIds
-    .map((championId) => getChampionById(championId))
-    .filter((champion): champion is Champion => Boolean(champion))
-    .map((champion) => average(Object.values(champion.playerScaling ?? {}) as number[]))
-    .filter((value) => Number.isFinite(value));
-  if (!difficulties.length) return 0;
-  return clamp((average(difficulties) - 3.8) * 0.85, 0, 3.5);
+/** Percentila mechanics (`stats.mec`) a jucătorului în toată liga, 0–1 (calculată o singură dată). */
+let sortedMechanics: number[] | null = null;
+function mechanicsPercentile(player: Player | null) {
+  const value = player?.stats?.mec;
+  if (typeof value !== "number") return 0.5;
+  sortedMechanics ??= players.map((entry) => entry.stats?.mec).filter((entry): entry is number => typeof entry === "number").sort((a, b) => a - b);
+  if (!sortedMechanics.length) return 0.5;
+  const below = sortedMechanics.filter((entry) => entry < value).length;
+  const equal = sortedMechanics.filter((entry) => entry === value).length;
+  return (below + equal / 2) / sortedMechanics.length;
+}
+
+/**
+ * DRAFT_SIM_ALIGNMENT §8.3: penalizarea de dificultate e relativă la jucător. Pe fiecare rol, dificultatea
+ * campionului (media playerScaling) peste capacitatea jucătorului (vezi executionCapacitySpread) × 0.85; media pe
+ * roluri. Un jucător cu mechanics mari nu e penalizat pe un campion greu.
+ */
+function evaluateExecutionDifficultyPenalty(
+  assignments: Partial<Record<Role, string>>,
+  roster: Partial<Record<Role, string>>,
+  playersById: Map<string, Player>
+) {
+  const spread = DRAFT_THINKING_CONFIG.draftEvaluation.executionCapacitySpread;
+  const penalties: number[] = [];
+  for (const role of ROLE_ORDER) {
+    const champion = assignments[role] ? getChampionById(assignments[role]!) : null;
+    if (!champion) continue;
+    const difficulty = average(Object.values(champion.playerScaling ?? {}) as number[]);
+    if (!Number.isFinite(difficulty)) continue;
+    const player = roster[role] ? playersById.get(roster[role]!) ?? null : null;
+    const capacity = 3.8 + (mechanicsPercentile(player) - 0.5) * 2 * spread;
+    penalties.push(Math.max(0, difficulty - capacity) * 0.85);
+  }
+  return penalties.length ? clamp(average(penalties), 0, 3.5) : 0;
 }
 
 function getTopStrengths(vector: TeamCompVector) {
@@ -608,7 +636,7 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
   const rangeProfileScore = evaluateRangeProfile(context.championIds);
   const shortRangePenalty = evaluateShortRangePenalty(context.championIds);
   const carryProtectionPenalty = evaluateCarryProtectionPenalty(context.championIds, vector);
-  const executionDifficultyPenalty = evaluateExecutionDifficultyPenalty(context.championIds);
+  const executionDifficultyPenalty = evaluateExecutionDifficultyPenalty(assignments, context.roster, context.playersById);
   const compIdentity = inferCompIdentity(context.championIds, assignments);
   const accessScore = evaluateAccessScore(context.championIds);
   const threatScore = evaluateThreatScore(context.championIds);
@@ -678,7 +706,7 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
     // rosterExecutionScore × 0.045 a ieșit (tot nivelul jucătorilor). §3: counterScore pe lane, puterea pe faze, meta 0.10 → 0.04.
     metaScore * W.meta + choiceFitScore * W.choiceFit + synergyScore * 0.11 + needScore * 0.08 + counterScore * W.counter +
     phasePowerScore * W.phasePower + interactionScore * DRAFT_THINKING_CONFIG.draftEvaluation.interactionWeight +
-    engageScore * 0.045 + frontlineScore * 0.045 + damageBalanceScore * 0.04 + roleCoverageScore * 0.035 + executionEaseScore * 0.03 + protectionScore * 0.04 +
+    engageScore * 0.045 + frontlineScore * 0.045 + damageBalanceScore * W.damageBalance + executionEaseScore * 0.03 + protectionScore * 0.04 +
     antiDiveScore * 0.03 + primaryEngageScore * 0.025 + followUpScore * 0.02 + rangeProfileScore * 0.02 + accessScore * 0.05 + threatScore * 0.05 +
     roleProfileScore * 0.04 + teamIdentityScore * 0.03 + simulationReadinessScore * 0.055 - weaknessPenalty * 0.07 - shortRangePenalty * 0.2 - carryProtectionPenalty * 0.46 -
     executionDifficultyPenalty * 0.4 - structurePenalty,
