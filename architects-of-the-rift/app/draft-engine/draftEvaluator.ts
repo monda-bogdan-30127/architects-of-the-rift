@@ -12,7 +12,8 @@ import { getChampionRoleProfile } from "./championProfileSystem";
 import { getChampionStatsForRole } from "./championRoleStatsSystem";
 import { derivePlayerAdaptationProfile, derivePlayerArchetypeAffinity, derivePlayerPhaseProfile } from "./playerProfileSystem";
 import { evaluateInteractionScore, evaluateRuleSynergy } from "./profileRuleEvaluator";
-import { getMatchupValueVsTeam, getTeamPhaseWeights } from "./matchupScoring";
+import { getLaneMatchupEdge } from "./matchupScoring";
+import { championMetaPower, getChampionPhasePower, getTeamChampionPhasePower } from "./matchSimulationUtils";
 import { MUSTWITH_CONFIG, getCompletedMustWithPairs, hadAvailableUnusedPartner } from "./mustWithPriority";
 import { getBadSynergyPenalty } from "./badSynergy";
 import { resolveRoleAssignments } from "./draftRoleResolver";
@@ -194,30 +195,60 @@ function evaluatePairSynergy(
 /** Factorul valorilor de matchup în scorul de counter al draftului încheiat (calibrat în §4.9). */
 export const EVALUATOR_COUNTER_FACTOR = 0.4;
 
+/**
+ * DRAFT_SIM_ALIGNMENT §3.1: matchup-ul direct pe lane, cu aceeași funcție ca simularea (getLaneMatchupEdge).
+ * Media pe rolurile cu campion propriu; adversarul încă nedraftat pe rol = 0 (neutru). 5 = lane-uri egale.
+ */
 function evaluateCounterScore(
-  allyChampionIds: string[],
-  enemyChampionIds: string[],
   assignments: Partial<Record<Role, string>>,
   enemyAssignments: Partial<Record<Role, string>>,
   roster: Partial<Record<Role, string>>,
   enemyRoster: Partial<Record<Role, string>>
 ) {
-  let score = 0;
-  const allyChampions = allyChampionIds.map(getChampionById).filter((champion): champion is Champion => Boolean(champion));
-  const enemyChampions = enemyChampionIds.map(getChampionById).filter((champion): champion is Champion => Boolean(champion));
-  const phaseWeights = getTeamPhaseWeights(allyChampionIds);
-  for (const [role, allyId] of Object.entries(assignments) as [Role, string | undefined][]) {
-    if (!allyId) continue;
-    score += getMatchupValueVsTeam(allyId, role, enemyChampionIds, {
-      phaseWeights,
-      ownAllyIds: allyChampionIds,
-      ownPlayerId: roster[role] ?? null,
-      enemyRoster,
-      enemyAssignments,
-    }).total;
+  const edges = ROLE_ORDER.filter((role) => assignments[role]).map((role) => getLaneMatchupEdge(role, assignments, enemyAssignments, roster, enemyRoster));
+  if (!edges.length) return 5;
+  return clamp(5 + average(edges) * DRAFT_THINKING_CONFIG.draftEvaluation.counterScale, 0, 10);
+}
+
+type PhaseKey = "early" | "mid" | "late";
+const PHASE_KEYS: PhaseKey[] = ["early", "mid", "late"];
+/** Media ligii a puterii campionilor pe rol și fază (toți campionii care pot juca rolul). */
+const leaguePhasePower = new Map<string, number>();
+function leaguePhasePowerFor(role: Role, phase: PhaseKey) {
+  const key = `${role}:${phase}`;
+  let value = leaguePhasePower.get(key);
+  if (value === undefined) {
+    value = average(champions.filter((champion) => champion.roles.includes(role)).map((champion) => getChampionPhasePower(champion.id, role, phase)));
+    leaguePhasePower.set(key, value);
   }
-  const interactionScore = evaluateInteractionScore(allyChampions, enemyChampions);
-  return clamp(score * EVALUATOR_COUNTER_FACTOR + interactionScore, 0, 10);
+  return value;
+}
+
+/**
+ * DRAFT_SIM_ALIGNMENT §3.2: puterea campionilor pe faze, cu ponderile din simulare. Cu ambele echipe complete,
+ * diferența getTeamChampionPhasePower folosită în simulare; în timpul draftului, pe rolurile cu campion propriu:
+ * puterea noastră − a adversarului de pe rol (media ligii, dacă rolul lui e încă liber).
+ */
+function evaluatePhasePowerScore(assignments: Partial<Record<Role, string>>, enemyAssignments: Partial<Record<Role, string>>) {
+  const roles = ROLE_ORDER.filter((role) => assignments[role]);
+  if (!roles.length) return 5;
+  const weights = DRAFT_THINKING_CONFIG.simulation.phaseChampionWeights;
+  const complete = roles.length === ROLE_ORDER.length && ROLE_ORDER.every((role) => enemyAssignments[role]);
+  let weighted = 0;
+  let totalWeight = 0;
+  for (const phase of PHASE_KEYS) {
+    const edge = complete
+      ? getTeamChampionPhasePower(assignments, phase) - getTeamChampionPhasePower(enemyAssignments, phase)
+      : average(
+          roles.map((role) => {
+            const enemyId = enemyAssignments[role];
+            return getChampionPhasePower(assignments[role]!, role, phase) - (enemyId ? getChampionPhasePower(enemyId, role, phase) : leaguePhasePowerFor(role, phase));
+          })
+        );
+    weighted += weights[phase] * edge;
+    totalWeight += weights[phase];
+  }
+  return clamp(5 + (DRAFT_THINKING_CONFIG.draftEvaluation.phasePowerScale * weighted) / totalWeight, 0, 10);
 }
 
 function evaluateWeaknessPenalty(allyChampionIds: string[], enemyVector: TeamCompVector) {
@@ -558,14 +589,12 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
     ? new Set([...context.unavailableChampionIds, ...context.enemyChampionIds])
     : null;
   const synergyScore = evaluatePairSynergy(context.championIds, context.enemyChampionIds, assignments, context.roster, unavailable);
-  const counterScore = evaluateCounterScore(
-    context.championIds,
-    context.enemyChampionIds,
-    assignments,
-    enemyAssignments,
-    context.roster,
-    enemyRoster
+  const counterScore = evaluateCounterScore(assignments, enemyAssignments, context.roster, enemyRoster);
+  const interactionScore = evaluateInteractionScore(
+    context.championIds.map(getChampionById).filter((champion): champion is Champion => Boolean(champion)),
+    context.enemyChampionIds.map(getChampionById).filter((champion): champion is Champion => Boolean(champion))
   );
+  const phasePowerScore = evaluatePhasePowerScore(assignments, enemyAssignments);
   const weaknessPenalty = evaluateWeaknessPenalty(context.championIds, enemyVector);
   const engageScore = evaluateStructuralScore(context.championIds, ENGAGE_ATTRIBUTES, 11);
   const frontlineScore = evaluateStructuralScore(context.championIds, FRONTLINE_ATTRIBUTES, 12);
@@ -587,7 +616,8 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
   const teamIdentity = evaluateTeamIdentityScore(context, compIdentity);
   const teamIdentityScore = teamIdentity.score;
 
-  const metaScore = average(context.championIds.map((id) => getChampionById(id)).filter(Boolean).map((champion) => getMetaPriorityScore(champion!)));
+  // DRAFT_SIM_ALIGNMENT §3.3: aceeași măsură de meta ca simularea (championMetaPower pe rolul atribuit).
+  const metaScore = average(ROLE_ORDER.filter((role) => assignments[role]).map((role) => championMetaPower(assignments[role]!, role)));
   const comfortValues: number[] = [];
   const fitValues: number[] = [];
 
@@ -642,10 +672,12 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
     simulationReadiness.score,
   ]), 0, 10);
 
+  const W = DRAFT_THINKING_CONFIG.draftEvaluation.weights;
   const draftPower = clamp(
-    // DRAFT_SIM_ALIGNMENT §2.1: choiceFitScore × 0.18 în locul playerFit × 0.14 + comfort × 0.10 (nivelul jucătorului);
-    // rosterExecutionScore × 0.045 a ieșit (tot nivelul jucătorilor). Cele 0.06 rămase merg la puterea pe faze (§3.2).
-    metaScore * 0.1 + choiceFitScore * 0.18 + synergyScore * 0.11 + needScore * 0.08 + counterScore * 0.08 +
+    // DRAFT_SIM_ALIGNMENT §2.1: choiceFitScore în locul playerFit × 0.14 + comfort × 0.10 (nivelul jucătorului);
+    // rosterExecutionScore × 0.045 a ieșit (tot nivelul jucătorilor). §3: counterScore pe lane, puterea pe faze, meta 0.10 → 0.04.
+    metaScore * W.meta + choiceFitScore * W.choiceFit + synergyScore * 0.11 + needScore * 0.08 + counterScore * W.counter +
+    phasePowerScore * W.phasePower + interactionScore * DRAFT_THINKING_CONFIG.draftEvaluation.interactionWeight +
     engageScore * 0.045 + frontlineScore * 0.045 + damageBalanceScore * 0.04 + roleCoverageScore * 0.035 + executionEaseScore * 0.03 + protectionScore * 0.04 +
     antiDiveScore * 0.03 + primaryEngageScore * 0.025 + followUpScore * 0.02 + rangeProfileScore * 0.02 + accessScore * 0.05 + threatScore * 0.05 +
     roleProfileScore * 0.04 + teamIdentityScore * 0.03 + simulationReadinessScore * 0.055 - weaknessPenalty * 0.07 - shortRangePenalty * 0.2 - carryProtectionPenalty * 0.46 -
@@ -664,6 +696,8 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
     playerFitScore,
     comfortScore,
     choiceFitScore,
+    interactionScore,
+    phasePowerScore,
     engageScore,
     frontlineScore,
     damageBalanceScore,

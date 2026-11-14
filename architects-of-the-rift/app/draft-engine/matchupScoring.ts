@@ -369,3 +369,30 @@ export function getTeamPhaseWeights(ownPicks: readonly string[], candidateId?: s
   const average = (relative.early + relative.mid + relative.late) / 3 || 1;
   return { early: relative.early / average, mid: relative.mid / average, late: relative.late / average };
 }
+
+/**
+ * DRAFT_SIM_ALIGNMENT §3.1 — matchup-ul de linie în early, aceeași funcție în simulare (laneEvaluator) și în
+ * evaluatorul de draft (counterScore). Nota 2 la putere maximă, nota 3 aproape zero.
+ * Botlane = 2v2: adversarul de pe același rol + 0.5 × celălalt campion bot inamic. Fără campion propriu sau fără
+ * adversar pe rol, 0 (neutru). Rezultatul e pe −5..5, din perspectiva echipei cu `assignments`.
+ */
+export function getLaneMatchupEdge(
+  role: Role,
+  assignments: Partial<Record<Role, string>>,
+  enemyAssignments: Partial<Record<Role, string>>,
+  roster: Partial<Record<Role, string>>,
+  enemyRoster: Partial<Record<Role, string>>
+): number {
+  const allyId = assignments[role] ?? null;
+  const picks = (value: Partial<Record<Role, string>>) => Object.values(value).filter(Boolean) as string[];
+  const ctx: MatchupContext = { phase: "early", ownAllyIds: picks(assignments), enemyAllyIds: picks(enemyAssignments), ownPlayerId: roster[role] ?? null };
+  const against = (enemyRole: Role) => {
+    const enemyId = enemyAssignments[enemyRole] ?? null;
+    if (!allyId || !enemyId) return 0;
+    return Math.max(-5, Math.min(5, getMatchupValue(allyId, role, enemyId, enemyRole, { ...ctx, enemyPlayerId: enemyRoster[enemyRole] ?? null })));
+  };
+  let value = against(role);
+  const otherBotRole: Role | null = role === "adc" ? "support" : role === "support" ? "adc" : null;
+  if (otherBotRole) value += 0.5 * against(otherBotRole);
+  return Math.max(-5, Math.min(5, value));
+}

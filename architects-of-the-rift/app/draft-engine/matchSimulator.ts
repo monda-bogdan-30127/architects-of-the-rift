@@ -415,7 +415,7 @@ function computePhaseBreakdown(args: {
   const earlyPlayerStr = getTeamPhaseStrength(roster, assignments, "early");
   const earlyChampPower = getTeamChampionPhasePower(assignments, "early");
   const earlyTotal = clamp(
-    laneScore * 0.38 + earlyPlayerStr * 0.28 + earlyChampPower * 0.22 +
+    laneScore * 0.38 + earlyPlayerStr * 0.28 + earlyChampPower * DRAFT_THINKING_CONFIG.simulation.phaseChampionWeights.early +
     draftPower * 0.08 + momentum * 0.5 +
     seededNoise(`${seedRoot}:${side}:early`, 0.3) +
     (tendencyBonus?.earlyBonus ?? 0),
@@ -427,7 +427,7 @@ function computePhaseBreakdown(args: {
   const midChampPower = getTeamChampionPhasePower(assignments, "mid");
   const earlyCarryOver = (earlyTotal - 5) * 0.2;
   const midTotal = clamp(
-    midPlayerStr * 0.30 + midChampPower * 0.24 + draftPower * 0.14 +
+    midPlayerStr * 0.30 + midChampPower * DRAFT_THINKING_CONFIG.simulation.phaseChampionWeights.mid + draftPower * 0.14 +
     earlyCarryOver + momentum * 0.3 +
     seededNoise(`${seedRoot}:${side}:mid`, 0.28) +
     (tendencyBonus?.midBonus ?? 0) +
@@ -440,7 +440,7 @@ function computePhaseBreakdown(args: {
   const lateChampPower = getTeamChampionPhasePower(assignments, "late");
   const midCarryOver = (midTotal - 5) * 0.15;
   const lateTotal = clamp(
-    latePlayerStr * 0.32 + lateChampPower * 0.26 + draftPower * 0.12 +
+    latePlayerStr * 0.32 + lateChampPower * DRAFT_THINKING_CONFIG.simulation.phaseChampionWeights.late + draftPower * 0.12 +
     midCarryOver + momentum * 0.2 +
     seededNoise(`${seedRoot}:${side}:late`, 0.32) +
     (tendencyBonus?.lateBonus ?? 0) +

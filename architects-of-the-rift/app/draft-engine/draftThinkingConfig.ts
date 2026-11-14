@@ -525,6 +525,8 @@ export const DRAFT_THINKING_CONFIG = {
      * s-a redistribuit proporțional (0.68 / 0.22 → ÷ 0.90).
      */
     draftComposite: { draftPower: 0.68 / 0.9, meta: 0.22 / 0.9 },
+    /** Ponderea puterii campionilor în fiecare fază (matchSimulator, computePhaseBreakdown); evaluatorul o citește de aici (§3.2). */
+    phaseChampionWeights: { early: 0.22, mid: 0.24, late: 0.26 },
   },
 
   /** DRAFT_SIM_ALIGNMENT — evaluatorul de draft (draftEvaluator.ts), aliniat cu ce răsplătește simularea. */
@@ -537,5 +539,16 @@ export const DRAFT_THINKING_CONFIG = {
     choiceFitTopN: 3,
     choiceFitShare: 0.14 / 0.24,
     choiceFitScale: 1,
+    /** §3.1 counterScore = 5 + media pe roluri a getLaneMatchupEdge (cea din simulare) × counterScale, pe 0–10. */
+    counterScale: 1,
+    /** §3.1 interactionScore (evaluateInteractionScore) — pondere separată în draftPower (0 dacă nu prezice rezultatul). */
+    interactionWeight: 0,
+    /**
+     * §3.2 phasePowerScore = 5 + phasePowerScale × Σ w_f × edge_f / Σ w_f, cu w_f = phaseChampionWeights și
+     * edge_f = puterea campionilor noștri pe faza f − a adversarului pe rol (media ligii pe rol, dacă rolul lui e liber).
+     */
+    phasePowerScale: 4,
+    /** Ponderile din draftPower schimbate de aliniere (restul sunt în formula din draftEvaluator). */
+    weights: { meta: 0.04, choiceFit: 0.18, counter: 0.08, phasePower: 0.12 },
   },
 } as const;

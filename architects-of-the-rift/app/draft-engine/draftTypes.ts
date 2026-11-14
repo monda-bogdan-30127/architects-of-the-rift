@@ -137,6 +137,10 @@ export type TeamDraftEvaluation = {
   comfortScore: number;
   /** DRAFT_SIM_ALIGNMENT §2.1 — calitatea alegerii pentru jucător (5 = cea mai bună disponibilă). */
   choiceFitScore: number;
+  /** DRAFT_SIM_ALIGNMENT §3.1 — evaluateInteractionScore (separat de counterScore). */
+  interactionScore: number;
+  /** DRAFT_SIM_ALIGNMENT §3.2 — puterea campionilor pe faze față de adversar (5 = egal). */
+  phasePowerScore: number;
   engageScore: number;
   frontlineScore: number;
   damageBalanceScore: number;

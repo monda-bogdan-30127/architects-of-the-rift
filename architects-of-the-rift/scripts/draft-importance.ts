@@ -3,6 +3,7 @@
 //
 //   npx tsx scripts/draft-importance.ts --quick --out c1-quick
 //   npx tsx scripts/draft-importance.ts --out c1 --compare c0
+//   npx tsx scripts/draft-importance.ts --out c3 --records   (+ diferențele pe joc, pentru calibrarea ponderilor)
 //
 // Rezultatele: scripts/.calibration/draft-importance-<out>.{md,json}. --compare <nume> pune coloana „înainte”.
 //
@@ -215,6 +216,25 @@ const even = decided.filter((record) => Math.abs(record.strengthBlue - record.st
 const evenWins = even.map(blueWon);
 const betterDraftWins = (list: GameRecord[]) => share(list.filter((record) => (record.winner === "blue") === (record.evalDiff.draftPower > 0)).length, list.length);
 const componentKeys = Object.keys(decided[0]?.evalDiff ?? {});
+/** v fără partea explicată liniar de s (regresie simplă). */
+function residualize(values: number[], by: number[]) {
+  const mv = mean(values);
+  const mb = mean(by);
+  const varB = mean(by.map((value) => (value - mb) ** 2));
+  const slope = varB ? mean(values.map((value, i) => (value - mv) * (by[i] - mb))) / varB : 0;
+  return values.map((value, i) => value - mv - slope * (by[i] - mb));
+}
+// Măsura necirculară: draftPower intră în simulare prin compozit, deci corelația lui cu victoria e parțial
+// auto-indusă. `simRewards` = diferența de total fără contribuția compozitului (categoria draft + partea din faze,
+// ≈ 0.40 × (0.08 × 0.30 + 0.14 × 0.35 + 0.12 × 0.35) pe profilul standard), cu nivelul jucătorilor scos (parțial).
+// --records: salvează și diferențele pe joc, pentru calibrarea ponderilor offline.
+const COMPOSITE_PHASE_FACTOR = 0.4 * (0.08 * 0.3 + 0.14 * 0.35 + 0.12 * 0.35);
+// Nivelul jucătorilor = puterea lor din simulare (factorul `players`), mai fidelă decât media rosterPoints.
+const playerEdge = decided.map((record) => record.factorEdges.players ?? 0);
+const simRewards = residualize(
+  decided.map((record) => record.totalDiff - (record.factorEdges.draft ?? 0) - record.compositeDiff * COMPOSITE_PHASE_FACTOR),
+  playerEdge,
+);
 const varianceTotal = sd(totals) ** 2;
 
 const result = {
@@ -240,6 +260,7 @@ const result = {
             winEven: corr(even.map((record) => record.evalDiff[key]), evenWins),
             total: corr(x, totals),
             withStrength: corr(x, strengthDiff),
+            simRewards: corr(residualize(x, playerEdge), simRewards),
             sd: sd(x),
           },
         ];
@@ -259,6 +280,12 @@ type Result = typeof result;
 // ─── Raport ──────────────────────────────────────────────────────────────────
 mkdirSync(DIR, { recursive: true });
 writeFileSync(`${DIR}/draft-importance-${outName}.json`, JSON.stringify(result, null, 2));
+if (named.records === "true") {
+  writeFileSync(
+    `${DIR}/draft-importance-${outName}-records.json`,
+    JSON.stringify(decided.map((record, i) => ({ evalDiff: record.evalDiff, simRewards: simRewards[i], win: blueWon(record), strengthDiff: strengthDiff[i] }))),
+  );
+}
 const before: Result | null = compareName && existsSync(`${DIR}/draft-importance-${compareName}.json`)
   ? JSON.parse(readFileSync(`${DIR}/draft-importance-${compareName}.json`, "utf8"))
   : null;
@@ -292,17 +319,17 @@ const lines: string[] = [
   "",
   "## Corelațiile componentelor evaluatorului (diferența blue − red)",
   "",
-  "`win` = cu victoria, toate jocurile; `winEven` = la nivel egal (< 0.5 rosterPoints); `withStrength` = cu diferența de nivel.",
+  "`win` = cu victoria, toate jocurile; `winEven` = la nivel egal (< 0.5 rosterPoints); `withStrength` = cu diferența de nivel; `simRewards` = cu diferența de total fără contribuția compozitului de draft, nivelul jucătorilor scos din ambele (măsura necirculară).",
   "",
   before ? "| Componentă | win | winEven | withStrength | sd | winEven înainte | withStrength înainte |\n|---|---|---|---|---|---|---|" : "| Componentă | win | winEven | withStrength | sd |\n|---|---|---|---|---|",
   ...Object.entries(result.normal.components)
     .sort((a, b) => Math.abs(b[1].winEven) - Math.abs(a[1].winEven))
     .map(([key, value]) => {
       const old = before?.normal.components[key];
-      const base = `| ${key} | ${num(value.win)} | ${num(value.winEven)} | ${num(value.withStrength)} | ${num(value.sd, 2)} |`;
-      return before ? `${base} ${num(old?.winEven)} | ${num(old?.withStrength)} |` : base;
+      const base = `| ${key} | ${num(value.win)} | ${num(value.winEven)} | ${num(value.withStrength)} | ${num(value.simRewards)} | ${num(value.sd, 2)} |`;
+      return before ? `${base} ${num(old?.winEven)} | ${num(old?.withStrength)} | ${num(old?.simRewards)} |` : base;
     }),
-  `| *compozitul de draft (simulare)* | ${num(result.normal.compositeCorr.win)} | — | ${num(result.normal.compositeCorr.withStrength)} | — |${before ? " — | — |" : ""}`,
+  `| *compozitul de draft (simulare)* | ${num(result.normal.compositeCorr.win)} | — | ${num(result.normal.compositeCorr.withStrength)} | — | — |${before ? " — | — | — |" : ""}`,
   "",
   "## De unde vine diferența de total (AI vs AI)",
   "",

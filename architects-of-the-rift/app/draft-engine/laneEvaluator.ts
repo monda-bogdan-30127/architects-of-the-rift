@@ -7,13 +7,13 @@ import {
   clamp,
   getChampionByIdSafe,
   getPlayerByIdSafe,
-  matchupPowerAgainst,
   playerChampionDraftFit,
   playerSkill,
   playerChampionMatchupHistoryEdge,
   round1,
 } from "./matchSimulationUtils";
 import { getHistoryAdjustedLaneBonus } from "./playerHistoryEvaluator";
+import { getLaneMatchupEdge } from "./matchupScoring";
 import { getChampionStatsForRole } from "./championRoleStatsSystem";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import type { LaneOrder } from "./laneOrder";
@@ -105,41 +105,6 @@ function laneTraitEffect(playerId: string | null, matchup: number, order: "blind
   return result;
 }
 
-function picksOf(assignments: Partial<Record<Role, string>>) {
-  return Object.values(assignments).filter(Boolean) as string[];
-}
-
-/**
- * Matchup-ul de linie în early (nota 2 la putere maximă, nota 3 aproape zero).
- * Botlane = 2v2: adversarul de pe același rol + 0.5 × celălalt campion bot inamic.
- */
-function laneMatchup(
-  role: Role,
-  allyId: string | null,
-  allyAssignments: Partial<Record<Role, string>>,
-  allyRoster: Partial<Record<Role, string>>,
-  enemyAssignments: Partial<Record<Role, string>>,
-  enemyRoster: Partial<Record<Role, string>>
-) {
-  const ctx = {
-    ownAllyIds: picksOf(allyAssignments),
-    enemyAllyIds: picksOf(enemyAssignments),
-    ownPlayerId: allyRoster[role] ?? null,
-  };
-  let value = matchupPowerAgainst(allyId, role, enemyAssignments[role] ?? null, role, "early", {
-    ...ctx,
-    enemyPlayerId: enemyRoster[role] ?? null,
-  });
-  const otherBotRole: Role | null = role === "adc" ? "support" : role === "support" ? "adc" : null;
-  if (otherBotRole) {
-    value += 0.5 * matchupPowerAgainst(allyId, role, enemyAssignments[otherBotRole] ?? null, otherBotRole, "early", {
-      ...ctx,
-      enemyPlayerId: enemyRoster[otherBotRole] ?? null,
-    });
-  }
-  return clamp(value, -5, 5);
-}
-
 function buildRoleBreakdown(
   role: Role,
   bluePlayerId: string | null,
@@ -148,8 +113,9 @@ function buildRoleBreakdown(
   redChampionId: string | null,
   lane: LaneContext
 ): LaneRoleBreakdown {
-  const blueMatchup = laneMatchup(role, blueChampionId, lane.assignmentsBlue, lane.blueRoster, lane.assignmentsRed, lane.redRoster);
-  const redMatchup = laneMatchup(role, redChampionId, lane.assignmentsRed, lane.redRoster, lane.assignmentsBlue, lane.blueRoster);
+  // DRAFT_SIM_ALIGNMENT §3.1: aceeași funcție ca în evaluatorul de draft (counterScore).
+  const blueMatchup = getLaneMatchupEdge(role, lane.assignmentsBlue, lane.assignmentsRed, lane.blueRoster, lane.redRoster);
+  const redMatchup = getLaneMatchupEdge(role, lane.assignmentsRed, lane.assignmentsBlue, lane.redRoster, lane.blueRoster);
   const blueTrait = laneTraitEffect(bluePlayerId, blueMatchup, lane.laneOrder?.blue[role], lane.adapted?.blue[role]);
   const redTrait = laneTraitEffect(redPlayerId, redMatchup, lane.laneOrder?.red[role], lane.adapted?.red[role]);
 
