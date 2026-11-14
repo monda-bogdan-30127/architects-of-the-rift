@@ -10,7 +10,9 @@ export const PLAYER_TRAIT_IDS = [
   // faza 2: Draft & Series
   "blind_safe", "counter_specialist", "signature_player", "needs_setup", "self_sufficient",
   "series_adapter", "fast_starter", "matchup_resilient", "lane_dominator",
-  // fazele 3–4 se adaugă când se implementează
+  // faza 3: Macro
+  "shotcaller", "follower", "topside_jungler", "botside_jungler",
+  // faza 4 se adaugă când se implementează
 ] as const;
 export type PlayerTraitId = (typeof PLAYER_TRAIT_IDS)[number];
 export type PlayerTraitFamily = "resources" | "draft" | "macro" | "mental";
@@ -122,6 +124,35 @@ export const PLAYER_TRAIT_INFO: Record<
     description: "Turns winning matchups into big leads.",
     excludes: ["matchup_resilient"],
     roles: ["top", "mid", "adc", "support"],
+  },
+
+  // ─── Faza 3: Macro (shotcalling, partea hărții pe care joacă junglerul) ───
+  shotcaller: {
+    family: "macro",
+    label: "Shotcaller",
+    description: "Leads the team's calls. Best with followers, clashes with another shotcaller.",
+    excludes: ["follower"],
+  },
+  follower: {
+    family: "macro",
+    label: "Follower",
+    description: "Executes calls cleanly when someone leads.",
+    excludes: ["shotcaller"],
+  },
+  // Doar manual: PlayerTendencies nu are un semnal de parte a hărții (vezi playerTraitDerivation).
+  topside_jungler: {
+    family: "macro",
+    label: "Topside Jungler",
+    description: "Paths and plays for top and mid.",
+    excludes: ["botside_jungler"],
+    roles: ["jungle"],
+  },
+  botside_jungler: {
+    family: "macro",
+    label: "Botside Jungler",
+    description: "Paths and plays for bot lane.",
+    excludes: ["topside_jungler"],
+    roles: ["jungle"],
   },
 };
 

@@ -51,7 +51,14 @@ export const TRAIT_DERIVATION = {
 
 
 /** Cel mult atâtea trait-uri derivate dintr-o familie (manualele pot trece peste). */
-const MAX_DERIVED_PER_FAMILY: Partial<Record<PlayerTraitFamily, number>> = { draft: 1 };
+// Macro: shotcaller / follower (se exclud) și partea hărții (jungleri) pot sta împreună.
+const MAX_DERIVED_PER_FAMILY: Partial<Record<PlayerTraitFamily, number>> = { draft: 1, macro: 2 };
+
+/**
+ * Ordinea familiilor la rezolvare (cel mult MAX_PLAYER_TRAITS): o familie mai nouă nu scoate un trait derivat dintr-o
+ * familie mai veche. Așa, adăugarea unei familii inactive nu schimbă trait-urile active (fingerprint identic).
+ */
+const FAMILY_ORDER: PlayerTraitFamily[] = ["resources", "draft", "macro", "mental"];
 
 /** Fracția celor cu trait-ul (pe rol) care primesc intensity 2. */
 export const TRAIT_STRONG_SHARE = 1 / 3;
@@ -70,8 +77,8 @@ type RoleContext = {
 };
 
 type DraftTraitRule = {
-  /** Ținta în rol (fracție), totală (manualele se scad din cotă). */
-  share: number;
+  /** Ținta în rol (fracție), totală (manualele se scad din cotă); pe rol, unde diferă între roluri. */
+  share: number | Partial<Record<Role, number>>;
   /** Scorul după care se aleg primii din rol (mai mare = mai potrivit); null = nu se poate calcula. */
   metric: (player: Player, context: RoleContext) => number | null;
   label: string;
@@ -161,6 +168,97 @@ export const DRAFT_TRAIT_DERIVATION: Partial<Record<PlayerTraitId, DraftTraitRul
   },
 };
 
+// ─── Faza 3: Macro (§8.2) ────────────────────────────────────────────────────
+
+const hiddenOf = (player: Player) => player.advancedProfile.hiddenTraits;
+
+/**
+ * PLAYER_TRAITS §8.2 — derivarea familiei Macro.
+ *
+ * shotcaller: un lider pe echipa de ORIGINE (teamId). Pe fiecare echipă, jucătorul cu leadership + communication cel
+ *   mai mare primește trait-ul (dacă echipa n-are deja un shotcaller manual). Intensity 2: treimea de sus a
+ *   shotcallerilor după leadership + communication. Pragurile absolute din spec (leadership ≥ 80, communication ≥ 70)
+ *   dădeau doar 2 shotcalleri în ligă, iar percentila în rol îi alegea pe cei mai buni jucători (leadership corelează
+ *   0,74 cu nivelul): GEN, T1, G2 și BLG aveau câte 5, iar 23 de echipe niciunul.
+ *   Trait-ul rămâne pe jucător și dacă ajunge în altă echipă, deci într-un roster construit de user pot apărea
+ *   2 shotcalleri sau niciunul. E intenționat (Team Fit avertizează). Free agents n-au echipă de origine: fără trait.
+ * follower: relativ la rol, cu alocarea greedy din faza 2: percentila discipline minus percentila leadership în rol
+ *   (execută, nu conduce), doar cu communication peste percentila 25 a rolului (comunică bine apelurile).
+ * topside_jungler / botside_jungler: tot din echipa de origine (PlayerTendencies nu are un semnal de parte a
+ *   hărții). Junglerul joacă pentru resource_hog-ul echipei: hog pe top / mid → topside, pe ADC → botside. Cu mai mulți
+ *   hogs contează cel cu intensity mai mare, la egalitate ADC-ul. Fără hog, fără trait. Doar intensity 1.
+ */
+export const MACRO_TRAIT_DERIVATION: Partial<Record<PlayerTraitId, DraftTraitRule>> = {
+  follower: {
+    share: 0.2,
+    metric: (player, { pct }) =>
+      pct(player, (entry) => hiddenOf(entry).communication) < 0.25
+        ? null
+        : pct(player, (entry) => primaryOf(entry).discipline) - pct(player, (entry) => hiddenOf(entry).leadership),
+    label: "percentila discipline minus percentila leadership în rol, cu communication peste percentila 25 a rolului",
+  },
+};
+
+export const SHOTCALLER_DERIVATION_LABEL = "un lider pe echipa de origine: leadership + communication maxim (intensity 2: treimea de sus)";
+export const JUNGLE_SIDE_DERIVATION_LABEL =
+  "partea resource_hog-ului din echipa de origine (top / mid → topside, ADC → botside; intensity mai mare, la egalitate ADC)";
+
+const FREE_AGENT_TEAM = "free-agent";
+const leaderScore = (player: Player) => hiddenOf(player).leadership + hiddenOf(player).communication;
+
+/** Echipele de origine: teamId → jucători (fără free agents). Fiecare echipă are un singur jucător pe rol. */
+function originTeams(list: Player[]) {
+  const byTeam = new Map<string, Player[]>();
+  for (const player of list) {
+    if (!player.teamId || player.teamId === FREE_AGENT_TEAM) continue;
+    byTeam.set(player.teamId, [...(byTeam.get(player.teamId) ?? []), player]);
+  }
+  return byTeam;
+}
+
+/** §8.2 — un shotcaller derivat pe echipa de origine. */
+function deriveTeamShotcallers(
+  list: Player[],
+  overrides: Record<string, TraitOverride | undefined>,
+  result: Map<string, { trait: PlayerTrait; score: number }[]>,
+) {
+  const manualIds = (player: Player) => (overrides[player.id]?.traits ?? []).map((entry) => entry.id);
+  const chosen: Player[] = [];
+  for (const members of originTeams(list).values()) {
+    if (members.some((player) => manualIds(player).includes("shotcaller"))) continue;
+    const eligible = members
+      .filter((player) => !manualIds(player).includes("follower") && !(overrides[player.id]?.noDerivedTraits ?? []).includes("shotcaller"))
+      .sort((a, b) => leaderScore(b) - leaderScore(a) || hiddenOf(b).leadership - hiddenOf(a).leadership || a.id.localeCompare(b.id));
+    if (eligible[0]) chosen.push(eligible[0]);
+  }
+  chosen.sort((a, b) => leaderScore(b) - leaderScore(a) || a.id.localeCompare(b.id));
+  const strong = Math.ceil(chosen.length * TRAIT_STRONG_SHARE);
+  chosen.forEach((player, index) => {
+    const current = result.get(player.id) ?? [];
+    // Scorul contează doar pentru ordinea în familie la rezolvare: shotcaller înaintea părții hărții (scor 0).
+    current.push({ trait: { id: "shotcaller", intensity: index < strong ? 2 : 1, source: "derived" }, score: 1 });
+    result.set(player.id, current);
+  });
+}
+
+/** §8.2 — partea hărții a junglerului, după resource_hog-ul (trait-urile deja rezolvate) din echipa de origine. */
+function deriveJungleSide(list: Player[]): Map<string, PlayerTraitId> {
+  const sides = new Map<string, PlayerTraitId>();
+  for (const members of originTeams(list).values()) {
+    const jungler = members.find((player) => player.role === "jungle");
+    if (!jungler) continue;
+    const hogs = members
+      .filter((player) => player.role === "top" || player.role === "mid" || player.role === "adc")
+      .flatMap((player) => {
+        const hog = player.traits.find((trait) => trait.id === "resource_hog");
+        return hog ? [{ player, intensity: hog.intensity }] : [];
+      })
+      .sort((a, b) => b.intensity - a.intensity || Number(b.player.role === "adc") - Number(a.player.role === "adc"));
+    if (hogs[0]) sides.set(jungler.id, hogs[0].player.role === "adc" ? "botside_jungler" : "topside_jungler");
+  }
+  return sides;
+}
+
 /**
  * Grade-urile vin din `championMasteryUtils`, care depinde (prin `championMasteryOverrides`) de `players`: nu le
  * putem citi cât se încarcă `players.ts`. `championMasteryUtils` își înregistrează funcțiile aici după ce s-a
@@ -172,13 +270,14 @@ export function registerTraitGradeProvider(grade: MasteryFns["grade"], multiplie
 }
 
 /**
- * Un singur trait derivat din familia Draft pe jucător, alocat greedy după scor: pe fiecare rol se sortează toate
+ * Un singur trait derivat din familie pe jucător (Draft, Macro), alocat greedy după scor: pe fiecare rol se sortează toate
  * perechile (jucător, trait) după scorul de derivare (percentila metricii trait-ului în rol: cât de distinctiv e
  * jucătorul pe acel trait), descrescător, și se atribuie în ordine. O pereche intră doar dacă trait-ul mai are loc în
  * cotă, jucătorul n-are încă un trait Draft derivat și trait-ul e compatibil cu cel de resurse și cu cele manuale.
  * Ordinea din listă nu contează.
  */
-function deriveDraftTraits(
+function deriveGreedyTraits(
+  rules: Partial<Record<PlayerTraitId, DraftTraitRule>>,
   list: Player[],
   manual: ReadonlyMap<string, readonly PlayerTraitId[]>,
   result: Map<string, { trait: PlayerTrait; score: number }[]>,
@@ -192,10 +291,11 @@ function deriveDraftTraits(
     const context: RoleContext = { inRole, pct: (player, value) => rolePercentile(inRole, player, value) };
     const quota = new Map<PlayerTraitId, number>();
     const pairs: { player: Player; id: PlayerTraitId; score: number }[] = [];
-    for (const [id, rule] of Object.entries(DRAFT_TRAIT_DERIVATION) as [PlayerTraitId, DraftTraitRule][]) {
+    for (const [id, rule] of Object.entries(rules) as [PlayerTraitId, DraftTraitRule][]) {
       if (!isTraitAllowedOnRole(id, role)) continue;
+      const share = typeof rule.share === "number" ? rule.share : rule.share[role] ?? 0;
       const manualCount = inRole.filter((player) => (manual.get(player.id) ?? []).includes(id)).length;
-      quota.set(id, Math.max(0, Math.ceil(rule.share * inRole.length) - manualCount));
+      quota.set(id, Math.max(0, Math.ceil(share * inRole.length) - manualCount));
       const values = new Map(inRole.map((player) => [player.id, rule.metric(player, context)]));
       const valid = inRole.filter((player) => values.get(player.id) !== null);
       for (const player of valid) {
@@ -286,12 +386,9 @@ export function resolvePlayerTraits(
   };
   for (const manual of override?.traits ?? []) add({ id: manual.id, intensity: manual.intensity ?? 1, source: "manual" });
   const blocked = new Set(override?.noDerivedTraits ?? []);
-  // Familia Resources întâi (un singur trait posibil, ca până acum), apoi celelalte după scorul de derivare.
-  const ordered = [...derived].sort((a, b) => {
-    const resourcesA = PLAYER_TRAIT_INFO[a.trait.id].family === "resources" ? 1 : 0;
-    const resourcesB = PLAYER_TRAIT_INFO[b.trait.id].family === "resources" ? 1 : 0;
-    return resourcesB - resourcesA || b.score - a.score;
-  });
+  // Pe familii, în ordinea fazelor (Resources întâi, ca până acum), apoi după scorul de derivare.
+  const familyRank = (id: PlayerTraitId) => FAMILY_ORDER.indexOf(PLAYER_TRAIT_INFO[id].family);
+  const ordered = [...derived].sort((a, b) => familyRank(a.trait.id) - familyRank(b.trait.id) || b.score - a.score);
   for (const entry of ordered) {
     if (!blocked.has(entry.trait.id)) add(entry.trait);
   }
@@ -308,8 +405,16 @@ export function assignPlayerTraits(list: Player[], overrides: Record<string, Tra
     list.map((player) => ({ id: player.id, role: player.role, playstyle: player.advancedProfile.playstyle, hiddenTraits: player.advancedProfile.hiddenTraits })),
     manual,
   );
-  deriveDraftTraits(list, manual, derived);
+  deriveGreedyTraits(DRAFT_TRAIT_DERIVATION, list, manual, derived);
+  deriveTeamShotcallers(list, overrides, derived);
+  deriveGreedyTraits(MACRO_TRAIT_DERIVATION, list, manual, derived);
   for (const player of list) player.traits = resolvePlayerTraits(player.role, derived.get(player.id) ?? [], overrides[player.id]);
+  // Partea hărții depinde de resource_hog-ul final (manual sau derivat) al echipei: a doua trecere, doar pe jungleri.
+  for (const [junglerId, side] of deriveJungleSide(list)) {
+    const player = list.find((entry) => entry.id === junglerId)!;
+    const current = [...(derived.get(junglerId) ?? []), { trait: { id: side, intensity: 1 as const, source: "derived" as const }, score: 0 }];
+    player.traits = resolvePlayerTraits(player.role, current, overrides[junglerId]);
+  }
 }
 
 /** §1.1 — override-uri invalide: trait pe un rol nepermis, trait-uri care se exclud, id-uri necunoscute. */

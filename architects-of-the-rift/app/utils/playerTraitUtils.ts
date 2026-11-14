@@ -286,8 +286,6 @@ export function getTraitTone(id: PlayerTraitId, context: TraitToneContext): Trai
 
 export type CommsLevel = "Poor" | "Average" | "Good" | "Elite";
 export const COMMS_TOOLTIP = "How well he talks and coordinates with the team. Affects teamfights and clutch moments.";
-/** Pragul de leadership de la care jucătorul e marcat „Leader” (ca LEADERSHIP_TRAIT_THRESHOLD din Spirit), până la trait-ul shotcaller. */
-export const LEADER_THRESHOLD = 80;
 
 /** Nivelul de comunicare: < 45 Poor, 45–59 Average, 60–74 Good, ≥ 75 Elite (roster view, Team Fit). */
 export function getCommsLevel(value: number): CommsLevel {
@@ -295,11 +293,13 @@ export function getCommsLevel(value: number): CommsLevel {
 }
 export const COMMS_LEVEL_ORDER: readonly CommsLevel[] = ["Poor", "Average", "Good", "Elite"];
 
-/** `hiddenTraits.communication` (același câmp ca în computeTeamChemistry) ca nivel, plus „Leader”. */
-export function getCommsInfo(player: Pick<Player, "advancedProfile">): { level: CommsLevel; leader: boolean } {
+/**
+ * `hiddenTraits.communication` (același câmp ca în computeTeamChemistry) ca nivel, plus „Shotcaller” (PLAYER_TRAITS
+ * faza 3: trait-ul shotcaller înlocuiește vechea etichetă „Leader” = leadership ≥ 80).
+ */
+export function getCommsInfo(player: Pick<Player, "advancedProfile" | "traits">): { level: CommsLevel; shotcaller: boolean } {
   const communication = player.advancedProfile?.hiddenTraits?.communication ?? 50;
-  const leadership = player.advancedProfile?.hiddenTraits?.leadership ?? 0;
-  return { level: getCommsLevel(communication), leader: leadership >= LEADER_THRESHOLD };
+  return { level: getCommsLevel(communication), shotcaller: hasTrait(player, "shotcaller") };
 }
 
 /** Trait-ul jucătorului, doar dacă e activ (familie activă, efecte implementate). */

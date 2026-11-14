@@ -11,7 +11,7 @@ import { teams } from "@/app/data/teams";
 import type { Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
 import { PLAYER_TRAIT_IDS, PLAYER_TRAIT_INFO, isTraitAllowedOnRole, type PlayerTraitId } from "@/app/types/playerTraits";
-import { DRAFT_TRAIT_DERIVATION, TRAIT_DERIVATION, computeTeamFit } from "@/app/utils/playerTraitUtils";
+import { DRAFT_TRAIT_DERIVATION, JUNGLE_SIDE_DERIVATION_LABEL, MACRO_TRAIT_DERIVATION, SHOTCALLER_DERIVATION_LABEL, TRAIT_DERIVATION, computeTeamFit } from "@/app/utils/playerTraitUtils";
 // Grade-urile (signature_player) se înregistrează la încărcarea lui championMasteryUtils.
 import "@/app/utils/championMasteryUtils";
 import { ACTIVE_TRAIT_FAMILIES } from "@/app/types/playerTraits";
@@ -42,8 +42,11 @@ lines.push(
 );
 const shareOf = (id: PlayerTraitId): Partial<Record<Role, number>> => {
   if (id in TRAIT_DERIVATION) return TRAIT_DERIVATION[id as keyof typeof TRAIT_DERIVATION].share;
-  const rule = DRAFT_TRAIT_DERIVATION[id];
-  return rule ? Object.fromEntries(ROLES.filter((role) => isTraitAllowedOnRole(id, role)).map((role) => [role, rule.share])) : {};
+  const rule = DRAFT_TRAIT_DERIVATION[id] ?? MACRO_TRAIT_DERIVATION[id];
+  if (!rule) return {};
+  if (typeof rule.share !== "number") return rule.share;
+  const share = rule.share;
+  return Object.fromEntries(ROLES.filter((role) => isTraitAllowedOnRole(id, role)).map((role) => [role, share]));
 };
 for (const id of PLAYER_TRAIT_IDS) {
   const withTrait = players.filter((player) => player.traits.some((trait) => trait.id === id));
@@ -71,8 +74,11 @@ lines.push(
     [
       ...Object.entries(TRAIT_DERIVATION).map(([id, rule]) => `${id}: percentila carryResourceUsage, ${rule.filterLabel}`),
       ...Object.entries(DRAFT_TRAIT_DERIVATION).map(([id, rule]) => `${id}: ${rule!.label}`),
+      `shotcaller: ${SHOTCALLER_DERIVATION_LABEL}`,
+      ...Object.entries(MACRO_TRAIT_DERIVATION).map(([id, rule]) => `${id}: ${rule!.label}`),
+      `topside_jungler / botside_jungler: ${JUNGLE_SIDE_DERIVATION_LABEL}`,
     ].join("; ") +
-    ". Intensity 2: treimea de sus a celor cu trait-ul pe rol. Cel mult un trait derivat din familia Draft pe jucător.",
+    ". Intensity 2: treimea de sus a celor cu trait-ul pe rol. Cel mult un trait derivat din familia Draft și unul din Macro pe jucător.",
 );
 const traitCount = players.map((player) => player.traits.length);
 lines.push("", `Trait-uri pe jucător: ${[0, 1, 2, 3].map((n) => `${n}: ${traitCount.filter((count) => count === n).length}`).join(" · ")}`);
@@ -130,6 +136,46 @@ lines.push(
   `≥ 3 Signature Player: ${teamsWith("signature_player", 3).join(", ") || "—"}`,
   "",
   `≥ 2 Fast Starter: ${teamsWith("fast_starter", 2).join(", ") || "—"} · ≥ 2 Series Adapter: ${teamsWith("series_adapter", 2).join(", ") || "—"}`,
+  "",
+);
+
+// ─── Cazuri-limită, faza 3 (Macro) ───────────────────────────────────────────
+const macroCounts = teams.map((team) => {
+  const starters = Object.values(rosterOf(team.id)).map((playerId) => playersById.get(playerId!)!);
+  const withMacro = (id: PlayerTraitId) => starters.filter((player) => player.traits.some((trait) => trait.id === id));
+  return { team, shotcallers: withMacro("shotcaller"), followers: withMacro("follower") };
+});
+const shotcallerHistogram = [0, 1, 2, 3].map(
+  (n) => `${n === 3 ? "3+" : n}: ${macroCounts.filter((entry) => (n === 3 ? entry.shotcallers.length >= 3 : entry.shotcallers.length === n)).length}`,
+);
+const playerList = (list: Player[]) => list.map((player) => `${player.name} (${player.role})`).join(", ");
+const noShotcaller = macroCounts.filter((entry) => entry.shotcallers.length === 0);
+const manyShotcallers = macroCounts.filter((entry) => entry.shotcallers.length >= 2);
+lines.push(
+  "## Cazuri-limită, Macro",
+  "",
+  `Echipe după numărul de Shotcaller titulari: ${shotcallerHistogram.join(" · ")} (din ${teams.length})`,
+  "",
+  `Fără Shotcaller (${noShotcaller.length}): ${noShotcaller.map((entry) => entry.team.abbreviation).join(", ") || "—"}`,
+  "",
+  `≥ 2 Shotcaller (${manyShotcallers.length}): ${manyShotcallers.map((entry) => `${entry.team.abbreviation} (${playerList(entry.shotcallers)})`).join("; ") || "—"}`,
+  "",
+  `Jungleri: ${(["topside_jungler", "botside_jungler"] as PlayerTraitId[])
+    .map((id) => {
+      const list = teams.flatMap((team) => {
+        const jungler = playersById.get(rosterOf(team.id).jungle ?? "");
+        return jungler?.traits.some((trait) => trait.id === id) ? [`${jungler.name} (${team.abbreviation})`] : [];
+      });
+      return `${PLAYER_TRAIT_INFO[id].label} ${list.length}: ${list.join(", ") || "—"}`;
+    })
+    .join(" · ")}`,
+  "",
+  `Jungleri fără parte a hărții: ${teams.flatMap((team) => {
+    const jungler = playersById.get(rosterOf(team.id).jungle ?? "");
+    return jungler && !jungler.traits.some((trait) => trait.id === "topside_jungler" || trait.id === "botside_jungler") ? [`${jungler.name} (${team.abbreviation})`] : [];
+  }).join(", ") || "—"}`,
+  "",
+  `1 Shotcaller + ≥ 2 Follower (ierarhie clară): ${macroCounts.filter((entry) => entry.shotcallers.length === 1 && entry.followers.length >= 2).map((entry) => entry.team.abbreviation).join(", ") || "—"}`,
   "",
 );
 

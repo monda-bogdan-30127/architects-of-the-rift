@@ -49,10 +49,10 @@ function TeamFitPreview({ change, removing }: { change: TeamFitChange; removing:
   );
 }
 
-/** PLAYER_TRAITS §3.1: „Comms: Good · Leader”. */
+/** PLAYER_TRAITS §3.1 / faza 3: „Comms: Good · Shotcaller”. */
 function formatCommsLine(player: Player): string {
   const comms = getCommsInfo(player);
-  return `Comms: ${comms.level}${comms.leader ? " · Leader" : ""}`;
+  return `Comms: ${comms.level}${comms.shotcaller ? " · Shotcaller" : ""}`;
 }
 
 /** „Resource Hog (Strong), …”: trait-urile active ale jucătorului, pe un rând. */
