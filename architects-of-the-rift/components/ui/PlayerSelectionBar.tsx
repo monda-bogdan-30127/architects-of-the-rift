@@ -1,6 +1,7 @@
 "use client";
 
 import Button from "@/components/ui/Button";
+import TeamFitPanel from "@/components/ui/TeamFitPanel";
 import type { Player } from "@/app/types/player";
 import type { Role } from "@/app/types/champion";
 
@@ -13,6 +14,10 @@ type Props = {
   onRemovePlayer: (role: Role) => void;
   onReady: () => void;
 };
+
+// TEAM_FIT_LIVE §2: unde stă panoul Team Fit — „column” (lângă sloturi) sau „strip” (bandă deasupra sloturilor).
+// De ales după screenshot-uri.
+const TEAM_FIT_LAYOUT: "column" | "strip" = "strip";
 
 const roleOrder: Role[] = ["top", "jungle", "mid", "adc", "support"];
 
@@ -38,12 +43,19 @@ export default function PlayerSelectionBar({
     <div
       className="
         fixed bottom-0 left-1/2 z-40 -translate-x-1/2
-        flex w-[1120px] items-center gap-[16px]
+        flex w-[1120px] flex-col gap-[6px]
         rounded-t-[16px] bg-[var(--bg-elevated)]
         px-[24px] py-[8px]
         shadow-[0_-8px_8px_0_rgba(0,0,0,0.20)]
       "
     >
+      {TEAM_FIT_LAYOUT === "strip" && (
+        <div className="border-b border-white/10 pb-[6px]">
+          <TeamFitPanel selectedPlayers={selectedPlayers} layout="strip" />
+        </div>
+      )}
+
+      <div className="flex w-full items-center gap-[16px]">
       {roleOrder.map((role) => {
         const player = selectedPlayers[role];
 
@@ -94,7 +106,7 @@ export default function PlayerSelectionBar({
                   px-[8px] py-[4px]
                 "
               >
-                <span className="h3 text-[var(--text-secondary)]">
+                <span className="h3 truncate whitespace-nowrap text-[var(--text-secondary)]">
                   Player Name
                 </span>
               </div>
@@ -102,6 +114,8 @@ export default function PlayerSelectionBar({
           </div>
         );
       })}
+
+      {TEAM_FIT_LAYOUT === "column" && <TeamFitPanel selectedPlayers={selectedPlayers} />}
 
       <div className="flex items-center gap-[16px]">
         <div className="flex flex-col items-start gap-[4px]">
@@ -117,6 +131,7 @@ export default function PlayerSelectionBar({
         <Button variant="main" onClick={onReady} disabled={isReadyDisabled}>
           READY!
         </Button>
+      </div>
       </div>
     </div>
   );

@@ -14,7 +14,40 @@ import type { ChampionMasteryGrade } from "@/app/types/championMastery";
 import { getChampionGrade } from "@/app/utils/championMasteryUtils";
 import useBackRedirect from "@/app/hooks/useBrowserBackRedirect";
 import { PLAYER_TRAIT_INFO, isActiveTrait } from "@/app/types/playerTraits";
-import { COMMS_TOOLTIP, getCommsInfo } from "@/app/utils/playerTraitUtils";
+import { COMMS_TOOLTIP, computeTeamFit, getCommsInfo, getCommsLevel, previewTeamFitChange, type TeamFitChange } from "@/app/utils/playerTraitUtils";
+import TraitChip from "@/components/ui/TraitChip";
+import { ADVICE_COLOR, COMMS_COLORS } from "@/components/ui/TeamFitPanel";
+
+/** Rosterul ales ca id-uri (pentru Team Fit). */
+function rosterIdsOf(selected: Partial<Record<Role, Player>>): Partial<Record<Role, string>> {
+  return Object.fromEntries(Object.entries(selected).flatMap(([role, player]) => (player ? [[role, player.id]] : []))) as Partial<Record<Role, string>>;
+}
+
+/** TEAM_FIT_LIVE §3 — „If you pick him”: ce s-ar schimba în Team Fit (sau dacă l-ai scoate, când e deja ales). */
+function TeamFitPreview({ change, removing }: { change: TeamFitChange; removing: boolean }) {
+  const lines: { key: string; text: string; color: string }[] = [];
+  const tone = (level: "better" | "worse" | "same") => (level === "better" ? "var(--success)" : level === "worse" ? "var(--danger)" : "var(--text-secondary)");
+  if (change.resources.from !== change.resources.to || change.resources.level !== "same") {
+    lines.push({ key: "resources", text: `Resources ${change.resources.from} → ${change.resources.to} ${change.resources.level === "worse" ? "⚠" : change.resources.level === "better" ? "✓" : ""}`, color: tone(change.resources.level) });
+  }
+  if (change.comms.level !== "same") {
+    lines.push({ key: "comms", text: `Team comms ${change.comms.from ?? "—"} → ${change.comms.to ?? "—"} ${change.comms.level === "better" ? "✓" : "⚠"}`, color: tone(change.comms.level) });
+  }
+  for (const advice of change.added) lines.push({ key: `+${advice.id}`, text: `+ ${advice.text}`, color: ADVICE_COLOR[advice.level] });
+  for (const advice of change.resolved) lines.push({ key: `-${advice.id}`, text: `✓ Resolves: ${advice.text}`, color: "var(--success)" });
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 1, marginTop: 4 }}>
+      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", color: "var(--text-muted)" }}>{removing ? "IF YOU REMOVE HIM" : "IF YOU PICK HIM"}</span>
+      {lines.length ? (
+        lines.map((line) => (
+          <span key={line.key} style={{ fontSize: 11, color: line.color, lineHeight: 1.35 }}>{line.text}</span>
+        ))
+      ) : (
+        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>No change to team fit</span>
+      )}
+    </div>
+  );
+}
 
 /** PLAYER_TRAITS §3.1: „Comms: Good · Leader”. */
 function formatCommsLine(player: Player): string {
@@ -45,7 +78,7 @@ type DraftSave = {
   freeAgentPlayerIds: string[];
 };
 
-type SortKey = "rosterPoints" | "rating" | "mec" | "mac" | "tfg" | "clt" | "con" | "iq";
+type SortKey = "rosterPoints" | "rating" | "mec" | "mac" | "comms" | "tfg" | "clt" | "con" | "iq";
 type SortDir = "asc" | "desc";
 
 type EnrichedPlayer = Player & {
@@ -89,15 +122,18 @@ const ROLE_LABELS: Record<Role, string> = {
   support: "SUP",
 };
 
-const TABLE_COLUMNS: { key: SortKey; label: string }[] = [
-  { key: "rosterPoints", label: "ROSTER POINTS" },
-  { key: "rating",       label: "RATING"        },
-  { key: "mec",          label: "MECHANICS"     },
-  { key: "mac",          label: "MACRO"         },
-  { key: "tfg",          label: "TEAMFIGHTING"  },
-  { key: "clt",          label: "CLUTCH"        },
-  { key: "con",          label: "CONSISTENCY"   },
-  { key: "iq",           label: "IQ"            },
+// TEAM_FIT_LIVE §4: cu COMMS și TRAITS coloanele de stats sunt mai înguste: etichete scurte, numele complet în tooltip.
+const TABLE_COLUMNS: { key: SortKey; label: string; title: string }[] = [
+  { key: "rosterPoints", label: "RP",        title: "Roster points" },
+  { key: "rating",       label: "RATING",    title: "Rating" },
+  { key: "mec",          label: "MECH",      title: "Mechanics" },
+  { key: "mac",          label: "MACRO",     title: "Macro" },
+  // TEAM_FIT_LIVE §4: nivelul de comunicare (sortat după valoarea de dedesubt)
+  { key: "comms",        label: "COMMS",     title: "Communication" },
+  { key: "tfg",          label: "TEAMFIGHT", title: "Teamfighting" },
+  { key: "clt",          label: "CLUTCH",    title: "Clutch" },
+  { key: "con",          label: "CONSIST.",  title: "Consistency" },
+  { key: "iq",           label: "IQ",        title: "Game IQ" },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -130,6 +166,7 @@ function getStatValue(player: EnrichedPlayer, key: SortKey): number {
     case "rating":       return player.rating;
     case "mec":          return player.stats.mec;
     case "mac":          return player.stats.mac;
+    case "comms":        return player.advancedProfile.hiddenTraits.communication;
     case "tfg":          return player.stats.tfg;
     case "clt":          return player.stats.clt;
     case "con":          return player.stats.con;
@@ -467,6 +504,8 @@ export default function DraftPage() {
   const [sortKey,            setSortKey]            = useState<SortKey>("rosterPoints");
   const [sortDir,            setSortDir]            = useState<SortDir>("desc");
   const [masteryPlayer,      setMasteryPlayer]      = useState<EnrichedPlayer | null>(null);
+  // TEAM_FIT_LIVE §4: ascunde jucătorii care ar adăuga un avertisment de Team Fit (oprit implicit)
+  const [fitsMyTeam,         setFitsMyTeam]         = useState(false);
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
@@ -507,11 +546,20 @@ export default function DraftPage() {
       }
     }
 
+    // TEAM_FIT_LIVE §4: „Fits my team” ascunde cine ar adăuga un avertisment; jucătorul deja ales rămâne mereu.
+    if (fitsMyTeam) {
+      const roster = rosterIdsOf(selectedPlayers);
+      list = list.filter((p) =>
+        selectedPlayers[p.role]?.id === p.id ||
+        !previewTeamFitChange(roster, p).added.some((advice) => advice.level === "warning"),
+      );
+    }
+
     return [...list].sort((a, b) => {
       const diff = getStatValue(b, sortKey) - getStatValue(a, sortKey);
       return sortDir === "desc" ? diff : -diff;
     });
-  }, [enrichedPlayers, activeRoleFilters, activeRegionFilter, sortKey, sortDir]);
+  }, [enrichedPlayers, activeRoleFilters, activeRegionFilter, sortKey, sortDir, fitsMyTeam, selectedPlayers]);
 
   const selectedRoleSet = useMemo(
     () => new Set(roleOrder.filter((r) => selectedPlayers[r])),
@@ -639,9 +687,13 @@ export default function DraftPage() {
     router.push("/gameplay-dashboard");
   };
 
-  const readyDescription = roleOrder
-    .map((r) => `${r.toUpperCase()}: ${selectedPlayers[r]?.name ?? "-"}`)
-    .join("\n");
+  // TEAM_FIT_LIVE §6: sub jucători, avertismentele Team Fit rămase (nu blochează nimic).
+  const readyWarnings = computeTeamFit(rosterIdsOf(selectedPlayers)).advice.filter((advice) => advice.level === "warning");
+  const readyDescription = [
+    ...roleOrder.map((r) => `${r.toUpperCase()}: ${selectedPlayers[r]?.name ?? "-"}`),
+    "",
+    ...(readyWarnings.length ? readyWarnings.map((advice) => `Team Fit: ${advice.text}`) : ["Team Fit: no issues"]),
+  ].join("\n");
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -715,7 +767,9 @@ export default function DraftPage() {
                 gap:          32,
                 padding:      "16px 40px",
                 borderBottom: "1px solid rgba(255,255,255,0.05)",
-                minHeight:    100,
+                // TEAM_FIT_LIVE §3: înălțime fixă, ca tabelul să nu sară când apare preview-ul la hover.
+                height:       150,
+                overflow:     "hidden",
               }}
             >
               {/* Team logo + name */}
@@ -829,16 +883,18 @@ export default function DraftPage() {
                       : ""}
                   </span>
 
-                  {formatTraitLine(hoveredPlayer) && (
-                    <span
-                      style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}
-                      title={(hoveredPlayer.traits ?? []).filter(isActiveTrait).map((trait) => `${PLAYER_TRAIT_INFO[trait.id].label}: ${PLAYER_TRAIT_INFO[trait.id].description}`).join("\n")}
-                    >
-                      {formatTraitLine(hoveredPlayer)}
-                    </span>
+                  {(hoveredPlayer.traits ?? []).some(isActiveTrait) && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 3 }}>
+                      {(hoveredPlayer.traits ?? []).filter(isActiveTrait).map((trait) => (
+                        <TraitChip key={trait.id} trait={trait} size="small" />
+                      ))}
+                    </div>
                   )}
 
-                  <span title={COMMS_TOOLTIP} style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>
+                  <span
+                    title={COMMS_TOOLTIP}
+                    style={{ fontSize: 11, marginTop: 2, cursor: "help", color: COMMS_COLORS[getCommsLevel(hoveredPlayer.advancedProfile.hiddenTraits.communication)] }}
+                  >
                     {formatCommsLine(hoveredPlayer)}
                   </span>
                 </div>
@@ -852,6 +908,13 @@ export default function DraftPage() {
                 >
                   Hover over a player to preview
                 </span>
+              )}
+
+              {/* TEAM_FIT_LIVE §3: „If you pick him”, pe coloană proprie lângă detalii */}
+              {hoveredPlayer && (
+                <div style={{ marginLeft: 24, paddingLeft: 24, borderLeft: "1px solid rgba(255,255,255,0.06)", maxWidth: 420 }}>
+                  <TeamFitPreview change={previewTeamFitChange(rosterIdsOf(selectedPlayers), hoveredPlayer)} removing={selectedPlayers[hoveredPlayer.role]?.id === hoveredPlayer.id} />
+                </div>
               )}
             </div>
 
@@ -892,8 +955,28 @@ export default function DraftPage() {
                 })}
               </div>
 
-              {/* Region filters — single select */}
+              {/* Region filters — single select; plus „Fits my team” (TEAM_FIT_LIVE §4) */}
               <div style={{ display: "flex", gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => setFitsMyTeam((value) => !value)}
+                  aria-pressed={fitsMyTeam}
+                  title="Hide players who would add a Team Fit warning"
+                  style={{
+                    padding:       "5px 14px",
+                    borderRadius:  4,
+                    border:        `1px solid ${fitsMyTeam ? "var(--text-highlight)" : "rgba(255,255,255,0.18)"}`,
+                    background:    fitsMyTeam ? "rgba(180,140,60,0.12)" : "transparent",
+                    color:         fitsMyTeam ? "var(--text-highlight)" : "var(--text-secondary)",
+                    cursor:        "pointer",
+                    fontSize:      11,
+                    fontWeight:    700,
+                    letterSpacing: "0.07em",
+                    marginRight:   10,
+                  }}
+                >
+                  FITS MY TEAM
+                </button>
                 {REGION_FILTER_OPTIONS.map((r) => {
                   const active = activeRegionFilter === r;
                   return (
@@ -931,25 +1014,30 @@ export default function DraftPage() {
             }}
           >
             <colgroup>
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "8%"  }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "7%"  }} />
               {TABLE_COLUMNS.map((c) => (
-                <col key={c.key} style={{ width: `${72 / TABLE_COLUMNS.length}%` }} />
+                <col key={c.key} style={{ width: `${58 / TABLE_COLUMNS.length}%` }} />
               ))}
-              <col style={{ width: "6%" }} />
+              <col style={{ width: "18%" }} />
+              <col style={{ width: "5%" }} />
             </colgroup>
             <thead>
               <tr>
                 <th style={thStyle}>NAME</th>
                 <th style={thStyle}>POSITION</th>
-                {TABLE_COLUMNS.map(({ key, label }) => {
+                {TABLE_COLUMNS.map(({ key, label, title }) => {
                   const isActive = sortKey === key;
                   return (
                     <th
                       key={key}
                       onClick={() => handleSort(key)}
+                      title={title}
                       style={{
                         ...thStyle,
+                        // TEAM_FIT_LIVE §4: cu COMMS și TRAITS coloanele sunt mai înguste; antetul poate trece pe 2 rânduri.
+                        whiteSpace: "normal",
+                        lineHeight: 1.25,
                         cursor:     "pointer",
                         color:      isActive
                           ? "var(--text-highlight)"
@@ -964,7 +1052,8 @@ export default function DraftPage() {
                     </th>
                   );
                 })}
-                <th style={{ ...thStyle, textAlign: "center" }}>CHAMPION POOL</th>
+                <th style={thStyle}>TRAITS</th>
+                <th style={{ ...thStyle, textAlign: "center" }}>POOL</th>
               </tr>
             </thead>
           </table>
@@ -984,12 +1073,13 @@ export default function DraftPage() {
             }}
           >
             <colgroup>
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "8%"  }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "7%"  }} />
               {TABLE_COLUMNS.map((c) => (
-                <col key={c.key} style={{ width: `${72 / TABLE_COLUMNS.length}%` }} />
+                <col key={c.key} style={{ width: `${58 / TABLE_COLUMNS.length}%` }} />
               ))}
-              <col style={{ width: "6%" }} />
+              <col style={{ width: "18%" }} />
+              <col style={{ width: "5%" }} />
             </colgroup>
 
             <tbody>
@@ -1053,10 +1143,23 @@ export default function DraftPage() {
                     <td style={tdStyle}>{player.rating}</td>
                     <td style={tdStyle}>{player.stats.mec}</td>
                     <td style={tdStyle}>{player.stats.mac}</td>
+                    {/* TEAM_FIT_LIVE §4: comunicarea ca nivel, colorată */}
+                    <td style={{ ...tdStyle, fontSize: 11, fontWeight: 700, color: COMMS_COLORS[getCommsLevel(player.advancedProfile.hiddenTraits.communication)] }}>
+                      {getCommsLevel(player.advancedProfile.hiddenTraits.communication)}
+                    </td>
                     <td style={tdStyle}>{player.stats.tfg}</td>
                     <td style={tdStyle}>{player.stats.clt}</td>
                     <td style={tdStyle}>{player.stats.con}</td>
                     <td style={tdStyle}>{player.stats.iq}</td>
+
+                    {/* TEAM_FIT_LIVE §4: trait-urile active (chip-uri, descrierea în tooltip) */}
+                    <td style={{ ...tdStyle, padding: "6px 8px" }}>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                        {(player.traits ?? []).filter(isActiveTrait).slice(0, 3).map((trait) => (
+                          <TraitChip key={trait.id} trait={trait} size="small" />
+                        ))}
+                      </div>
+                    </td>
 
                     {/* Champion pool — chevron opens mastery popup */}
                     <td style={{ ...tdStyle, textAlign: "center", padding: "8px 4px" }}>

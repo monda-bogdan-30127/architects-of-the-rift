@@ -11,7 +11,7 @@ import type {
 } from "../types/championMastery";
 import { championMasteryOverrides } from "../data/championMasteryOverrides";
 import type { Player } from "../types/player";
-import { registerTraitGradeProvider } from "./playerTraitUtils";
+import { registerTraitGradeProvider } from "./playerTraitDerivation";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 

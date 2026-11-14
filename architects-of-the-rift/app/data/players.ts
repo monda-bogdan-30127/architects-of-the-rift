@@ -15,7 +15,7 @@ import type { Role } from "../types/champion";
 import { calculateRosterPoints } from "../utils/playerUtils";
 import { playerProfileOverrides } from "./playerProfileOverrides";
 import { areStylesIncompatible, getPlayerStyleInfo } from "../utils/playerStyleUtils";
-import { assignPlayerTraits } from "../utils/playerTraitUtils";
+import { assignPlayerTraits } from "../utils/playerTraitDerivation";
 
 const clamp = (value: number, min = 35, max = 99): number => Math.max(min, Math.min(max, Math.round(value)));
 const clampStat100 = (value: number): number => Math.max(10, Math.min(100, Math.round(value)));

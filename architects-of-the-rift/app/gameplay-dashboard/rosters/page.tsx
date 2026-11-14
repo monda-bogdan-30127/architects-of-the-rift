@@ -8,7 +8,8 @@ import { players } from "@/app/data/players";
 import { teams } from "@/app/data/teams";
 import type { Role } from "@/app/types/champion";
 import type { Player } from "@/app/types/player";
-import { PLAYER_TRAIT_INFO, isActiveTrait } from "@/app/types/playerTraits";
+import { isActiveTrait } from "@/app/types/playerTraits";
+import TraitChip from "@/components/ui/TraitChip";
 import { COMMS_TOOLTIP, computeTeamFit, getCommsInfo } from "@/app/utils/playerTraitUtils";
 import useBackRedirect from "@/app/hooks/useBrowserBackRedirect";
 import { getRegisteredChampionById } from "@/app/draft-engine/championRegistry";
@@ -747,24 +748,7 @@ function PlayerCard({
           {playerTraits.length > 0 ? (
             <div className="flex flex-wrap justify-center gap-[6px]">
               {playerTraits.map((trait) => (
-                <span
-                  key={trait.id}
-                  title={PLAYER_TRAIT_INFO[trait.id].description}
-                  className="uppercase text-[var(--text-secondary)]"
-                  style={{
-                    fontSize: 11,
-                    lineHeight: "14px",
-                    fontWeight: 600,
-                    letterSpacing: "0.04em",
-                    padding: "3px 8px",
-                    border: "1px solid var(--border-default)",
-                    borderRadius: 999,
-                    cursor: "help",
-                  }}
-                >
-                  {PLAYER_TRAIT_INFO[trait.id].label}
-                  {trait.intensity === 2 ? <span className="text-[var(--text-highlight)]"> ●</span> : null}
-                </span>
+                <TraitChip key={trait.id} trait={trait} />
               ))}
             </div>
           ) : null}
