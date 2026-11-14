@@ -527,6 +527,14 @@ export const DRAFT_THINKING_CONFIG = {
     draftComposite: { draftPower: 0.68 / 0.9, meta: 0.22 / 0.9 },
     /** Ponderea puterii campionilor în fiecare fază (matchSimulator, computePhaseBreakdown); evaluatorul o citește de aici (§3.2). */
     phaseChampionWeights: { early: 0.22, mid: 0.24, late: 0.26 },
+    /**
+     * DRAFT_SIM_ALIGNMENT §9: puterea campionilor pe faze era comprimată (aproape toți între 1 și 5, mediana ~2,
+     * sd 0.5–1.3). championPhasePowerScaled = 5 + (putere − mediana pe rol și fază) × championPhaseScale (0–10);
+     * în totalul echipei, nivelul se readuce la vechea mediană, deci doar diferențele dintre campioni se lărgesc.
+     */
+    championPhaseScale: 1,
+    /** §9: multiplicatorul termenului de matchup din scorul de lane (laneEvaluator, × 0.42). */
+    laneMatchupScale: 1,
   },
 
   /** DRAFT_SIM_ALIGNMENT — evaluatorul de draft (draftEvaluator.ts), aliniat cu ce răsplătește simularea. */

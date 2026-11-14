@@ -29,12 +29,17 @@ import {
 } from "@/app/draft-engine/draftEngine";
 import { setDraftDecisionObserver, type DraftDecisionObservation } from "@/app/draft-engine/draftDecision";
 import { ROLE_ORDER, type ActiveDraftSeries, type DraftGameState, type Side, type TeamDraftEvaluation } from "@/app/draft-engine/draftTypes";
+import { DRAFT_THINKING_CONFIG } from "@/app/draft-engine/draftThinkingConfig";
 import { makeSave, newAiSeries, parseArgs, playersById, teamsBySlug } from "./draftHarness";
 
 const { named } = parseArgs(process.argv.slice(2));
 const quick = named.quick === "true";
 const outName = named.out ?? (quick ? "quick" : "full");
 const compareName = named.compare;
+// --champion-phase-scale X / --lane-matchup-scale Y: valorile din config pentru rularea asta (grila §9).
+const simulationConfig = DRAFT_THINKING_CONFIG.simulation as { championPhaseScale: number; laneMatchupScale: number };
+if (named["champion-phase-scale"]) simulationConfig.championPhaseScale = Number(named["champion-phase-scale"]);
+if (named["lane-matchup-scale"]) simulationConfig.laneMatchupScale = Number(named["lane-matchup-scale"]);
 const DIR = "scripts/.calibration";
 const save = makeSave();
 const championsById = new Map(champions.map((champion) => [champion.id, champion]));

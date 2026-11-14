@@ -465,13 +465,45 @@ export function getChampionPhasePower(
   return clamp(phaseData.power * 0.78 + (10 - phaseData.execution) * 0.22, 0, 10);
 }
 
+/** Mediana getChampionPhasePower pe rol și fază, pe toți campionii care pot juca rolul (calculată o dată). */
+const phasePowerMedians = new Map<string, number>();
+export function championPhasePowerMedian(role: Role, phase: "early" | "mid" | "late") {
+  const key = `${role}:${phase}`;
+  let value = phasePowerMedians.get(key);
+  if (value === undefined) {
+    const sorted = champions
+      .filter((champion) => champion.roles.includes(role))
+      .map((champion) => getChampionPhasePower(champion.id, role, phase))
+      .sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    value = sorted.length === 0 ? 5 : sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+    phasePowerMedians.set(key, value);
+  }
+  return value;
+}
+
+/**
+ * DRAFT_SIM_ALIGNMENT §9 — puterea campionului pe fază relativ la rol: 5 = campionul median pe rol și fază;
+ * simulation.championPhaseScale lărgește diferențele. Fără campion, 5 (neutru).
+ */
+export function championPhasePowerScaled(championId: string | null, role: Role, phase: "early" | "mid" | "late") {
+  if (!championId || !getChampionByIdSafe(championId)) return 5;
+  const scale = DRAFT_THINKING_CONFIG.simulation.championPhaseScale;
+  return clamp(5 + (getChampionPhasePower(championId, role, phase) - championPhasePowerMedian(role, phase)) * scale, 0, 10);
+}
+
+/**
+ * Puterea campionilor echipei pe fază (simularea). §9: din valorile scalate, cu nivelul readus la media medianelor
+ * vechi (pragurile absolute din faze nu se mișcă; la championPhaseScale = 1 rezultatul e cel de dinainte).
+ */
 export function getTeamChampionPhasePower(
   assignments: Partial<Record<import("@/app/types/champion").Role, string>>,
   phase: "early" | "mid" | "late"
 ): number {
   const roles: import("@/app/types/champion").Role[] = ["top", "jungle", "mid", "adc", "support"];
-  const scores = roles.map((role) => getChampionPhasePower(assignments[role] ?? null, role, phase));
-  return round1(average(scores));
+  const scaled = roles.map((role) => championPhasePowerScaled(assignments[role] ?? null, role, phase));
+  const baseline = average(roles.map((role) => championPhasePowerMedian(role, phase)));
+  return round1(average(scaled) - 5 + baseline);
 }
 
 export function getPhaseIdentityAlignment(

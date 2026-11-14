@@ -165,7 +165,7 @@ function buildRoleBreakdown(
       blueConsistency * 0.08 +
       blueBlind * 0.06 +
       jungleInfluence(role, bluePlayerId, blueChampionId) * 0.14 +
-      blueMatchup * 0.42 * blueTrait.factor +
+      blueMatchup * 0.42 * DRAFT_THINKING_CONFIG.simulation.laneMatchupScale * blueTrait.factor +
       blueHistoryMatchup * 0.3 +
       blueHistoryLaneBonus * 0.7 -
       blueTrait.penalty,
@@ -181,7 +181,7 @@ function buildRoleBreakdown(
       redConsistency * 0.08 +
       redBlind * 0.06 +
       jungleInfluence(role, redPlayerId, redChampionId) * 0.14 +
-      redMatchup * 0.42 * redTrait.factor +
+      redMatchup * 0.42 * DRAFT_THINKING_CONFIG.simulation.laneMatchupScale * redTrait.factor +
       redHistoryMatchup * 0.3 +
       redHistoryLaneBonus * 0.7 -
       redTrait.penalty,

@@ -13,7 +13,7 @@ import { getChampionStatsForRole } from "./championRoleStatsSystem";
 import { derivePlayerAdaptationProfile, derivePlayerArchetypeAffinity, derivePlayerPhaseProfile } from "./playerProfileSystem";
 import { evaluateInteractionScore, evaluateRuleSynergy } from "./profileRuleEvaluator";
 import { getLaneMatchupEdge } from "./matchupScoring";
-import { championMetaPower, getChampionPhasePower, getTeamChampionPhasePower } from "./matchSimulationUtils";
+import { championMetaPower, championPhasePowerScaled, getTeamChampionPhasePower } from "./matchSimulationUtils";
 import { MUSTWITH_CONFIG, getCompletedMustWithPairs, hadAvailableUnusedPartner } from "./mustWithPriority";
 import { getBadSynergyPenalty } from "./badSynergy";
 import { resolveRoleAssignments } from "./draftRoleResolver";
@@ -220,7 +220,7 @@ function leaguePhasePowerFor(role: Role, phase: PhaseKey) {
   const key = `${role}:${phase}`;
   let value = leaguePhasePower.get(key);
   if (value === undefined) {
-    value = average(champions.filter((champion) => champion.roles.includes(role)).map((champion) => getChampionPhasePower(champion.id, role, phase)));
+    value = average(champions.filter((champion) => champion.roles.includes(role)).map((champion) => championPhasePowerScaled(champion.id, role, phase)));
     leaguePhasePower.set(key, value);
   }
   return value;
@@ -244,13 +244,15 @@ function evaluatePhasePowerScore(assignments: Partial<Record<Role, string>>, ene
       : average(
           roles.map((role) => {
             const enemyId = enemyAssignments[role];
-            return getChampionPhasePower(assignments[role]!, role, phase) - (enemyId ? getChampionPhasePower(enemyId, role, phase) : leaguePhasePowerFor(role, phase));
+            return championPhasePowerScaled(assignments[role]!, role, phase) - (enemyId ? championPhasePowerScaled(enemyId, role, phase) : leaguePhasePowerFor(role, phase));
           })
         );
     weighted += weights[phase] * edge;
     totalWeight += weights[phase];
   }
-  return clamp(5 + (DRAFT_THINKING_CONFIG.draftEvaluation.phasePowerScale * weighted) / totalWeight, 0, 10);
+  // §9: diferențele vin deja lărgite cu championPhaseScale; scorul rămâne pe aceeași scală (ordinea nu se schimbă).
+  const scale = DRAFT_THINKING_CONFIG.draftEvaluation.phasePowerScale / DRAFT_THINKING_CONFIG.simulation.championPhaseScale;
+  return clamp(5 + (scale * weighted) / totalWeight, 0, 10);
 }
 
 function evaluateWeaknessPenalty(allyChampionIds: string[], enemyVector: TeamCompVector) {
