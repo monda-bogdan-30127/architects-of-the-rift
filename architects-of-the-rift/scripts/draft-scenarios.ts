@@ -64,7 +64,7 @@ import { getSeriesRatingEffect, teamSetupFor } from "@/app/draft-engine/traitEff
 import { ACTIVE_TRAIT_FAMILIES, type PlayerTrait, type PlayerTraitFamily } from "@/app/types/playerTraits";
 import { computeTeamFit, previewTeamFitChange } from "@/app/utils/playerTraitUtils";
 import { computeSeriesSpiritDeltas } from "@/app/draft-engine/playerSpiritEngine";
-import { getPlayerPersonalityModifiers } from "@/app/draft-engine/personalitySystem";
+import { computeTeamChemistry, getPlayerPersonalityModifiers } from "@/app/draft-engine/personalitySystem";
 import { DRAFT_THINKING_CONFIG } from "@/app/draft-engine/draftThinkingConfig";
 
 // ─── Infrastructură ──────────────────────────────────────────────────────────
@@ -2124,6 +2124,49 @@ function withTestData<T>(
   } finally {
     for (const undo of commsBackup) undo();
   }
+}
+
+// ─── PLAYER_TRAITS faza 3: Macro (shotcalling, junglerul pe o parte a hărții) ─
+{
+  const roster = makeSave().updatedTeamRosters[RED]!;
+  const reset = Object.fromEntries(ROLE_ORDER.map((role) => [roster[role]!, [] as PlayerTrait[]]));
+  const trait = (id: PlayerTrait["id"]): PlayerTrait[] => [{ id, intensity: 1, source: "manual" }];
+  const adviceIds = (fit: ReturnType<typeof computeTeamFit>) => fit.advice.map((entry) => entry.id);
+
+  // M1. Chemistry: 1 shotcaller + 2 followers → leadership +0.2 față de shotcaller singur; 2 shotcalleri → comms −0.2.
+  const solo = withTestData({ traits: { ...reset, [roster.support!]: trait("shotcaller") } }, () => computeTeamChemistry(roster));
+  const led = withTestData({ traits: { ...reset, [roster.support!]: trait("shotcaller"), [roster.top!]: trait("follower"), [roster.adc!]: trait("follower") } }, () => computeTeamChemistry(roster));
+  const two = withTestData({ traits: { ...reset, [roster.support!]: trait("shotcaller"), [roster.jungle!]: trait("shotcaller") } }, () => computeTeamChemistry(roster));
+  const none = withTestData({ traits: reset }, () => computeTeamChemistry(roster));
+  check(
+    "M1. Chemistry: 2 followeri → leadership +0.2; 2 shotcalleri → comms −0.2; 0 shotcalleri → leadership ≤ 0.2",
+    Math.abs(led.leadershipBonus - solo.leadershipBonus - 0.2) < 0.051 && Math.abs(solo.communicationBonus - two.communicationBonus - 0.2) < 0.051 && none.leadershipBonus <= 0.2,
+    `leadership ${solo.leadershipBonus} → ${led.leadershipBonus} („${led.notes.join("; ")}”); comms ${solo.communicationBonus} → ${two.communicationBonus} („${two.notes.join("; ")}”); fără shotcaller ${none.leadershipBonus}`,
+  );
+
+  // M2. Lane: topside_jungler → top mai sus; ADC −0.15; un ADC weakside_ready nu primește malusul.
+  const championFor = (role: Role) => champions.find((champion) => champion.roles.includes(role))!.id;
+  const assignments = Object.fromEntries(ROLE_ORDER.map((role) => [role, championFor(role)])) as Partial<Record<Role, string>>;
+  const lane = () => evaluateLanePhase({ blueRoster: roster, redRoster: roster, assignmentsBlue: assignments, assignmentsRed: assignments }).roles;
+  const score = (roles: ReturnType<typeof lane>, role: Role) => roles.find((entry) => entry.role === role)!.blueScore;
+  const base = withTestData({ traits: reset }, lane);
+  const topside = withTestData({ traits: { ...reset, [roster.jungle!]: trait("topside_jungler") } }, lane);
+  const weaksideAdc = withTestData({ traits: { ...reset, [roster.jungle!]: trait("topside_jungler"), [roster.adc!]: trait("weakside_ready") } }, lane);
+  check(
+    "M2. Lane: topside_jungler → top +0.3, ADC −0.15; ADC weakside_ready fără malus",
+    score(topside, "top") > score(base, "top") && score(topside, "adc") < score(base, "adc") && score(weaksideAdc, "adc") === score(base, "adc"),
+    `top ${score(base, "top")} → ${score(topside, "top")}; adc ${score(base, "adc")} → ${score(topside, "adc")} (weakside ${score(weaksideAdc, "adc")}); notă: „${topside.find((entry) => entry.role === "top")!.note}”`,
+  );
+
+  // M3. Team Fit: 2 shotcalleri → shotcalling-two; roster complet fără shotcaller → shotcalling-none; topside + ADC hog → warning.
+  const fitTwo = withTestData({ traits: { ...reset, [roster.support!]: trait("shotcaller"), [roster.mid!]: trait("shotcaller") } }, () => computeTeamFit(roster));
+  const fitNone = withTestData({ traits: reset }, () => computeTeamFit(roster));
+  const fitSide = withTestData({ traits: { ...reset, [roster.support!]: trait("shotcaller"), [roster.jungle!]: trait("topside_jungler"), [roster.adc!]: trait("resource_hog") } }, () => computeTeamFit(roster));
+  check(
+    "M3. Team Fit: shotcalling-two, shotcalling-none, topside jungler cu ADC hog",
+    adviceIds(fitTwo).includes("shotcalling-two") && adviceIds(fitNone).includes("shotcalling-none") && adviceIds(fitSide).includes("resources-jungle-neglects-adc"),
+    `2: [${adviceIds(fitTwo).join(", ")}]; 0: [${adviceIds(fitNone).join(", ")}]; side: „${fitSide.warnings.join("; ")}”`,
+  );
 }
 
 // ─── Raport ──────────────────────────────────────────────────────────────────

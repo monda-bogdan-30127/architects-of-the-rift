@@ -170,7 +170,7 @@ export const MAX_TRAITS_PER_FAMILY = 2;
  * §3 — se afișează (și au efect) doar trait-urile din familiile cu efecte implementate. Trait-urile celorlalte familii
  * se derivă și se păstrează pe jucător (pentru inventar), dar nu se văd și nu au efect.
  */
-export const ACTIVE_TRAIT_FAMILIES: readonly PlayerTraitFamily[] = ["resources", "draft"];
+export const ACTIVE_TRAIT_FAMILIES: readonly PlayerTraitFamily[] = ["resources", "draft", "macro"];
 
 /**
  * Trait-uri dintr-o familie activă ale căror efecte vin într-un commit ulterior (faza 2, commit 7): până atunci nu se

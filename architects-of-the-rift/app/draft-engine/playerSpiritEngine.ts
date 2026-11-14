@@ -73,6 +73,12 @@ const DELTA_LEFT_ALONE         = -3;      // needs_setup, ≥ 2 jocuri cu setup 
 const DELTA_WELL_SET_UP        = +2;      // needs_setup, ≥ 2 jocuri cu setup ≥ setupHigh, serie câștigată
 const DELTA_FIGURED_THEM_OUT   = +3;      // series_adapter, serie câștigată după game 1 pierdut
 const DELTA_RAN_OUT_OF_STEAM   = -3;      // fast_starter, serie pierdută după game 1 câștigat
+// PLAYER_TRAITS §8.3 — Macro
+const TRUSTED_FOLLOWER_SCALE   = 1.5;     // follower: leadership_boost × atât
+const DELTA_SHOTCALL_IGNORED   = -3;      // shotcaller, serie pierdută, comunicarea medie a echipei < SHOTCALL_IGNORED_COMM
+const SHOTCALL_IGNORED_COMM    = 45;
+const DELTA_WELL_SUPPORTED     = +2;      // resource_hog de pe partea junglerului, serie câștigată
+const DELTA_NEGLECTED          = -2;      // resource_hog de pe partea opusă junglerului, serie pierdută
 
 const HIGH_SCORE_THRESHOLD = 7.5;
 const LOW_SCORE_THRESHOLD  = 4.5;
@@ -524,6 +530,39 @@ function applyDraftTraitTriggers(
   }
 }
 
+/**
+ * PLAYER_TRAITS §8.3 — Macro: shotcall_ignored (shotcaller, serie pierdută, comunicarea medie a echipei < 45) și
+ * well_supported / neglected (resource_hog de pe partea pe care joacă / nu joacă junglerul echipei).
+ */
+function applyMacroTraitTriggers(
+  events: SpiritEvent[],
+  playerId: string,
+  player: Player,
+  ctx: SpiritSeriesContext,
+  isWin: boolean,
+  isLoss: boolean,
+): void {
+  const roster = (["top", "jungle", "mid", "adc", "support"] as Role[])
+    .map((role) => ({ role, player: ctx.controlledRoster[role] ? ctx.playersById.get(ctx.controlledRoster[role]!) : undefined }));
+  if (isLoss && getActiveTrait(player, "shotcaller")) {
+    const members = roster.filter((entry) => entry.player);
+    const comm = members.reduce((sum, entry) => sum + (entry.player!.advancedProfile?.hiddenTraits?.communication ?? 50), 0) / Math.max(1, members.length);
+    if (comm < SHOTCALL_IGNORED_COMM) {
+      events.push(buildEvent(playerId, DELTA_SHOTCALL_IGNORED, "shotcall_ignored", "Lost the series: the team didn't follow his calls", ctx.seriesId));
+    }
+  }
+  const role = roster.find((entry) => entry.player?.id === playerId)?.role;
+  const jungler = roster.find((entry) => entry.role === "jungle")?.player;
+  const side = getActiveTrait(jungler, "topside_jungler") ? "top" : getActiveTrait(jungler, "botside_jungler") ? "bot" : null;
+  if (!side || !role || role === "jungle" || role === "support" || !getActiveTrait(player, "resource_hog")) return;
+  const ownSide = role === "adc" ? "bot" : "top";
+  if (isWin && ownSide === side) {
+    events.push(buildEvent(playerId, DELTA_WELL_SUPPORTED, "well_supported", `${jungler!.name} played for his lane and they won`, ctx.seriesId));
+  } else if (isLoss && ownSide !== side) {
+    events.push(buildEvent(playerId, DELTA_NEGLECTED, "neglected", `${jungler!.name} played the other side of the map`, ctx.seriesId));
+  }
+}
+
 /** signature_player: pool_pressure și off_comfort × signatureSpiritScale (înainte de composure / volatility). */
 function applySignatureScaling(events: SpiritEvent[], player: Player): void {
   if (!getActiveTrait(player, "signature_player")) return;
@@ -668,7 +707,10 @@ function applyLeadershipTriggers(
     const playerId = ctx.controlledRoster[role];
     if (!playerId) continue;
     const events = perPlayerEvents.get(playerId) ?? [];
-    events.push(buildEvent(playerId, delta, reason, details, ctx.seriesId));
+    // PLAYER_TRAITS §8.3: un follower simte mai tare un lider motivat.
+    const follower = delta > 0 && getActiveTrait(ctx.playersById.get(playerId), "follower");
+    if (follower) events.push(buildEvent(playerId, Math.round(delta * TRUSTED_FOLLOWER_SCALE), "trusted_follower", "Trusts the team leader's calls", ctx.seriesId));
+    else events.push(buildEvent(playerId, delta, reason, details, ctx.seriesId));
     perPlayerEvents.set(playerId, events);
   }
 }
@@ -862,6 +904,7 @@ export function computeSeriesSpiritDeltas(
     applyComfortTriggers(events, playerId, rows, ctx.seriesId);
     applyTraitTriggers(events, playerId, player, rows, ctx, isWin, isLoss);
     applyDraftTraitTriggers(events, playerId, player, rows, ctx, isWin, isLoss);
+    applyMacroTraitTriggers(events, playerId, player, ctx, isWin, isLoss);
     applyCarriedAloneTrigger(events, playerId, rows, isLoss, ctx);
 
     const prevStreaks = ctx.currentStreaks[playerId] ?? emptyStreaks();

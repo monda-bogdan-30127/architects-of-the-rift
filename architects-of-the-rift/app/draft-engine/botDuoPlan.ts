@@ -14,7 +14,7 @@ import { getCarryArchetype } from "./draftArchetypes";
 import { getMetaPriorityScore } from "./draftEvaluator";
 import { getOpenRolesForPickedChampions, resolveRoleAssignments } from "./draftRoleResolver";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
-import { hasTrait } from "@/app/utils/playerTraitUtils";
+import { getActiveTrait, hasTrait } from "@/app/utils/playerTraitUtils";
 import { MUSTWITH_CONFIG, getBotPairTier, getEligiblePartners, type MustWithTeamContext } from "./mustWithPriority";
 
 const DUO = DRAFT_THINKING_CONFIG.duo;
@@ -193,6 +193,10 @@ export function getBotFocus(args: {
     const adc = playerOn("adc");
     if (hasTrait(adc, "resource_hog") && !hogOffBot) return "bot";
     if (hogOffBot && hasTrait(adc, "weakside_ready")) return "elsewhere";
+    // PLAYER_TRAITS §8.3: junglerul pe o parte a hărții, lângă un resource_hog pe aceeași parte.
+    const jungler = playerOn("jungle");
+    if (getActiveTrait(jungler, "botside_jungler") && hasTrait(adc, "resource_hog")) return "bot";
+    if (getActiveTrait(jungler, "topside_jungler") && (["top", "mid"] as const).some((role) => hasTrait(playerOn(role), "resource_hog"))) return "elsewhere";
   }
   return "neutral";
 }

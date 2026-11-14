@@ -64,9 +64,13 @@ const REASON_LABEL: Record<SpiritReason, string> = {
   well_set_up:             "Well set up",
   figured_them_out:        "Figured them out",
   ran_out_of_steam:        "Ran out of steam",
+  trusted_follower:        "Trusted follower",
+  shotcall_ignored:        "Shotcalls ignored",
+  well_supported:          "Well supported",
+  neglected:               "Neglected",
 };
 
-const LEADERSHIP_REASONS = new Set<SpiritReason>(["leadership_boost", "leadership_drain"]);
+const LEADERSHIP_REASONS = new Set<SpiritReason>(["leadership_boost", "leadership_drain", "trusted_follower"]);
 
 // ─── Group structure for the feed ───────────────────────────────────────────
 

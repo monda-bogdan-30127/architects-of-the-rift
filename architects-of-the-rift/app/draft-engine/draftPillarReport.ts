@@ -25,6 +25,7 @@ import { getMatchupValue } from "./matchupScoring";
 import { getSeasonFavorites } from "./seasonThreatSystem";
 import { createPriorityLookup } from "./priorityValue";
 import { getWinCondition } from "./winCondition";
+import { computeTeamChemistry } from "./personalitySystem";
 
 const playersById = new Map(players.map((player) => [player.id, player]));
 const name = (championId: string) => championsById[championId]?.name ?? championId;
@@ -467,7 +468,8 @@ export function buildDraftPillarReport(
  * PLAYER_TRAITS §7.4 — notele trait-urilor de echipă și de serie, adăugate la pilonul Players:
  *   needs_setup: „Chovy was left without setup” / „Rell and Vi set up for Chovy”;
  *   series_adapter propriu din game 2: „Faker adapted after game 1”;
- *   fast_starter advers din game 3: „Their fast starter faded in game 3 (Knight)”.
+ *   fast_starter advers din game 3: „Their fast starter faded in game 3 (Knight)”;
+ *   §8.3 shotcalling (computeTeamChemistry): „Keria leads, Zeus, Oner follow” / „Two voices on comms (…)”.
  */
 function withTeamTraitNotes(
   pillar: DraftPillar,
@@ -503,6 +505,16 @@ function withTeamTraitNotes(
         extra.push({ note: `Their fast starter faded in game ${game.number} (${player.name})`, reason: "Fast Starter: opponents adjust to him as the series goes on" });
       }
     }
+  }
+  for (const note of computeTeamChemistry(roster).notes) {
+    extra.push({
+      note,
+      reason: note.startsWith("Two voices")
+        ? "Two shotcallers: team communication suffers in teamfights and clutch moments"
+        : note.startsWith("No shotcaller")
+          ? "No shotcaller: the leadership bonus to objectives is capped"
+          : "Shotcaller with followers: cleaner macro, bonus to objectives",
+    });
   }
   if (!extra.length) return pillar;
   const reasons = pillar.reasons ?? pillar.notes.map(() => null);

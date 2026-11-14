@@ -40,7 +40,12 @@ export type SpiritReason =
   | "left_alone"           // needs_setup cu ≥ 2 jocuri fără setup
   | "well_set_up"          // needs_setup cu ≥ 2 jocuri cu setup, serie câștigată
   | "figured_them_out"     // series_adapter: serie câștigată după ce game 1 a fost pierdut
-  | "ran_out_of_steam";    // fast_starter: serie pierdută după ce game 1 a fost câștigat
+  | "ran_out_of_steam"     // fast_starter: serie pierdută după ce game 1 a fost câștigat
+  // PLAYER_TRAITS §8.3 — Macro
+  | "trusted_follower"     // follower: leadership_boost × 1.5
+  | "shotcall_ignored"     // shotcaller: serie pierdută, comunicarea medie a echipei < 45
+  | "well_supported"       // resource_hog de pe partea junglerului, serie câștigată
+  | "neglected";           // resource_hog de pe partea opusă junglerului, serie pierdută
 
 // ─── Spirit label ───────────────────────────────────────────────────────────
 

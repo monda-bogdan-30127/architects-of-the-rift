@@ -511,6 +511,20 @@ export const DRAFT_THINKING_CONFIG = {
     adapterBanMinGame: 3,
     /** Draft: game 1, candidații SS / S ai unui fast_starter propriu + atât × intensity. */
     fastStarterComfortBonus: 0.3,
+
+    // ─── Faza 3 (§8.3): Macro ─────────────────────────────────────────────────
+    /** Chemistry: exact un shotcaller → leadershipBonus + atât pe follower, cel mult followerBonusMax. */
+    followerLeadershipBonus: 0.1,
+    followerBonusMax: 0.3,
+    /** Chemistry: ≥ 2 shotcalleri → communicationBonus − atât × (număr − 1) („Two voices on comms”). */
+    extraShotcallerCommPenalty: 0.2,
+    /** Chemistry: 0 shotcalleri → leadershipBonus plafonat la atât. */
+    noShotcallerLeadershipCap: 0.2,
+    /** Lane: jungler pe partea lane-ului → + atât × intensity; pe partea opusă → − jungleSideAwayPenalty. */
+    jungleSideBoost: 0.3,
+    jungleSideAwayPenalty: 0.15,
+    /** Lane: lanerul ajutat e resource_hog → + atât în plus. */
+    jungleSideHogBonus: 0.2,
   },
 
   // Scala stats-urilor vechi (legacyStats.ts): scorurile de jucător (player*Score, star power, fit-ul jucător–campion)

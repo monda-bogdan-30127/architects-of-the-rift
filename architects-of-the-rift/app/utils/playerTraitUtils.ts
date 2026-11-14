@@ -122,8 +122,49 @@ export function computeTeamFit(
     if (withTrait("series_adapter").length >= 2) fit.notes.push("This roster gets better as the series goes on");
     if (withTrait("signature_player").length >= 3) fit.warnings.push("Three signature players: bans will hurt this roster");
   }
+
+  // §8.4 — familia Macro (doar când e activă sau la cerere).
+  if (options.includeInactive || ACTIVE_TRAIT_FAMILIES.includes("macro")) {
+    const macro = getMacroFit(roster, find, options.includeInactive);
+    if (macro.shotcallers.length >= 2) fit.warnings.push("Two shotcallers: expect clashes on comms");
+    if (macro.shotcallers.length === 0 && macro.filled === ROLE_ORDER.length) fit.warnings.push("No shotcaller: macro will be messy");
+    if (macro.hierarchy) fit.notes.push(macro.hierarchy);
+    if (macro.neglectedAdc) fit.warnings.push(macro.neglectedAdc);
+    if (macro.sideNote) fit.notes.push(macro.sideNote);
+  }
   buildLiveTeamFit(fit, roster, find);
   return fit;
+}
+
+/**
+ * PLAYER_TRAITS §8.4 — shotcalling și partea hărții a junglerului pe roster (parțial):
+ *   hierarchy: 1 shotcaller + ≥ 2 follower („Clear hierarchy: Keria leads, the rest follow”);
+ *   neglectedAdc: topside_jungler cu un ADC resource_hog;
+ *   sideNote: junglerul joacă pentru un resource_hog, iar partea opusă are weakside_ready („Oner plays for Peyz; Doran
+ *     holds top on weakside”).
+ */
+function getMacroFit(roster: Partial<Record<Role, string>>, find: (playerId: string) => Player | undefined, includeInactive = false) {
+  const playerOn = (role: Role) => (roster[role] ? find(roster[role]!) : undefined);
+  const has = (player: Player | undefined, id: PlayerTraitId) => (includeInactive || isActiveTraitId(id)) && hasTrait(player, id);
+  const members = ROLE_ORDER.flatMap((role) => (playerOn(role) ? [{ role, player: playerOn(role)! }] : []));
+  const shotcallers = members.filter((entry) => has(entry.player, "shotcaller"));
+  const followers = members.filter((entry) => has(entry.player, "follower"));
+  const hierarchy = shotcallers.length === 1 && followers.length >= 2
+    ? `Clear hierarchy: ${shotcallers[0].player.name} leads, ${followers.length === members.length - 1 ? "the rest follow" : `${joinNames(followers.map((entry) => entry.player.name))} follow`}`
+    : null;
+  const jungler = playerOn("jungle");
+  const side = has(jungler, "topside_jungler") ? "top" : has(jungler, "botside_jungler") ? "bot" : null;
+  const adc = playerOn("adc");
+  const neglectedAdc = side === "top" && has(adc, "resource_hog") ? "Topside jungler with a resource-hungry ADC: bot lane will feel neglected" : null;
+  let sideNote: string | null = null;
+  if (side && jungler) {
+    const sideRoles: Role[] = side === "top" ? ["top", "mid"] : ["adc"];
+    const oppositeRoles: Role[] = side === "top" ? ["adc"] : ["top"];
+    const carry = sideRoles.map(playerOn).find((player) => has(player, "resource_hog"));
+    const weakside = oppositeRoles.map((role) => ({ role, player: playerOn(role) })).find((entry) => has(entry.player, "weakside_ready"));
+    if (carry && weakside) sideNote = `${jungler.name} plays for ${carry.name}; ${weakside.player!.name} holds ${weakside.role === "adc" ? "bot" : "top"} on weakside`;
+  }
+  return { filled: members.length, shotcallers, followers, hierarchy, neglectedAdc, sideNote };
 }
 
 const ADVICE_LEVEL_ORDER: TeamFitAdvice["level"][] = ["warning", "tip", "good"];
@@ -195,7 +236,15 @@ function buildLiveTeamFit(fit: TeamFit, roster: Partial<Record<Role, string>>, f
   if (withTrait("signature_player").length >= 3) add({ id: "draft-signature-heavy", dimension: "draft", level: "warning", text: "Three signature players: bans will hurt this roster" });
   if (withTrait("series_adapter").length >= 2) add({ id: "draft-adapters", dimension: "draft", level: "good", text: "This roster gets better as the series goes on" });
   if (withTrait("fast_starter").length >= 2) add({ id: "draft-fast-starters", dimension: "draft", level: "good", text: "Strong starts: aim to win game 1" });
-  // Shotcalling: vine cu faza 3 (trait-urile shotcaller / follower).
+  // Shotcalling (PLAYER_TRAITS faza 3, TEAM_FIT_LIVE §1.3; doar cu familia Macro activă)
+  if (isActiveTraitId("shotcaller") && members.length) {
+    const macro = getMacroFit(roster, find);
+    if (macro.shotcallers.length >= 2) add({ id: "shotcalling-two", dimension: "shotcalling", level: "warning", text: "Two shotcallers: expect clashes on comms" });
+    if (macro.shotcallers.length === 0 && empty <= 1) add({ id: "shotcalling-none", dimension: "shotcalling", level: "tip", text: "No shotcaller yet: macro will be messy" });
+    if (macro.hierarchy) add({ id: "shotcalling-hierarchy", dimension: "shotcalling", level: "good", text: macro.hierarchy });
+    if (macro.neglectedAdc) add({ id: "resources-jungle-neglects-adc", dimension: "resources", level: "warning", text: macro.neglectedAdc });
+    if (macro.sideNote) add({ id: "resources-jungle-side", dimension: "resources", level: "good", text: macro.sideNote });
+  }
 }
 
 export type TeamFitChange = {

@@ -21,7 +21,9 @@ import {
 } from "./matchSimulationUtils";
 import { ROLE_ORDER } from "./draftTypes";
 import { NEUTRAL_RESOURCE_DEMAND, getResourceDemand } from "./championResource";
-import { getLowResourceTrait, getTrait } from "@/app/utils/playerTraitUtils";
+import { getActiveTrait, getLowResourceTrait, getTrait } from "@/app/utils/playerTraitUtils";
+import { isActiveTraitId } from "@/app/types/playerTraits";
+import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,6 +31,8 @@ export type TeamChemistry = {
   leadershipBonus: number;
   communicationBonus: number;
   teamChemistryScore: number;
+  /** PLAYER_TRAITS §8.3 — shotcalling (engleză): „Two voices on comms”, „No shotcaller”, „Keria leads, 2 follow”. */
+  notes: string[];
 };
 
 export type PlayerPersonalityModifiers = {
@@ -65,6 +69,8 @@ export function computeTeamChemistry(
   let bestLeadership = 0;
   let totalComm = 0;
   let count = 0;
+  const shotcallers: Player[] = [];
+  const followers: Player[] = [];
 
   for (const role of ROLE_ORDER) {
     const playerId = roster[role];
@@ -78,19 +84,38 @@ export function computeTeamChemistry(
     if (leadership > bestLeadership) bestLeadership = leadership;
     totalComm += communication;
     count += 1;
+    if (getActiveTrait(player, "shotcaller")) shotcallers.push(player);
+    if (getActiveTrait(player, "follower")) followers.push(player);
   }
 
-  if (count === 0) return { leadershipBonus: 0, communicationBonus: 0, teamChemistryScore: 5 };
+  if (count === 0) return { leadershipBonus: 0, communicationBonus: 0, teamChemistryScore: 5, notes: [] };
 
   const avgComm = totalComm / count;
 
   // Leadership: best leader above 65 → positive bonus, below 45 → penalty
   // Scale: 0-99 → roughly -0.4 to +0.6 bonus
-  const leadershipBonus = round1(clamp((bestLeadership - 55) / 100 * 1.0, -0.4, 0.6));
+  let leadershipBonus = round1(clamp((bestLeadership - 55) / 100 * 1.0, -0.4, 0.6));
 
   // Communication: team average above 65 → coordination bonus, below 45 → penalty
   // Scale: 0-99 → roughly -0.35 to +0.5 bonus
-  const communicationBonus = round1(clamp((avgComm - 55) / 100 * 0.85, -0.35, 0.5));
+  let communicationBonus = round1(clamp((avgComm - 55) / 100 * 0.85, -0.35, 0.5));
+
+  // PLAYER_TRAITS §8.3 — shotcalling (doar cu familia Macro activă; fără trait-uri, valorile de mai sus).
+  const notes: string[] = [];
+  if (isActiveTraitId("shotcaller")) {
+    const T = DRAFT_THINKING_CONFIG.traits;
+    if (shotcallers.length === 1) {
+      const bonus = Math.min(T.followerBonusMax, T.followerLeadershipBonus * followers.length);
+      leadershipBonus = round1(leadershipBonus + bonus);
+      if (followers.length) notes.push(`${shotcallers[0].name} leads, ${followers.map((player) => player.name).join(", ")} ${followers.length > 1 ? "follow" : "follows"}`);
+    } else if (shotcallers.length >= 2) {
+      communicationBonus = round1(communicationBonus - T.extraShotcallerCommPenalty * (shotcallers.length - 1));
+      notes.push(`Two voices on comms (${shotcallers.map((player) => player.name).join(", ")})`);
+    } else if (leadershipBonus > T.noShotcallerLeadershipCap) {
+      leadershipBonus = T.noShotcallerLeadershipCap;
+      notes.push("No shotcaller: macro calls were messy");
+    }
+  }
 
   // Combined team chemistry score (0-10 scale, centered at 5)
   const teamChemistryScore = round1(clamp(
@@ -99,7 +124,7 @@ export function computeTeamChemistry(
     10
   ));
 
-  return { leadershipBonus, communicationBonus, teamChemistryScore };
+  return { leadershipBonus, communicationBonus, teamChemistryScore, notes };
 }
 
 // ─── Per-player personality modifiers ───────────────────────────────────────

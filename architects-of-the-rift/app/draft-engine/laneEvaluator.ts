@@ -105,6 +105,28 @@ function laneTraitEffect(playerId: string | null, matchup: number, order: "blind
   return result;
 }
 
+/**
+ * PLAYER_TRAITS §8.3 — junglerul pe o parte a hărții: topside_jungler → + jungleSideBoost × intensity pe top și mid,
+ * − jungleSideAwayPenalty pe adc și support; botside_jungler invers. Lanerul ajutat cu resource_hog primește încă
+ * + jungleSideHogBonus; un weakside_ready de pe partea opusă nu primește malusul (e obișnuit fără jungler).
+ */
+function jungleSideEffect(role: Role, roster: Partial<Record<Role, string>>): { delta: number; note: string | null } {
+  if (role === "jungle") return { delta: 0, note: null };
+  const jungler = getPlayerByIdSafe(roster.jungle ?? null);
+  const side = getActiveTrait(jungler, "topside_jungler") ?? getActiveTrait(jungler, "botside_jungler");
+  if (!jungler || !side) return { delta: 0, note: null };
+  const T = DRAFT_THINKING_CONFIG.traits;
+  const laner = getPlayerByIdSafe(roster[role] ?? null);
+  const topside = role === "top" || role === "mid";
+  const helped = side.id === "topside_jungler" ? topside : !topside;
+  if (helped) {
+    const hog = getActiveTrait(laner, "resource_hog") ? T.jungleSideHogBonus : 0;
+    return { delta: T.jungleSideBoost * side.intensity + hog, note: hog ? "jungle plays for the carry" : "jungle help" };
+  }
+  if (getActiveTrait(laner, "weakside_ready")) return { delta: 0, note: "weakside held" };
+  return { delta: -T.jungleSideAwayPenalty, note: "jungle away" };
+}
+
 function buildRoleBreakdown(
   role: Role,
   bluePlayerId: string | null,
@@ -118,6 +140,8 @@ function buildRoleBreakdown(
   const redMatchup = getLaneMatchupEdge(role, lane.assignmentsRed, lane.assignmentsBlue, lane.redRoster, lane.blueRoster);
   const blueTrait = laneTraitEffect(bluePlayerId, blueMatchup, lane.laneOrder?.blue[role], lane.adapted?.blue[role]);
   const redTrait = laneTraitEffect(redPlayerId, redMatchup, lane.laneOrder?.red[role], lane.adapted?.red[role]);
+  const blueSide = jungleSideEffect(role, lane.blueRoster);
+  const redSide = jungleSideEffect(role, lane.redRoster);
 
   const blueDraftFit = playerChampionDraftFit(bluePlayerId, blueChampionId);
   const redDraftFit = playerChampionDraftFit(redPlayerId, redChampionId);
@@ -168,7 +192,8 @@ function buildRoleBreakdown(
       blueMatchup * 0.42 * DRAFT_THINKING_CONFIG.simulation.laneMatchupScale * blueTrait.factor +
       blueHistoryMatchup * 0.3 +
       blueHistoryLaneBonus * 0.7 -
-      blueTrait.penalty,
+      blueTrait.penalty +
+      blueSide.delta,
     0,
     10
   );
@@ -184,7 +209,8 @@ function buildRoleBreakdown(
       redMatchup * 0.42 * DRAFT_THINKING_CONFIG.simulation.laneMatchupScale * redTrait.factor +
       redHistoryMatchup * 0.3 +
       redHistoryLaneBonus * 0.7 -
-      redTrait.penalty,
+      redTrait.penalty +
+      redSide.delta,
     0,
     10
   );
@@ -212,6 +238,9 @@ function buildRoleBreakdown(
   // PLAYER_TRAITS §7.4: „blue counter-pick edge”, „red blind held”, „blue lane dominance” …
   for (const note of blueTrait.notes) noteParts.push(`blue ${note}`);
   for (const note of redTrait.notes) noteParts.push(`red ${note}`);
+  // PLAYER_TRAITS §8.3: „blue jungle help”, „red jungle away”, „blue jungle plays for the carry”.
+  if (blueSide.note) noteParts.push(`blue ${blueSide.note}`);
+  if (redSide.note) noteParts.push(`red ${redSide.note}`);
 
   return {
     role,
