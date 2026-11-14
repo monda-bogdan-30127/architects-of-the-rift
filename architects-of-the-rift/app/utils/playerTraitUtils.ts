@@ -240,7 +240,9 @@ function buildLiveTeamFit(fit: TeamFit, roster: Partial<Record<Role, string>>, f
   if (isActiveTraitId("shotcaller") && members.length) {
     const macro = getMacroFit(roster, find);
     if (macro.shotcallers.length >= 2) add({ id: "shotcalling-two", dimension: "shotcalling", level: "warning", text: "Two shotcallers: expect clashes on comms" });
-    if (macro.shotcallers.length === 0 && empty <= 1) add({ id: "shotcalling-none", dimension: "shotcalling", level: "tip", text: "No shotcaller yet: macro will be messy" });
+    // TEAM_FIT_LIVE §1.3: un slot gol → tip; roster complet → warning (același id).
+    if (macro.shotcallers.length === 0 && empty === 1) add({ id: "shotcalling-none", dimension: "shotcalling", level: "tip", text: "No shotcaller yet: macro will be messy" });
+    if (macro.shotcallers.length === 0 && empty === 0) add({ id: "shotcalling-none", dimension: "shotcalling", level: "warning", text: "No shotcaller: macro will be messy" });
     if (macro.hierarchy) add({ id: "shotcalling-hierarchy", dimension: "shotcalling", level: "good", text: macro.hierarchy });
     if (macro.neglectedAdc) add({ id: "resources-jungle-neglects-adc", dimension: "resources", level: "warning", text: macro.neglectedAdc });
     if (macro.sideNote) add({ id: "resources-jungle-side", dimension: "resources", level: "good", text: macro.sideNote });

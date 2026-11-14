@@ -2161,11 +2161,13 @@ function withTestData<T>(
   // M3. Team Fit: 2 shotcalleri → shotcalling-two; roster complet fără shotcaller → shotcalling-none; topside + ADC hog → warning.
   const fitTwo = withTestData({ traits: { ...reset, [roster.support!]: trait("shotcaller"), [roster.mid!]: trait("shotcaller") } }, () => computeTeamFit(roster));
   const fitNone = withTestData({ traits: reset }, () => computeTeamFit(roster));
+  const fitNoneOpen = withTestData({ traits: reset }, () => computeTeamFit({ ...roster, support: undefined }));
+  const noneLevel = (fit: ReturnType<typeof computeTeamFit>) => fit.advice.find((entry) => entry.id === "shotcalling-none")?.level;
   const fitSide = withTestData({ traits: { ...reset, [roster.support!]: trait("shotcaller"), [roster.jungle!]: trait("topside_jungler"), [roster.adc!]: trait("resource_hog") } }, () => computeTeamFit(roster));
   check(
-    "M3. Team Fit: shotcalling-two, shotcalling-none, topside jungler cu ADC hog",
-    adviceIds(fitTwo).includes("shotcalling-two") && adviceIds(fitNone).includes("shotcalling-none") && adviceIds(fitSide).includes("resources-jungle-neglects-adc"),
-    `2: [${adviceIds(fitTwo).join(", ")}]; 0: [${adviceIds(fitNone).join(", ")}]; side: „${fitSide.warnings.join("; ")}”`,
+    "M3. Team Fit: shotcalling-two, shotcalling-none (tip cu un slot gol, warning cu roster complet), topside jungler cu ADC hog",
+    adviceIds(fitTwo).includes("shotcalling-two") && noneLevel(fitNone) === "warning" && noneLevel(fitNoneOpen) === "tip" && adviceIds(fitSide).includes("resources-jungle-neglects-adc"),
+    `2: [${adviceIds(fitTwo).join(", ")}]; 0 complet: ${noneLevel(fitNone)}; 0 cu un slot gol: ${noneLevel(fitNoneOpen)}; side: „${fitSide.warnings.join("; ")}”`,
   );
 }
 
