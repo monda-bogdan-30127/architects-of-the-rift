@@ -544,7 +544,8 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
 
   for (const role of ROLE_ORDER) {
     const playerId = context.roster[role];
-    const championId = context.championIds.find((id) => getChampionById(id)?.roles.includes(role));
+    // DRAFT_SIM_ALIGNMENT §1: campionul atribuit pe rol (nu primul care poate juca rolul — greșit la flex).
+    const championId = assignments[role];
     if (!playerId || !championId) continue;
     const player = context.playersById.get(playerId) ?? null;
     const champion = getChampionById(championId);
@@ -555,7 +556,8 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
 
   const comfortScore = average(comfortValues);
   const playerFitScore = average(fitValues);
-  const rosterExecutionScore = evaluatePlayerPower(context.roster, Object.fromEntries(context.championIds.map((id, idx) => [ROLE_ORDER[idx] ?? ROLE_ORDER[0], id])) as Partial<Record<Role, string>>);
+  // DRAFT_SIM_ALIGNMENT §1: rolurile reale (nu ordinea pick-urilor).
+  const rosterExecutionScore = evaluatePlayerPower(context.roster, assignments);
 
   let structurePenalty = 0;
   if (context.championIds.length >= 3 && engageScore < 4.2) structurePenalty += 0.8;
