@@ -681,7 +681,8 @@ function buildPlayerScores(args: {
       const teamfight = playerSkill(
         "teamfight",
         entry.playerId,
-        playerTeamfightScore(entry.playerId, DRAFT_THINKING_CONFIG.traits.conditionalSetupTermEnabled ? setupDependenceFactor(player, setup) : undefined),
+        // NEXT_STEPS B4: termenul setupDependence din teamfight e condiționat de setup-ul echipei (fost flag, acum mereu).
+        playerTeamfightScore(entry.playerId, setupDependenceFactor(player, setup)),
       );
       const consistency = playerSkill("consistency", entry.playerId);
       const archetypeFit = playerChampionArchetypeFit(entry.playerId, entry.championId);

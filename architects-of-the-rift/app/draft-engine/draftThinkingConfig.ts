@@ -490,11 +490,6 @@ export const DRAFT_THINKING_CONFIG = {
     needsSetupLowPenalty: 0.3,
     /** Draft: candidat pe alt rol care crește setup-ul spre setupHigh, cu un needs_setup în echipă: + atât × intensity × fracția. */
     setupDraftBonus: 0.3,
-    /**
-     * Teamfight: termenul `setupDependence × 0.1` condiționat de setup-ul echipei (pentru toți jucătorii, nu doar cu
-     * trait). Schimbă amprenta și fără trait-uri, deci e separat și oprit.
-     */
-    conditionalSetupTermEnabled: false,
     /** Rating: series_adapter pe fiecare joc după primul (max 3 jocuri) și extra-ul de fearless (toate seriile sunt fearless). */
     seriesAdapterPerGame: 0.1,
     seriesAdapterFearlessExtra: 0.05,

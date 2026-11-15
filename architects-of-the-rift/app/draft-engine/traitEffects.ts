@@ -39,7 +39,7 @@ export function getSetupRatingEffect(player: Player | null | undefined, setup: n
 }
 
 /**
- * Factorul termenului `setupDependence` din teamfight când e condiționat de setup (flag conditionalSetupTermEnabled):
+ * Factorul termenului `setupDependence` din teamfight, condiționat de setup-ul echipei (NEXT_STEPS B4):
  * 0 la setup ≤ setupLow, 1 la ≥ setupHigh, liniar între. Un self_sufficient păstrează termenul întreg.
  */
 export function setupDependenceFactor(player: Player | null | undefined, setup: number): number {

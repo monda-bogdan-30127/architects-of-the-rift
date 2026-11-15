@@ -313,8 +313,8 @@ export function playerLaningScore(playerId: string | null) {
 }
 
 /**
- * `setupFactor` (PLAYER_TRAITS §7.4, flag conditionalSetupTermEnabled): termenul setupDependence ajută doar dacă echipa
- * dă setup (0..1, vezi setupDependenceFactor). Lipsă = termenul necondiționat de până acum.
+ * `setupFactor` (PLAYER_TRAITS §7.4, NEXT_STEPS B4): termenul setupDependence ajută doar dacă echipa dă setup (0..1,
+ * vezi setupDependenceFactor; simularea îl trimite mereu). Lipsă = termenul întreg (scorul jucătorului în afara meciului).
  */
 export function playerTeamfightScore(playerId: string | null, setupFactor?: number) {
   const player = getPlayerByIdSafe(playerId);
