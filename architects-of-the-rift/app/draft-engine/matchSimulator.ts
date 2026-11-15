@@ -396,6 +396,32 @@ function getProfileWeights(profile: MatchProfile) {
   }
 }
 
+/**
+ * NEXT_STEPS B6 — efectele de trait care schimbau doar nota jucătorului (buildPlayerScores, calculat după decizie)
+ * intră și în puterea jucătorilor pe faze, cu aceeași mărime pe jucător (medie pe cei 5):
+ *   needs_setup (setup-ul celorlalți 4) → mid și late; series_adapter / fast_starter (jocul din serie) → toate fazele.
+ * self_sufficient n-are efect de rating (doar scapă de malusul needs_setup), deci nu adaugă nimic.
+ */
+function getTeamTraitPhaseEffects(
+  roster: Partial<Record<Role, string>>,
+  assignments: Partial<Record<Role, string>>,
+  gameNumber: number,
+  bo: number,
+): { early: number; mid: number; late: number } {
+  const picks = Object.values(assignments).filter((id): id is string => Boolean(id));
+  let setupSum = 0;
+  let seriesSum = 0;
+  for (const role of ROLE_ORDER) {
+    const player = getPlayerById(roster[role] ?? "");
+    const championId = assignments[role];
+    if (!player || !championId) continue;
+    setupSum += getSetupRatingEffect(player, teamSetupFor(picks, championId));
+    seriesSum += getSeriesRatingEffect(player, gameNumber, bo);
+  }
+  const count = ROLE_ORDER.length;
+  return { early: seriesSum / count, mid: (seriesSum + setupSum) / count, late: (seriesSum + setupSum) / count };
+}
+
 function computePhaseBreakdown(args: {
   roster: Partial<Record<Role, string>>;
   assignments: Partial<Record<Role, string>>;
@@ -407,12 +433,15 @@ function computePhaseBreakdown(args: {
   side: "blue" | "red";
   tendencyBonus?: { earlyBonus: number; midBonus: number; lateBonus: number };
   teamfightEdge?: number;
+  /** NEXT_STEPS B6: efectele de trait pe rating-ul jucătorilor, ca medie pe echipă, în puterea jucătorilor pe faze. */
+  playerTraitEffects?: { early: number; mid: number; late: number };
 }): PhaseBreakdown {
 
   const { roster, assignments, laneScore, draftPower, matchProfile, momentum, seedRoot, side, tendencyBonus, teamfightEdge } = args;
+  const traitEffects = args.playerTraitEffects ?? { early: 0, mid: 0, late: 0 };
 
   // ─── EARLY (0-15 min): lane + early player/champion power ─────────────
-  const earlyPlayerStr = getTeamPhaseStrength(roster, assignments, "early");
+  const earlyPlayerStr = getTeamPhaseStrength(roster, assignments, "early") + traitEffects.early;
   const earlyChampPower = getTeamChampionPhasePower(assignments, "early");
   const earlyTotal = clamp(
     laneScore * 0.38 + earlyPlayerStr * 0.28 + earlyChampPower * DRAFT_THINKING_CONFIG.simulation.phaseChampionWeights.early +
@@ -423,7 +452,7 @@ function computePhaseBreakdown(args: {
   );
 
   // ─── MID (15-25 min): objectives + carry-over from early ──────────────
-  const midPlayerStr = getTeamPhaseStrength(roster, assignments, "mid");
+  const midPlayerStr = getTeamPhaseStrength(roster, assignments, "mid") + traitEffects.mid;
   const midChampPower = getTeamChampionPhasePower(assignments, "mid");
   const earlyCarryOver = (earlyTotal - 5) * 0.2;
   const midTotal = clamp(
@@ -436,7 +465,7 @@ function computePhaseBreakdown(args: {
   );
 
   // ─── LATE (25+ min): teamfight + clutch + carry-over from mid ─────────
-  const latePlayerStr = getTeamPhaseStrength(roster, assignments, "late");
+  const latePlayerStr = getTeamPhaseStrength(roster, assignments, "late") + traitEffects.late;
   const lateChampPower = getTeamChampionPhasePower(assignments, "late");
   const midCarryOver = (midTotal - 5) * 0.15;
   const lateTotal = clamp(
@@ -1164,7 +1193,8 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     seedRoot,
     side: "blue",
     tendencyBonus: blueTendencyEvents,
-    teamfightEdge: teamfight.blueTeamfightEdge
+    teamfightEdge: teamfight.blueTeamfightEdge,
+    playerTraitEffects: getTeamTraitPhaseEffects(blueRoster, assignmentsBlue, input.game.number, input.series.bo),
   });
 
   const redPhases = computePhaseBreakdown({
@@ -1177,7 +1207,8 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     seedRoot,
     side: "red",
     tendencyBonus: redTendencyEvents,
-    teamfightEdge: teamfight.redTeamfightEdge
+    teamfightEdge: teamfight.redTeamfightEdge,
+    playerTraitEffects: getTeamTraitPhaseEffects(redRoster, assignmentsRed, input.game.number, input.series.bo),
   });
 
   // UPGRADE 12: Lane snowball — early advantage carries into mid/late (capped)
