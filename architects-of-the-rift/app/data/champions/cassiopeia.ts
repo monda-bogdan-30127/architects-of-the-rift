@@ -76,6 +76,7 @@ export const cassiopeia = createChampion({
         { championId: "yone", level: 2, phase: "all", note: "Grounding negates E and R (dashes)" },
         { championId: "zed", level: 2, phase: "all", note: "Grounding and R (stun) on a melee assassin" },
         { championId: "orianna", level: 1, phase: "all" },
+        { championId: "ryze", level: 2, phase: "all"},
       ],
       stats: {
         picks: 15,
@@ -105,7 +106,6 @@ export const cassiopeia = createChampion({
     adc: {
       goodVs: [
         { championId: "ziggs", level: 2, phase: "all", note: "Sustained DPS vs a poke mage; favorable in 2026 pro play (12-2)" },
-        { championId: "ryze", level: 2, phase: "all"},
       ],
       stats: {
         picks: 1,
