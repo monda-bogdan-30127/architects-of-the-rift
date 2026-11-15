@@ -39,6 +39,8 @@ import type {
   Side,
 } from "@/app/draft-engine/draftTypes";
 import { getChampionGrade } from "@/app/utils/championMasteryUtils";
+import { championMasteryOverrides } from "@/app/data/championMasteryOverrides";
+import type { ChampionMasteryGrade } from "@/app/types/championMastery";
 import { getMatchupValue } from "@/app/draft-engine/matchupScoring";
 import { getWeaknessCoverage } from "@/app/draft-engine/matchupGrades";
 import { matchupPowerAgainst } from "@/app/draft-engine/matchSimulationUtils";
@@ -879,17 +881,31 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
       return p.role === "top" && counterIds.some((id) => RANK[counterGrades[id]] >= 4);
     })?.id;
 
+  // 23. Fără counter ≥ B pe top → Olaf în primele 3 ban-uri. Din 693dc85 (Jax goodVs Olaf) fiecare top din ligă are
+  // un counter ≥ B la Olaf (Gnar 37/42, Jax 32/42), deci cazul nu mai există în date: se construiește coborând
+  // temporar la C, doar pentru un top, grade-urile pe counterii lui Olaf (championMasteryOverrides).
   setTeamSeasonStoreOverride(olafSeason());
   const threat = getSeasonChampionThreat(RED, "olaf", baseRosters[RED]).threat;
-
-  // 23. Fără counter ≥ B pe top → Olaf în primele 3 ban-uri.
-  const noCounterTop = topWith("none");
+  const noCounterTop = topWith("none") ?? teamPlayers.find((p) => p.role === "top" && !hasThinPool(p, "top") && p.teamId !== RED)?.id;
+  const masteryOverrides = championMasteryOverrides as Record<string, Record<string, ChampionMasteryGrade> | undefined>;
+  const overridesBefore = noCounterTop ? masteryOverrides[noCounterTop] : undefined;
+  if (noCounterTop && !topWith("none")) {
+    const player = playersById.get(noCounterTop)!;
+    const grades: Record<string, ChampionMasteryGrade> = Object.fromEntries(champions.map((c) => [c.id, getChampionGrade(player, c.id)]));
+    for (const id of getSeasonCounters("olaf", "top", { top: noCounterTop }, openSet).counterIds) grades[id] = "C";
+    masteryOverrides[noCounterTop] = grades;
+  }
+  const countersLeft = noCounterTop ? getSeasonCounters("olaf", "top", { top: noCounterTop }, openSet).counterIds.length : -1;
   const bansA = noCounterTop ? bluePhaseOneBans(makeSave({ [BLUE]: { top: noCounterTop } }), "s23") : [];
+  if (noCounterTop) {
+    if (overridesBefore) masteryOverrides[noCounterTop] = overridesBefore;
+    else delete masteryOverrides[noCounterTop];
+  }
   const olafBan = bansA.find((entry) => entry.championId === "olaf");
   check(
     "23. Sezon: Olaf 6–1, fără counter → ban în faza 1",
-    Boolean(noCounterTop) && Boolean(olafBan) && hasTag(olafBan?.breakdown, "season-ban"),
-    `amenințare ${threat.toFixed(2)}; top ${noCounterTop}: ban-uri albaștri ${bansA.map((entry) => entry.championId).join(", ")}; „${olafBan?.breakdown?.explanation?.[0] ?? "—"}”`,
+    Boolean(noCounterTop) && countersLeft === 0 && Boolean(olafBan) && hasTag(olafBan?.breakdown, "season-ban"),
+    `amenințare ${threat.toFixed(2)}; top ${noCounterTop} (counteri ≥ B rămași: ${countersLeft}): ban-uri albaștri ${bansA.map((entry) => entry.championId).join(", ")}; „${olafBan?.breakdown?.explanation?.[0] ?? "—"}”`,
   );
 
   // 24. Avem un counter A pe top → Olaf nu e banat; dacă îl iau, counter-ul primește `season-counter`.
