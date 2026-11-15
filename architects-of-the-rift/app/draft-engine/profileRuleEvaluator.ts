@@ -72,7 +72,7 @@ export function evaluateInteractionScore(allies: Champion[], enemies: Champion[]
     const allyCounters = new Set(profile.interactionProfile.counters);
     const allyCounteredBy = new Set(profile.interactionProfile.counteredBy);
 
-    if (allyCounters.has("dash") && (enemyTags.has("dive") || enemyTags.has("dash-heavy"))) score += 1.4;
+    if (allyCounters.has("dash") && enemyTags.has("dive")) score += 1.4;
     if (allyCounters.has("projectile") && enemyTags.has("poke")) score += 1.1;
     if (allyCounteredBy.has("disengage") && enemyTags.has("zone-control")) score -= 1.0;
     if (allyCounteredBy.has("hard-cc") && enemyTags.has("pick")) score -= 1.2;

@@ -13,10 +13,6 @@ export const CHAMPION_TAGS = [
   "lane-bully", "primary-carry",
   // ─── Citite prin identitatea echipelor (`preferredTags` / `avoidTags`, teamIdentitySystem.ts) ───
   "skirmish", "snowball",
-  // ─── Citite în cod, dar fără date și nederivate (citiri moarte până le scrie cineva) ───
-  "early-pressure", "mid-game", "item-dependent", "late-game", "hyperscale", "dash-heavy",
-  // advancedDraftReading.ts, `planCounters`
-  "disengage", "gap-closer", "hard-engage", "group-up", "backlineAccess", "split-push",
   // ─── Temporare: se mapează pe date (NEXT_STEPS A2.4), apoi se șterg ───
   /** → offer `antiTank`. */
   "frontline-killer", "frontline-breaker",

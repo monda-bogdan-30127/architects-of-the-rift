@@ -1,4 +1,5 @@
 import type { ChampionTag } from "@/app/types/championTags";
+import type { CompAttribute } from "@/app/types/compAttributes";
 // ═══════════════════════════════════════════════════════════════════════════
 // Upgrade 13 — Advanced Draft Reading + Simulation Events
 //
@@ -30,6 +31,11 @@ import { clamp, seededNoise } from "./matchSimulationUtils";
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ─── 1. Plan-adaptive ban logic ─────────────────────────────────────────────
+/** Strength-ul unui atribut în `offers` (0 dacă lipsește). */
+function offerStrength(champion: Champion, attribute: CompAttribute): number {
+  return champion.offers?.find((offer) => offer.type === attribute)?.strength ?? 0;
+}
+
 /**
  * Returns a bonus to ban score if the candidate is a natural enemy of the
  * AI's chosen draft plan. E.g. if AI plan is "dive", banning peel-heavy
@@ -48,20 +54,28 @@ export function getPlanAdaptiveBanBonus(
   if (!profile) return 0;
   const tags = new Set(profile.tags ?? []);
 
-  // Which tags are "natural enemies" of each plan?
+  // Which tags are "natural enemies" of each plan? NEXT_STEPS B5: `disengage` / `split-push` se citesc din offers
+  // (≥ 3); `gap-closer`, `hard-engage`, `group-up`, `backlineAccess` (fără date; acoperite de engage / dive) s-au scos.
   const planCounters: Record<DraftPlanType, ChampionTag[]> = {
-    "dive":          ["peel", "warden", "enchanter", "disengage", "anti-dive"],
-    "poke":          ["dive", "engage", "gap-closer", "hard-engage"],
-    "pick":          ["warden", "peel", "enchanter", "group-up"],
-    "front-to-back": ["dive", "backlineAccess", "burst", "assassin"],
-    "teamfight":     ["pick", "poke", "split-push"],
+    "dive":          ["peel", "warden", "enchanter", "anti-dive"],
+    "poke":          ["dive", "engage"],
+    "pick":          ["warden", "peel", "enchanter"],
+    "front-to-back": ["dive", "burst", "assassin"],
+    "teamfight":     ["pick", "poke"],
     "protect-carry": ["dive", "pick", "burst", "assassin"],
+  };
+  const planCounterOffers: Partial<Record<DraftPlanType, CompAttribute[]>> = {
+    "dive":      ["disengage"],
+    "teamfight": ["splitpush"],
   };
 
   const threateningTags = planCounters[plan.type] ?? [];
   let matches = 0;
   for (const tag of threateningTags) {
     if (tags.has(tag)) matches += 1;
+  }
+  for (const attribute of planCounterOffers[plan.type] ?? []) {
+    if (offerStrength(candidate, attribute) >= 3) matches += 1;
   }
 
   if (matches === 0) return 0;
@@ -371,16 +385,19 @@ export function computeDraftSpikeWindows(
       if (!profile) continue;
       const tags = new Set(profile.tags ?? []);
 
+      // NEXT_STEPS B5: `early-pressure` → offer earlyPrio ≥ 3; `late-game` / `hyperscale` → offer scaling ≥ 4;
+      // `mid-game` / `item-dependent` (fără date și fără echivalent) s-au scos.
+      const lateScaler = offerStrength(champ, "scaling") >= 4;
+
       // Early-game power
       if (tags.has("lane-bully") || tags.has("early-game")) earlySpikes += 1.5;
-      if (tags.has("early-pressure")) earlySpikes += 1.0;
+      if (offerStrength(champ, "earlyPrio") >= 3) earlySpikes += 1.0;
 
       // Mid-game power
-      if (tags.has("mid-game") || tags.has("item-dependent")) midSpikes += 1.3;
-      if (tags.has("burst") && !tags.has("late-game")) midSpikes += 0.8;
+      if (tags.has("burst") && !lateScaler) midSpikes += 0.8;
 
       // Late-game power
-      if (tags.has("scaling") || tags.has("late-game") || tags.has("hyperscale")) lateSpikes += 1.5;
+      if (tags.has("scaling") || lateScaler) lateSpikes += 1.5;
       if (tags.has("dps") && !tags.has("early-game")) lateSpikes += 0.7;
 
       // Fallback: use phase power from champion data if available
