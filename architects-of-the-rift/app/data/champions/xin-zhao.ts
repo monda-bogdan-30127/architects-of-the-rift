@@ -92,7 +92,7 @@ export const xinZhao = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "dive", "burst", "skirmish", "primary-carry", "ad"],
+        tags: ["melee", "dive", "burst", "skirmish", "primary-carry"],
         abilities: [
           { key: "q", name: "Three Talon Strike", effects: [{ type: "dps", strength: 6, reliability: 8, priority: 6 }, { type: "knockup", subtype: "3-hit-conditional", strength: 7, reliability: 7, priority: 7 }] },
           { key: "e", name: "Audacious Charge", effects: [{ type: "dash", strength: 8, reliability: 8, priority: 8 }, { type: "slow", strength: 5, reliability: 8, priority: 5 }, { type: "setup", subtype: "backline-entry", strength: 7, reliability: 8, priority: 7 }] },

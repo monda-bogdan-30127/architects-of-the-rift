@@ -66,7 +66,7 @@ export const veigar = createChampion({
       goodVs: [],
       stats: null,
       profile: {
-        tags: ["ranged", "control", "burst", "pick", "zone-control", "ap"],
+        tags: ["ranged", "burst", "pick", "zone-control"],
         abilities: [
           { key: "w", name: "Dark Matter", effects: [{ type: "burst", strength: 9, reliability: 5, priority: 9 }] },
           { key: "e", name: "Event Horizon", effects: [{ type: "zone-control", subtype: "cage", strength: 10, reliability: 8, priority: 10 }, { type: "stun", subtype: "edge-contact", strength: 9, reliability: 7, priority: 9 }, { type: "anti-engage", subtype: "area-denial", strength: 9, reliability: 8, priority: 9 }] },

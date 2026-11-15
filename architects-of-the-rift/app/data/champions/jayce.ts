@@ -115,7 +115,7 @@ export const jayce = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["ranged", "ad", "poke", "lane-priority", "siege"],
+        tags: ["ranged", "poke"],
         abilities: [
           { key: "q", name: "Shock Blast / To the Skies!", effects: [{ type: "poke", subtype: "accelerated-blast", strength: 9, reliability: 7, priority: 9 }, { type: "burst", strength: 7, reliability: 7, priority: 7 }] },
           { key: "e", name: "Thundering Blow / Acceleration Gate", effects: [{ type: "displacement", subtype: "self-peel-knockback", strength: 6, reliability: 8, priority: 6 }, { type: "setup", subtype: "poke-enable", strength: 8, reliability: 9, priority: 8 }] },

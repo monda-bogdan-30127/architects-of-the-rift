@@ -106,7 +106,7 @@ export const renekton = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "bruiser", "lane-bully", "setup", "early-game"],
+        tags: ["melee", "lane-bully", "setup", "early-game"],
         abilities: [
           { key: "w", name: "Ruthless Predator", effects: [{ type: "stun", strength: 7, reliability: 9, priority: 7 }, { type: "burst", subtype: "targeted-trade", strength: 7, reliability: 9, priority: 7 }] },
           { key: "e", name: "Slice and Dice", effects: [{ type: "dash", strength: 7, reliability: 8, priority: 7 }, { type: "mobility", subtype: "double-dash-window", strength: 7, reliability: 8, priority: 7 }] },

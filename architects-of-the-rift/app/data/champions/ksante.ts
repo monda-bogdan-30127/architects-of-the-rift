@@ -91,7 +91,7 @@ export const ksante = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "frontline", "warden", "tank", "anti-dive", "blindable"],
+        tags: ["melee", "frontline", "warden", "tank", "anti-dive"],
         abilities: [
           { key: "q", name: "Ntofo Strikes", effects: [{ type: "slow", strength: 6, reliability: 8, priority: 6 }, { type: "knockup", subtype: "3rd-cast", strength: 7, reliability: 7, priority: 7 }] },
           { key: "w", name: "Path Maker", effects: [{ type: "unstoppable", strength: 7, reliability: 8, priority: 8 }, { type: "displacement", subtype: "charged-push", strength: 8, reliability: 7, priority: 8 }] },

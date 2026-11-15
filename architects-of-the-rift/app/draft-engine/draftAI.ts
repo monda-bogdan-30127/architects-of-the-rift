@@ -1,3 +1,4 @@
+import type { ChampionTag } from "@/app/types/championTags";
 import { teams } from "@/app/data/teams";
 import { players } from "@/app/data/players";
 import type { Champion, Role } from "@/app/types/champion";
@@ -271,7 +272,8 @@ function hasCurrentSideLastRotation(game: DraftGameState, side: Side) {
 function getTeamTagBias(teamSlug: string, champion: Champion) {
   const identity = teams.find((entry) => entry.slug === teamSlug)?.identity;
   if (!identity) return 0;
-  const tagSet = new Set(champion.championTags ?? []);
+  // preferredTags / avoidTags ale echipelor sunt text liber (date de echipă), deci comparația e pe string.
+  const tagSet = new Set<string>(champion.championTags ?? []);
   const STYLE = DRAFT_THINKING_CONFIG.style;
   let bias = 0;
   for (const tag of identity.preferredTags ?? []) if (tagSet.has(tag)) bias += STYLE.preferredTagBonus;
@@ -724,7 +726,7 @@ function getArchetypeAffinityScore(
   let matchCount = 0;
 
   // Map champion tags to player archetype scores
-  const tagMap: Array<[string, number]> = [
+  const tagMap: Array<[ChampionTag, number]> = [
     ["engage", archetype.engage],
     ["enchanter", archetype.enchanter],
     ["frontline", archetype.tank],

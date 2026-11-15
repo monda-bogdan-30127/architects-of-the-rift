@@ -90,7 +90,7 @@ export const yorick = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "splitpush", "side-lane", "structure-damage"],
+        tags: ["melee"],
         abilities: [
           { key: "q", name: "Last Rites", effects: [{ type: "dps", subtype: "extended-side-lane", strength: 7, reliability: 8, priority: 7 }] },
           { key: "w", name: "Dark Procession", effects: [{ type: "zone-control", subtype: "cage", strength: 6, reliability: 7, priority: 6 }] },

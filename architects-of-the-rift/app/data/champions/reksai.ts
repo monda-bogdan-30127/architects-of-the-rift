@@ -68,7 +68,7 @@ export const reksai = createChampion({
       ],
       stats: null,
       profile: {
-        tags: ["melee", "lane-bully", "pick", "ad-bruiser", "skirmish"],
+        tags: ["melee", "lane-bully", "pick", "skirmish"],
         abilities: [
           { key: "q", name: "Queen's Wrath / Prey Seeker", effects: [{ type: "dps", strength: 6, reliability: 8, priority: 6 }, { type: "poke", subtype: "burrowed", strength: 4, reliability: 7, priority: 4 }] },
           { key: "w", name: "Burrow / Un-burrow", effects: [{ type: "knockup", strength: 7, reliability: 8, priority: 7 }, { type: "vision", subtype: "tremor-sense", strength: 6, reliability: 9, priority: 6 }] },

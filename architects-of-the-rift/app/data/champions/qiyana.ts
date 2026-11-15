@@ -90,7 +90,7 @@ export const qiyana = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "assassin", "pick", "burst", "terrain-combo", "ad"],
+        tags: ["melee", "assassin", "pick", "burst"],
         abilities: [
           { key: "q", name: "Elemental Wrath / Edge of Ixtal", effects: [{ type: "burst", strength: 8, reliability: 7, priority: 8 }, { type: "root", subtype: "river-empower", strength: 6, reliability: 6, priority: 6 }] },
           { key: "w", name: "Terrashape", effects: [{ type: "mobility", subtype: "element-access", strength: 7, reliability: 9, priority: 7 }] },

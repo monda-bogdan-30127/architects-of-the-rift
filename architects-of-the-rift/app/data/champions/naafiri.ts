@@ -89,7 +89,7 @@ export const naafiri = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "assassin", "dive", "burst", "ad"],
+        tags: ["melee", "assassin", "dive", "burst"],
         abilities: [
           { key: "w", name: "Hounds' Pursuit", effects: [{ type: "dash", subtype: "pack-engage", strength: 9, reliability: 8, priority: 9 }, { type: "pick", subtype: "backline-lock", strength: 7, reliability: 7, priority: 7 }] },
           { key: "e", name: "Eviscerate", effects: [{ type: "burst", strength: 7, reliability: 8, priority: 7 }] },

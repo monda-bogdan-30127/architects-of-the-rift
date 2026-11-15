@@ -90,7 +90,7 @@ export const vi = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "dive", "engage", "pick", "ad"],
+        tags: ["melee", "dive", "engage", "pick"],
         abilities: [
           { key: "q", name: "Vault Breaker", effects: [{ type: "dash", strength: 8, reliability: 7, priority: 8 }, { type: "knockup", strength: 7, reliability: 7, priority: 7 }] },
           { key: "r", name: "Cease and Desist", effects: [{ type: "unstoppable", strength: 8, reliability: 9, priority: 9 }, { type: "knockup", subtype: "point-and-click-engage", strength: 10, reliability: 10, priority: 10 }, { type: "pick", subtype: "carry-lock", strength: 10, reliability: 10, priority: 10 }, { type: "setup", subtype: "carry-isolation", strength: 10, reliability: 10, priority: 10 }] },

@@ -109,7 +109,7 @@ export const poppy = createChampion({
       ],
       stats: null,
       profile: {
-        tags: ["melee", "frontline", "tank", "anti-dash", "engage", "utility", "teamfight"],
+        tags: ["melee", "frontline", "tank", "engage", "utility", "teamfight"],
         abilities: [
           { key: "q", name: "Hammer Shock", effects: [{ type: "burst", strength: 6, reliability: 7, priority: 6 }, { type: "slow", strength: 5, reliability: 8, priority: 5 }, { type: "zone-control", subtype: "delayed-area-threat", strength: 6, reliability: 7, priority: 6 }] },
           { key: "w", name: "Steadfast Presence", effects: [{ type: "anti-dash", subtype: "area-denial", strength: 10, reliability: 9, priority: 10, counters: ["dash"] }, { type: "anti-engage", strength: 9, reliability: 9, priority: 9 }, { type: "zone-control", subtype: "anti-entry-zone", strength: 8, reliability: 9, priority: 8 }] },

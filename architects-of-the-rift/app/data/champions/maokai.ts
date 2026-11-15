@@ -94,7 +94,7 @@ export const maokai = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "frontline", "engage", "tank", "vision", "utility"],
+        tags: ["melee", "frontline", "engage", "tank", "utility"],
         abilities: [
           { key: "q", name: "Bramble Smash", effects: [{ type: "displacement", strength: 7, reliability: 8, priority: 7 }, { type: "slow", strength: 5, reliability: 8, priority: 5 }] },
           { key: "w", name: "Twisted Advance", effects: [{ type: "dash", subtype: "point-and-click-root", strength: 7, reliability: 9, priority: 7 }, { type: "root", strength: 8, reliability: 9, priority: 8 }, { type: "pick", subtype: "reliable-catch", strength: 8, reliability: 9, priority: 8 }] },

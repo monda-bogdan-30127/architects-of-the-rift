@@ -95,7 +95,7 @@ export const ambessa = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "diver", "carry", "skirmish", "snowball"],
+        tags: ["melee", "carry", "skirmish", "snowball"],
         abilities: [
           { key: "q", name: "Cunning Sweep / Sundering Slam", effects: [{ type: "burst", strength: 7, reliability: 7, priority: 7 }, { type: "slow", strength: 4, reliability: 7, priority: 4 }] },
           { key: "e", name: "Public Execution", effects: [{ type: "dash", strength: 8, reliability: 8, priority: 8 }, { type: "mobility", subtype: "target-stick", strength: 8, reliability: 8, priority: 8 }] },
@@ -113,7 +113,7 @@ export const ambessa = createChampion({
       goodVs: [],
       stats: null,
       profile: {
-        tags: ["melee", "diver", "carry", "skirmish", "snowball"],
+        tags: ["melee", "carry", "skirmish", "snowball"],
         abilities: [
           { key: "q", name: "Cunning Sweep / Sundering Slam", effects: [{ type: "burst", strength: 7, reliability: 7, priority: 7 }, { type: "slow", strength: 4, reliability: 7, priority: 4 }] },
           { key: "e", name: "Public Execution", effects: [{ type: "dash", strength: 8, reliability: 8, priority: 8 }, { type: "mobility", subtype: "target-stick", strength: 8, reliability: 8, priority: 8 }] },

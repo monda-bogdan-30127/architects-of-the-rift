@@ -67,7 +67,7 @@ export const zaahen = createChampion({
       goodVs: [],
       stats: null,
       profile: {
-        tags: ["melee", "fighter", "assassin", "snowball", "skirmish"],
+        tags: ["melee", "assassin", "snowball", "skirmish"],
         abilities: [
           { key: "passive", name: "Cultivation of War", effects: [{ type: "heal", subtype: "revive-at-max-stacks", strength: 8, reliability: 6, priority: 8 }] },
           { key: "q", name: "The Darkin Glaive", effects: [{ type: "heal", strength: 6, reliability: 8, priority: 6 }, { type: "knockup", subtype: "recast", strength: 6, reliability: 7, priority: 7 }] },
@@ -112,7 +112,7 @@ export const zaahen = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "fighter", "assassin", "snowball", "skirmish"],
+        tags: ["melee", "assassin", "snowball", "skirmish"],
         abilities: [
           { key: "passive", name: "Cultivation of War", effects: [{ type: "heal", subtype: "revive-at-max-stacks", strength: 8, reliability: 6, priority: 8 }] },
           { key: "q", name: "The Darkin Glaive", effects: [{ type: "heal", strength: 6, reliability: 8, priority: 6 }, { type: "knockup", subtype: "recast", strength: 6, reliability: 7, priority: 7 }] },

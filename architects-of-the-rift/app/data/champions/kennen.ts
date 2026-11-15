@@ -105,7 +105,7 @@ export const kennen = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["ranged", "ap", "teamfight", "flank", "wombo"],
+        tags: ["ranged", "teamfight"],
         abilities: [
           { key: "q", name: "Thundering Shuriken", effects: [{ type: "poke", strength: 5, reliability: 7, priority: 5 }] },
           { key: "e", name: "Lightning Rush", effects: [{ type: "dash", subtype: "flank-entry", strength: 7, reliability: 8, priority: 7 }, { type: "mobility", strength: 8, reliability: 8, priority: 8 }] },

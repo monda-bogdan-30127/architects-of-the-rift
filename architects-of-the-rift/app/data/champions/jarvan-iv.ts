@@ -92,7 +92,7 @@ export const jarvanIv = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "engage", "dive", "setup", "teamfight", "ad"],
+        tags: ["melee", "engage", "dive", "setup", "teamfight"],
         abilities: [
           { key: "q", name: "Dragon Strike", effects: [{ type: "poke", strength: 4, reliability: 7, priority: 4 }, { type: "setup", subtype: "flag-combo", strength: 7, reliability: 8, priority: 7 }] },
           { key: "e", name: "Demacian Standard", effects: [{ type: "setup", subtype: "combo-anchor", strength: 8, reliability: 9, priority: 8 }] },

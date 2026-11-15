@@ -90,7 +90,7 @@ export const aatrox = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "drain-fighter", "skirmish", "teamfight", "ad"],
+        tags: ["melee", "skirmish", "teamfight"],
         abilities: [
           { key: "q", name: "The Darkin Blade", effects: [{ type: "burst", strength: 7, reliability: 6, priority: 7 }, { type: "knockup", subtype: "sweetspot", strength: 6, reliability: 6, priority: 6 }] },
           { key: "w", name: "Infernal Chains", effects: [{ type: "slow", strength: 5, reliability: 7, priority: 5 }, { type: "setup", subtype: "pullback-zone", strength: 6, reliability: 6, priority: 6 }] },
@@ -136,7 +136,7 @@ export const aatrox = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "drain-fighter", "skirmish", "teamfight", "blindable"],
+        tags: ["melee", "skirmish", "teamfight"],
         abilities: [
           { key: "q", name: "The Darkin Blade", effects: [{ type: "burst", strength: 7, reliability: 6, priority: 7 }, { type: "knockup", subtype: "sweetspot", strength: 6, reliability: 6, priority: 6 }] },
           { key: "w", name: "Infernal Chains", effects: [{ type: "slow", strength: 5, reliability: 7, priority: 5 }, { type: "pick", subtype: "pullback-zone", strength: 6, reliability: 6, priority: 6 }] },

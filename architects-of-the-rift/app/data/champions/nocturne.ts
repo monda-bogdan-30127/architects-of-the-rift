@@ -95,7 +95,7 @@ export const nocturne = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "dive", "pick", "backline-access", "ad"],
+        tags: ["melee", "dive", "pick"],
         abilities: [
           { key: "q", name: "Duskbringer", effects: [{ type: "mobility", subtype: "trail-speed", strength: 6, reliability: 8, priority: 6 }] },
           { key: "w", name: "Shroud of Darkness", effects: [{ type: "anti-engage", subtype: "spell-shield", strength: 8, reliability: 8, priority: 8 }] },

@@ -1,3 +1,4 @@
+import type { ChampionTag } from "@/app/types/championTags";
 // ═══════════════════════════════════════════════════════════════════════════
 // Upgrade 13 — Advanced Draft Reading + Simulation Events
 //
@@ -48,7 +49,7 @@ export function getPlanAdaptiveBanBonus(
   const tags = new Set(profile.tags ?? []);
 
   // Which tags are "natural enemies" of each plan?
-  const planCounters: Record<DraftPlanType, string[]> = {
+  const planCounters: Record<DraftPlanType, ChampionTag[]> = {
     "dive":          ["peel", "warden", "enchanter", "disengage", "anti-dive"],
     "poke":          ["dive", "engage", "gap-closer", "hard-engage"],
     "pick":          ["warden", "peel", "enchanter", "group-up"],

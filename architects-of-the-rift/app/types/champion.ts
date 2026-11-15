@@ -1,3 +1,4 @@
+import type { ChampionTag } from "./championTags";
 // Extended champion model with backward compatibility for the existing data files.
 
 import type { CompAttribute } from './compAttributes';
@@ -280,7 +281,8 @@ export type ChampionSynergyRule = {
 
 export type ChampionRoleProfile = {
   role: Role;
-  tags: string[];
+  /** COMP_ATTRIBUTES_EXPANSION §5: vocabular fix (`types/championTags.ts`). */
+  tags: ChampionTag[];
   abilities: ChampionAbility[];
   damageProfileDetailed: {
     burst: number;
@@ -383,7 +385,7 @@ export type Champion = {
   weaknesses: ChampionWeakness[];
   playerScaling?: ChampionPlayerScaling;
   carryProfile?: ChampionCarryProfile;
-  championTags?: string[];
+  championTags?: ChampionTag[];
   /**
    * Matchup-uri, mustWith și statistici pe rol — exact cheile din `roles`.
    * Citite doar prin `championMatchups.ts` și `championRoleStatsSystem.ts`.

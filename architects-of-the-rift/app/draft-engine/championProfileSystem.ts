@@ -1,3 +1,4 @@
+import type { ChampionTag } from "@/app/types/championTags";
 import type { Champion, ChampionRoleProfile, ChampionSynergyRule, Role } from "@/app/types/champion";
 import type { CompAttribute } from "@/app/types/compAttributes";
 import { getChampionStatsForRole } from "./championRoleStatsSystem";
@@ -41,8 +42,8 @@ function lanePressureValue(champion: Champion, role: Role) {
   }
 }
 
-function toTags(champion: Champion, role: Role): string[] {
-  const tags = new Set<string>(champion.championTags ?? []);
+function toTags(champion: Champion, role: Role): ChampionTag[] {
+  const tags = new Set<ChampionTag>(champion.championTags ?? []);
   // Din date (`attackType`), nu din rol / poke: Syndra, Karthus etc. sunt ranged fără să aibă poke.
   tags.add(champion.attackType === "ranged" ? "ranged" : "melee");
   if (offer(champion, "frontline") >= 3) tags.add("frontline");

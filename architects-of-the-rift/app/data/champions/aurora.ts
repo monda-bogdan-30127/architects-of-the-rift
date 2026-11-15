@@ -115,7 +115,7 @@ export const aurora = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["ranged", "ap", "skirmish", "zone-control", "carry"],
+        tags: ["ranged", "skirmish", "zone-control", "carry"],
         abilities: [
           { key: "q", name: "Aurora Q", effects: [{ type: "poke", strength: 6, reliability: 7, priority: 6 }, { type: "burst", subtype: "return-hit", strength: 7, reliability: 6, priority: 7 }] },
           { key: "w", name: "Aurora W", effects: [{ type: "mobility", subtype: "phase-shift", strength: 7, reliability: 8, priority: 7 }] },

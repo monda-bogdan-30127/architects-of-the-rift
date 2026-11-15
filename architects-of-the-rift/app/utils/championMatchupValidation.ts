@@ -21,6 +21,7 @@ import { MATCHUP_LEVELS, MATCHUP_PHASES, isMatchupLevel, isMatchupPhase } from "
 import { getChampionStatsForRole } from "../draft-engine/championRoleStatsSystem";
 import { getBadSynergyIssues, isBadSynergyLevel } from "../draft-engine/badSynergy";
 import { COMP_ATTRIBUTE_ORDER } from "../types/compAttributes";
+import { isChampionTag } from "../types/championTags";
 import type {
   Champion,
   ChampionRoleData,
@@ -164,6 +165,14 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
 
   function validateRoleEntry(owner: Champion, role: Role, entry: ChampionRoleData) {
     const key = `${owner.id}:${role}`;
+
+    // ── Tag-uri: vocabular fix (COMP_ATTRIBUTES_EXPANSION §5, types/championTags.ts) ──
+    for (const tag of (entry.profile?.tags ?? []) as readonly unknown[]) {
+      if (!isChampionTag(tag)) error(key, `profile.tags: tag necunoscut "${String(tag)}" (lista permisă: types/championTags.ts)`);
+    }
+    for (const tag of (owner.championTags ?? []) as readonly unknown[]) {
+      if (!isChampionTag(tag)) error(owner.id, `championTags: tag necunoscut "${String(tag)}" (lista permisă: types/championTags.ts)`);
+    }
 
     // ── resourceDemand (opțional, 1..5; lipsă = 3) ─────────────────────────
     if (entry.resourceDemand !== undefined && ![1, 2, 3, 4, 5].includes(entry.resourceDemand as number)) {

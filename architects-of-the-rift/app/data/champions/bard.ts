@@ -90,7 +90,7 @@ export const bard = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["ranged", "pick", "utility", "zone-control", "roam"],
+        tags: ["ranged", "pick", "utility", "zone-control"],
         abilities: [
           { key: "q", name: "Cosmic Binding", effects: [{ type: "stun", strength: 8, reliability: 6, priority: 8 }, { type: "setup", subtype: "catch", strength: 8, reliability: 6, priority: 8 }] },
           { key: "e", name: "Magical Journey", effects: [{ type: "mobility", subtype: "team-portal", strength: 8, reliability: 8, priority: 8 }, { type: "setup", subtype: "flank-access", strength: 7, reliability: 8, priority: 7 }] },

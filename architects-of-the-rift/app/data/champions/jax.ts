@@ -99,7 +99,7 @@ export const jax = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "duelist", "scaling", "splitpush", "diver"],
+        tags: ["melee", "scaling"],
         abilities: [
           { key: "q", name: "Leap Strike", effects: [{ type: "dash", strength: 7, reliability: 8, priority: 7 }] },
           { key: "e", name: "Counter Strike", effects: [{ type: "anti-engage", subtype: "auto-attack-denial", strength: 8, reliability: 8, priority: 8 }, { type: "stun", strength: 6, reliability: 8, priority: 6 }] },

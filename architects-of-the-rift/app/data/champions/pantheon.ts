@@ -95,7 +95,7 @@ export const pantheon = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "burst", "pick", "early-game", "semi-global", "ad"],
+        tags: ["melee", "burst", "pick", "early-game", "semi-global"],
         abilities: [
           { key: "w", name: "Shield Vault", effects: [{ type: "stun", strength: 8, reliability: 10, priority: 8 }, { type: "pick", subtype: "targeted-catch", strength: 8, reliability: 10, priority: 8 }] },
           { key: "e", name: "Aegis Assault", effects: [{ type: "anti-engage", subtype: "front-facing-block", strength: 7, reliability: 8, priority: 7 }] },

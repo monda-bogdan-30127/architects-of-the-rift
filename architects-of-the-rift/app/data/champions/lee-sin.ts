@@ -105,7 +105,7 @@ export const leeSin = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "skirmish", "playmaker", "pick", "ad"],
+        tags: ["melee", "skirmish", "pick"],
         abilities: [
           { key: "q", name: "Sonic Wave / Resonating Strike", effects: [{ type: "poke", strength: 5, reliability: 7, priority: 5 }, { type: "dash", subtype: "targeted-follow", strength: 8, reliability: 8, priority: 8 }] },
           { key: "w", name: "Safeguard / Iron Will", effects: [{ type: "dash", subtype: "ward-hop", strength: 8, reliability: 8, priority: 8 }, { type: "shield", strength: 5, reliability: 8, priority: 5 }] },

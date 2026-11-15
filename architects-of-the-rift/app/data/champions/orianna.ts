@@ -92,7 +92,7 @@ export const orianna = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["ranged", "control", "teamfight", "follow-up", "ap", "secondary-carry"],
+        tags: ["ranged", "teamfight", "follow-up"],
         abilities: [
           { key: "q", name: "Command: Attack", effects: [{ type: "poke", strength: 6, reliability: 8, priority: 6 }, { type: "setup", subtype: "ball-placement", strength: 8, reliability: 9, priority: 8 }] },
           { key: "e", name: "Command: Protect", effects: [{ type: "shield", strength: 7, reliability: 9, priority: 7 }, { type: "setup", subtype: "carry-protection", strength: 5, reliability: 8, priority: 5 }] },

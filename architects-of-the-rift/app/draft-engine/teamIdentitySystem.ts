@@ -51,7 +51,8 @@ export function evaluateTeamIdentity(
       (profile): profile is DerivedChampionRoleProfile => Boolean(profile)
     );
 
-  const teamTags = new Set(profiles.flatMap((profile) => profile.tags));
+  // preferredTags / avoidTags ale echipelor sunt text liber (date de echipă), deci comparația e pe string.
+  const teamTags = new Set<string>(profiles.flatMap((profile) => profile.tags));
   const matchedTags = identity.preferredTags.filter((tag) =>
     teamTags.has(tag)
   );

@@ -92,7 +92,7 @@ export const zeri = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["ranged", "backline", "dps", "primary-carry", "front-to-back", "teamfight", "ad"],
+        tags: ["ranged", "dps", "primary-carry", "front-to-back", "teamfight"],
         abilities: [
           { key: "q", name: "Burst Fire", effects: [{ type: "dps", subtype: "main-pattern", strength: 9, reliability: 7, priority: 9 }] },
           { key: "w", name: "Ultrashock Laser", effects: [{ type: "poke", strength: 5, reliability: 5, priority: 5 }] },

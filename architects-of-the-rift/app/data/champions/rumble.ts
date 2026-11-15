@@ -101,7 +101,7 @@ export const rumble = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "ap", "zone-control", "teamfight", "lane-priority"],
+        tags: ["melee", "zone-control", "teamfight"],
         abilities: [
           { key: "q", name: "Flamespitter", effects: [{ type: "dps", subtype: "close-range-cone", strength: 8, reliability: 8, priority: 8 }] },
           { key: "e", name: "Electro Harpoon", effects: [{ type: "slow", strength: 6, reliability: 8, priority: 6 }, { type: "poke", strength: 5, reliability: 7, priority: 5 }] },

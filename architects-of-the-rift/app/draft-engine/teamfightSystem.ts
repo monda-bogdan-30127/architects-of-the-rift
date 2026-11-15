@@ -1,3 +1,4 @@
+import type { ChampionTag } from "@/app/types/championTags";
 // ═══════════════════════════════════════════════════════════════════════════
 // Upgrade 5: Teamfight resolution from champion mechanics
 //
@@ -63,11 +64,11 @@ function getProfiles(assignments: Partial<Record<Role, string>>): Array<{ role: 
   return result;
 }
 
-function hasTag(profiles: Array<{ profile: ChampionRoleProfile }>, tag: string): boolean {
+function hasTag(profiles: Array<{ profile: ChampionRoleProfile }>, tag: ChampionTag): boolean {
   return profiles.some((p) => p.profile.tags?.includes(tag));
 }
 
-function countTag(profiles: Array<{ profile: ChampionRoleProfile }>, tag: string): number {
+function countTag(profiles: Array<{ profile: ChampionRoleProfile }>, tag: ChampionTag): number {
   return profiles.filter((p) => p.profile.tags?.includes(tag)).length;
 }
 

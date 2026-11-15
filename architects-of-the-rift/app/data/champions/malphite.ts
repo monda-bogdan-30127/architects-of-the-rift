@@ -86,7 +86,7 @@ export const malphite = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "frontline", "engage", "tank", "anti-ad"],
+        tags: ["melee", "frontline", "engage", "tank"],
         abilities: [
           { key: "q", name: "Seismic Shard", effects: [{ type: "slow", strength: 7, reliability: 9, priority: 7 }, { type: "poke", strength: 4, reliability: 8, priority: 4 }] },
           { key: "e", name: "Ground Slam", effects: [{ type: "anti-engage", subtype: "attack-speed-cripple", strength: 7, reliability: 8, priority: 7 }] },

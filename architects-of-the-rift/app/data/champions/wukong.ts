@@ -92,7 +92,7 @@ export const wukong = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "dive", "teamfight", "engage", "ad"],
+        tags: ["melee", "dive", "teamfight", "engage"],
         abilities: [
           { key: "w", name: "Warrior Trickster", effects: [{ type: "mobility", subtype: "stealth-reposition", strength: 7, reliability: 8, priority: 7 }] },
           { key: "e", name: "Nimbus Strike", effects: [{ type: "dash", strength: 8, reliability: 8, priority: 8 }, { type: "dps", subtype: "entry-damage", strength: 6, reliability: 8, priority: 6 }] },

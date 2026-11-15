@@ -42,7 +42,7 @@ for (const match of profileSource.matchAll(/tags\.add\(([^;]*?)\);/g)) {
 }
 for (const tag of derived) usageOf(tag);
 
-// ─── Echipe: preferredTags / avoidTags (comparate cu championTags în draftAI) ─
+// ─── Echipe: preferredTags / avoidTags (comparate cu championTags în draftAI și cu profile.tags în teamIdentitySystem) ─
 const teamTags = new Map<string, number>();
 for (const team of teams) {
   const identity = team.identity;
@@ -115,12 +115,13 @@ const siteLabel = (sites: { file: string; line: number }[]) => {
 // `getTeamTagBias` (draftAI) compară preferredTags / avoidTags doar cu `championTags`: fără championTags în date,
 // potrivirea cu echipele nu are efect, deci nu contează ca citire.
 const championTagCount = rows.reduce((sum, row) => sum + row.entry.championTags.length, 0);
-const unread = rows.filter((row) => !row.sites.length && (!row.teams || championTagCount === 0));
+// teamIdentitySystem compară listele echipelor cu profile.tags: un tag din listele echipelor e citit.
+const unread = rows.filter((row) => !row.sites.length && !row.teams);
 const onlyManualUnread = unread.filter((row) => !row.derived);
 const lines = [
   `# Inventar tag-uri de campion (${rows.length} tag-uri)`,
   "",
-  `Manual = apariții în \`championTags\` (ct, pe campion) + \`roleData[rol].profile.tags\` (pe campion:rol). Derivat = generat în \`championProfileSystem.ts\`. Echipe = în \`preferredTags\` / \`avoidTags\` ale câtor echipe (comparate cu \`championTags\` în draftAI). Citit ca tag = \`.has\` / \`.includes\` pe o colecție de tag-uri sau o listă de tag-uri (desired / avoid / targetTags / planCounters / tagMap). Alt sens = alte apariții ale literalului (tip de rol, profil de meci, atribut). Ambiguu = literalul e și numele unui atribut / al unei identități.`,
+  `Manual = apariții în \`championTags\` (ct, pe campion) + \`roleData[rol].profile.tags\` (pe campion:rol). Derivat = generat în \`championProfileSystem.ts\`. Echipe = în \`preferredTags\` / \`avoidTags\` ale câtor echipe (comparate cu \`championTags\` în draftAI și cu \`profile.tags\` în teamIdentitySystem, deci citite). Citit ca tag = \`.has\` / \`.includes\` pe o colecție de tag-uri sau o listă de tag-uri (desired / avoid / targetTags / planCounters / tagMap). Alt sens = alte apariții ale literalului (tip de rol, profil de meci, atribut). Ambiguu = literalul e și numele unui atribut / al unei identități.`,
   "",
   championTagCount === 0
     ? "**Niciun campion nu are `championTags`** (toate tag-urile manuale sunt în `profile.tags`): `preferredTags` / `avoidTags` ale echipelor (`getTeamTagBias`) nu se potrivesc niciodată, bias-ul e mereu 0."

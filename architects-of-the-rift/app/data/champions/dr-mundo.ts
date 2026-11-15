@@ -66,7 +66,7 @@ export const drMundo = createChampion({
       goodVs: [],
       stats: null,
       profile: {
-        tags: ["melee", "frontline", "tank", "stat-check", "anti-poke"],
+        tags: ["melee", "frontline", "tank"],
         abilities: [
           { key: "q", name: "Infected Bonesaw", effects: [{ type: "slow", strength: 7, reliability: 8, priority: 7 }, { type: "poke", strength: 5, reliability: 8, priority: 5 }] },
           { key: "e", name: "Blunt Force Trauma", effects: [{ type: "burst", strength: 6, reliability: 8, priority: 6 }] },

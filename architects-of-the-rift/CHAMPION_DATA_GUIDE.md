@@ -247,6 +247,20 @@ Profilul (`ChampionRoleProfile`) descrie cum se joacă un campion pe un rol: tag
 
 **Toate valorile numerice sunt pe scala 0–10.** Validatorul dă eroare în afara ei.
 
+### Tag-uri permise (`profile.tags`, `championTags`)
+
+Tag-urile au un vocabular fix, în `app/types/championTags.ts` (`CHAMPION_TAGS`). **Validatorul dă eroare pentru orice alt tag.** Un tag nou se adaugă întâi în listă, și doar dacă e citit în cod: un tag pe care nu-l citește nimeni doar ocupă loc.
+
+| Grup | Tag-uri |
+|---|---|
+| Derivate automat (le scrii doar când înlocuiești lista întreagă) | `melee`, `ranged`, `frontline`, `engage`, `dive`, `pick`, `poke`, `dps`, `burst`, `peel`, `anti-dive`, `waveclear`, `self-sufficient`, `warden`, `enchanter`, `follow-up`, `zone-control`, `objectiveControl` |
+| Doar manual, citite în cod | `tank`, `utility`, `setup`, `carry`, `assassin`, `teamfight`, `front-to-back`, `scaling`, `early-game`, `lane-bully`, `primary-carry` |
+| Citite prin identitatea echipelor (`preferredTags` / `avoidTags`) | `skirmish`, `snowball` |
+| Citite în cod, încă fără date | `early-pressure`, `mid-game`, `item-dependent`, `late-game`, `hyperscale`, `dash-heavy`, `disengage`, `gap-closer`, `hard-engage`, `group-up`, `backlineAccess`, `split-push` |
+| Temporare, se înlocuiesc cu date (apoi se șterg) | `frontline-killer`, `frontline-breaker` → offer `antiTank`; `semi-global` → offer `globalPressure`; `weakside` → `resourceDemand ≤ 2` |
+
+Pentru ce înseamnă un campion în compoziție (anti-tank, sustain, presiune globală etc.) folosește `offers` / `weaknesses`, nu tag-uri.
+
 ### Exemplu complet (Braum, support)
 
 ```ts

@@ -98,7 +98,7 @@ export const gwen = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "ap", "duelist", "scaling", "frontline-killer"],
+        tags: ["melee", "scaling", "frontline-killer"],
         abilities: [
           { key: "q", name: "Snip Snip!", effects: [{ type: "burst", subtype: "center-hit", strength: 7, reliability: 7, priority: 7 }, { type: "dps", strength: 8, reliability: 8, priority: 8 }] },
           { key: "w", name: "Hallowed Mist", effects: [{ type: "anti-engage", subtype: "outside-target-denial", strength: 8, reliability: 8, priority: 8 }] },
