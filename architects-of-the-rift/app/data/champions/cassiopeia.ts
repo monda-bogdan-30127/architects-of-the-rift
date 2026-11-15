@@ -105,6 +105,7 @@ export const cassiopeia = createChampion({
     adc: {
       goodVs: [
         { championId: "ziggs", level: 2, phase: "all", note: "Sustained DPS vs a poke mage; favorable in 2026 pro play (12-2)" },
+        { championId: "ryze", level: 2, phase: "all"},
       ],
       stats: {
         picks: 1,

@@ -69,7 +69,6 @@ export const ryze = createChampion({
         { championId: "anivia", level: 2, phase: "late" },
         { championId: "annie", level: 2, phase: "late" },
         { championId: "galio", level: 2, phase: "late" },
-        { championId: "cassiopeia", level: 1, phase: "all" },
       ],
       stats: {
         picks: 8,
