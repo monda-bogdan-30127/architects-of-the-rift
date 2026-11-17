@@ -18,6 +18,7 @@ import { getChampionStatsForRole } from "./championRoleStatsSystem";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import type { LaneOrder } from "./laneOrder";
 import { getActiveTrait } from "@/app/utils/playerTraitUtils";
+import { getResourceDemand } from "./championResource";
 
 function earlyStatScore(championId: string | null, role: Role) {
   const champion = getChampionByIdSafe(championId);
@@ -67,7 +68,14 @@ type LaneContext = {
  *   counter_specialist pe blind: − counterBlindPenalty la scorul de lane.
  * Fără trait-uri active, factorul e 1 și penalizarea 0 (comportament identic).
  */
-function laneTraitEffect(playerId: string | null, matchup: number, order: "blind" | "counter" | undefined, adapted = false) {
+function laneTraitEffect(
+  playerId: string | null,
+  matchup: number,
+  order: "blind" | "counter" | undefined,
+  adapted = false,
+  championId: string | null = null,
+  role: Role | null = null,
+) {
   const T = DRAFT_THINKING_CONFIG.traits;
   const player = getPlayerByIdSafe(playerId);
   const result = { factor: 1, penalty: 0, notes: [] as string[] };
@@ -92,10 +100,19 @@ function laneTraitEffect(playerId: string | null, matchup: number, order: "blind
     const blindShield = blindSafe && order === "blind" ? T.blindSafeShield * blindSafe.intensity : 0;
     const resilientShield = resilient ? T.resilientShield * resilient.intensity : 0;
     const adapterShield = adapter ? T.seriesAdapterLaneShield * adapter.intensity : 0;
-    const shield = Math.max(blindShield, resilientShield, adapterShield);
+    // §5.3a: doar weakside_ready (nu enabler), pe un campion cu cerere ≤ weaksideMax, pe top / adc. Nu se cumulează.
+    const weakside = role === "top" || role === "adc" ? getActiveTrait(player, "weakside_ready") : null;
+    const weaksideShield =
+      weakside && championId && getResourceDemand(championId, role!) <= DRAFT_THINKING_CONFIG.attributes.weaksideMax
+        ? weakside.intensity === 2 ? T.weaksideLaneShieldStrong : T.weaksideLaneShield
+        : 0;
+    const shield = Math.max(blindShield, resilientShield, adapterShield, weaksideShield);
     if (shield > 0) {
       result.factor = 1 - shield;
-      result.notes.push(shield === resilientShield ? "lane held" : shield === adapterShield ? "adapted" : "blind held");
+      result.notes.push(
+        // „weakside lane held” (nu „weakside held”, care e nota junglerului pe o parte a hărții).
+        shield === weaksideShield ? "weakside lane held" : shield === resilientShield ? "lane held" : shield === adapterShield ? "adapted" : "blind held",
+      );
     }
   }
   if (counter && order === "blind") {
@@ -147,8 +164,8 @@ function buildRoleBreakdown(
   // DRAFT_SIM_ALIGNMENT §3.1: aceeași funcție ca în evaluatorul de draft (counterScore).
   const blueMatchup = getLaneMatchupEdge(role, lane.assignmentsBlue, lane.assignmentsRed, lane.blueRoster, lane.redRoster);
   const redMatchup = getLaneMatchupEdge(role, lane.assignmentsRed, lane.assignmentsBlue, lane.redRoster, lane.blueRoster);
-  const blueTrait = laneTraitEffect(bluePlayerId, blueMatchup, lane.laneOrder?.blue[role], lane.adapted?.blue[role]);
-  const redTrait = laneTraitEffect(redPlayerId, redMatchup, lane.laneOrder?.red[role], lane.adapted?.red[role]);
+  const blueTrait = laneTraitEffect(bluePlayerId, blueMatchup, lane.laneOrder?.blue[role], lane.adapted?.blue[role], blueChampionId, role);
+  const redTrait = laneTraitEffect(redPlayerId, redMatchup, lane.laneOrder?.red[role], lane.adapted?.red[role], redChampionId, role);
   const blueSide = jungleSideEffect(role, lane.blueRoster);
   const redSide = jungleSideEffect(role, lane.redRoster);
   const blueScaled = scaleTraitEffect(blueTrait, blueSide);

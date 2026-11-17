@@ -60,9 +60,20 @@ export function formatEdge(value: number): string {
   return `${value >= 0 ? "+" : "−"}${Math.abs(value).toFixed(digits)}`;
 }
 
+/**
+ * PLAYER_TRAITS §5.3b — eticheta cu detaliul echipelor (conflictul de resurse la `execution`). Neutră față de
+ * perspectivă: campionii arată a cui e conflictul. „Execution (resource conflict: Azir, Jayce, Kalista)”; cu
+ * conflict la ambele echipe, „… (resource conflict: A, B, C vs D, E, F)”.
+ */
+function labelFor(factor: OutcomeFactor): string {
+  const base = OUTCOME_FACTOR_LABELS[factor.key];
+  const parts = [factor.detail?.blue, factor.detail?.red].filter((part): part is string => Boolean(part));
+  return factor.key === "execution" && parts.length ? `${base} (resource conflict: ${parts.join(" vs ")})` : base;
+}
+
 function linesFor(factors: OutcomeFactor[], side: Side): OutcomeFactorLine[] {
   return factors
-    .map((factor) => ({ key: factor.key, label: OUTCOME_FACTOR_LABELS[factor.key], value: side === "blue" ? factor.edgeBlue : -factor.edgeBlue }))
+    .map((factor) => ({ key: factor.key, label: labelFor(factor), value: side === "blue" ? factor.edgeBlue : -factor.edgeBlue }))
     .filter((line) => line.value >= MIN_EDGE)
     .sort((a, b) => b.value - a.value);
 }

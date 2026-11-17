@@ -61,6 +61,8 @@ import { evaluateContextualNeedStatuses, getContextualNeeds, setContextualNeedsO
 import type { ChampionOffer, ResourceDemand } from "@/app/types/champion";
 import { evaluateTeamfight } from "@/app/draft-engine/teamfightSystem";
 import { evaluateLanePhase } from "@/app/draft-engine/laneEvaluator";
+import { explainOutcome } from "@/app/draft-engine/outcomeExplainer";
+import { applyResourceConflict } from "@/app/draft-engine/matchSimulator";
 import { applyMasteryToFit } from "@/app/draft-engine/championMasteryDraftSystem";
 import { getSeriesRatingEffect, teamSetupFor } from "@/app/draft-engine/traitEffects";
 import { ACTIVE_TRAIT_FAMILIES, type PlayerTrait, type PlayerTraitFamily } from "@/app/types/playerTraits";
@@ -2140,6 +2142,57 @@ function withTestData<T>(
   } finally {
     for (const undo of commsBackup) undo();
   }
+}
+
+// ─── PLAYER_TRAITS §5.3 (NEXT_STEPS 3a): efectele de resurse în meci, pe date injectate ─
+{
+  const save = makeSave();
+  const rosters = { blue: save.updatedTeamRosters[BLUE]!, red: save.updatedTeamRosters[RED]! };
+  const trait = (id: PlayerTrait["id"]): PlayerTrait[] => [{ id, intensity: 1, source: "manual" }];
+  const reset = Object.fromEntries(ROLE_ORDER.map((role) => [rosters.blue[role]!, [] as PlayerTrait[]]));
+
+  // W1. Matchup pierdut pe top: weakside_ready pe un campion cu cerere 2 pierde mai puțin; enabler nu schimbă nimic.
+  const assignmentsBlue = { top: "ornn", jungle: "lee-sin", mid: "ahri", adc: "ezreal", support: "rell" };
+  const assignmentsRed = { top: "jayce", jungle: "sejuani", mid: "azir", adc: "kalista", support: "nautilus" };
+  const topId = rosters.blue.top!;
+  const lane = (traits: PlayerTrait[]) =>
+    withTestData({ traits: { ...reset, [topId]: traits }, resourceDemand: { ornn: { top: 2 } } }, () =>
+      evaluateLanePhase({ blueRoster: rosters.blue, redRoster: rosters.red, assignmentsBlue, assignmentsRed }).roles.find((entry) => entry.role === "top")!);
+  const none = lane([]);
+  const weakside = lane(trait("weakside_ready"));
+  const enablerLane = lane(trait("enabler"));
+  const edge = getMatchupValue("ornn", "top", "jayce", "top", { phase: "early" });
+  check(
+    "W1. Matchup pierdut: weakside_ready (cerere 2) pierde mai puțin; enabler neschimbat",
+    edge < 0 && weakside.blueScore > none.blueScore && enablerLane.blueScore === none.blueScore && weakside.note.includes("blue weakside lane held"),
+    `Ornn vs Jayce (matchup ${edge.toFixed(2)}): fără trait ${none.blueScore}, weakside ${weakside.blueScore} („${weakside.note}”), enabler ${enablerLane.blueScore}`,
+  );
+
+  // W2. Conflict de 3 carry-uri: cu 2 hogs penalizarea e mai mare decât fără hogs; cu un weakside_ready printre ei, mai mică.
+  const carries = { top: "jayce", jungle: "lee-sin", mid: "azir", adc: "kalista", support: "rell" };
+  const demand = { resourceDemand: { jayce: { top: 5 as const }, azir: { mid: 5 as const }, kalista: { adc: 4 as const } } };
+  const execution = (traits: Record<string, PlayerTrait[]>) =>
+    withTestData({ traits: { ...reset, ...traits }, ...demand }, () => applyResourceConflict(7, carries, rosters.blue));
+  const plain = execution({});
+  const twoHogs = execution({ [rosters.blue.top!]: trait("resource_hog"), [rosters.blue.mid!]: trait("resource_hog") });
+  const withWeakside = execution({ [rosters.blue.top!]: trait("weakside_ready") });
+  check(
+    "W2. Conflict de 3 carry-uri: 2 hogs → penalizare mai mare; un weakside_ready → mai mică",
+    twoHogs < plain && withWeakside > plain && plain < 7,
+    `execution 7 → fără trait-uri ${plain}, 2 hogs ${twoHogs}, weakside ${withWeakside}`,
+  );
+
+  // W3. „Why it ended”: conflictul de resurse apare ca text la factorul execution.
+  const outcome = explainOutcome({
+    factors: [{ key: "execution", blue: 6, red: 5, edgeBlue: 0.3, detail: { red: "Jayce, Azir, Kalista" } }],
+    winnerSide: "blue", userSide: "red", closeness: 0.2,
+  });
+  const line = outcome?.winnerFactors[0]?.label ?? "—";
+  check(
+    "W3. „Why it ended”: execution cu conflictul de resurse (campionii echipei cu conflict)",
+    line === "Execution (resource conflict: Jayce, Azir, Kalista)",
+    `„${line}”; sumar: „${outcome?.summary ?? "—"}”`,
+  );
 }
 
 // ─── PLAYER_TRAITS faza 3: Macro (shotcalling, junglerul pe o parte a hărții) ─

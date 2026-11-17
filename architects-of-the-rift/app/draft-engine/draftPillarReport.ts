@@ -241,7 +241,13 @@ function lanesPillar(
     if (value > 0.5 && getActiveTrait(player, "lane_dominator")) notes.add(`${player.name} turned a winning lane into a lead`, "Lane Dominator: winning matchups count more");
     if (value > 0.5 && order === "counter" && getActiveTrait(player, "counter_specialist")) notes.add(`${player.name} counter-picked his lane`, "Counter-Pick Specialist: picked after his lane opponent");
     if (order === "blind" && getActiveTrait(player, "counter_specialist")) notes.add(`${player.name} had to blind-pick`, "Counter-Pick Specialist: weaker when he picks first in his lane");
-    if (value < -0.5 && getActiveTrait(player, "matchup_resilient")) notes.add(`${player.name} held a losing lane`, "Matchup Resilient: losing matchups hurt him less");
+    // §5.3a: weakside_ready pe un campion cu cerere mică, pe top / adc (aceeași condiție ca în laneEvaluator).
+    const weaksideHeld =
+      value < -0.5 && (role === "top" || role === "adc") && getActiveTrait(player, "weakside_ready") &&
+      getResourceDemand(championId, role) <= DRAFT_THINKING_CONFIG.attributes.weaksideMax;
+    if (weaksideHeld) {
+      notes.add(`${player.name} held a losing lane on weakside (${name(championId)} vs ${opponents.map((opponent) => name(opponent.id)).join(" / ")})`, "Weakside Ready: holds his lane alone with few resources");
+    } else if (value < -0.5 && getActiveTrait(player, "matchup_resilient")) notes.add(`${player.name} held a losing lane`, "Matchup Resilient: losing matchups hurt him less");
     else if (value < -0.5 && order === "blind" && getActiveTrait(player, "blind_safe")) notes.add(`${player.name} held a blind pick`, "Blind-Pick Safe: loses little when picking first");
   }
   return notes.pillar(grade(balance / 3 + edge * 1.5, [1.5, 0, -1.5]));

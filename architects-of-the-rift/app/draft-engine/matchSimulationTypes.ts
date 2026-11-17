@@ -45,6 +45,8 @@ export type OutcomeFactor = {
   red: number;
   /** Contribuția la diferența de total; pozitivă = în favoarea blue. */
   edgeBlue: number;
+  /** PLAYER_TRAITS §5.3b — detaliu pe echipă (engleză), de ex. conflictul de resurse la `execution`: „Azir, Jayce, Kalista”. */
+  detail?: { blue?: string; red?: string };
 };
 
 export type LaneRoleBreakdown = {

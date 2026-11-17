@@ -22,7 +22,7 @@ import type { MatchProfile, OutcomeFactor, OutcomeFactorKey, PhaseBreakdown, Pla
 import { computeTendencyEvents } from "./tendencyEventSystem";
 import { computeTeamChemistry, getPlayerPersonalityModifiers } from "./personalitySystem";
 import { evaluateTeamfight } from "./teamfightSystem";
-import { getResourceConflictExcess } from "./championResource";
+import { getHighDemandPicks, getResourceConflictExcess } from "./championResource";
 import { getLaneOrder } from "./laneOrder";
 import { getSeriesRatingEffect, getSetupRatingEffect, lostLaneLastGameVs, setupDependenceFactor, teamSetupFor } from "./traitEffects";
 import { getActiveTrait } from "@/app/utils/playerTraitUtils";
@@ -278,10 +278,29 @@ function adaptedRoles(
   return result;
 }
 
-/** −simResourceConflict pentru fiecare carry (cerere ≥ highDemandMin) peste maxHighDemand; fără conflict, neschimbat. */
-function applyResourceConflict(execution: number, assignments: Partial<Record<Role, string>>) {
+/**
+ * Conflictul de resurse: pe fiecare carry (cerere ≥ highDemandMin) peste maxHighDemand, execution − penalizare.
+ * PLAYER_TRAITS §5.3b — penalizarea pe carry în plus depinde de cine joacă carry-urile: + hogConflictExtra pentru fiecare
+ * resource_hog peste primul, − weaksideConflictRelief pentru fiecare weakside_ready / enabler, minim conflictMinPerCarry.
+ * Ajustarea de trait × phaseEffectScale / 5: execution e un scor de echipă, iar scala din B6 e calibrată pe efecte
+ * mediate pe 5 jucători (aceeași diluare). Fără conflict, neschimbat. Cu cererile neutre (3), niciun carry → neschimbat.
+ */
+export function applyResourceConflict(execution: number, assignments: Partial<Record<Role, string>>, roster: Partial<Record<Role, string>>) {
   const excess = getResourceConflictExcess(assignments);
-  return excess > 0 ? round1(clamp(execution - DRAFT_THINKING_CONFIG.attributes.simResourceConflict * excess, 0, 10)) : execution;
+  if (excess <= 0) return execution;
+  const T = DRAFT_THINKING_CONFIG.traits;
+  const carryPlayers = getHighDemandPicks(assignments).map((pick) => getPlayerById(roster[pick.role] ?? ""));
+  const hogs = carryPlayers.filter((player) => getActiveTrait(player, "resource_hog")).length;
+  const lowResource = carryPlayers.filter((player) => getActiveTrait(player, "weakside_ready") || getActiveTrait(player, "enabler")).length;
+  const traitAdjust = (T.hogConflictExtra * Math.max(0, hogs - 1) - T.weaksideConflictRelief * lowResource) * (T.phaseEffectScale / ROLE_ORDER.length);
+  const perCarry = Math.max(T.conflictMinPerCarry, DRAFT_THINKING_CONFIG.attributes.simResourceConflict + traitAdjust);
+  return round1(clamp(execution - perCarry * excess, 0, 10));
+}
+
+/** §5.3b — „Azir, Jayce, Kalista” când echipa are conflict de resurse (pentru „Why it ended”). */
+function resourceConflictDetail(assignments: Partial<Record<Role, string>>): string | undefined {
+  if (getResourceConflictExcess(assignments) <= 0) return undefined;
+  return getHighDemandPicks(assignments).map((pick) => getChampionById(pick.championId)?.name ?? pick.championId).join(", ");
 }
 
 function computeClutchTeamScore(roster: Partial<Record<Role, string>>) {
@@ -1099,8 +1118,8 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   const redObjectives = objectiveControlScore(redChampionIds);
 
   // COMP_ATTRIBUTES_EXPANSION §2.2: ≥ 3 carry-uri care vor gold → execution mai mic (gold împărțit).
-  const blueExecution = applyResourceConflict(computeExecutionTeamScore(blueRoster, assignmentsBlue), assignmentsBlue);
-  const redExecution = applyResourceConflict(computeExecutionTeamScore(redRoster, assignmentsRed), assignmentsRed);
+  const blueExecution = applyResourceConflict(computeExecutionTeamScore(blueRoster, assignmentsBlue), assignmentsBlue, blueRoster);
+  const redExecution = applyResourceConflict(computeExecutionTeamScore(redRoster, assignmentsRed), assignmentsRed, redRoster);
 
   const blueClutch = computeClutchTeamScore(blueRoster);
   const redClutch = computeClutchTeamScore(redRoster);
@@ -1573,12 +1592,18 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     seriesMvpPlayerId,
     isSeriesComplete: seriesComplete,
     gameLength,
-    outcomeFactors: buildOutcomeFactors(blueScores, redScores),
+    outcomeFactors: buildOutcomeFactors(blueScores, redScores, {
+      execution: { blue: resourceConflictDetail(assignmentsBlue), red: resourceConflictDetail(assignmentsRed) },
+    }),
   };
 }
 
 /** FEEDBACK_FIXES §6.1 — factorii rezultatului: valoarea per echipă și contribuția la diferența de total. */
-function buildOutcomeFactors(blue: TeamPhaseScores, red: TeamPhaseScores): OutcomeFactor[] {
+function buildOutcomeFactors(
+  blue: TeamPhaseScores,
+  red: TeamPhaseScores,
+  details: Partial<Record<OutcomeFactorKey, { blue?: string; red?: string }>> = {},
+): OutcomeFactor[] {
   const value = (scores: TeamPhaseScores, key: OutcomeFactorKey): number => {
     switch (key) {
       case "players": return scores.playerPower;
@@ -1597,5 +1622,6 @@ function buildOutcomeFactors(blue: TeamPhaseScores, red: TeamPhaseScores): Outco
     blue: round1(value(blue, key)),
     red: round1(value(red, key)),
     edgeBlue: Math.round(((blue.contributions?.[key] ?? 0) - (red.contributions?.[key] ?? 0)) * 1000) / 1000,
+    ...(details[key]?.blue || details[key]?.red ? { detail: { blue: details[key]!.blue, red: details[key]!.red } } : {}),
   }));
 }

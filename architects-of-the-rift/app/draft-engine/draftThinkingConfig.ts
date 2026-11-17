@@ -517,6 +517,19 @@ export const DRAFT_THINKING_CONFIG = {
      */
     phaseEffectScale: 8,
 
+    // ─── Faza 1, §5.3 (NEXT_STEPS 3a): efectele de resurse în meci (doar la resourceDemand ≥ 4 / ≤ 2) ───
+    /** Lane: weakside_ready pe un campion cu cerere ≤ weaksideMax, matchup pierdut: termenul × (1 − shield). */
+    weaksideLaneShield: 0.35,
+    weaksideLaneShieldStrong: 0.5,
+    /**
+     * Conflictul de resurse, pe fiecare carry peste maxHighDemand: simResourceConflict + hogConflictExtra pentru fiecare
+     * resource_hog printre carry-uri peste primul − weaksideConflictRelief pentru fiecare weakside_ready / enabler
+     * printre ele, minim conflictMinPerCarry. Ajustarea de trait × phaseEffectScale / 5 (vezi applyResourceConflict).
+     */
+    hogConflictExtra: 0.15,
+    weaksideConflictRelief: 0.1,
+    conflictMinPerCarry: 0.15,
+
     // ─── Faza 3 (§8.3): Macro ─────────────────────────────────────────────────
     /** Chemistry: exact un shotcaller → leadershipBonus + atât pe follower, cel mult followerBonusMax. */
     followerLeadershipBonus: 0.1,
