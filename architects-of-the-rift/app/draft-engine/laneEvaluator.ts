@@ -127,6 +127,15 @@ function jungleSideEffect(role: Role, roster: Partial<Record<Role, string>>): { 
   return { delta: -T.jungleSideAwayPenalty, note: "jungle away" };
 }
 
+/**
+ * NEXT_STEPS B6 — termenul de trait din lane × traits.phaseEffectScale: abaterea factorului de matchup față de 1
+ * (limitat la ≥ 0, ca un shield să nu inverseze semnul), penalizarea și efectul junglerului pe o parte a hărții.
+ */
+function scaleTraitEffect(trait: { factor: number; penalty: number }, side: { delta: number }) {
+  const scale = DRAFT_THINKING_CONFIG.traits.phaseEffectScale;
+  return { factor: Math.max(0, 1 + (trait.factor - 1) * scale), penalty: trait.penalty * scale, side: side.delta * scale };
+}
+
 function buildRoleBreakdown(
   role: Role,
   bluePlayerId: string | null,
@@ -142,6 +151,8 @@ function buildRoleBreakdown(
   const redTrait = laneTraitEffect(redPlayerId, redMatchup, lane.laneOrder?.red[role], lane.adapted?.red[role]);
   const blueSide = jungleSideEffect(role, lane.blueRoster);
   const redSide = jungleSideEffect(role, lane.redRoster);
+  const blueScaled = scaleTraitEffect(blueTrait, blueSide);
+  const redScaled = scaleTraitEffect(redTrait, redSide);
 
   const blueDraftFit = playerChampionDraftFit(bluePlayerId, blueChampionId);
   const redDraftFit = playerChampionDraftFit(redPlayerId, redChampionId);
@@ -189,11 +200,11 @@ function buildRoleBreakdown(
       blueConsistency * 0.08 +
       blueBlind * 0.06 +
       jungleInfluence(role, bluePlayerId, blueChampionId) * 0.14 +
-      blueMatchup * 0.42 * DRAFT_THINKING_CONFIG.simulation.laneMatchupScale * blueTrait.factor +
+      blueMatchup * 0.42 * DRAFT_THINKING_CONFIG.simulation.laneMatchupScale * blueScaled.factor +
       blueHistoryMatchup * 0.3 +
       blueHistoryLaneBonus * 0.7 -
-      blueTrait.penalty +
-      blueSide.delta,
+      blueScaled.penalty +
+      blueScaled.side,
     0,
     10
   );
@@ -206,11 +217,11 @@ function buildRoleBreakdown(
       redConsistency * 0.08 +
       redBlind * 0.06 +
       jungleInfluence(role, redPlayerId, redChampionId) * 0.14 +
-      redMatchup * 0.42 * DRAFT_THINKING_CONFIG.simulation.laneMatchupScale * redTrait.factor +
+      redMatchup * 0.42 * DRAFT_THINKING_CONFIG.simulation.laneMatchupScale * redScaled.factor +
       redHistoryMatchup * 0.3 +
       redHistoryLaneBonus * 0.7 -
-      redTrait.penalty +
-      redSide.delta,
+      redScaled.penalty +
+      redScaled.side,
     0,
     10
   );

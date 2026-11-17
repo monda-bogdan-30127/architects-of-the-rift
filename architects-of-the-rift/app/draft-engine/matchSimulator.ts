@@ -398,8 +398,11 @@ function getProfileWeights(profile: MatchProfile) {
 
 /**
  * NEXT_STEPS B6 — efectele de trait care schimbau doar nota jucătorului (buildPlayerScores, calculat după decizie)
- * intră și în puterea jucătorilor pe faze, cu aceeași mărime pe jucător (medie pe cei 5):
- *   needs_setup (setup-ul celorlalți 4) → mid și late; series_adapter / fast_starter (jocul din serie) → toate fazele.
+ * intră și în puterea jucătorilor pe faze (medie pe cei 5), × traits.phaseEffectScale:
+ *   needs_setup (setup-ul celorlalți 4) → mid și late; series_adapter / fast_starter (jocul din serie) → toate fazele;
+ *   signature_player: Δfit din amplificarea mastery (applyMasteryToFit cu / fără trait) → toate fazele;
+ *   greed / resource_hog: 3 × (greedCarryAmplifier − greedRiskAmplifier), adică deplasările din carryFactor /
+ *     mistakeRisk (ceiling vs. greșeli) → mid și late.
  * self_sufficient n-are efect de rating (doar scapă de malusul needs_setup), deci nu adaugă nimic.
  */
 function getTeamTraitPhaseEffects(
@@ -411,15 +414,24 @@ function getTeamTraitPhaseEffects(
   const picks = Object.values(assignments).filter((id): id is string => Boolean(id));
   let setupSum = 0;
   let seriesSum = 0;
+  let signatureSum = 0;
+  let greedSum = 0;
   for (const role of ROLE_ORDER) {
     const player = getPlayerById(roster[role] ?? "");
     const championId = assignments[role];
     if (!player || !championId) continue;
     setupSum += getSetupRatingEffect(player, teamSetupFor(picks, championId));
     seriesSum += getSeriesRatingEffect(player, gameNumber, bo);
+    const baseFit = playerChampionDraftFit(player.id, championId);
+    signatureSum += applyMasteryToFit(player, championId, baseFit) - applyMasteryToFit(player, championId, baseFit, true);
+    const tags = new Set(getChampionRoleProfile(getChampionById(championId), role)?.tags ?? []);
+    const personality = getPlayerPersonalityModifiers(player.id, tags, 0, championId, role);
+    greedSum += 3 * (personality.greedCarryAmplifier - personality.greedRiskAmplifier);
   }
-  const count = ROLE_ORDER.length;
-  return { early: seriesSum / count, mid: (seriesSum + setupSum) / count, late: (seriesSum + setupSum) / count };
+  const scale = DRAFT_THINKING_CONFIG.traits.phaseEffectScale / ROLE_ORDER.length;
+  const all = seriesSum + signatureSum;
+  const midLate = all + setupSum + greedSum;
+  return { early: all * scale, mid: midLate * scale, late: midLate * scale };
 }
 
 function computePhaseBreakdown(args: {

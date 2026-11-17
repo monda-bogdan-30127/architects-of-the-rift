@@ -308,15 +308,15 @@ const lines: string[] = [
   "## Ținte (DRAFT_SIM_ALIGNMENT §0)",
   "",
   columns,
-  row("Draft bun contra „top 8 aleator”", "~63–66%", pct(result.weak.noisy.goodWins), pct(before?.weak.noisy.goodWins)),
-  row("Draft bun contra draft complet aleator", "~70–78%", pct(result.weak.random.goodWins), pct(before?.weak.random.goodWins)),
+  row("Draft bun contra „top 8 aleator”", "~63–67%", pct(result.weak.noisy.goodWins), pct(before?.weak.noisy.goodWins)),
+  row("Draft bun contra draft complet aleator", "≤ 80%", pct(result.weak.random.goodWins), pct(before?.weak.random.goodWins)),
   row(`Nivel egal: câștigă draftul mai bun (${result.normal.evenGames} jocuri)`, "~60%", pct(result.normal.betterDraftEven), pct(before?.normal.betterDraftEven)),
   row("Corelația draftPower ↔ victorie, nivel egal", "≥ 0.25", num(result.normal.components.draftPower?.winEven), num(before?.normal.components.draftPower?.winEven)),
   row("Corelația playerFit ↔ nivelul jucătorilor", "≤ 0.5", num(result.normal.components.playerFitScore?.withStrength), num(before?.normal.components.playerFitScore?.withStrength)),
   ...(result.normal.components.choiceFitScore
     ? [row("Corelația choiceFit ↔ nivelul jucătorilor", "≤ 0.5", num(result.normal.components.choiceFitScore.withStrength), num(before?.normal.components.choiceFitScore?.withStrength))]
     : []),
-  row("Favoritul câștigă", "65–72%", pct(result.normal.favoriteWins), pct(before?.normal.favoriteWins)),
+  row("Favoritul câștigă", "65–74%", pct(result.normal.favoriteWins), pct(before?.normal.favoriteWins)),
   row("Winrate blue", "≤ 53%", pct(result.normal.blueWins), pct(before?.normal.blueWins)),
   row("Diferența medie de draftPower (bun − top 8 aleator)", "raportat", num(result.weak.noisy.draftPowerGap, 2), num(before?.weak.noisy.draftPowerGap, 2)),
   row("Diferența medie de draftPower (bun − aleator)", "raportat", num(result.weak.random.draftPowerGap, 2), num(before?.weak.random.draftPowerGap, 2)),

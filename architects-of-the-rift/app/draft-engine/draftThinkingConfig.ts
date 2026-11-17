@@ -507,6 +507,16 @@ export const DRAFT_THINKING_CONFIG = {
     /** Draft: game 1, candidații SS / S ai unui fast_starter propriu + atât × intensity. */
     fastStarterComfortBonus: 0.3,
 
+    /**
+     * NEXT_STEPS B6: multiplicatorul tuturor efectelor de trait din faze: rating-ul (needs_setup, serie, signature,
+     * greed) în puterea jucătorilor pe faze și termenul de trait din laneEvaluator (abaterea factorului de matchup
+     * față de 1, penalizarea, junglerul pe o parte a hărții). 1 = mărimea din nota jucătorului / din spec.
+     * Ținta: fiecare efect schimbă câștigătorul în ~1–3% din jocurile în care se activează. La 8 (711 jocuri
+     * Bo3 / Bo5): needs_setup 1,5%, serie 2,0%, signature 2,7%, greed 1,0%, lane 1,1%, jungler 1,9%.
+     * La 12, favoritul (73,9%) și draftul complet aleator (80,5%) ieșeau din interval.
+     */
+    phaseEffectScale: 8,
+
     // ─── Faza 3 (§8.3): Macro ─────────────────────────────────────────────────
     /** Chemistry: exact un shotcaller → leadershipBonus + atât pe follower, cel mult followerBonusMax. */
     followerLeadershipBonus: 0.1,

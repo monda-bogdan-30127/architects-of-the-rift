@@ -320,12 +320,14 @@ export function applyMasteryToFit(
   player: Player | null,
   championId: string | null,
   baseFit: number,
+  /** NEXT_STEPS B6: fără amplificarea signature_player (ca să se măsoare efectul trait-ului). */
+  ignoreSignature = false,
 ): number {
   if (!player || !championId) return baseFit;
   const grade = getChampionGrade(player, championId);
   if (grade === "F") return baseFit * 0.3;
   // PLAYER_TRAITS §7.4: signature_player — SS/S cresc mai mult, C/D scad mai mult (distanța față de 1 amplificată).
-  const signature = getActiveTrait(player, "signature_player");
+  const signature = ignoreSignature ? null : getActiveTrait(player, "signature_player");
   const multiplier = signature
     ? 1 + (getMasteryMultiplier(grade) - 1) * (1 + DRAFT_THINKING_CONFIG.traits.signatureMasteryScale * signature.intensity)
     : getMasteryMultiplier(grade);
