@@ -145,12 +145,15 @@ function jungleSideEffect(role: Role, roster: Partial<Record<Role, string>>): { 
 }
 
 /**
- * NEXT_STEPS B6 — termenul de trait din lane × traits.phaseEffectScale: abaterea factorului de matchup față de 1
- * (limitat la ≥ 0, ca un shield să nu inverseze semnul), penalizarea și efectul junglerului pe o parte a hărții.
+ * NEXT_STEPS B6 — termenul de trait din lane × traits.phaseEffectScale: abaterea factorului de matchup față de 1,
+ * penalizarea și efectul junglerului pe o parte a hărții. 3a+: factorul scalat rămâne în [laneShieldFloor,
+ * matchupBoostCap] (un scut reduce un matchup pierdut cu cel mult 60%; o amplificare îl crește cu cel mult 50%).
  */
 function scaleTraitEffect(trait: { factor: number; penalty: number }, side: { delta: number }) {
-  const scale = DRAFT_THINKING_CONFIG.traits.phaseEffectScale;
-  return { factor: Math.max(0, 1 + (trait.factor - 1) * scale), penalty: trait.penalty * scale, side: side.delta * scale };
+  const T = DRAFT_THINKING_CONFIG.traits;
+  const scaled = 1 + (trait.factor - 1) * T.phaseEffectScale;
+  const factor = Math.min(T.matchupBoostCap, Math.max(T.laneShieldFloor, scaled));
+  return { factor, penalty: trait.penalty * T.phaseEffectScale, side: side.delta * T.phaseEffectScale };
 }
 
 function buildRoleBreakdown(

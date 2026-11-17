@@ -474,6 +474,12 @@ export const DRAFT_THINKING_CONFIG = {
     /** Lane: lane_dominator, termenul pozitiv × (1 + atât × intensity); cu counter_specialist, multiplicatorul total ≤ cap. */
     dominatorBoost: 0.25,
     matchupBoostCap: 1.5,
+    /**
+     * NEXT_STEPS 3a+: după phaseEffectScale, factorul unui scut pe matchup-ul pierdut rămâne ≥ atât (reducerea
+     * totală ≤ 60%: un matchup pierdut contează cel puțin 40%). Amplificările sunt plafonate la matchupBoostCap, tot
+     * după scală.
+     */
+    laneShieldFloor: 0.4,
     /** Mastery: signature_player, distanța multiplicatorului față de 1 × (1 + atât × intensity). */
     signatureMasteryScale: 0.25,
     /** Ban AI: bonusul pe bestChampions ale unui signature_player × atât. */
