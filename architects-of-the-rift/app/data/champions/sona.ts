@@ -9,6 +9,7 @@ export const sona = createChampion({
   attackType: "ranged",
 
   offers: [
+    { type: "sustain", strength: 4 },
     { type: "scaling", strength: 4 },
     { type: "poke", strength: 3 },
     { type: "peel", strength: 3 },

@@ -30,6 +30,7 @@ export const zoe = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "sustain", severity: 1 },
     { exposedTo: "peel", severity: 2 },
     { exposedTo: "frontline", severity: 2 },
     { exposedTo: "disengage", severity: 1 },

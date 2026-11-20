@@ -20,6 +20,7 @@ export const seraphine = createChampion({
   ],
 
   offers: [
+    { type: "sustain", strength: 3 },
     { type: "waveclear", strength: 4 },
     { type: "disengage", strength: 4 },
     { type: "peel", strength: 4 },

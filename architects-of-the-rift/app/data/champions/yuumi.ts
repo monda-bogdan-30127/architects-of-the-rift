@@ -20,6 +20,7 @@ export const yuumi = createChampion({
   ],
 
   offers: [
+    { type: "sustain", strength: 4 },
     { type: "peel", strength: 5 },
     { type: "antiDive", strength: 4 },
     { type: "disengage", strength: 3 }

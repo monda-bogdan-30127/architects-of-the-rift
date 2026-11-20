@@ -19,6 +19,7 @@ export const xerath = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "sustain", severity: 2 },
     { exposedTo: "dive", severity: 2 },
     { exposedTo: "backlineAccess", severity: 2 },
     { exposedTo: "pick", severity: 2 },

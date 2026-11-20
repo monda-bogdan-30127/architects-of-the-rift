@@ -20,6 +20,7 @@ export const swain = createChampion({
   ],
 
   offers: [
+    { type: "sustain", strength: 2 },
     { type: "frontline", strength: 3 },
     { type: "sustainedDamage", strength: 4 },
     { type: "zoneControl", strength: 3 }

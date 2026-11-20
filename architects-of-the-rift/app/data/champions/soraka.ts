@@ -20,6 +20,7 @@ export const soraka = createChampion({
   ],
 
   offers: [
+    { type: "sustain", strength: 5 },
     { type: "peel", strength: 5 },
     { type: "antiDive", strength: 4 },
     { type: "disengage", strength: 3 }

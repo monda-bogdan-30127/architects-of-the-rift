@@ -32,6 +32,7 @@ export const varus = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "sustain", severity: 1 },
     { exposedTo: "dive", severity: 3 },
     { exposedTo: "backlineAccess", severity: 3 },
     { exposedTo: "pick", severity: 3 },

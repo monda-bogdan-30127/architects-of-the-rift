@@ -20,6 +20,7 @@ export const taric = createChampion({
   ],
 
   offers: [
+    { type: "sustain", strength: 3 },
     { type: "antiDive", strength: 5 },
     { type: "peel", strength: 4 },
     { type: "frontline", strength: 3 },

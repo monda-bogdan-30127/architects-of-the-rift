@@ -20,6 +20,7 @@ export const drMundo = createChampion({
   ],
 
   offers: [
+    { type: "sustain", strength: 2 },
     { type: "frontline", strength: 5 },
     { type: "sideLanePressure", strength: 3 },
     { type: "sustainedDamage", strength: 3 }

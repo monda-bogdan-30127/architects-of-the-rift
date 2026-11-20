@@ -20,6 +20,7 @@ export const janna = createChampion({
   ],
 
   offers: [
+    { type: "sustain", strength: 3 },
     { type: "disengage", strength: 5 },
     { type: "peel", strength: 5 },
     { type: "antiDive", strength: 5 }

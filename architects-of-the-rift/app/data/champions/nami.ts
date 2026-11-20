@@ -18,6 +18,7 @@ export const nami = createChampion({
   ],
 
   offers: [
+    { type: "sustain", strength: 3 },
     { type: "peel", strength: 5 },
     { type: "antiDive", strength: 4 },
     { type: "disengage", strength: 4 }

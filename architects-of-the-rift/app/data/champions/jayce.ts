@@ -30,6 +30,7 @@ export const jayce = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "sustain", severity: 1 },
     { exposedTo: "dive", severity: 2 },
     { exposedTo: "pick", severity: 2 },
     { exposedTo: "engage", severity: 2 },

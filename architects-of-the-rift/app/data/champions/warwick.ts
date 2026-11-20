@@ -9,6 +9,7 @@ export const warwick = createChampion({
   attackType: "melee",
 
   offers: [
+    { type: "sustain", strength: 2 },
     { type: "antiTank", strength: 3 },
     { type: "pick", strength: 4 },
     { type: "sustainedDamage", strength: 4 },

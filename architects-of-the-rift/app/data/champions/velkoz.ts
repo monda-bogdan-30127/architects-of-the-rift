@@ -20,6 +20,7 @@ export const velkoz = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "sustain", severity: 1 },
     { exposedTo: "dive", severity: 2 },
     { exposedTo: "backlineAccess", severity: 2 },
     { exposedTo: "pick", severity: 2 },

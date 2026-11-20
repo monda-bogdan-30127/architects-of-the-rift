@@ -37,6 +37,7 @@ export const ziggs = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "sustain", severity: 2 },
     { exposedTo: "dive", severity: 3 },
     { exposedTo: "backlineAccess", severity: 3 },
     { exposedTo: "pick", severity: 3 },

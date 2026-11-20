@@ -20,6 +20,7 @@ export const senna = createChampion({
   ],
 
   offers: [
+    { type: "sustain", strength: 3 },
     { type: "poke", strength: 4 },
     { type: "scaling", strength: 4 },
     { type: "siege", strength: 3 }

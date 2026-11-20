@@ -20,6 +20,7 @@ export const vladimir = createChampion({
   ],
 
   offers: [
+    { type: "sustain", strength: 2 },
     { type: "scaling", strength: 5 },
     { type: "sustainedDamage", strength: 4 },
     { type: "backlineAccess", strength: 3 }

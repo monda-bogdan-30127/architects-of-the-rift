@@ -20,6 +20,7 @@ export const aatrox = createChampion({
   ],
 
   offers: [
+    { type: "sustain", strength: 2 },
     { type: "earlyPrio", strength: 3 },
     { type: "objectiveControl", strength: 3 },
     { type: "roamPressure", strength: 3 },
