@@ -30,6 +30,7 @@ export const jax = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "globalPressure", severity: 1 },
     { exposedTo: "dive", severity: 2 },
     { exposedTo: "backlineAccess", severity: 2 },
     { exposedTo: "pick", severity: 2 },

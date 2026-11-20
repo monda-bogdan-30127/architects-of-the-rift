@@ -19,6 +19,7 @@ export const tryndamere = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "globalPressure", severity: 1 },
     { exposedTo: "poke", severity: 3 },
     { exposedTo: "pick", severity: 2 },
     { exposedTo: "engage", severity: 2 },

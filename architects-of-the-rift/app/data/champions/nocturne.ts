@@ -20,6 +20,7 @@ export const nocturne = createChampion({
   ],
 
   offers: [
+    { type: "globalPressure", strength: 3 },
     { type: "antiCC", strength: 2 },
     { type: "backlineAccess", strength: 5 },
     { type: "dive", strength: 5 },

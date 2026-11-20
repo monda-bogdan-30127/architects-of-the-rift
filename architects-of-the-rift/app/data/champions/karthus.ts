@@ -9,6 +9,7 @@ export const karthus = createChampion({
   attackType: "ranged",
 
   offers: [
+    { type: "globalPressure", strength: 3 },
     { type: "scaling", strength: 5 },
     { type: "sustainedDamage", strength: 5 },
     { type: "objectiveControl", strength: 4 },

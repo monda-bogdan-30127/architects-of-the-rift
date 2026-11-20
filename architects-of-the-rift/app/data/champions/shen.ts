@@ -20,6 +20,7 @@ export const shen = createChampion({
   ],
 
   offers: [
+    { type: "globalPressure", strength: 5 },
     { type: "frontline", strength: 4 },
     { type: "antiDive", strength: 4 },
     { type: "sideLanePressure", strength: 3 },

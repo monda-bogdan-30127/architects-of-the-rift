@@ -32,6 +32,7 @@ export const fiora = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "globalPressure", severity: 1 },
     { exposedTo: "pick", severity: 2 },
     { exposedTo: "engage", severity: 2 },
     { exposedTo: "poke", severity: 2 },

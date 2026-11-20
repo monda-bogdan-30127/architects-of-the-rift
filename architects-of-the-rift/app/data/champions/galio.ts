@@ -20,6 +20,7 @@ export const galio = createChampion({
   ],
 
   offers: [
+    { type: "globalPressure", strength: 4 },
     { type: "engage", strength: 4 },
     { type: "followUp", strength: 4 },
     { type: "antiDive", strength: 3 },

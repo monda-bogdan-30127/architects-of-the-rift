@@ -19,6 +19,7 @@ export const ryze = createChampion({
   ],
 
   offers: [
+    { type: "globalPressure", strength: 4 },
     { type: "waveclear", strength: 4 },
     { type: "sustainedDamage", strength: 4 },
     { type: "sideLanePressure", strength: 4 },

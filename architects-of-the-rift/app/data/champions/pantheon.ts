@@ -20,6 +20,7 @@ export const pantheon = createChampion({
   ],
 
   offers: [
+    { type: "globalPressure", strength: 3 },
     { type: "pick", strength: 4 },
     { type: "engage", strength: 4 },
     { type: "earlyPrio", strength: 5 },

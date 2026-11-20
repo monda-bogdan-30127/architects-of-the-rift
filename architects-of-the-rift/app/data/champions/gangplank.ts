@@ -9,6 +9,7 @@ export const gangplank = createChampion({
   attackType: "melee",
 
   offers: [
+    { type: "globalPressure", strength: 3 },
     { type: "antiCC", strength: 2 },
     { type: "waveclear", strength: 4 },
     { type: "scaling", strength: 4 },

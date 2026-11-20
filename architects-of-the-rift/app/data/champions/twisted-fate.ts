@@ -20,6 +20,7 @@ export const twistedFate = createChampion({
   ],
 
   offers: [
+    { type: "globalPressure", strength: 5 },
     { type: "pick", strength: 4 },
     { type: "roamPressure", strength: 5 },
     { type: "sideLanePressure", strength: 3 },

@@ -19,6 +19,7 @@ export const taliyah = createChampion({
   ],
 
   offers: [
+    { type: "globalPressure", strength: 3 },
     { type: "zoneControl", strength: 5 },
     { type: "pick", strength: 4 },
     { type: "roamPressure", strength: 4 },

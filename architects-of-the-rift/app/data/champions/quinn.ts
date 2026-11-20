@@ -20,6 +20,7 @@ export const quinn = createChampion({
   ],
 
   offers: [
+    { type: "globalPressure", strength: 3 },
     { type: "roamPressure", strength: 5 },
     { type: "sideLanePressure", strength: 4 },
     { type: "earlyPrio", strength: 4 },
