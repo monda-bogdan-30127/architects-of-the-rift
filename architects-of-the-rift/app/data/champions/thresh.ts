@@ -31,6 +31,7 @@ export const thresh = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "antiCC", severity: 2 },
     { exposedTo: "disengage", severity: 2 },
     { exposedTo: "zoneControl", severity: 2 },
     { exposedTo: "frontline", severity: 2 },

@@ -18,6 +18,7 @@ export const sivir = createChampion({
   ],
 
   offers: [
+    { type: "antiCC", strength: 2 },
     { type: "waveclear", strength: 5 },
     { type: "siege", strength: 4 },
     { type: "sustainedDamage", strength: 4 },

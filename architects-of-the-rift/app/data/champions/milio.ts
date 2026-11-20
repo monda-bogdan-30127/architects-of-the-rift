@@ -19,6 +19,7 @@ export const milio = createChampion({
   ],
 
   offers: [
+    { type: "antiCC", strength: 5 },
     { type: "peel", strength: 5 },
     { type: "antiDive", strength: 4 },
     { type: "disengage", strength: 4 },

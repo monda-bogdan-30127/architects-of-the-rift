@@ -19,6 +19,7 @@ export const mel = createChampion({
   ],
 
   offers: [
+    { type: "antiCC", strength: 2 },
     { type: "poke", strength: 4 },
     { type: "burstDamage", strength: 4 },
     { type: "waveclear", strength: 3 },

@@ -18,6 +18,7 @@ export const braum = createChampion({
   ],
 
   offers: [
+    { type: "antiCC", strength: 4 },
     { type: "peel", strength: 5 },
     { type: "antiDive", strength: 5 },
     { type: "frontline", strength: 3 }

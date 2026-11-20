@@ -20,6 +20,7 @@ export const sion = createChampion({
   ],
 
   offers: [
+    { type: "antiCC", strength: 2 },
     { type: "frontline", strength: 5 },
     { type: "engage", strength: 4 },
     { type: "waveclear", strength: 3 }

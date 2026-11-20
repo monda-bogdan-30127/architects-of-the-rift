@@ -20,6 +20,7 @@ export const morgana = createChampion({
   ],
 
   offers: [
+    { type: "antiCC", strength: 5 },
     { type: "pick", strength: 4 },
     { type: "antiDive", strength: 4 },
     { type: "zoneControl", strength: 3 }

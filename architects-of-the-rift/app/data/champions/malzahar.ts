@@ -20,6 +20,7 @@ export const malzahar = createChampion({
   ],
 
   offers: [
+    { type: "antiCC", strength: 2 },
     { type: "pick", strength: 5 },
     { type: "reliableCC", strength: 5 },
     { type: "waveclear", strength: 4 },

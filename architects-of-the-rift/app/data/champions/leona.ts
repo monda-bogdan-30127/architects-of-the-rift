@@ -30,6 +30,7 @@ export const leona = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "antiCC", severity: 1 },
     { exposedTo: "disengage", severity: 3 },
     { exposedTo: "zoneControl", severity: 2 },
     { exposedTo: "frontline", severity: 2 },

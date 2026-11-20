@@ -30,6 +30,7 @@ export const pyke = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "antiCC", severity: 1 },
     { exposedTo: "dive", severity: 2 },
     { exposedTo: "backlineAccess", severity: 2 },
     { exposedTo: "disengage", severity: 2 },

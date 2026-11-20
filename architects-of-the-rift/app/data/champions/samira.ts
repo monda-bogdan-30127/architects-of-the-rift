@@ -15,6 +15,7 @@ export const samira = createChampion({
   ],
 
   offers: [
+    { type: "antiCC", strength: 2 },
     { type: "dive", strength: 4 },
     { type: "followUp", strength: 4 },
     { type: "burstDamage", strength: 3 },

@@ -19,6 +19,7 @@ export const yasuo = createChampion({
   ],
 
   offers: [
+    { type: "antiCC", strength: 4 },
     { type: "followUp", strength: 4 },
     { type: "dive", strength: 3 },
     { type: "sustainedDamage", strength: 3 },

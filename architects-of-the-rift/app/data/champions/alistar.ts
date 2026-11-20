@@ -19,6 +19,7 @@ export const alistar = createChampion({
   ],
 
   offers: [
+    { type: "antiCC", strength: 3 },
     { type: "engage", strength: 5 },
     { type: "frontline", strength: 4 },
     { type: "peel", strength: 3 },
