@@ -69,14 +69,16 @@ export const PLAYER_TRAIT_INFO: Record<
     label: "Blind-Pick Safe",
     description: "Loses little when picking first in his lane.",
     excludes: ["counter_specialist"],
-    roles: ["top", "mid", "adc", "support"],
+    // NEXT_STEPS 3c: counter-pick / blind-pick contează pe solo lane-uri (1v1); botlane e 2v2, ADC-urile se aleg devreme.
+    roles: ["top", "mid"],
   },
   counter_specialist: {
     family: "draft",
     label: "Counter-Pick Specialist",
     description: "Shines when he picks after his lane opponent, struggles when he has to blind.",
     excludes: ["blind_safe"],
-    roles: ["top", "mid", "adc", "support"],
+    // NEXT_STEPS 3c: counter-pick / blind-pick contează pe solo lane-uri (1v1); botlane e 2v2, ADC-urile se aleg devreme.
+    roles: ["top", "mid"],
   },
   signature_player: {
     family: "draft",
