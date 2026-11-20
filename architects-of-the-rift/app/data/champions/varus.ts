@@ -19,6 +19,7 @@ export const varus = createChampion({
   ],
 
   offers: [
+    { type: "antiTank", strength: 4 },
     { type: "poke", strength: 5 },
     { type: "objectiveControl", strength: 4 },
     { type: "siege", strength: 4 },

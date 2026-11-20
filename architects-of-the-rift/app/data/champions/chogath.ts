@@ -20,6 +20,7 @@ export const chogath = createChampion({
   ],
 
   offers: [
+    { type: "antiTank", strength: 3 },
     { type: "frontline", strength: 5 },
     { type: "pick", strength: 3 },
     { type: "zoneControl", strength: 3 }
@@ -30,6 +31,7 @@ export const chogath = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "antiTank", severity: 2 },
     { exposedTo: "pick", severity: 2 },
     { exposedTo: "disengage", severity: 2 },
     { exposedTo: "sustainedDamage", severity: 2 },

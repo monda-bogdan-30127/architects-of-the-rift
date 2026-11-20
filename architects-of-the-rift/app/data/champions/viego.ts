@@ -19,6 +19,7 @@ export const viego = createChampion({
   ],
 
   offers: [
+    { type: "antiTank", strength: 3 },
     { type: "sustainedDamage", strength: 4 },
     { type: "dive", strength: 3 },
     { type: "objectiveControl", strength: 3 }

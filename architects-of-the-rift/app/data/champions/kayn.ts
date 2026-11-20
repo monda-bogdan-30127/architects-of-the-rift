@@ -9,6 +9,7 @@ export const kayn = createChampion({
   attackType: "melee",
 
   offers: [
+    { type: "antiTank", strength: 3 },
     { type: "backlineAccess", strength: 5 },
     { type: "dive", strength: 4 },
     { type: "burstDamage", strength: 4 },

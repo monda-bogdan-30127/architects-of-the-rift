@@ -29,6 +29,7 @@ export const ornn = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "antiTank", severity: 3 },
     { exposedTo: "disengage", severity: 3 },
     { exposedTo: "zoneControl", severity: 2 },
     { exposedTo: "sustainedDamage", severity: 2 },

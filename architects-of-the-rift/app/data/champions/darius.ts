@@ -20,6 +20,7 @@ export const darius = createChampion({
   ],
 
   offers: [
+    { type: "antiTank", strength: 3 },
     { type: "sideLanePressure", strength: 4 },
     { type: "sustainedDamage", strength: 4 },
     { type: "frontline", strength: 2 }

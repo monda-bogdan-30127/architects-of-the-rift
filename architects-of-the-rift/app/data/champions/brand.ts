@@ -9,6 +9,7 @@ export const brand = createChampion({
   attackType: "ranged",
 
   offers: [
+    { type: "antiTank", strength: 4 },
     { type: "sustainedDamage", strength: 5 },
     { type: "objectiveControl", strength: 4 },
     { type: "zoneControl", strength: 4 },

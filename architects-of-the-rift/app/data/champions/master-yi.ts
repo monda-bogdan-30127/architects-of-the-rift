@@ -9,6 +9,7 @@ export const masterYi = createChampion({
   attackType: "melee",
 
   offers: [
+    { type: "antiTank", strength: 3 },
     { type: "sustainedDamage", strength: 5 },
     { type: "scaling", strength: 4 },
     { type: "objectiveControl", strength: 4 },

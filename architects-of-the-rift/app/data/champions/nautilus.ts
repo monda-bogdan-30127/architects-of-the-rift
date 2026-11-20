@@ -29,6 +29,7 @@ export const nautilus = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "antiTank", severity: 2 },
     { exposedTo: "disengage", severity: 3 },
     { exposedTo: "zoneControl", severity: 2 },
     { exposedTo: "frontline", severity: 2 },

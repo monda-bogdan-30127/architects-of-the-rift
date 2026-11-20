@@ -20,6 +20,7 @@ export const trundle = createChampion({
   ],
 
   offers: [
+    { type: "antiTank", strength: 5 },
     { type: "frontline", strength: 3 },
     { type: "objectiveControl", strength: 4 },
     { type: "sideLanePressure", strength: 3 },

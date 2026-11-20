@@ -19,6 +19,7 @@ export const rammus = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "antiTank", severity: 3 },
     { exposedTo: "disengage", severity: 2 },
     { exposedTo: "sustainedDamage", severity: 2 },
     { exposedTo: "zoneControl", severity: 1 },

@@ -31,6 +31,7 @@ export const maokai = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "antiTank", severity: 2 },
     { exposedTo: "disengage", severity: 3 },
     { exposedTo: "dive", severity: 2 },
     { exposedTo: "backlineAccess", severity: 2 },

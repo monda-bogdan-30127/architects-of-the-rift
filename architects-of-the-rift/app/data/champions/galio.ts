@@ -32,6 +32,7 @@ export const galio = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "antiTank", severity: 2 },
     { exposedTo: "disengage", severity: 2 },
     { exposedTo: "zoneControl", severity: 2 },
     { exposedTo: "sustainedDamage", severity: 2 },

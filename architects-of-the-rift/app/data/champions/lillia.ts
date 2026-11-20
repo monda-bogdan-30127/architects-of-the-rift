@@ -9,6 +9,7 @@ export const lillia = createChampion({
   attackType: "melee",
 
   offers: [
+    { type: "antiTank", strength: 4 },
     { type: "sustainedDamage", strength: 4 },
     { type: "zoneControl", strength: 3 },
     { type: "objectiveControl", strength: 3 },

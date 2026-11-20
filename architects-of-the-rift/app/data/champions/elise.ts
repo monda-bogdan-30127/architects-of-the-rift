@@ -16,6 +16,7 @@ export const elise = createChampion({
   ],
 
   offers: [
+    { type: "antiTank", strength: 3 },
     { type: "burstDamage", strength: 4 },
     { type: "pick", strength: 4 },
     { type: "poke", strength: 3 },

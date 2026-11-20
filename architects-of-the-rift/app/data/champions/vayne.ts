@@ -24,6 +24,7 @@ export const vayne = createChampion({
   ],
 
   offers: [
+    { type: "antiTank", strength: 5 },
     { type: "sustainedDamage", strength: 4 },
     { type: "scaling", strength: 4 },
     { type: "sideLanePressure", strength: 3 }

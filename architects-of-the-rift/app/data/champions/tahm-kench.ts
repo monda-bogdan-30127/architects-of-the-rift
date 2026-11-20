@@ -30,6 +30,7 @@ export const tahmKench = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "antiTank", severity: 2 },
     { exposedTo: "poke", severity: 3 },
     { exposedTo: "siege", severity: 2 },
     { exposedTo: "sustainedDamage", severity: 2 },

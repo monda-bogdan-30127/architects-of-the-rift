@@ -20,6 +20,7 @@ export const olaf = createChampion({
   ],
 
   offers: [
+    { type: "antiTank", strength: 3 },
     { type: "earlyPrio", strength: 4 },
     { type: "sustainedDamage", strength: 4 },
     { type: "dive", strength: 3 }

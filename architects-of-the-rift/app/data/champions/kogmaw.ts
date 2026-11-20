@@ -21,6 +21,7 @@ export const kogmaw = createChampion({
   ],
 
   offers: [
+    { type: "antiTank", strength: 5 },
     { type: "sustainedDamage", strength: 5 },
     { type: "scaling", strength: 5 },
     { type: "siege", strength: 4 }

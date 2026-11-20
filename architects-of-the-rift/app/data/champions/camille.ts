@@ -20,6 +20,7 @@ export const camille = createChampion({
   ],
 
   offers: [
+    { type: "antiTank", strength: 4 },
     { type: "backlineAccess", strength: 5 },
     { type: "dive", strength: 5 },
     { type: "splitpush", strength: 4 },

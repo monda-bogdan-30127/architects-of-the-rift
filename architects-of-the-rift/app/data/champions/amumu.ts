@@ -20,6 +20,7 @@ export const amumu = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "antiTank", severity: 2 },
     { exposedTo: "disengage", severity: 3 },
     { exposedTo: "zoneControl", severity: 2 },
     { exposedTo: "peel", severity: 1 },

@@ -9,6 +9,7 @@ export const shyvana = createChampion({
   attackType: "melee",
 
   offers: [
+    { type: "antiTank", strength: 3 },
     { type: "scaling", strength: 4 },
     { type: "burstDamage", strength: 4 },
     { type: "objectiveControl", strength: 3 }

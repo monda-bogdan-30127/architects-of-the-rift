@@ -30,6 +30,7 @@ export const drMundo = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "antiTank", severity: 2 },
     { exposedTo: "poke", severity: 3 },
     { exposedTo: "pick", severity: 2 },
     { exposedTo: "siege", severity: 2 },

@@ -21,6 +21,7 @@ export const gnar = createChampion({
   ],
 
   offers: [
+    { type: "antiTank", strength: 3 },
     { type: "sideLanePressure", strength: 3 },
     { type: "poke", strength: 3 },
     { type: "disengage", strength: 3 },

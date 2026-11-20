@@ -9,6 +9,7 @@ export const velkoz = createChampion({
   attackType: "ranged",
 
   offers: [
+    { type: "antiTank", strength: 4 },
     { type: "poke", strength: 5 },
     { type: "waveclear", strength: 4 },
     { type: "burstDamage", strength: 3 }

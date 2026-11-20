@@ -31,6 +31,7 @@ export const ksante = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "antiTank", severity: 2 },
     { exposedTo: "sustainedDamage", severity: 2 },
     { exposedTo: "sideLanePressure", severity: 1 },
     { exposedTo: "poke", severity: 2 },

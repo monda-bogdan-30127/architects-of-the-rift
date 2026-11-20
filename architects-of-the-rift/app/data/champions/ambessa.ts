@@ -21,6 +21,7 @@ export const ambessa = createChampion({
 
   //mustWith: [{ championId: "jarvan-iv", score: 5 }],
   offers: [
+    { type: "antiTank", strength: 3 },
     { type: "dive", strength: 4 },
     { type: "backlineAccess", strength: 4 },
     { type: "sustainedDamage", strength: 3 },

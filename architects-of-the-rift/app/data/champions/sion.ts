@@ -30,6 +30,7 @@ export const sion = createChampion({
   ],
 
   weaknesses: [
+    { exposedTo: "antiTank", severity: 3 },
     { exposedTo: "pick", severity: 2 },
     { exposedTo: "disengage", severity: 2 },
     { exposedTo: "zoneControl", severity: 2 },

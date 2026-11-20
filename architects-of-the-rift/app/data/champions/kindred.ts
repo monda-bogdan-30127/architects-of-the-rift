@@ -20,6 +20,7 @@ export const kindred = createChampion({
   ],
 
   offers: [
+    { type: "antiTank", strength: 3 },
     { type: "sustainedDamage", strength: 4 },
     { type: "objectiveControl", strength: 4 },
     { type: "antiDive", strength: 3 },
