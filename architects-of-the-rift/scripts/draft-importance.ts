@@ -36,6 +36,10 @@ const { named } = parseArgs(process.argv.slice(2));
 const quick = named.quick === "true";
 const outName = named.out ?? (quick ? "quick" : "full");
 const compareName = named.compare;
+// --seed-tag X: alte id-uri de serie (alt zgomot); lipsă = jocurile de până acum. Pentru a măsura oscilația între seed-uri.
+// Oscilația măsurată pe același cod (20 nov, 3 seed-uri): corelația draftPower 0.14–0.24, „nivel egal” 55.3–59.8%,
+// „top 8 aleator” 66.6–68.6%, complet aleator 78.9–81.3%, favorit 70.9–73.2%, blue 50.3–51.9%.
+const seedTag = named["seed-tag"] ?? "";
 // --champion-phase-scale X / --lane-matchup-scale Y: valorile din config pentru rularea asta (grila §9).
 const simulationConfig = DRAFT_THINKING_CONFIG.simulation as { championPhaseScale: number; laneMatchupScale: number };
 if (named["champion-phase-scale"]) simulationConfig.championPhaseScale = Number(named["champion-phase-scale"]);
@@ -162,7 +166,7 @@ function runWeak(kind: WeakKind) {
   for (let seed = 0; seed < seeds; seed += 1) {
     for (const [a, b] of pairs) {
       for (const [blue, red] of [[a, b], [b, a]] as const) {
-        for (const weakSide of ["red", "blue"] as Side[]) list.push(play(`imp${kind}${seed}w${weakSide}`, blue, red, weakSide, kind));
+        for (const weakSide of ["red", "blue"] as Side[]) list.push(play(`imp${kind}${seed}w${weakSide}${seedTag}`, blue, red, weakSide, kind));
       }
     }
   }
@@ -176,7 +180,7 @@ for (let n = 0; n < normalCount; n += 1) {
   const [a, b] = crossPairs[(n * 7) % crossPairs.length];
   const seed = Math.floor((n * 7) / crossPairs.length);
   const [blue, red] = n % 2 ? [a, b] : [b, a];
-  normal.push(play(`impn${seed}`, blue, red, null, "random"));
+  normal.push(play(`impn${seed}${seedTag}`, blue, red, null, "random"));
 }
 const seconds = Math.round((Date.now() - started) / 1000);
 
@@ -306,6 +310,8 @@ const lines: string[] = [
   `${result.weak.random.games + result.weak.noisy.games} jocuri draft bun / slab, ${result.normal.games} AI vs AI, ${seconds}s.`,
   "",
   "## Ținte (DRAFT_SIM_ALIGNMENT §0)",
+  "",
+  "Zgomot între seed-uri (`--seed-tag`, același cod, main la cfb0a65): corelația draftPower 0.14–0.24, „nivel egal” 55.3–59.8%, „top 8 aleator” 66.6–68.6%, complet aleator 78.9–81.3%, favorit 70.9–73.2%, blue 50.3–51.9%. O diferență mai mică decât atât între două rulări nu e un semnal; pentru decizii, compară pe mai multe seed-uri.",
   "",
   columns,
   row("Draft bun contra „top 8 aleator”", "~63–67%", pct(result.weak.noisy.goodWins), pct(before?.weak.noisy.goodWins)),
