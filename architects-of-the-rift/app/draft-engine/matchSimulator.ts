@@ -285,6 +285,9 @@ function adaptedRoles(
  * Ajustarea de trait × phaseEffectScale / 5: execution e un scor de echipă, iar scala din B6 e calibrată pe efecte
  * mediate pe 5 jucători (aceeași diluare). Fără conflict, neschimbat. Cu cererile neutre (3), niciun carry → neschimbat.
  */
+/** Valoarea simResourceConflict la care sunt date constantele de trait ale conflictului (hogConflictExtra etc.). */
+const SIM_RESOURCE_CONFLICT_REFERENCE = 0.3;
+
 export function applyResourceConflict(execution: number, assignments: Partial<Record<Role, string>>, roster: Partial<Record<Role, string>>) {
   const excess = getResourceConflictExcess(assignments);
   if (excess <= 0) return execution;
@@ -292,8 +295,11 @@ export function applyResourceConflict(execution: number, assignments: Partial<Re
   const carryPlayers = getHighDemandPicks(assignments).map((pick) => getPlayerById(roster[pick.role] ?? ""));
   const hogs = carryPlayers.filter((player) => getActiveTrait(player, "resource_hog")).length;
   const lowResource = carryPlayers.filter((player) => getActiveTrait(player, "weakside_ready") || getActiveTrait(player, "enabler")).length;
-  const traitAdjust = (T.hogConflictExtra * Math.max(0, hogs - 1) - T.weaksideConflictRelief * lowResource) * (T.phaseEffectScale / ROLE_ORDER.length);
-  const perCarry = Math.max(T.conflictMinPerCarry, DRAFT_THINKING_CONFIG.attributes.simResourceConflict + traitAdjust);
+  // 3b: constantele de trait sunt date la simResourceConflict = 0.3; cresc proporțional cu el.
+  const base = DRAFT_THINKING_CONFIG.attributes.simResourceConflict;
+  const relative = base / SIM_RESOURCE_CONFLICT_REFERENCE;
+  const traitAdjust = (T.hogConflictExtra * Math.max(0, hogs - 1) - T.weaksideConflictRelief * lowResource) * (T.phaseEffectScale / ROLE_ORDER.length) * relative;
+  const perCarry = Math.max(T.conflictMinPerCarry * relative, base + traitAdjust);
   return round1(clamp(execution - perCarry * excess, 0, 10));
 }
 

@@ -2103,6 +2103,8 @@ function getResourcePickEffect(candidate: Champion, role: Role | null, ctx: Draf
     if (high) result.bonus -= ATTRS.focusCarryPenalty;
     else if (weakside) result.bonus += ATTRS.focusWeaksideBonus;
   }
+  // NEXT_STEPS 3b: toate efectele de resurse din draft, × resourceDraftScale (aliniat cu ce răsplătește simularea).
+  result.bonus *= ATTRS.resourceDraftScale;
   return result;
 }
 

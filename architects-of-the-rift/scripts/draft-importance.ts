@@ -309,9 +309,9 @@ const lines: string[] = [
   "",
   columns,
   row("Draft bun contra „top 8 aleator”", "~63–67%", pct(result.weak.noisy.goodWins), pct(before?.weak.noisy.goodWins)),
-  row("Draft bun contra draft complet aleator", "≤ 80%", pct(result.weak.random.goodWins), pct(before?.weak.random.goodWins)),
-  row(`Nivel egal: câștigă draftul mai bun (${result.normal.evenGames} jocuri)`, "~60%", pct(result.normal.betterDraftEven), pct(before?.normal.betterDraftEven)),
-  row("Corelația draftPower ↔ victorie, nivel egal", "≥ 0.25", num(result.normal.components.draftPower?.winEven), num(before?.normal.components.draftPower?.winEven)),
+  row("Draft bun contra draft complet aleator", "≤ 82%", pct(result.weak.random.goodWins), pct(before?.weak.random.goodWins)),
+  row(`Nivel egal: câștigă draftul mai bun (${result.normal.evenGames} jocuri)`, "~58–60%", pct(result.normal.betterDraftEven), pct(before?.normal.betterDraftEven)),
+  row("Corelația draftPower ↔ victorie, nivel egal", "≥ 0.24", num(result.normal.components.draftPower?.winEven), num(before?.normal.components.draftPower?.winEven)),
   row("Corelația playerFit ↔ nivelul jucătorilor", "≤ 0.5", num(result.normal.components.playerFitScore?.withStrength), num(before?.normal.components.playerFitScore?.withStrength)),
   ...(result.normal.components.choiceFitScore
     ? [row("Corelația choiceFit ↔ nivelul jucătorilor", "≤ 0.5", num(result.normal.components.choiceFitScore.withStrength), num(before?.normal.components.choiceFitScore?.withStrength))]

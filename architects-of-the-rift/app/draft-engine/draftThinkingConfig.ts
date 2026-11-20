@@ -405,8 +405,17 @@ export const DRAFT_THINKING_CONFIG = {
     weaksideMax: 2,
     /** §2.2 — win condition: doar un campion cu cerere ≥ atât. */
     winConditionMinDemand: 3,
-    /** §2.2 — simulare: execution −atât pentru fiecare carry (cerere ≥ highDemandMin) peste maxHighDemand. */
-    simResourceConflict: 0.3,
+    /**
+     * §2.2 — simulare: execution −atât pentru fiecare carry (cerere ≥ highDemandMin) peste maxHighDemand.
+     * NEXT_STEPS 3b: ajustarea după trait-uri (hogConflictExtra / weaksideConflictRelief / conflictMinPerCarry, date la
+     * valoarea de referință 0.3) crește proporțional cu acesta.
+     */
+    simResourceConflict: 1,
+    /**
+     * NEXT_STEPS 3b: factorul tuturor efectelor de resurse din draft (getResourcePickEffect): penalizarea de conflict,
+     * trait-fit / trait-starved și bonusurile de focus pe bot. Regula de win condition nu depinde de el.
+     */
+    resourceDraftScale: 0.5,
     /** §3 — nevoile contextuale (din compoziția adversarului). Oprite până se completează datele. */
     contextualNeedsEnabled: false,
     contextualNeedWeight: 1.0,
@@ -447,7 +456,7 @@ export const DRAFT_THINKING_CONFIG = {
     /** weakside_ready pe un candidat cu cerere mică: + atât × intensity. */
     weaksideFitBonus: 0.4,
     /** §4.2 — trait-urile decid focusul pe bot când celelalte semnale dau „neutral”. Oprit până la calibrare. */
-    botFocusEnabled: false,
+    botFocusEnabled: true,
     /**
      * §4.3 — la egalitate de scor între candidații la win condition: întâi carry potential (damage + scaling; support = 0),
      * apoi resource_hog. Scorul de identitate are puține valori (51% din compoziții aveau egalitate exactă, decisă până

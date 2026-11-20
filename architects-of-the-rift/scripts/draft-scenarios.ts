@@ -1745,7 +1745,8 @@ function withTestData<T>(
       picksBlue: ["ornn", "lee-sin", "ahri"], picksRed: ["jayce", "azir"], phaseIndex: 11,
     };
     const demand = { jayce: { top: 5 as const }, azir: { mid: 5 as const }, kalista: { adc: 4 as const } };
-    const plain = score("kalista", game, series);
+    // Baza neutră: cererile injectate pe 3 (datele reale au deja valori pentru acești campioni).
+    const plain = withTestData({ resourceDemand: { jayce: { top: 3 }, azir: { mid: 3 }, kalista: { adc: 3 } } }, () => score("kalista", game, series));
     const conflict = withTestData({ resourceDemand: demand }, () => score("kalista", game, series));
     check(
       "R1. Jayce (5) + Azir (5) + Kalista (4) → resource-conflict, comp mai mic",
@@ -1783,7 +1784,10 @@ function withTestData<T>(
       picksBlue: ["jayce", "lee-sin", "azir", "kalista", "rell"], picksRed: ["ornn", "viego", "ahri", "ezreal", "nautilus"], phaseIndex: 20,
     };
     const resolved = resolveFinishedDraftAssignments(finished, series, save);
-    const base = simulateDraftResult(resolved, series, save).bluePhaseScores.execution;
+    const base = withTestData(
+      { resourceDemand: { jayce: { top: 3 }, azir: { mid: 3 }, kalista: { adc: 3 } } },
+      () => simulateDraftResult(resolved, series, save).bluePhaseScores.execution,
+    );
     const conflict = withTestData(
       { resourceDemand: { jayce: { top: 5 }, azir: { mid: 5 }, kalista: { adc: 4 } } },
       () => simulateDraftResult(resolved, series, save).bluePhaseScores.execution,
@@ -1846,12 +1850,13 @@ function withTestData<T>(
       const topId = save.updatedTeamRosters[team.id]?.top;
       if (topId && buildDraftContext(getCurrentStep(game)!, game, series, save, DEFAULT_AI_CONFIG).botFocus === "bot") found = { series, game, topId };
     }
-    const neutral = found ? score("ornn", found.game, found.series) : null;
+    // Baza neutră: fără trait și cu cererea 3 (datele reale: Ornn top 2; jucătorul poate avea deja weakside_ready).
+    const neutral = found ? withTestData({ traits: { [found.topId]: [] }, resourceDemand: { ornn: { top: 3 } } }, () => score("ornn", found!.game, found!.series)) : null;
     const both = found ? withTestData({ traits: { [found.topId]: weak }, resourceDemand: { ornn: { top: 2 } } }, () => score("ornn", found!.game, found!.series)) : null;
-    const expected = DRAFT_THINKING_CONFIG.attributes.focusWeaksideBonus + DRAFT_THINKING_CONFIG.traits.weaksideFitBonus;
+    const expected = (DRAFT_THINKING_CONFIG.attributes.focusWeaksideBonus + DRAFT_THINKING_CONFIG.traits.weaksideFitBonus) * DRAFT_THINKING_CONFIG.attributes.resourceDraftScale;
     const gain = both && neutral ? (both.buckets?.comp ?? 0) - (neutral.buckets?.comp ?? 0) : 0;
     check(
-      "P2. Top weakside_ready, focus bot: Ornn cu cerere 2 primește focus + trait (+0.9 în comp)",
+      "P2. Top weakside_ready, focus bot: Ornn cu cerere 2 primește focus + trait (× resourceDraftScale în comp)",
       Boolean(both && hasTag(both, "trait-fit") && Math.abs(gain - expected) < 1e-6),
       found ? `${found.series.redTeamSlug} (${playersById.get(found.topId)?.name}): comp Ornn ${(neutral!.buckets?.comp ?? 0).toFixed(2)} → ${(both!.buckets?.comp ?? 0).toFixed(2)} (+${gain.toFixed(2)}, așteptat +${expected.toFixed(2)})` : "nicio stare cu focus bot",
     );
