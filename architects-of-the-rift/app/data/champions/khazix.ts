@@ -63,6 +63,7 @@ export const khazix = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "karthus", level: 2, phase: "lane" },
       ],

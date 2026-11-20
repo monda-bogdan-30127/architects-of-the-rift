@@ -62,6 +62,7 @@ export const yasuo = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "xerath", level: 2, phase: "lane" },
         { championId: "ziggs", level: 2, phase: "lane" },
@@ -72,6 +73,7 @@ export const yasuo = createChampion({
       },
     },
     top: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "gnar", level: 1, phase: "all" },
       ],

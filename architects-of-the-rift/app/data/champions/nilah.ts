@@ -64,6 +64,7 @@ export const nilah = createChampion({
 
   roleData: {
     adc: {
+      resourceDemand: 4,
       goodVs: [],
       stats: null,
     },

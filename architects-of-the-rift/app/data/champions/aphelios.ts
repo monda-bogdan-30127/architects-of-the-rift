@@ -63,6 +63,7 @@ export const aphelios = createChampion({
 
   roleData: {
     adc: {
+      resourceDemand: 5,
       goodVs: [
         { championId: "ashe", level: 2, phase: "late" },
       ],

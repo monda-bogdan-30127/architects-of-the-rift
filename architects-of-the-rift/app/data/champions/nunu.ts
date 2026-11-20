@@ -62,6 +62,7 @@ export const nunu = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 2,
       goodVs: [],
       stats: null,
     },

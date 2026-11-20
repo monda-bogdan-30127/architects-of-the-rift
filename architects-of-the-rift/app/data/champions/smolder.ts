@@ -65,6 +65,7 @@ export const smolder = createChampion({
 
   roleData: {
     adc: {
+      resourceDemand: 5,
       goodVs: [
         { championId: "caitlyn", level: 2, phase: "late" },
         { championId: "draven", level: 2, phase: "late" },
@@ -73,6 +74,7 @@ export const smolder = createChampion({
       stats: null,
     },
     mid: {
+      resourceDemand: 5,
       goodVs: [],
       stats: null,
     },

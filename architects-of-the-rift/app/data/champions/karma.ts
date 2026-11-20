@@ -63,6 +63,7 @@ export const karma = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "lulu", level: 2, phase: "lane" },
         { championId: "milio", level: 2, phase: "lane" },

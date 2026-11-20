@@ -61,6 +61,7 @@ export const nami = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "yuumi", level: 2, phase: "lane" },
       ],

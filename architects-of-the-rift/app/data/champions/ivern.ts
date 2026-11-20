@@ -64,6 +64,7 @@ export const ivern = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 1,
       goodVs: [],
       stats: null,
     },

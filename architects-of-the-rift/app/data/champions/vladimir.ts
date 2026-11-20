@@ -62,12 +62,14 @@ export const vladimir = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "viktor", level: 2, phase: "late" },
       ],
       stats: null,
     },
     top: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "poppy", level: 2, phase: "late" },
         { championId: "renekton", level: 2, phase: "late" },

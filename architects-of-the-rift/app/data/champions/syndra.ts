@@ -63,6 +63,7 @@ export const syndra = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "azir", level: 2, phase: "lane" },
         { championId: "kogmaw", level: 2, phase: "lane" },
@@ -94,6 +95,7 @@ export const syndra = createChampion({
       },
     },
     adc: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "jinx", level: 2, phase: "lane" },
       ],

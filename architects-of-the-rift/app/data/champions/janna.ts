@@ -62,6 +62,7 @@ export const janna = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "alistar", level: 2, phase: "all", note: "Disengage negates the W-Q combo" },
         { championId: "leona", level: 2, phase: "all", note: "Disengage negates the engage" },

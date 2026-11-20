@@ -63,6 +63,7 @@ export const drMundo = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 2,
       goodVs: [],
       stats: null,
       profile: {
@@ -81,6 +82,7 @@ export const drMundo = createChampion({
       },
     },
     top: {
+      resourceDemand: 2,
       goodVs: [],
       stats: null,
     },

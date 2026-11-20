@@ -57,6 +57,7 @@ export const leblanc = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "xerath", level: 2, phase: "all", note: "Burst and W on an immobile artillery mage" },
         { championId: "aurelion-sol", level: 2, phase: "lane" },

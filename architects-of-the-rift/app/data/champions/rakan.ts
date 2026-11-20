@@ -60,6 +60,7 @@ export const rakan = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "heimerdinger", level: 2, phase: "lane" },
         { championId: "sona", level: 2, phase: "lane" },

@@ -50,6 +50,7 @@ export const talon = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "kassadin", level: 2, phase: "lane" },
         { championId: "twisted-fate", level: 2, phase: "lane" },

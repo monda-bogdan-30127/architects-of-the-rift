@@ -62,6 +62,7 @@ export const viego = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "karthus", level: 2, phase: "lane" },
         { championId: "kindred", level: 1, phase: "all" },

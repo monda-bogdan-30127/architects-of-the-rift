@@ -52,6 +52,7 @@ export const kayn = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 4,
       goodVs: [],
       stats: null,
     },

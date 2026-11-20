@@ -63,6 +63,7 @@ export const pyke = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "sona", level: 2, phase: "lane" },
       ],

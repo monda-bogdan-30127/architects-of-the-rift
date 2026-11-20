@@ -64,6 +64,7 @@ export const kassadin = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 5,
       goodVs: [
         { championId: "ryze", level: 2, phase: "late" },
         { championId: "viktor", level: 2, phase: "late" },

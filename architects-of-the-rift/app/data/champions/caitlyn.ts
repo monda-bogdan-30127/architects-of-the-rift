@@ -64,6 +64,7 @@ export const caitlyn = createChampion({
 
   roleData: {
     adc: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "aphelios", level: 2, phase: "lane" },
         { championId: "corki", level: 2, phase: "lane" },

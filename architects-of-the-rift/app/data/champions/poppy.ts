@@ -62,6 +62,7 @@ export const poppy = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "camille", level: 3, phase: "all", note: "W stops Camille's E (the hookshot is a dash)" },
         { championId: "leona", level: 3, phase: "all", note: "W stops Leona's E (dash)" },
@@ -92,6 +93,7 @@ export const poppy = createChampion({
       },
     },
     jungle: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "ambessa", level: 3, phase: "all", note: "W stops all of Ambessa's dashes" },
         { championId: "zac", level: 3, phase: "all", note: "W fully stops Zac's E" },
@@ -123,6 +125,7 @@ export const poppy = createChampion({
       },
     },
     top: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "ambessa", level: 3, phase: "all", note: "W stops all of Ambessa's dashes" },
         { championId: "camille", level: 3, phase: "all", note: "W stops Camille's E (the hookshot is a dash)" },

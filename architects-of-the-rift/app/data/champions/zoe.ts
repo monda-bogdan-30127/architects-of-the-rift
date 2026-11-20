@@ -61,6 +61,7 @@ export const zoe = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 4,
       goodVs: [],
       stats: null,
     },

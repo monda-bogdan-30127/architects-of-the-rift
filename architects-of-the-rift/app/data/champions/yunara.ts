@@ -71,6 +71,7 @@ export const yunara = createChampion({
 
   roleData: {
     adc: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "caitlyn", level: 2, phase: "late" },
         { championId: "draven", level: 2, phase: "late" },

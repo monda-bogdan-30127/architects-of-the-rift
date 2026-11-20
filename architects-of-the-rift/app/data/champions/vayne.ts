@@ -68,10 +68,12 @@ export const vayne = createChampion({
 
   roleData: {
     adc: {
+      resourceDemand: 5,
       goodVs: [],
       stats: null,
     },
     top: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "chogath", level: 2, phase: "all", note: "True damage and kiting vs the tank" },
         { championId: "dr-mundo", level: 2, phase: "all", note: "%HP true damage vs Mundo" },

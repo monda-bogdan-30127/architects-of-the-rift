@@ -65,6 +65,7 @@ export const seraphine = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "sona", level: 2, phase: "lane" },
         { championId: "yuumi", level: 2, phase: "lane" },
@@ -92,6 +93,7 @@ export const seraphine = createChampion({
       },
     },
     adc: {
+      resourceDemand: 4,
       goodVs: [],
       stats: null,
     },

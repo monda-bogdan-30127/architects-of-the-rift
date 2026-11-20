@@ -64,6 +64,7 @@ export const graves = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "amumu", level: 2, phase: "lane" },
         { championId: "nunu", level: 2, phase: "lane" },

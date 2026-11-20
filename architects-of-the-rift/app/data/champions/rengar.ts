@@ -62,10 +62,12 @@ export const rengar = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 4,
       goodVs: [],
       stats: null,
     },
     top: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "teemo", level: 2, phase: "lane" },
         { championId: "vayne", level: 2, phase: "lane" },

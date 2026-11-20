@@ -51,6 +51,7 @@ export const rammus = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "master-yi", level: 3, phase: "all", note: "W (armor + reflected damage) and taunt shut down an auto-attack champion" },
         { championId: "graves", level: 2, phase: "all", note: "Armor and taunt vs AD damage" },

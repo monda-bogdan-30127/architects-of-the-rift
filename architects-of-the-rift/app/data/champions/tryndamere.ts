@@ -52,6 +52,7 @@ export const tryndamere = createChampion({
 
   roleData: {
     top: {
+      resourceDemand: 4,
       goodVs: [],
       stats: null,
     },

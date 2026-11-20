@@ -64,6 +64,7 @@ export const senna = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 2,
       goodVs: [],
       stats: null,
     },

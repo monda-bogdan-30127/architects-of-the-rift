@@ -51,6 +51,7 @@ export const amumu = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "master-yi", level: 2, phase: "all", note: "Chain CC on an auto-attack champion" },
       ],

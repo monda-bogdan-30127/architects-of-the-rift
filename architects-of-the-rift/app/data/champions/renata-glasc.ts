@@ -63,6 +63,7 @@ export const renataGlasc = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "alistar", level: 2, phase: "all", note: "R turns the engage against the team diving in" },
         { championId: "rell", level: 2, phase: "all", note: "R turns the engage against the team diving in" },

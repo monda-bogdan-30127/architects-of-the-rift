@@ -63,6 +63,7 @@ export const sion = createChampion({
 
   roleData: {
     top: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "jayce", level: 2, phase: "late" },
         { championId: "renekton", level: 2, phase: "late" },
@@ -89,7 +90,7 @@ export const sion = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "frontline", "tank", "engage", "weakside", "waveclear"],
+        tags: ["melee", "frontline", "tank", "engage", "waveclear"],
         abilities: [
           { key: "q", name: "Decimating Smash", effects: [{ type: "knockup", subtype: "charged-aoe", strength: 8, reliability: 6, priority: 8 }, { type: "burst", strength: 6, reliability: 6, priority: 6 }] },
           { key: "e", name: "Roar of the Slayer", effects: [{ type: "slow", strength: 5, reliability: 8, priority: 5 }, { type: "poke", strength: 4, reliability: 7, priority: 4 }] },

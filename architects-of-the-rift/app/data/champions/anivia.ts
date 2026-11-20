@@ -62,6 +62,7 @@ export const anivia = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 4,
       goodVs: [],
       stats: {
         picks: 8,
@@ -86,6 +87,7 @@ export const anivia = createChampion({
       },
     },
     support: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "ryze", level: 2, phase: "all"}, 
         { championId: "cassiopeia", level: 1, phase: "all"}, 

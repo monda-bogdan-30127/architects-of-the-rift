@@ -18,8 +18,6 @@ export const CHAMPION_TAGS = [
   "frontline-killer", "frontline-breaker",
   /** → offer `globalPressure`. */
   "semi-global",
-  /** → `resourceDemand ≤ 2`. */
-  "weakside",
 ] as const;
 
 export type ChampionTag = (typeof CHAMPION_TAGS)[number];

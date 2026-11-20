@@ -62,6 +62,7 @@ export const belveth = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "jarvan-iv", level: 2, phase: "late" },
         { championId: "lee-sin", level: 2, phase: "late" },

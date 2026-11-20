@@ -65,6 +65,7 @@ export const irelia = createChampion({
 
   roleData: {
     top: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "gangplank", level: 2, phase: "lane" },
         { championId: "gnar", level: 2, phase: "lane" },
@@ -93,6 +94,7 @@ export const irelia = createChampion({
       },
     },
     mid: {
+      resourceDemand: 4,
       goodVs: [],
       stats: null,
     },

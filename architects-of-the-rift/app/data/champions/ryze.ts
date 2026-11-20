@@ -64,6 +64,7 @@ export const ryze = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "akali", level: 2, phase: "late" },
         { championId: "anivia", level: 2, phase: "late" },

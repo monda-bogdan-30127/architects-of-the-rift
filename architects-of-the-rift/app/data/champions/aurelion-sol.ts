@@ -64,6 +64,7 @@ export const aurelionSol = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 5,
       goodVs: [
         { championId: "taliyah", level: 2, phase: "late" },
         { championId: "viktor", level: 2, phase: "late" },

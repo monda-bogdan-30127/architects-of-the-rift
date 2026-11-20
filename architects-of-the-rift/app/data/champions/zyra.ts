@@ -50,6 +50,7 @@ export const zyra = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 2,
       goodVs: [],
       stats: null,
     },

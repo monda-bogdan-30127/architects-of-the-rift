@@ -55,6 +55,7 @@ export const singed = createChampion({
 
   roleData: {
     top: {
+      resourceDemand: 2,
       goodVs: [],
       stats: null,
     },

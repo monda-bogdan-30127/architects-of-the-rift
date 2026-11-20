@@ -70,6 +70,7 @@ export const kaisa = createChampion({
 
   roleData: {
     adc: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "senna", level: 2, phase: "all", note: "Dive on an immobile carry" },
         { championId: "ziggs", level: 2, phase: "all", note: "Dive on an immobile mage" },

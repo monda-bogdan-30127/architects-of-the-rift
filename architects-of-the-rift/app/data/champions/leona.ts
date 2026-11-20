@@ -62,6 +62,7 @@ export const leona = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "heimerdinger", level: 2, phase: "lane" },
         { championId: "lux", level: 2, phase: "lane" },

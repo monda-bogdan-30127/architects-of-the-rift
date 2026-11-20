@@ -62,6 +62,7 @@ export const kindred = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 4,
       goodVs: [],
       stats: null,
     },

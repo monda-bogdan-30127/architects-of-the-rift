@@ -63,6 +63,7 @@ export const jayce = createChampion({
 
   roleData: {
     top: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "aatrox", level: 2, phase: "lane" },
         { championId: "ambessa", level: 2, phase: "lane" },
@@ -129,6 +130,7 @@ export const jayce = createChampion({
       },
     },
     jungle: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "karthus", level: 2, phase: "lane" },
         { championId: "sejuani", level: 2, phase: "lane" },

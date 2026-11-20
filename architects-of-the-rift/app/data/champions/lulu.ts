@@ -63,6 +63,7 @@ export const lulu = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "camille", level: 2, phase: "all", note: "Polymorph stops Camille's all-in" },
         { championId: "pyke", level: 2, phase: "all", note: "Polymorph stops the all-in; R saves the target" },

@@ -63,6 +63,7 @@ export const zed = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "aurelion-sol", level: 2, phase: "lane" },
         { championId: "galio", level: 2, phase: "lane" },

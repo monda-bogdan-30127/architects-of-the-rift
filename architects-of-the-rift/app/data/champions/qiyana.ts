@@ -63,6 +63,7 @@ export const qiyana = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "ivern", level: 2, phase: "lane" },
         { championId: "karthus", level: 2, phase: "lane" },

@@ -64,6 +64,7 @@ export const twistedFate = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 2,
       goodVs: [],
       stats: {
         picks: 2,

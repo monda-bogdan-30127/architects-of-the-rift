@@ -61,6 +61,7 @@ export const malphite = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "master-yi", level: 2, phase: "all", note: "Armor and R on an auto-attack champion" },
       ],
@@ -101,6 +102,7 @@ export const malphite = createChampion({
       },
     },
     top: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "tryndamere", level: 3, phase: "all", note: "Armor and R fully shut down an AD auto-attacker" },
         { championId: "akshan", level: 2, phase: "all", note: "Armor negates autos; R catches him with no escape" },

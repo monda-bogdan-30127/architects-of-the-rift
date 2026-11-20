@@ -54,12 +54,14 @@ export const nasus = createChampion({
 
   roleData: {
     top: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "chogath", level: 2, phase: "late" },
       ],
       stats: null,
     },
     jungle: {
+      resourceDemand: 4,
       goodVs: [],
       stats: {
         picks: 1,

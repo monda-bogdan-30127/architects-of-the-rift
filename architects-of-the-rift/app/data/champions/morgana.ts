@@ -62,6 +62,7 @@ export const morgana = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "blitzcrank", level: 3, phase: "all", note: "Black Shield fully negates the hook" },
         { championId: "galio", level: 2, phase: "all", vsRole: "mid", note: "Black Shield negates Galio's CC on the ally" },

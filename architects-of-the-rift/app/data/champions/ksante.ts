@@ -63,6 +63,7 @@ export const ksante = createChampion({
 
   roleData: {
     top: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "jayce", level: 2, phase: "late" },
         { championId: "renekton", level: 2, phase: "late" },
@@ -107,6 +108,7 @@ export const ksante = createChampion({
       },
     },
     mid: {
+      resourceDemand: 2,
       goodVs: [],
       stats: {
         picks: 1,

@@ -64,6 +64,7 @@ export const jhin = createChampion({
 
   roleData: {
     adc: {
+      resourceDemand: 4,
       goodVs: [],
       stats: {
         picks: 18,

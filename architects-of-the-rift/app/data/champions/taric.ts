@@ -63,6 +63,7 @@ export const taric = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "pyke", level: 2, phase: "all", note: "R (immunity) negates the execute" },
       ],

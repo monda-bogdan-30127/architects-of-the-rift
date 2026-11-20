@@ -66,6 +66,7 @@ export const sejuani = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "belveth", level: 2, phase: "all", note: "Chain CC vs Bel'Veth, who has to stay in the fight" },
         { championId: "briar", level: 2, phase: "all", note: "CC on a champion who can't control his frenzy" },

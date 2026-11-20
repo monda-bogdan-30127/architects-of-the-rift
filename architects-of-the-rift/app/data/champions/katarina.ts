@@ -56,6 +56,7 @@ export const katarina = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 4,
       goodVs: [],
       stats: null,
     },

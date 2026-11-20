@@ -60,6 +60,7 @@ export const xayah = createChampion({
 
   roleData: {
     adc: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "samira", level: 2, phase: "all", note: "R (untargetable) negates Samira's all-in" },
         { championId: "ziggs", level: 2, phase: "lane" },

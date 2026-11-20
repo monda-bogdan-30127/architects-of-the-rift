@@ -64,6 +64,7 @@ export const kayle = createChampion({
 
   roleData: {
     top: {
+      resourceDemand: 5,
       goodVs: [
         { championId: "ksante", level: 2, phase: "late" },
         { championId: "olaf", level: 2, phase: "late" },

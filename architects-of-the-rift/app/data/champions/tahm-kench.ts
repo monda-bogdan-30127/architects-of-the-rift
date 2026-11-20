@@ -62,6 +62,7 @@ export const tahmKench = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "blitzcrank", level: 2, phase: "all", note: "Devour saves the hooked ally" },
         { championId: "pyke", level: 2, phase: "all", note: "Devour saves the ally from the execute" },

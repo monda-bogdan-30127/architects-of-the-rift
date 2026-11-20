@@ -65,6 +65,7 @@ export const kogmaw = createChampion({
 
   roleData: {
     adc: {
+      resourceDemand: 5,
       goodVs: [
         { championId: "caitlyn", level: 2, phase: "late" },
       ],
@@ -72,6 +73,7 @@ export const kogmaw = createChampion({
       stats: null,
     },
     mid: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "galio", level: 2, phase: "late" },
       ],

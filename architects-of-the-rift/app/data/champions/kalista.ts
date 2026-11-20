@@ -67,6 +67,7 @@ export const kalista = createChampion({
 
   roleData: {
     adc: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "ashe", level: 2, phase: "lane" },
         { championId: "yunara", level: 2, phase: "lane" },

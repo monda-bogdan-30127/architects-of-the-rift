@@ -67,6 +67,7 @@ export const ashe = createChampion({
 
   roleData: {
     adc: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "samira", level: 2, phase: "all", note: "Constant slows and R stop Samira's dive" },
         { championId: "kaisa", level: 2, phase: "lane" },

@@ -60,6 +60,7 @@ export const braum = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "caitlyn", level: 2, phase: "lane" },
         { championId: "ezreal", level: 2, phase: "lane" },

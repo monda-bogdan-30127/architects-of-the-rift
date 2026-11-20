@@ -63,6 +63,7 @@ export const gwen = createChampion({
 
   roleData: {
     top: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "malphite", level: 2, phase: "all", note: "Magic and true damage vs an armor tank" },
         { championId: "aatrox", level: 2, phase: "late" },

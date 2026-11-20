@@ -61,6 +61,7 @@ export const heimerdinger = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 2,
       goodVs: [],
       stats: null,
     },

@@ -59,6 +59,7 @@ export const elise = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "soraka", level: 2, phase: "lane" },
       ],

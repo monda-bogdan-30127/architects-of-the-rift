@@ -63,12 +63,14 @@ export const chogath = createChampion({
 
   roleData: {
     top: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "jayce", level: 2, phase: "late" },
       ],
       stats: null,
     },
     jungle: {
+      resourceDemand: 2,
       goodVs: [],
       stats: {
         picks: 2,

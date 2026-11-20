@@ -56,6 +56,7 @@ export const velkoz = createChampion({
       stats: null,
     },
     support: {
+      resourceDemand: 2,
       goodVs: [],
       stats: {
         picks: 1,

@@ -63,6 +63,7 @@ export const veigar = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 5,
       goodVs: [],
       stats: null,
       profile: {

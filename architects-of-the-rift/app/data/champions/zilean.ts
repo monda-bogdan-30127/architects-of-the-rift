@@ -63,12 +63,14 @@ export const zilean = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "pyke", level: 2, phase: "all", note: "R saves the ally from the execute" },
       ],
       stats: null,
     },
     mid: {
+      resourceDemand: 2,
       goodVs: [],
       stats: null,
     },

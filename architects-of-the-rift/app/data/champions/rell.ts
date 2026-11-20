@@ -61,6 +61,7 @@ export const rell = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "lux", level: 2, phase: "lane" },
         { championId: "sona", level: 2, phase: "lane" },

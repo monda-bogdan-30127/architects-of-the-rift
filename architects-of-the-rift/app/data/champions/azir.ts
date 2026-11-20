@@ -63,6 +63,7 @@ export const azir = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "syndra", level: 2, phase: "late" },
         { championId: "zed", level: 1, phase: "all" },

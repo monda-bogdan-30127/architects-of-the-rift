@@ -52,6 +52,7 @@ export const sona = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [],
       stats: null,
     },

@@ -63,6 +63,7 @@ export const bard = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "sona", level: 2, phase: "lane" },
         { championId: "yuumi", level: 2, phase: "lane" },

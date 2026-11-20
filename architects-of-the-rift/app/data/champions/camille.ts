@@ -98,6 +98,7 @@ export const camille = createChampion({
       },
     },
     support: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "yuumi", level: 2, phase: "lane" },
       ],

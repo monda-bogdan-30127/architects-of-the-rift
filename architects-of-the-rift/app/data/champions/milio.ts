@@ -62,6 +62,7 @@ export const milio = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "leona", level: 2, phase: "all", note: "R cleanses CC and resets the fight" },
         { championId: "nautilus", level: 2, phase: "all", note: "R cleanses CC and resets the fight" },

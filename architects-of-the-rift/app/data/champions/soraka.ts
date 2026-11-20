@@ -63,6 +63,7 @@ export const soraka = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [],
       stats: null,
     },

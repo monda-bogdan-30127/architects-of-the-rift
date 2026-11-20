@@ -61,6 +61,7 @@ export const ornn = createChampion({
 
   roleData: {
     top: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "irelia", level: 2, phase: "all", note: "Too tanky to all-in, and the CC stops Irelia's stacks" },
         { championId: "jayce", level: 2, phase: "late" },
@@ -91,7 +92,7 @@ export const ornn = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "frontline", "engage", "tank", "teamfight", "weakside"],
+        tags: ["melee", "frontline", "engage", "tank", "teamfight"],
         abilities: [
           { key: "q", name: "Volcanic Rupture", effects: [{ type: "slow", strength: 5, reliability: 8, priority: 5 }, { type: "zone-control", subtype: "pillar", strength: 5, reliability: 7, priority: 5 }] },
           { key: "e", name: "Searing Charge", effects: [{ type: "dash", strength: 5, reliability: 7, priority: 5 }, { type: "knockup", subtype: "terrain-combo", strength: 8, reliability: 7, priority: 8 }] },

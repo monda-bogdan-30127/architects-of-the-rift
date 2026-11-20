@@ -63,6 +63,7 @@ export const shen = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "yuumi", level: 2, phase: "lane" },
       ],
@@ -89,6 +90,7 @@ export const shen = createChampion({
       },
     },
     top: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "tryndamere", level: 2, phase: "all", note: "W blocks autos; R saves the carry" },
       ],

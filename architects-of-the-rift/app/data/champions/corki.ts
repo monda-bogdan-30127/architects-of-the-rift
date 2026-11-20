@@ -65,6 +65,7 @@ export const corki = createChampion({
 
   roleData: {
     adc: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "kogmaw", level: 2, phase: "lane" },
         { championId: "jhin", level: 1, phase: "lane" },

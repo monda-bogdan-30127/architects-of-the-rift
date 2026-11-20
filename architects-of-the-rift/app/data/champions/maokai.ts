@@ -64,6 +64,7 @@ export const maokai = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "belveth", level: 2, phase: "all", note: "Point-click CC (W) on a champion who has to stay in the fight" },
         { championId: "khazix", level: 2, phase: "all", note: "Tank with point-click CC; can't be isolated" },
@@ -110,6 +111,7 @@ export const maokai = createChampion({
       },
     },
     support: {
+      resourceDemand: 1,
       goodVs: [],
       stats: null,
     },

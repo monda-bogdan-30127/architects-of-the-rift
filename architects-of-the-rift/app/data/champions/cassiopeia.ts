@@ -64,6 +64,7 @@ export const cassiopeia = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "kassadin", level: 3, phase: "all", note: "W (grounding) roots him in place and negates Kassadin's R" },
         { championId: "akali", level: 2, phase: "all", note: "Grounding stops Akali's dashes" },
@@ -104,6 +105,7 @@ export const cassiopeia = createChampion({
       },
     },
     adc: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "ziggs", level: 2, phase: "all", note: "Sustained DPS vs a poke mage; favorable in 2026 pro play (12-2)" },
       ],

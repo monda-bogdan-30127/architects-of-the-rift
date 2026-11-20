@@ -62,6 +62,7 @@ export const trundle = createChampion({
 
   roleData: {
     jungle: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "chogath", level: 2, phase: "all", note: "R steals the tank's resistances" },
         { championId: "dr-mundo", level: 2, phase: "all", note: "R steals the tank's resistances" },

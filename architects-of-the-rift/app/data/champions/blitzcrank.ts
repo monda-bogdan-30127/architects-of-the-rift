@@ -62,6 +62,7 @@ export const blitzcrank = createChampion({
 
   roleData: {
     support: {
+      resourceDemand: 1,
       goodVs: [
         { championId: "lux", level: 2, phase: "lane" },
         { championId: "senna", level: 2, phase: "lane" },

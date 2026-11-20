@@ -64,6 +64,7 @@ export const galio = createChampion({
 
   roleData: {
     mid: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "akali", level: 2, phase: "all", note: "MR and taunt negate Akali's burst" },
         { championId: "aurora", level: 2, phase: "all", note: "MR and taunt negate Aurora's burst" },
@@ -99,6 +100,7 @@ export const galio = createChampion({
       },
     },
     top: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "kennen", level: 3, phase: "all", note: "W passive (MR) negates AP burst, and the taunt catches Kennen" },
         { championId: "aurora", level: 2, phase: "all", note: "MR and taunt negate Aurora's burst" },

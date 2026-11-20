@@ -68,6 +68,7 @@ export const zeri = createChampion({
 
   roleData: {
     adc: {
+      resourceDemand: 4,
       goodVs: [],
       mustWith: ["yuumi"],
       stats: {

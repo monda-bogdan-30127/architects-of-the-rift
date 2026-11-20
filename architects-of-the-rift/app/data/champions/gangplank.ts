@@ -54,6 +54,7 @@ export const gangplank = createChampion({
 
   roleData: {
     top: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "yorick", level: 2, phase: "all", note: "Barrels clear the ghouls" },
         { championId: "jax", level: 2, phase: "lane" },

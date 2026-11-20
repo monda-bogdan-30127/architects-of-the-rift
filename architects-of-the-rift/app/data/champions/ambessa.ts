@@ -66,6 +66,7 @@ export const ambessa = createChampion({
 
   roleData: {
     top: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "ornn", level: 2, phase: "lane" },
         { championId: "sion", level: 2, phase: "lane" },
@@ -110,6 +111,7 @@ export const ambessa = createChampion({
       },
     },
     jungle: {
+      resourceDemand: 4,
       goodVs: [],
       stats: null,
       profile: {

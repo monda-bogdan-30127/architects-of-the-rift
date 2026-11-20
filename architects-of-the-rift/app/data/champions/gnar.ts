@@ -67,6 +67,7 @@ export const gnar = createChampion({
 
   roleData: {
     top: {
+      resourceDemand: 2,
       goodVs: [
         { championId: "udyr", level: 2, phase: "all", note: "Kites Udyr, who has no gap closer" },
         { championId: "volibear", level: 2, phase: "all", note: "Kites a juggernaut with no range" },
@@ -113,7 +114,7 @@ export const gnar = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["ranged", "teamfight", "engage", "weakside"],
+        tags: ["ranged", "teamfight", "engage"],
         abilities: [
           { key: "q", name: "Boomerang Throw / Boulder Toss", effects: [{ type: "poke", strength: 6, reliability: 8, priority: 6 }, { type: "slow", strength: 5, reliability: 8, priority: 5 }] },
           { key: "e", name: "Hop / Crunch", effects: [{ type: "dash", strength: 6, reliability: 8, priority: 6 }, { type: "setup", subtype: "mega-gnar-entry", strength: 6, reliability: 7, priority: 6 }] },

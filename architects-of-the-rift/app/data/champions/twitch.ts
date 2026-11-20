@@ -64,6 +64,7 @@ export const twitch = createChampion({
 
   roleData: {
     adc: {
+      resourceDemand: 5,
       goodVs: [
         { championId: "kalista", level: 2, phase: "late" },
       ],

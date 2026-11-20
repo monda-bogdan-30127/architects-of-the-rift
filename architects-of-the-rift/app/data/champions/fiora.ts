@@ -63,6 +63,7 @@ export const fiora = createChampion({
 
   roleData: {
     top: {
+      resourceDemand: 4,
       goodVs: [
         { championId: "aatrox", level: 2, phase: "all", note: "Parry on Q3, plus vitals" },
         { championId: "chogath", level: 2, phase: "all", note: "Vitals vs the tank" },
