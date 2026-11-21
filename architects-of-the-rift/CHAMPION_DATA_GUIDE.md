@@ -256,7 +256,6 @@ Tag-urile au un vocabular fix, în `app/types/championTags.ts` (`CHAMPION_TAGS`)
 | Derivate automat (le scrii doar când înlocuiești lista întreagă) | `melee`, `ranged`, `frontline`, `engage`, `dive`, `pick`, `poke`, `dps`, `burst`, `peel`, `anti-dive`, `waveclear`, `self-sufficient`, `warden`, `enchanter`, `follow-up`, `zone-control`, `objectiveControl` |
 | Doar manual, citite în cod | `tank`, `utility`, `setup`, `carry`, `assassin`, `teamfight`, `front-to-back`, `scaling`, `early-game`, `lane-bully`, `primary-carry` |
 | Citite prin identitatea echipelor (`preferredTags` / `avoidTags`) | `skirmish`, `snowball` |
-| Temporare, se înlocuiesc cu date (apoi se șterg) | `frontline-killer`, `frontline-breaker` → offer `antiTank`; `semi-global` → offer `globalPressure` |
 
 Pentru ce înseamnă un campion în compoziție (anti-tank, sustain, presiune globală etc.) folosește `offers` / `weaknesses`, nu tag-uri.
 

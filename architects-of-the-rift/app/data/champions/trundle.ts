@@ -99,7 +99,7 @@ export const trundle = createChampion({
         soloqKrChallengerWinRate: null,
       },
       profile: {
-        tags: ["melee", "frontline-breaker", "skirmish", "utility"],
+        tags: ["melee", "skirmish", "utility"],
         abilities: [
           { key: "e", name: "Pillar of Ice", effects: [{ type: "zone-control", subtype: "terrain-block", strength: 9, reliability: 9, priority: 9 }, { type: "displacement", subtype: "micro-knock", strength: 6, reliability: 8, priority: 6 }, { type: "pick", subtype: "path-cut", strength: 7, reliability: 8, priority: 7 }] },
           { key: "r", name: "Subjugate", effects: [{ type: "dps", subtype: "tank-drain", strength: 8, reliability: 9, priority: 8 }, { type: "anti-engage", subtype: "frontline-steal", strength: 7, reliability: 8, priority: 7 }] },

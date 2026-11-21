@@ -1689,8 +1689,13 @@ function withTestData<T>(
     const step = getCurrentStep(game)!;
     const vayne = champions.find((c) => c.id === "vayne")!;
     const needs = getContextualNeeds(game.picksBlue);
+    // Vayne are acum antiTank 5 în date: baza „fără” îl scoate temporar (nevoile contextuale pornite în ambele).
+    const realOffers = vayne.offers;
+    vayne.offers = realOffers.filter((offer) => offer.type !== "antiTank");
+    setContextualNeedsOverride(true); // golește cache-ul de statusuri
     const without = scoreDraftCandidate(vayne, step, game, series, save);
-    const withAntiTank = withTestData({ offers: { vayne: [{ type: "antiTank", strength: 5 }] } }, () => {
+    vayne.offers = realOffers;
+    const withAntiTank = withTestData({ offers: realOffers.some((offer) => offer.type === "antiTank") ? {} : { vayne: [{ type: "antiTank", strength: 5 }] } }, () => {
       setContextualNeedsOverride(true); // golește cache-ul de statusuri
       return scoreDraftCandidate(vayne, step, game, series, save);
     });

@@ -361,9 +361,12 @@ function applyEnemyAttributes(own: TeamfightEvaluation, enemyAssignments: Partia
   const A = DRAFT_THINKING_CONFIG.attributes;
   const antiTank = offerSum(enemyAssignments, "antiTank");
   const antiCC = offerSum(enemyAssignments, "antiCC");
-  own.frontlinePresence = reduceBy(own.frontlinePresence, antiTank, A.simAntiTankPerPoint, A.simAntiTankCap);
-  own.engageQuality = reduceBy(own.engageQuality, antiCC, A.simAntiCCPerPoint, A.simAntiCCCap);
-  own.ccChainPower = reduceBy(own.ccChainPower, antiCC, A.simAntiCCPerPoint, A.simAntiCCCap);
+  // NEXT_STEPS 6b: × simAttributeEffectScale (plafonul ≤ simAttributeCapMax).
+  const k = A.simAttributeEffectScale;
+  const cap = (value: number) => Math.min(A.simAttributeCapMax, value * k);
+  own.frontlinePresence = reduceBy(own.frontlinePresence, antiTank, A.simAntiTankPerPoint * k, cap(A.simAntiTankCap));
+  own.engageQuality = reduceBy(own.engageQuality, antiCC, A.simAntiCCPerPoint * k, cap(A.simAntiCCCap));
+  own.ccChainPower = reduceBy(own.ccChainPower, antiCC, A.simAntiCCPerPoint * k, cap(A.simAntiCCCap));
 }
 
 // ─── Main entry point ───────────────────────────────────────────────────────
@@ -371,6 +374,8 @@ function applyEnemyAttributes(own: TeamfightEvaluation, enemyAssignments: Partia
 export function evaluateTeamfight(args: {
   blueAssignments: Partial<Record<Role, string>>;
   redAssignments: Partial<Record<Role, string>>;
+  /** NEXT_STEPS 6b: false = fără reducerile din antiTank / antiCC (evaluatorul măsoară efectul atributelor). */
+  withAttributes?: boolean;
 }): TeamfightResult {
   const blueProfiles = getProfiles(args.blueAssignments);
   const redProfiles = getProfiles(args.redAssignments);
@@ -399,8 +404,10 @@ export function evaluateTeamfight(args: {
     teamfightTotal: 0,
   };
 
-  applyEnemyAttributes(blue, args.redAssignments);
-  applyEnemyAttributes(red, args.blueAssignments);
+  if (args.withAttributes !== false) {
+    applyEnemyAttributes(blue, args.redAssignments);
+    applyEnemyAttributes(red, args.blueAssignments);
+  }
 
   // Composite teamfight score
   blue.teamfightTotal = round1(clamp(

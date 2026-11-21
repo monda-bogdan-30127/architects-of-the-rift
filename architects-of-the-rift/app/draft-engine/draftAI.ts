@@ -1274,7 +1274,7 @@ export function scorePickCandidate(
       compCounter.value +            // §6.1 / §6.2: comp counter (redus la tunnel vision)
       losingLanes.bonus +            // §6.3: liniile pierdute
       seasonCounterBonus +           // §7.4: counter de sezon (pregătit / pedepsit)
-      contextualFill.value * DRAFT_THINKING_CONFIG.attributes.contextualNeedWeight, // COMP_ATTRIBUTES §3.3
+      contextualFill.value * DRAFT_THINKING_CONFIG.attributes.contextualNeedWeight * DRAFT_THINKING_CONFIG.attributes.contextualDraftScale, // COMP_ATTRIBUTES §3.3, NEXT_STEPS 6b
     comfort:
       comfortScore * adjustedConfig.comfortWeight +
       playerFitScore * adjustedConfig.fitWeight +

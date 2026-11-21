@@ -13,11 +13,6 @@ export const CHAMPION_TAGS = [
   "lane-bully", "primary-carry",
   // ─── Citite prin identitatea echipelor (`preferredTags` / `avoidTags`, teamIdentitySystem.ts) ───
   "skirmish", "snowball",
-  // ─── Temporare: se mapează pe date (NEXT_STEPS A2.4), apoi se șterg ───
-  /** → offer `antiTank`. */
-  "frontline-killer", "frontline-breaker",
-  /** → offer `globalPressure`. */
-  "semi-global",
 ] as const;
 
 export type ChampionTag = (typeof CHAMPION_TAGS)[number];

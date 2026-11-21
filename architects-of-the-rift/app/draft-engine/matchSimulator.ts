@@ -84,6 +84,7 @@ import {
   getPhaseIdentityAlignment,
   lateGameScore,
   objectiveControlScore,
+  getMidPokeTerm,
   playerChampionArchetypeFit,
   playerChampionDraftFit,
   playerSkill,
@@ -470,6 +471,8 @@ function computePhaseBreakdown(args: {
   side: "blue" | "red";
   tendencyBonus?: { earlyBonus: number; midBonus: number; lateBonus: number };
   teamfightEdge?: number;
+  /** NEXT_STEPS 6b: termenul de poke din mid (siege), deja redus de sustain-ul adversarului. */
+  midPokeTerm?: number;
   /** NEXT_STEPS B6: efectele de trait pe rating-ul jucătorilor, ca medie pe echipă, în puterea jucătorilor pe faze. */
   playerTraitEffects?: { early: number; mid: number; late: number };
 }): PhaseBreakdown {
@@ -497,7 +500,8 @@ function computePhaseBreakdown(args: {
     earlyCarryOver + momentum * 0.3 +
     seededNoise(`${seedRoot}:${side}:mid`, 0.28) +
     (tendencyBonus?.midBonus ?? 0) +
-    (teamfightEdge ?? 0) * 0.35,
+    (teamfightEdge ?? 0) * 0.35 +
+    (args.midPokeTerm ?? 0),
     0, 10
   );
 
@@ -1232,6 +1236,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     tendencyBonus: blueTendencyEvents,
     teamfightEdge: teamfight.blueTeamfightEdge,
     playerTraitEffects: getTeamTraitPhaseEffects(blueRoster, assignmentsBlue, input.game.number, input.series.bo),
+    midPokeTerm: getMidPokeTerm(assignmentsBlue, assignmentsRed),
   });
 
   const redPhases = computePhaseBreakdown({
@@ -1246,6 +1251,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     tendencyBonus: redTendencyEvents,
     teamfightEdge: teamfight.redTeamfightEdge,
     playerTraitEffects: getTeamTraitPhaseEffects(redRoster, assignmentsRed, input.game.number, input.series.bo),
+    midPokeTerm: getMidPokeTerm(assignmentsRed, assignmentsBlue),
   });
 
   // UPGRADE 12: Lane snowball — early advantage carries into mid/late (capped)

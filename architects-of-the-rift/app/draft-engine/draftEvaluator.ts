@@ -13,7 +13,8 @@ import { getChampionStatsForRole } from "./championRoleStatsSystem";
 import { derivePlayerAdaptationProfile, derivePlayerArchetypeAffinity, derivePlayerPhaseProfile } from "./playerProfileSystem";
 import { evaluateInteractionScore, evaluateRuleSynergy } from "./profileRuleEvaluator";
 import { getLaneMatchupEdge } from "./matchupScoring";
-import { championMetaPower, championPhasePowerScaled, getTeamChampionPhasePower } from "./matchSimulationUtils";
+import { championMetaPower, championPhasePowerScaled, getMidPokeTerm, getTeamChampionPhasePower, globalPressureObjectiveBonus } from "./matchSimulationUtils";
+import { evaluateTeamfight } from "./teamfightSystem";
 import { MUSTWITH_CONFIG, getCompletedMustWithPairs, hadAvailableUnusedPartner } from "./mustWithPriority";
 import { getBadSynergyPenalty } from "./badSynergy";
 import { resolveRoleAssignments } from "./draftRoleResolver";
@@ -597,6 +598,25 @@ function evaluateChoiceFit(
   return values.length ? average(values) : 5;
 }
 
+/**
+ * NEXT_STEPS 6b — cât câștigă echipa din atributele de compoziție, cu aceleași funcții ca simularea:
+ *   teamfight: avantajul cu reducerile din antiTank / antiCC minus fără ele (evaluateTeamfight);
+ *   poke în mid redus de sustain (getMidPokeTerm), al nostru minus al lor;
+ *   globalPressure la obiective (globalPressureObjectiveBonus), al nostru minus al lor, × 0.5.
+ * Scor 5 = egal. Adversarul incomplet (n-ar trebui: evaluatorul rulează pe drafturi terminate) → 5.
+ */
+function evaluateAttributeMatchupScore(own: Partial<Record<Role, string>>, enemy: Partial<Record<Role, string>>): number {
+  const filled = (assignments: Partial<Record<Role, string>>) => ROLE_ORDER.filter((role) => assignments[role]).length;
+  if (filled(enemy) < ROLE_ORDER.length || filled(own) < ROLE_ORDER.length) return 5;
+  const withAttributes = evaluateTeamfight({ blueAssignments: own, redAssignments: enemy }).blueTeamfightEdge;
+  const withoutAttributes = evaluateTeamfight({ blueAssignments: own, redAssignments: enemy, withAttributes: false }).blueTeamfightEdge;
+  const teamfight = withAttributes - withoutAttributes;
+  const poke = getMidPokeTerm(own, enemy) - getMidPokeTerm(enemy, own);
+  const ids = (assignments: Partial<Record<Role, string>>) => ROLE_ORDER.map((role) => assignments[role]).filter((id): id is string => Boolean(id));
+  const global = (globalPressureObjectiveBonus(ids(own)) - globalPressureObjectiveBonus(ids(enemy))) * 0.5;
+  return clamp(5 + (teamfight + poke + global) * DRAFT_THINKING_CONFIG.draftEvaluation.attributeMatchupScale, 0, 10);
+}
+
 export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluation {
   const vector = buildCompVector(context.championIds);
   const enemyVector = buildCompVector(context.enemyChampionIds);
@@ -703,14 +723,20 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
   ]), 0, 10);
 
   const W = DRAFT_THINKING_CONFIG.draftEvaluation.weights;
+  const E = DRAFT_THINKING_CONFIG.draftEvaluation;
+  const attributeMatchupScore = E.attributeMatchupWeight > 0 ? evaluateAttributeMatchupScore(assignments, enemyAssignments) : 5;
+  // 6b: ponderea attributeMatchupScore se ia proporțional din componentele pozitive (la 0, formula de dinainte).
+  const positiveShare = 1 - E.attributeMatchupWeight / E.positiveWeightSum;
   const draftPower = clamp(
+    positiveShare * (
     // DRAFT_SIM_ALIGNMENT §2.1: choiceFitScore în locul playerFit × 0.14 + comfort × 0.10 (nivelul jucătorului);
     // rosterExecutionScore × 0.045 a ieșit (tot nivelul jucătorilor). §3: counterScore pe lane, puterea pe faze, meta 0.10 → 0.04.
     metaScore * W.meta + choiceFitScore * W.choiceFit + synergyScore * 0.11 + needScore * 0.08 + counterScore * W.counter +
     phasePowerScore * W.phasePower + interactionScore * DRAFT_THINKING_CONFIG.draftEvaluation.interactionWeight +
     engageScore * 0.045 + frontlineScore * 0.045 + damageBalanceScore * W.damageBalance + executionEaseScore * 0.03 + protectionScore * 0.04 +
     antiDiveScore * 0.03 + primaryEngageScore * 0.025 + followUpScore * 0.02 + rangeProfileScore * 0.02 + accessScore * 0.05 + threatScore * 0.05 +
-    roleProfileScore * 0.04 + teamIdentityScore * 0.03 + simulationReadinessScore * 0.055 - weaknessPenalty * 0.07 - shortRangePenalty * 0.2 - carryProtectionPenalty * 0.46 -
+    roleProfileScore * 0.04 + teamIdentityScore * 0.03 + simulationReadinessScore * 0.055) +
+    attributeMatchupScore * E.attributeMatchupWeight - weaknessPenalty * 0.07 - shortRangePenalty * 0.2 - carryProtectionPenalty * 0.46 -
     executionDifficultyPenalty * 0.4 - structurePenalty,
     0,
     10
@@ -728,6 +754,7 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
     choiceFitScore,
     interactionScore,
     phasePowerScore,
+    attributeMatchupScore,
     engageScore,
     frontlineScore,
     damageBalanceScore,

@@ -352,6 +352,43 @@ export function teamAssignmentQuality(
   return clamp(average(scores), 0, 10);
 }
 
+/** Suma `offers` de un tip pe o compoziție (rol → campion). */
+const TEAM_ROLES: Role[] = ["top", "jungle", "mid", "adc", "support"];
+
+export function teamOfferSum(assignments: Partial<Record<Role, string>>, type: string): number {
+  return TEAM_ROLES.reduce(
+    (sum, role) => sum + (getChampionByIdSafe(assignments[role] ?? null)?.offers ?? []).filter((offer) => offer.type === type).reduce((s, offer) => s + offer.strength, 0),
+    0,
+  );
+}
+
+/**
+ * NEXT_STEPS 6b / COMP_ATTRIBUTES_EXPANSION §4 — poke în faza mid (siege): suma offers `poke` × simPokeMidPerPoint,
+ * redusă de sustain-ul adversarului: × (1 − min(simSustainCap, sustain × simSustainPerPoint)). Fără poke, 0.
+ */
+export function getMidPokeTerm(own: Partial<Record<Role, string>>, enemy: Partial<Record<Role, string>>): number {
+  const A = DRAFT_THINKING_CONFIG.attributes;
+  const poke = teamOfferSum(own, "poke");
+  if (poke <= 0) return 0;
+  const sustain = teamOfferSum(enemy, "sustain");
+  const k = A.simAttributeEffectScale;
+  const reduction = Math.min(Math.min(A.simAttributeCapMax, A.simSustainCap * k), sustain * A.simSustainPerPoint * k);
+  return poke * A.simPokeMidPerPoint * k * (1 - reduction);
+}
+
+/**
+ * NEXT_STEPS 6b — partea de globalPressure din objectiveControlScore (aceeași formulă: media pe campioni × 1.6), ca
+ * evaluatorul de draft să folosească exact ce adună simularea.
+ */
+export function globalPressureObjectiveBonus(championIds: string[]): number {
+  const A = DRAFT_THINKING_CONFIG.attributes;
+  const values = championIds
+    .map((id) => getChampionByIdSafe(id))
+    .filter((champion): champion is Champion => Boolean(champion))
+    .map((champion) => champion.offers.filter((offer) => offer.type === "globalPressure").reduce((sum, offer) => sum + offer.strength, 0) * A.simGlobalPressureWeight * A.simAttributeEffectScale);
+  return values.length ? average(values) * 1.6 : 0;
+}
+
 export function objectiveControlScore(championIds: string[]) {
   const values = championIds
     .map((id) => getChampionByIdSafe(id))
@@ -364,7 +401,9 @@ export function objectiveControlScore(championIds: string[]) {
           )
         )
         .reduce((sum, offer) => sum + offer.strength, 0);
-      return objective;
+      // NEXT_STEPS 6b / COMP_ATTRIBUTES_EXPANSION §4: globalPressure lângă roamPressure, cu pondere simGlobalPressureWeight.
+      const global = champion.offers.filter((offer) => offer.type === "globalPressure").reduce((sum, offer) => sum + offer.strength, 0);
+      return objective + global * DRAFT_THINKING_CONFIG.attributes.simGlobalPressureWeight * DRAFT_THINKING_CONFIG.attributes.simAttributeEffectScale;
     });
 
   return clamp(average(values) * 1.6, 0, 10);

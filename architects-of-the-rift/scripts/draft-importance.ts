@@ -311,13 +311,13 @@ const lines: string[] = [
   "",
   "## Ținte (DRAFT_SIM_ALIGNMENT §0)",
   "",
-  "Zgomot între seed-uri (`--seed-tag`, același cod, main la cfb0a65): corelația draftPower 0.14–0.24, „nivel egal” 55.3–59.8%, „top 8 aleator” 66.6–68.6%, complet aleator 78.9–81.3%, favorit 70.9–73.2%, blue 50.3–51.9%. O diferență mai mică decât atât între două rulări nu e un semnal. Pragurile se aplică pe media a 3 seed-uri (`--seed-tag`); o singură rulare e orientativă.",
+  "Zgomot între seed-uri (`--seed-tag`, același cod, main la cfb0a65): corelația draftPower 0.14–0.24, „nivel egal” 55.3–59.8%, „top 8 aleator” 66.6–68.6%, complet aleator 78.9–81.3%, favorit 70.9–73.2%, blue 50.3–51.9%. O diferență mai mică decât atât între două rulări nu e un semnal. Pragurile se aplică pe media a 3 seed-uri (`--seed-tag`), relativ la main pe aceleași seed-uri (corelația și „nivel egal”); o singură rulare e orientativă.",
   "",
   columns,
   row("Draft bun contra „top 8 aleator”", "~63–69%", pct(result.weak.noisy.goodWins), pct(before?.weak.noisy.goodWins)),
   row("Draft bun contra draft complet aleator", "≤ 82%", pct(result.weak.random.goodWins), pct(before?.weak.random.goodWins)),
-  row(`Nivel egal: câștigă draftul mai bun (${result.normal.evenGames} jocuri)`, "≥ 57% (ținta ~60%)", pct(result.normal.betterDraftEven), pct(before?.normal.betterDraftEven)),
-  row("Corelația draftPower ↔ victorie, nivel egal", "≥ 0.20 (ținta ~0.24)", num(result.normal.components.draftPower?.winEven), num(before?.normal.components.draftPower?.winEven)),
+  row(`Nivel egal: câștigă draftul mai bun (${result.normal.evenGames} jocuri)`, "față de main ≥ −1,5 pct; min 55%", pct(result.normal.betterDraftEven), pct(before?.normal.betterDraftEven)),
+  row("Corelația draftPower ↔ victorie, nivel egal", "față de main ≥ −0.03; min 0.14", num(result.normal.components.draftPower?.winEven), num(before?.normal.components.draftPower?.winEven)),
   row("Corelația playerFit ↔ nivelul jucătorilor", "≤ 0.5", num(result.normal.components.playerFitScore?.withStrength), num(before?.normal.components.playerFitScore?.withStrength)),
   ...(result.normal.components.choiceFitScore
     ? [row("Corelația choiceFit ↔ nivelul jucătorilor", "≤ 0.5", num(result.normal.components.choiceFitScore.withStrength), num(before?.normal.components.choiceFitScore?.withStrength))]

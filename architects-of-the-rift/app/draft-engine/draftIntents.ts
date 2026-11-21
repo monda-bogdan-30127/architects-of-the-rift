@@ -202,7 +202,7 @@ function answer(ctx: DraftContext): Intent {
   const openNeed = evaluateContextualNeedStatuses(ctx.own.picks, ctx.enemy.picks).find(
     (need) => need.missing > 0 && need.priority >= ATTRS.contextualAnswerMinPriority,
   );
-  const contextual = openNeed ? ATTRS.contextualAnswerUrgency : 0;
+  const contextual = openNeed ? ATTRS.contextualAnswerUrgency * ATTRS.contextualDraftScale : 0;
   const urgency = clamp10(Math.max(0, best?.value ?? 0) * INTENTS.answerScale + seasonPlan + contextual);
   const laneReason = best && best.value > 0
     ? `${name(best.counterId)} answers their ${name(best.enemyId)}${seasonPlan ? " (their season favorite)" : ""}`

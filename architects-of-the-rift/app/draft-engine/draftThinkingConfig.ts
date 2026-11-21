@@ -417,8 +417,13 @@ export const DRAFT_THINKING_CONFIG = {
      */
     resourceDraftScale: 0.5,
     /** §3 — nevoile contextuale (din compoziția adversarului). Oprite până se completează datele. */
-    contextualNeedsEnabled: false,
+    contextualNeedsEnabled: true,
     contextualNeedWeight: 1.0,
+    /**
+     * NEXT_STEPS 6b: factorul nevoilor contextuale din draft (contextualNeedFill în scorul candidatului și urgența
+     * `answer` din intents), ca draftul să nu le prețuiască mai mult decât le răsplătește simularea.
+     */
+    contextualDraftScale: 0.5,
     /** Nevoia contextuală nesatisfăcută cu priority ≥ atât crește urgența `answer`. */
     contextualAnswerMinPriority: 2,
     contextualAnswerUrgency: 2,
@@ -442,6 +447,19 @@ export const DRAFT_THINKING_CONFIG = {
     simAntiCCPerPoint: 0.03,
     simSustainCap: 0.25,
     simSustainPerPoint: 0.03,
+    /**
+     * NEXT_STEPS 6b: termenul de poke din faza mid (siege) = suma offers `poke` ale echipei × atât, redus de sustain-ul
+     * adversarului (× (1 − min(simSustainCap, sustain × simSustainPerPoint))).
+     */
+    simPokeMidPerPoint: 0.03,
+    /**
+     * NEXT_STEPS 6b: multiplicatorul efectelor de atribute din simulare (antiTank, antiCC, sustain, poke-ul din mid,
+     * globalPressure), peste valorile de pornire din spec; plafoanele de reducere rămân ≤ simAttributeCapMax. Ținta:
+     * fiecare efect schimbă câștigătorul în ~1–3% din jocurile în care se activează. Pe 725 de jocuri Bo3 / Bo5, la 4:
+     * antiTank 1,4%, antiCC 2,1%, sustain 0,7%, poke 2,9%, globalPressure 1,8% (la 1: 0,4 / 0,7 / 0 / 0,6 / 0,9%).
+     */
+    simAttributeEffectScale: 4,
+    simAttributeCapMax: 0.9,
     /** §4 — globalPressure la presiunea de macro (mid / late), lângă roamPressure. */
     simGlobalPressureWeight: 0.5,
   },
@@ -616,5 +634,15 @@ export const DRAFT_THINKING_CONFIG = {
      * mai puternice); roleCoverageScore a ieșit (identic la ambele echipe).
      */
     weights: { meta: 0.04, choiceFit: 0.18, counter: 0.08, phasePower: 0.2, damageBalance: 0.02 },
+    /**
+     * NEXT_STEPS 6b: ponderea attributeMatchupScore (efectul antiTank / antiCC / poke vs sustain / globalPressure,
+     * calculat cu funcțiile simulării), luată proporțional din componentele pozitive (suma lor: positiveWeightSum).
+     * Grila {0.05, 0.10, 0.15} × contextualDraftScale {1, 0.5}, media pe 3 seed-uri: 0.15 / 0.5 → corelația 0.175
+     * (main 0.172), „nivel egal” 58.4% (main 56.7%); fără aliniere 0.139 / 54.7%.
+     */
+    attributeMatchupWeight: 0.15,
+    positiveWeightSum: 1.19,
+    /** attributeMatchupScore = 5 + atât × avantajul din atribute (unități de fază), limitat la 0–10. */
+    attributeMatchupScale: 2,
   },
 } as const;

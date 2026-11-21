@@ -141,6 +141,8 @@ export type TeamDraftEvaluation = {
   interactionScore: number;
   /** DRAFT_SIM_ALIGNMENT §3.2 — puterea campionilor pe faze față de adversar (5 = egal). */
   phasePowerScore: number;
+  /** NEXT_STEPS 6b: efectul atributelor de compoziție (antiTank / antiCC / sustain / globalPressure), 5 = egal. */
+  attributeMatchupScore: number;
   engageScore: number;
   frontlineScore: number;
   damageBalanceScore: number;
