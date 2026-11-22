@@ -7,6 +7,8 @@
 // tag-urile din profilul pe rol, într-o singură tabelă.
 
 import type { Champion, Role } from "@/app/types/champion";
+import type { ChampionTag } from "@/app/types/championTags";
+import type { CompAttribute } from "@/app/types/compAttributes";
 import { getChampionRoleProfile } from "./championProfileSystem";
 import { getCarryArchetype } from "./draftArchetypes";
 import { buildCompVector, getChampionById } from "./draftEvaluator";
@@ -33,10 +35,13 @@ export type CompIdentityReading = {
 type IdentityDefinition = {
   /** Atribute din vectorul de compoziție (`offers`, cu `strength`). */
   offers: string[];
-  /** Tag-uri din profilul pe rol: +1 fiecare la fit, `tagWeight` la semnal. */
-  desired: string[];
+  /**
+   * Tag-uri din profilul pe rol: +1 fiecare la fit, `tagWeight` la semnal. Intrările care sunt atribute
+   * (`DESIRED_ATTRIBUTES`) se citesc din `buildCompVector` (NEXT_STEPS 7: niciun campion nu le are ca tag).
+   */
+  desired: (ChampionTag | CompAttribute)[];
   /** Tag-uri care trag în sens opus. */
-  avoid: string[];
+  avoid: ChampionTag[];
 };
 
 /** Tabela unică: vechile `PLAN_DESIRED_TAGS` / `PLAN_AVOID_TAGS`, seturile din coerență și atributele din evaluator. */
@@ -75,6 +80,8 @@ const IDENTITY_TABLE: Record<CompIdentity, IdentityDefinition> = {
 
 const CONFIG = DRAFT_THINKING_CONFIG.identity;
 
+const vectorValue = (vector: Record<string, number>, key: string) => vector[key] ?? 0;
+
 export function getIdentityTags(identity: CompIdentity): { desired: string[]; avoid: string[] } {
   const { desired, avoid } = IDENTITY_TABLE[identity];
   return { desired: [...desired], avoid: [...avoid] };
@@ -85,9 +92,20 @@ export function getIdentityOffers(identity: CompIdentity): readonly string[] {
   return IDENTITY_TABLE[identity].offers;
 }
 
+/**
+ * NEXT_STEPS 7 — atributele din listele `desired`: contează ca un tag când campionul le oferă
+ * (vectorul de compoziție al campionului) cu strength ≥ `identity.desiredAttributeMin`.
+ */
+const DESIRED_ATTRIBUTES: readonly CompAttribute[] = ["reliableCC", "roamPressure", "sustainedDamage", "disengage", "backlineAccess"];
+
 function profileTags(champion: Champion, role: Role | null): Set<string> {
   const profile = role ? getChampionRoleProfile(champion, role) : getChampionRoleProfile(champion);
-  return new Set(profile?.tags ?? []);
+  const tags = new Set<string>(profile?.tags ?? []);
+  const vector = buildCompVector([champion.id]) as unknown as Record<string, number>;
+  for (const attribute of DESIRED_ATTRIBUTES) {
+    if (vectorValue(vector, attribute) >= CONFIG.desiredAttributeMin) tags.add(attribute);
+  }
+  return tags;
 }
 
 function tagScore(tags: Set<string>, identity: CompIdentity): number {
@@ -127,8 +145,6 @@ export function isCompatible(a: CompIdentity, b: CompIdentity): boolean {
     ([x, y]) => (x === a && y === b) || (x === b && y === a),
   );
 }
-
-const vectorValue = (vector: Record<string, number>, key: string) => vector[key] ?? 0;
 
 /**
  * Identitatea compoziției din pick-uri (și rolurile lor, dacă se știu).

@@ -61,6 +61,8 @@ export const DRAFT_THINKING_CONFIG = {
     tagWeight: 0.5,
     /** Tag evitat: −atât la fit-ul de tag-uri. */
     avoidTagWeight: 1.2,
+    /** NEXT_STEPS 7: atributele din `desired` contează ca tag de la acest strength (`offers`) în sus. */
+    desiredAttributeMin: 3,
     /**
      * `offers` din identitate la fit-ul unui candidat: × strength. 0 = fit-ul e doar pe tag-uri
      * (ca vechiul `scoreChampionForPlan`); cu 0.25 distribuția se muta spre pick/dive (calibrare §3).
@@ -248,8 +250,11 @@ export const DRAFT_THINKING_CONFIG = {
     /** §3.3 — păstrarea combo-ului în fearless: atât × dependency × min(1, jocuri rămase / 2). */
     conservePenalty: 2.0,
     conserveMinDependency: 0.5,
-    /** §3.4 — ban pe o piesă de combo cu partenerul deja banat: −atât în `hygiene`. */
-    orphanBanPenalty: 1.0,
+    /**
+     * §3.4 — ban pe o piesă de combo cu partenerul deja banat: −atât în `hygiene`.
+     * NEXT_STEPS 7: 1.0 → 1.5 (Renata trecea înaintea lui Lee Sin la ban 1 cu 0,02).
+     */
+    orphanBanPenalty: 1.5,
   },
 
   // DRAFT_REALISM §9 — ban-uri realiste.
