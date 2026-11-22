@@ -460,6 +460,64 @@ function getTeamTraitPhaseEffects(
   return { early: all * scale, mid: midLate * scale, late: midLate * scale };
 }
 
+/**
+ * NEXT_STEPS 8 — Spirit în rezultat (doar echipa controlată; la AI: 0 și 1,0):
+ *   modificatorul de Spirit (același ca la notă), media pe cei 5 × spirit.phaseEffectScale → toate fazele;
+ *   factorul de variație de Spirit, media pe cei 5 → amplitudinea zgomotului de echipă (faze + rng).
+ */
+function getTeamSpiritEffects(
+  roster: Partial<Record<Role, string>>,
+  side: "blue" | "red",
+  slugs: { blueTeamSlug: string; redTeamSlug: string },
+  controlledTeamSlug: string,
+): { phase: number; variance: number } {
+  let modSum = 0;
+  let varianceSum = 0;
+  for (const role of ROLE_ORDER) {
+    const playerId = roster[role];
+    if (!playerId) {
+      varianceSum += 1;
+      continue;
+    }
+    modSum += getSpiritScoreModifier(playerId, side, slugs.blueTeamSlug, slugs.redTeamSlug, controlledTeamSlug);
+    varianceSum += getSpiritVarianceFactor(playerId, side, slugs.blueTeamSlug, slugs.redTeamSlug, controlledTeamSlug);
+  }
+  return {
+    phase: (modSum / ROLE_ORDER.length) * DRAFT_THINKING_CONFIG.spirit.phaseEffectScale,
+    variance: varianceSum / ROLE_ORDER.length,
+  };
+}
+
+/**
+ * NEXT_STEPS 8 — greșelile de macro (aceleași aruncări ca în notă, rollMacroMistake) în puterea jucătorilor pe
+ * mid / late: Σ (−severity, × macroMistakeTeamMultiplier dacă a costat echipa) × macroMistakeScale / 5.
+ */
+function getTeamMacroMistakeEffect(
+  roster: Partial<Record<Role, string>>,
+  seriesId: string,
+  gameNumber: number,
+  side: "blue" | "red",
+): number {
+  const C = DRAFT_THINKING_CONFIG.simulation;
+  let sum = 0;
+  for (const role of ROLE_ORDER) {
+    const playerId = roster[role];
+    if (!playerId) continue;
+    const mistake = rollMacroMistake({ player: getPlayerById(playerId), playerId, seriesId, gameNumber, role, side });
+    if (mistake.occurred) sum -= mistake.severity * (mistake.affectsTeam ? C.macroMistakeTeamMultiplier : 1);
+  }
+  return (sum * C.macroMistakeScale) / ROLE_ORDER.length;
+}
+
+/** Efectele de trait (B6) + Spirit + greșelile de macro, pe faze. */
+function combinePhaseEffects(
+  traits: { early: number; mid: number; late: number },
+  spirit: number,
+  macroMistakes: number,
+): { early: number; mid: number; late: number } {
+  return { early: traits.early + spirit, mid: traits.mid + spirit + macroMistakes, late: traits.late + spirit + macroMistakes };
+}
+
 function computePhaseBreakdown(args: {
   roster: Partial<Record<Role, string>>;
   assignments: Partial<Record<Role, string>>;
@@ -475,10 +533,13 @@ function computePhaseBreakdown(args: {
   midPokeTerm?: number;
   /** NEXT_STEPS B6: efectele de trait pe rating-ul jucătorilor, ca medie pe echipă, în puterea jucătorilor pe faze. */
   playerTraitEffects?: { early: number; mid: number; late: number };
+  /** NEXT_STEPS 8: amplitudinea zgomotului de echipă din faze × media factorului de variație de Spirit (AI: 1). */
+  noiseScale?: number;
 }): PhaseBreakdown {
 
   const { roster, assignments, laneScore, draftPower, matchProfile, momentum, seedRoot, side, tendencyBonus, teamfightEdge } = args;
   const traitEffects = args.playerTraitEffects ?? { early: 0, mid: 0, late: 0 };
+  const noiseScale = args.noiseScale ?? 1;
 
   // ─── EARLY (0-15 min): lane + early player/champion power ─────────────
   const earlyPlayerStr = getTeamPhaseStrength(roster, assignments, "early") + traitEffects.early;
@@ -486,7 +547,7 @@ function computePhaseBreakdown(args: {
   const earlyTotal = clamp(
     laneScore * 0.38 + earlyPlayerStr * 0.28 + earlyChampPower * DRAFT_THINKING_CONFIG.simulation.phaseChampionWeights.early +
     draftPower * 0.08 + momentum * 0.5 +
-    seededNoise(`${seedRoot}:${side}:early`, 0.3) +
+    seededNoise(`${seedRoot}:${side}:early`, 0.3 * noiseScale) +
     (tendencyBonus?.earlyBonus ?? 0),
     0, 10
   );
@@ -498,7 +559,7 @@ function computePhaseBreakdown(args: {
   const midTotal = clamp(
     midPlayerStr * 0.30 + midChampPower * DRAFT_THINKING_CONFIG.simulation.phaseChampionWeights.mid + draftPower * 0.14 +
     earlyCarryOver + momentum * 0.3 +
-    seededNoise(`${seedRoot}:${side}:mid`, 0.28) +
+    seededNoise(`${seedRoot}:${side}:mid`, 0.28 * noiseScale) +
     (tendencyBonus?.midBonus ?? 0) +
     (teamfightEdge ?? 0) * 0.35 +
     (args.midPokeTerm ?? 0),
@@ -512,7 +573,7 @@ function computePhaseBreakdown(args: {
   const lateTotal = clamp(
     latePlayerStr * 0.32 + lateChampPower * DRAFT_THINKING_CONFIG.simulation.phaseChampionWeights.late + draftPower * 0.12 +
     midCarryOver + momentum * 0.2 +
-    seededNoise(`${seedRoot}:${side}:late`, 0.32) +
+    seededNoise(`${seedRoot}:${side}:late`, 0.32 * noiseScale) +
     (tendencyBonus?.lateBonus ?? 0) +
     (teamfightEdge ?? 0) * 0.65,
     0, 10
@@ -1180,8 +1241,16 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   const volatility = round1(
     clamp(lane.volatility * 0.55 + Math.abs(blueExecution - redExecution) * 0.45, 1, 10)
   );
-  const blueRng = seededNoise(`${seedRoot}:blue`, 0.30 + volatility * 0.018);
-  const redRng = seededNoise(`${seedRoot}:red`, 0.30 + volatility * 0.018);
+  // Team slugs pentru Spirit (doar echipa controlată); reflectă schimbările de side din serie.
+  const gameTeamSlugs = getGameTeamSlugsForGameNumber(input.series, input.game.number);
+  const controlledTeamSlug = input.save?.controlledTeamSlug ?? "";
+  // NEXT_STEPS 8: Spirit (modificator + variație) și greșelile de macro decid și ele meciul.
+  const blueSpirit = getTeamSpiritEffects(blueRoster, "blue", gameTeamSlugs, controlledTeamSlug);
+  const redSpirit = getTeamSpiritEffects(redRoster, "red", gameTeamSlugs, controlledTeamSlug);
+  const blueMacroMistakes = getTeamMacroMistakeEffect(blueRoster, input.series.seriesId, input.game.number, "blue");
+  const redMacroMistakes = getTeamMacroMistakeEffect(redRoster, input.series.seriesId, input.game.number, "red");
+  const blueRng = seededNoise(`${seedRoot}:blue`, (0.30 + volatility * 0.018) * blueSpirit.variance);
+  const redRng = seededNoise(`${seedRoot}:red`, (0.30 + volatility * 0.018) * redSpirit.variance);
   const matchProfile = determineMatchProfile({
     blueAssignments: assignmentsBlue,
     redAssignments: assignmentsRed,
@@ -1235,7 +1304,12 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     side: "blue",
     tendencyBonus: blueTendencyEvents,
     teamfightEdge: teamfight.blueTeamfightEdge,
-    playerTraitEffects: getTeamTraitPhaseEffects(blueRoster, assignmentsBlue, input.game.number, input.series.bo),
+    playerTraitEffects: combinePhaseEffects(
+      getTeamTraitPhaseEffects(blueRoster, assignmentsBlue, input.game.number, input.series.bo),
+      blueSpirit.phase,
+      blueMacroMistakes,
+    ),
+    noiseScale: blueSpirit.variance,
     midPokeTerm: getMidPokeTerm(assignmentsBlue, assignmentsRed),
   });
 
@@ -1250,7 +1324,12 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     side: "red",
     tendencyBonus: redTendencyEvents,
     teamfightEdge: teamfight.redTeamfightEdge,
-    playerTraitEffects: getTeamTraitPhaseEffects(redRoster, assignmentsRed, input.game.number, input.series.bo),
+    playerTraitEffects: combinePhaseEffects(
+      getTeamTraitPhaseEffects(redRoster, assignmentsRed, input.game.number, input.series.bo),
+      redSpirit.phase,
+      redMacroMistakes,
+    ),
+    noiseScale: redSpirit.variance,
     midPokeTerm: getMidPokeTerm(assignmentsRed, assignmentsBlue),
   });
 
@@ -1401,9 +1480,6 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
   );
 
 
-  // Compute team slugs early so we can pass them into buildPlayerScores
-  // (needed for spirit modifier gating). They reflect side swaps across games.
-  const gameTeamSlugs = getGameTeamSlugsForGameNumber(input.series, input.game.number);
 
   const playerScores = buildPlayerScores({
     winnerSide: finalWinnerSide,
@@ -1423,7 +1499,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     redTeamTotal: redScores.total,
     blueTeamSlug: gameTeamSlugs.blueTeamSlug,
     redTeamSlug: gameTeamSlugs.redTeamSlug,
-    controlledTeamSlug: input.save?.controlledTeamSlug ?? "",
+    controlledTeamSlug,
   });
 
   // MVP-ul unui game trebuie sa vina intotdeauna din echipa castigatoare.

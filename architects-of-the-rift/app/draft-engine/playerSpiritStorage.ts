@@ -141,7 +141,15 @@ function getLocalStorageSafe(): Storage | null {
   return window.localStorage ?? null;
 }
 
+/** Doar pentru harness (scripts/spirit-impact.ts): Spirit injectat în loc de localStorage. null = normal. */
+let spiritStoreOverride: PlayerSpiritStore | null = null;
+
+export function setSpiritStoreOverride(store: PlayerSpiritStore | null) {
+  spiritStoreOverride = store;
+}
+
 export function readSpiritStore(): PlayerSpiritStore {
+  if (spiritStoreOverride) return spiritStoreOverride;
   const storage = getLocalStorageSafe();
   if (!storage) return emptyStore();
 

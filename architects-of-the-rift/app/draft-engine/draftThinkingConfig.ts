@@ -606,6 +606,22 @@ export const DRAFT_THINKING_CONFIG = {
     championPhaseScale: 2,
     /** §9: multiplicatorul termenului de matchup din scorul de lane (laneEvaluator, × 0.42). */
     laneMatchupScale: 1,
+    /**
+     * NEXT_STEPS 8: greșelile de macro (rollMacroMistake, −severity la notă) intră și în puterea jucătorilor pe
+     * mid / late: Σ (−severity) × macroMistakeScale / 5. „Cost the team” (catastrofală) × macroMistakeTeamMultiplier.
+     */
+    macroMistakeScale: 3,
+    macroMistakeTeamMultiplier: 2,
+  },
+
+  /** NEXT_STEPS 8 — Spirit (doar echipa controlată; la AI modificatorul e 0 și variația 1,0). */
+  spirit: {
+    /**
+     * Modificatorul de Spirit (SPIRIT_SCORE_MODIFIERS, ca la notă) intră în puterea jucătorilor pe toate fazele:
+     * media pe cei 5 × phaseEffectScale. Separat de traits.phaseEffectScale (8): modificatorii de Spirit sunt de
+     * ~0,4–0,6, iar la 8 o echipă toată Motivated ar câștiga ~+20 de puncte.
+     */
+    phaseEffectScale: 3,
   },
 
   /** DRAFT_SIM_ALIGNMENT — evaluatorul de draft (draftEvaluator.ts), aliniat cu ce răsplătește simularea. */

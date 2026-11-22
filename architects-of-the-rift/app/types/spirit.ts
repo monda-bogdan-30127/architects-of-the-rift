@@ -91,7 +91,8 @@ export type PlayerSpiritStore = {
 
 export const SPIRIT_SCORE_MODIFIERS: { min: number; max: number; mod: number }[] = [
   { min: 80, max: 100, mod: +0.40 },
-  { min: 65, max:  79, mod: +0.15 },
+  // NEXT_STEPS 8 (varianta B): „Stable” (60–79) = 0, ca echipa controlată să pornească (65) la egal cu AI-ul.
+  { min: 65, max:  79, mod:  0.00 },
   { min: 50, max:  64, mod:  0.00 },
   { min: 35, max:  49, mod: -0.30 },
   { min: 10, max:  34, mod: -0.60 },
