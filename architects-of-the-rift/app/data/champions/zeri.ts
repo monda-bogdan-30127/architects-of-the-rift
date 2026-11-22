@@ -12,10 +12,7 @@ export const zeri = createChampion({
     { championId: "lulu", score: 5 },
     { championId: "milio", score: 4 },
     { championId: "nami", score: 4 },
-    { championId: "renata-glasc", score: 4 },
-    { championId: "yuumi", score: 4 },
-    { championId: "maokai", score: 3 },
-    { championId: "rakan", score: 3 },
+    { championId: "soraka", score: 3 },
     { championId: "sejuani", score: 3 },
   ],
 
