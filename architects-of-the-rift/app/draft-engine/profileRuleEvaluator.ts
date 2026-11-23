@@ -1,6 +1,7 @@
 import type { Champion, ChampionRoleProfile, ChampionSynergyRule, Role } from "@/app/types/champion";
 import { getChampionRoleProfile } from "./championProfileSystem";
 import { resolveRoleAssignments } from "./draftRoleResolver";
+import { hasTeamFrontline } from "./effectiveFrontline";
 
 type Entry = { champion: Champion; profile: ChampionRoleProfile };
 
@@ -66,6 +67,8 @@ export function evaluateInteractionScore(allies: Champion[], enemies: Champion[]
   const enemyEntries = getEntries(enemies);
   const enemyTags = new Set(enemyEntries.flatMap((entry) => entry.profile.tags));
   const allyTags = new Set(allyEntries.flatMap((entry) => entry.profile.tags));
+  // FRONTLINE_SIDELANE_NEEDS §1.2: prezența frontline-ului la nivel de echipă = frontline-ul efectiv.
+  const allyHasFrontline = hasTeamFrontline(allies.map((champion) => champion.id));
   let score = 0;
 
   for (const { profile } of allyEntries) {
@@ -76,7 +79,7 @@ export function evaluateInteractionScore(allies: Champion[], enemies: Champion[]
     if (allyCounters.has("projectile") && enemyTags.has("poke")) score += 1.1;
     if (allyCounteredBy.has("disengage") && enemyTags.has("zone-control")) score -= 1.0;
     if (allyCounteredBy.has("hard-cc") && enemyTags.has("pick")) score -= 1.2;
-    if (profile.conditions.requiresFrontline && !allyTags.has("frontline")) score -= 1.4;
+    if (profile.conditions.requiresFrontline && !allyHasFrontline) score -= 1.4;
     if (profile.conditions.requiresPeel && !(allyTags.has("peel") || allyTags.has("warden") || allyTags.has("enchanter"))) score -= 1.2;
   }
 

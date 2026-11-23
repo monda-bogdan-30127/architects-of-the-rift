@@ -624,6 +624,23 @@ export const DRAFT_THINKING_CONFIG = {
     phaseEffectScale: 3,
   },
 
+  /** FRONTLINE_SIDELANE_NEEDS §1 — frontline-ul efectiv (effectiveFrontline.ts), același în simulare, nevoi și raport. */
+  frontline: {
+    /** Offer frontline ≥ atât = tank (contează întreg); sub = bruiser (× bruiserFactor). */
+    tankMinStrength: 4,
+    bruiserFactor: 0.8,
+    /**
+     * „Echipa are frontline” (în locul tag-ului derivat la offer ≥ 3): 3 × bruiserFactor = 2,4, deci un campion
+     * care avea tag-ul îl păstrează, iar doi bruiseri cu 2 + 2 (3,2) îl primesc.
+     */
+    teamPresenceMin: 2.4,
+    /** Teamfight (evaluateFrontlinePresence): tankBonus × min(1, eff / tankBonusFull) + doubleFrontBonus × clamp((eff − tankBonusFull) / doubleFrontRange, 0, 1). */
+    tankBonus: 1.5,
+    tankBonusFull: 5,
+    doubleFrontBonus: 1.0,
+    doubleFrontRange: 4,
+  },
+
   /** DRAFT_SIM_ALIGNMENT — evaluatorul de draft (draftEvaluator.ts), aliniat cu ce răsplătește simularea. */
   draftEvaluation: {
     /**

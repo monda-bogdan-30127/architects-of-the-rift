@@ -1,4 +1,3 @@
-import type { ChampionTag } from "@/app/types/championTags";
 // ═══════════════════════════════════════════════════════════════════════════
 // Upgrade 5: Teamfight resolution from champion mechanics
 //
@@ -27,6 +26,7 @@ import {
 } from "./matchSimulationUtils";
 import { ROLE_ORDER } from "./draftTypes";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
+import { getEffectiveFrontline, hasTeamFrontline } from "./effectiveFrontline";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -51,25 +51,19 @@ export type TeamfightResult = {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function getProfiles(assignments: Partial<Record<Role, string>>): Array<{ role: Role; profile: ChampionRoleProfile }> {
-  const result: Array<{ role: Role; profile: ChampionRoleProfile }> = [];
+type TeamProfiles = Array<{ role: Role; profile: ChampionRoleProfile; championId: string }>;
+
+function getProfiles(assignments: Partial<Record<Role, string>>): TeamProfiles {
+  const result: TeamProfiles = [];
   for (const role of ROLE_ORDER) {
     const champId = assignments[role];
     if (!champId) continue;
     const champ = getChampionByIdSafe(champId);
     if (!champ) continue;
     const profile = getChampionRoleProfile(champ, role);
-    if (profile) result.push({ role, profile });
+    if (profile) result.push({ role, profile, championId: champ.id });
   }
   return result;
-}
-
-function hasTag(profiles: Array<{ profile: ChampionRoleProfile }>, tag: ChampionTag): boolean {
-  return profiles.some((p) => p.profile.tags?.includes(tag));
-}
-
-function countTag(profiles: Array<{ profile: ChampionRoleProfile }>, tag: ChampionTag): number {
-  return profiles.filter((p) => p.profile.tags?.includes(tag)).length;
 }
 
 function sumEffectStrength(profiles: Array<{ profile: ChampionRoleProfile }>, effectType: string): number {
@@ -197,7 +191,7 @@ function evaluateCarryOutputEfficiency(
   return clamp(5 + (protection - threat * 0.6) * 1.2, 1, 10);
 }
 
-function evaluateFrontlinePresence(profiles: Array<{ role: Role; profile: ChampionRoleProfile }>): number {
+function evaluateFrontlinePresence(profiles: TeamProfiles): number {
   if (profiles.length === 0) return 5;
 
   const frontlineThreat = profiles.reduce(
@@ -207,10 +201,12 @@ function evaluateFrontlinePresence(profiles: Array<{ role: Role; profile: Champi
     (sum, p) => sum + (p.profile.threatProfile?.antiDiveThreat ?? 0), 0
   );
 
-  const hasTank = hasTag(profiles, "frontline") || hasTag(profiles, "tank");
-  const tankBonus = hasTank ? 1.5 : 0;
-  const tankCount = countTag(profiles, "frontline");
-  const doubleFrontBonus = tankCount >= 2 ? 1.0 : 0;
+  // FRONTLINE_SIDELANE_NEEDS §1.2: bonusul de tank e gradual pe frontline-ul efectiv (era binar pe tag-ul
+  // `frontline`: un campion cu offer 3 primea tot bonusul, doi bruiseri cu 2 nimic).
+  const F = DRAFT_THINKING_CONFIG.frontline;
+  const effective = getEffectiveFrontline(profiles.map((p) => p.championId));
+  const tankBonus = F.tankBonus * Math.min(1, effective / F.tankBonusFull);
+  const doubleFrontBonus = F.doubleFrontBonus * clamp((effective - F.tankBonusFull) / F.doubleFrontRange, 0, 1);
 
   return clamp(
     Math.min(frontlineThreat, 35) * 0.10 +
@@ -247,9 +243,7 @@ function evaluatePeelEfficiency(
   return clamp(avgPeel * relevanceMultiplier, 0, 10);
 }
 
-function evaluateConditionsMet(
-  profiles: Array<{ role: Role; profile: ChampionRoleProfile }>
-): number {
+function evaluateConditionsMet(profiles: TeamProfiles): number {
   if (profiles.length === 0) return 10;
 
   const allTags = new Set(profiles.flatMap((p) => p.profile.tags ?? []));
@@ -262,7 +256,7 @@ function evaluateConditionsMet(
 
     if (cond.requiresFrontline) {
       totalConditions += 1;
-      if (!allTags.has("frontline") && !allTags.has("tank")) unmetCount += 1;
+      if (!hasTeamFrontline(profiles.map((p) => p.championId))) unmetCount += 1;
     }
     if (cond.requiresEngage) {
       totalConditions += 1;

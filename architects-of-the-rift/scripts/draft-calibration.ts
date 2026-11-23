@@ -138,16 +138,21 @@ let blueWins = 0;
 const compIdentities: Record<string, number> = {};
 const mustWith = { locks: 0, botPairs: 0, otherPairs: 0 };
 const chosenCounter: number[] = [];
+// FRONTLINE_SIDELANE_NEEDS §1.3: cât de des apare „No frontline” în raport (pe echipe).
+let noFrontline = 0;
+let reportTeams = 0;
 
 for (const entry of schedule) {
   const series = newAiSeries(`cal${entry.pair}s${entry.seed}`, entry.blue, entry.red);
   const { game, actions } = runTracedDraft(series, save);
   const resolved = resolveFinishedDraftAssignments(game, series, save);
   const pillarRosters = { blue: roster(entry.blue), red: roster(entry.red) };
-  const pillarGrades = (side: Side) =>
-    Object.fromEntries(
-      Object.entries(buildDraftPillarReport(resolved, side, series, save, pillarRosters)).map(([key, pillar]) => [key, (pillar as { grade: string }).grade]),
-    );
+  const pillarGrades = (side: Side) => {
+    const report = buildDraftPillarReport(resolved, side, series, save, pillarRosters);
+    reportTeams += 1;
+    if (Object.values(report).some((pillar) => ((pillar as { notes?: string[] }).notes ?? []).includes("No frontline"))) noFrontline += 1;
+    return Object.fromEntries(Object.entries(report).map(([key, pillar]) => [key, (pillar as { grade: string }).grade]));
+  };
   const reading = (picks: string[], assignments: Partial<Record<Role, string>>) => {
     const value = readCompIdentity(picks, assignments);
     return { dominant: value.dominant, strength: round4(value.strength), split: value.split };
@@ -565,6 +570,8 @@ const markdown = [
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
     return `| ${pillar} | ${["A", "B", "C", "D"].map((g) => `${(pct(counts[g] ?? 0, total) * 100).toFixed(1)}%`).join(" | ")} |`;
   }),
+  "",
+  `„No frontline” în raport: ${(pct(noFrontline, reportTeams) * 100).toFixed(1)}% din echipe`,
   "",
   "## Primul candidat ales, pe creativity",
   "",

@@ -1,4 +1,5 @@
 import { champions } from "@/app/data/champions";
+import { getEffectiveFrontline } from "./effectiveFrontline";
 import { players } from "@/app/data/players";
 import { legacyStatScore, normalizeLegacyStats } from "@/app/utils/legacyStats";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
@@ -498,6 +499,9 @@ export function getComfortScore(player: Player | null, champion: Champion): numb
   return clamp(base + signatureBonus * 0.35, 0, 10);
 }
 
+// FRONTLINE_SIDELANE_NEEDS §1.2 — frontline-ul efectiv (în effectiveFrontline.ts, ca să-l poată folosi și teamfightSystem).
+export { getEffectiveFrontline, hasTeamFrontline } from "./effectiveFrontline";
+
 export function buildCompVector(championIds: string[]): TeamCompVector {
   const vector = createEmptyCompVector();
   for (const championId of championIds) {
@@ -510,6 +514,8 @@ export function buildCompVector(championIds: string[]): TeamCompVector {
 
 export function evaluateNeedStatuses(championIds: string[]): NeedStatus[] {
   const vector = buildCompVector(championIds);
+  // §1.2: nevoia `frontline` se măsoară pe frontline-ul efectiv (bruiserii × bruiserFactor).
+  (vector as Record<string, number>).frontline = getEffectiveFrontline(championIds);
   const statusMap = new Map<string, NeedStatus>();
   for (const championId of championIds) {
     const champion = getChampionById(championId);

@@ -51,6 +51,7 @@ import {
 } from "./botDuoPlan";
 import { getUserPickCounts } from "./userDraftMemory";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
+import { hasTeamFrontline } from "./effectiveFrontline";
 import {
   getUserBanTargetBias,
   getUserPickPreferenceBias,
@@ -803,7 +804,8 @@ function getComboDependencyPenalty(
   }
 
   // needsFrontline
-  if ((dep.needsFrontline ?? 0) >= 5 && !allTags.has("frontline")) {
+  // FRONTLINE_SIDELANE_NEEDS §1.2: prezența frontline-ului la nivel de echipă = frontline-ul efectiv.
+  if ((dep.needsFrontline ?? 0) >= 5 && !hasTeamFrontline(ownPicks)) {
     if (ownPicks.length >= 2) penalty += (dep.needsFrontline ?? 0) * 0.3;
   }
 
@@ -1495,7 +1497,8 @@ function getCompCompletenessGate(
   if (ownPicks.length < 3) return 0;
 
   // Analyze what the team already has
-  let hasFrontline = false;
+  // FRONTLINE_SIDELANE_NEEDS §1.2: frontline-ul efectiv (bruiserii se adună), nu tag-ul pe campion.
+  const hasFrontline = hasTeamFrontline(ownPicks);
   let hasEngage = false;
   let hasAdc = false;
   let hasDamage = false;
@@ -1507,7 +1510,6 @@ function getCompCompletenessGate(
     if (!profile) continue;
     const tags = new Set(profile.tags ?? []);
 
-    if (tags.has("frontline") || tags.has("tank")) hasFrontline = true;
     if (tags.has("engage")) hasEngage = true;
     if (tags.has("dps") || tags.has("burst")) hasDamage = true;
     if (champ.roles.includes("adc")) hasAdc = true;
@@ -1520,12 +1522,13 @@ function getCompCompletenessGate(
 
   let bonus = 0;
 
-  // Missing frontline at pick 4-5 → frontline champion gets big bonus
-  if (!hasFrontline && (candidateTags.has("frontline") || candidateTags.has("tank"))) {
+  // Missing frontline at pick 4-5 → a candidate that completes it gets big bonus
+  const candidateFillsFrontline = !hasFrontline && hasTeamFrontline([...ownPicks, candidate.id]);
+  if (candidateFillsFrontline) {
     bonus += pickNumber === 5 ? 4.0 : 2.5;
   }
   // Missing frontline and candidate doesn't fill it at pick 5 → penalty
-  if (!hasFrontline && pickNumber === 5 && !candidateTags.has("frontline") && !candidateTags.has("tank")) {
+  if (!hasFrontline && pickNumber === 5 && !candidateFillsFrontline) {
     bonus -= 2.0;
   }
 

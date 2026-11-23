@@ -9,7 +9,7 @@ import { GRADE_RANK, getChampionGrade } from "@/app/utils/championMasteryUtils";
 import { getMatchupRelations } from "./championMatchups";
 import { COMP_COUNTER_MATRIX, getCandidateIdentityFit, isCompatible, readCompIdentity } from "./compIdentity";
 import { getDirectOpponents } from "./compCounter";
-import { buildCompVector } from "./draftEvaluator";
+import { buildCompVector, getEffectiveFrontline } from "./draftEvaluator";
 import { evaluateContextualNeedStatuses, getBestCoverAttribute, getContextualCover } from "./contextualNeeds";
 import { describeResourceConflict, getHighDemandPicks, getResourceConflictExcess, getResourceDemand } from "./championResource";
 import { getActiveTrait, hasTrait } from "@/app/utils/playerTraitUtils";
@@ -128,7 +128,8 @@ function compositionPillar(ownPicks: string[], ownAssignments: Assignments, rost
   // Nevoile de bază ale compoziției.
   const vector = buildCompVector(ownPicks) as unknown as Record<string, number>;
   const required = config.baseNeedMin;
-  if ((vector.frontline ?? 0) < required) {
+  // FRONTLINE_SIDELANE_NEEDS §1.2: frontline-ul efectiv (bruiserii × bruiserFactor).
+  if (getEffectiveFrontline(ownPicks) < required) {
     points -= 1;
     notes.add("No frontline");
   }

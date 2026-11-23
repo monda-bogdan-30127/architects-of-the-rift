@@ -10,6 +10,7 @@ import { championsById } from "@/app/data/champions";
 import type { Champion } from "@/app/types/champion";
 import { COMP_ATTRIBUTE_INFO, type CompAttribute } from "@/app/types/compAttributes";
 import { buildCompVector, getNeedRequirement } from "./draftEvaluator";
+import { getEffectiveFrontline } from "./effectiveFrontline";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 
 const ATTRS = DRAFT_THINKING_CONFIG.attributes;
@@ -57,7 +58,8 @@ export function getContextualNeeds(enemyPicks: string[]): ContextualNeed[] {
   const value = (...keys: string[]) => keys.reduce((sum, key) => sum + (vector[key] ?? 0), 0);
   const needs: ContextualNeed[] = [];
 
-  const frontline = priorityFrom(value("frontline"), ATTRS.thresholds.frontline, 2);
+  // FRONTLINE_SIDELANE_NEEDS §1.2: frontline-ul lor efectiv (bruiserii × bruiserFactor).
+  const frontline = priorityFrom(getEffectiveFrontline(enemyPicks), ATTRS.thresholds.frontline, 2);
   if (frontline) {
     const tanks = countWith(enemyPicks, "frontline", 3);
     const subject = `their frontline${tanks >= 2 ? ` (${tanks} tanks)` : ""}`;

@@ -9,7 +9,7 @@ import { GRADE_RANK, getChampionGrade, getResolvedChampionPool } from "@/app/uti
 import { getCandidateIdentityFit } from "./compIdentity";
 import { getDirectOpponents } from "./compCounter";
 import type { DraftContext } from "./draftContext";
-import { buildCompVector, evaluateNeedStatuses } from "./draftEvaluator";
+import { evaluateNeedStatuses, getEffectiveFrontline } from "./draftEvaluator";
 import { evaluateContextualNeedStatuses } from "./contextualNeeds";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import type { BucketId, IntentId } from "./draftTypes";
@@ -215,9 +215,9 @@ function answer(ctx: DraftContext): Intent {
 function buildIdentity(ctx: DraftContext): Intent {
   const picks = ctx.own.picks;
   const missing = picks.length ? evaluateNeedStatuses(picks).filter((need) => need.missing > 0).length : 0;
-  const vector = buildCompVector(picks) as unknown as Record<string, number>;
   const hasAdc = Boolean(ctx.own.assignments.adc);
-  const gateMissing = picks.length >= 3 && ((vector.frontline ?? 0) < DRAFT_THINKING_CONFIG.report.composition.baseNeedMin || (!hasAdc && !ctx.own.openRoles.includes("adc")));
+  // FRONTLINE_SIDELANE_NEEDS §1.2: frontline-ul efectiv, ca în raport.
+  const gateMissing = picks.length >= 3 && (getEffectiveFrontline(picks) < DRAFT_THINKING_CONFIG.report.composition.baseNeedMin || (!hasAdc && !ctx.own.openRoles.includes("adc")));
   const winCondition = ctx.ownWinCondition;
   const winNeeds = winCondition
     ? (championsById[winCondition.championId]?.needs ?? []).filter((need) => need.priority >= WEAKNESS_COVER_CONFIG.minNeedPriority).length
