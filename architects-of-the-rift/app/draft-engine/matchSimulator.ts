@@ -85,6 +85,7 @@ import {
   lateGameScore,
   objectiveControlScore,
   getMidPokeTerm,
+  getSideLanePhaseTerm,
   playerChampionArchetypeFit,
   playerChampionDraftFit,
   playerSkill,
@@ -530,6 +531,8 @@ function computePhaseBreakdown(args: {
   playerTraitEffects?: { early: number; mid: number; late: number };
   /** NEXT_STEPS 8: amplitudinea zgomotului de echipă din faze × media factorului de variație de Spirit (AI: 1). */
   noiseScale?: number;
+  /** FRONTLINE_SIDELANE_NEEDS §2.3: sideLaneEdge (getSideLanePhaseTerm), în mid și în late; 0 fără identitatea side-lane. */
+  sideLaneTerm?: number;
 }): PhaseBreakdown {
 
   const { roster, assignments, laneScore, draftPower, matchProfile, momentum, seedRoot, side, tendencyBonus, teamfightEdge } = args;
@@ -557,7 +560,8 @@ function computePhaseBreakdown(args: {
     seededNoise(`${seedRoot}:${side}:mid`, 0.28 * noiseScale) +
     (tendencyBonus?.midBonus ?? 0) +
     (teamfightEdge ?? 0) * 0.35 +
-    (args.midPokeTerm ?? 0),
+    (args.midPokeTerm ?? 0) +
+    (args.sideLaneTerm ?? 0),
     0, 10
   );
 
@@ -570,7 +574,8 @@ function computePhaseBreakdown(args: {
     midCarryOver + momentum * 0.2 +
     seededNoise(`${seedRoot}:${side}:late`, 0.32 * noiseScale) +
     (tendencyBonus?.lateBonus ?? 0) +
-    (teamfightEdge ?? 0) * 0.65,
+    (teamfightEdge ?? 0) * 0.65 +
+    (args.sideLaneTerm ?? 0),
     0, 10
 
   );
@@ -604,6 +609,8 @@ function buildTeamPhaseScores(args: {
   momentum: number;
   profile?: MatchProfile;
   phases: PhaseBreakdown;
+  /** FRONTLINE_SIDELANE_NEEDS §2.3: termenul side-lane din mid / late (pentru factorul separat din „Why it ended”). */
+  sideLaneTerm?: number;
 }): TeamPhaseScores {
   const weights = getProfileWeights(args.profile ?? "standard");
   const phaseW = getPhaseWeights(args.profile ?? "standard");
@@ -633,6 +640,7 @@ function buildTeamPhaseScores(args: {
 
   // FEEDBACK_FIXES §6.1: contribuția fiecărui factor, cu exact ponderile de mai sus (înainte de clamp).
   const category = (value: number, weight: number) => value * weight * 0.60;
+  const sideLane = args.sideLaneTerm ?? 0;
   const contributions: Record<OutcomeFactorKey, number> = {
     draft: category(args.draft, 0.22),
     players: category(args.playerPower, 0.14),
@@ -645,14 +653,17 @@ function buildTeamPhaseScores(args: {
     momentum: category(args.momentum, 1),
     variance: category(args.rng, 1),
     early: args.phases.early.phaseTotal * phaseW.early * 0.40,
-    mid: args.phases.mid.phaseTotal * phaseW.mid * 0.40,
-    lateFights: args.phases.late.phaseTotal * phaseW.late * 0.40,
+    // §2.3: partea side-lane din mid / late apare ca factor separat (suma contribuțiilor rămâne aceeași).
+    mid: (args.phases.mid.phaseTotal - sideLane) * phaseW.mid * 0.40,
+    lateFights: (args.phases.late.phaseTotal - sideLane) * phaseW.late * 0.40,
+    sideLane: sideLane * (phaseW.mid + phaseW.late) * 0.40,
   };
   const totalRaw = Object.values(contributions).reduce((sum, value) => sum + value, 0);
 
   return {
     momentum: round1(args.momentum),
     rng: round1(args.rng),
+    sideLane: round1(sideLane),
     totalRaw,
     contributions,
     draft: round1(args.draft),
@@ -1288,6 +1299,11 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     side: "red",
   });
 
+  // FRONTLINE_SIDELANE_NEEDS §2.3: sideLaneEdge doar dacă una dintre echipe are identitatea dominantă side-lane.
+  const sideLaneActive = blueDraftEval.compIdentity === "side-lane" || redDraftEval.compIdentity === "side-lane";
+  const blueSideLaneTerm = getSideLanePhaseTerm(assignmentsBlue, assignmentsRed, sideLaneActive);
+  const redSideLaneTerm = getSideLanePhaseTerm(assignmentsRed, assignmentsBlue, sideLaneActive);
+
   const bluePhases = computePhaseBreakdown({
     roster: blueRoster,
     assignments: assignmentsBlue,
@@ -1306,6 +1322,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     ),
     noiseScale: blueSpirit.variance,
     midPokeTerm: getMidPokeTerm(assignmentsBlue, assignmentsRed),
+    sideLaneTerm: blueSideLaneTerm,
   });
 
   const redPhases = computePhaseBreakdown({
@@ -1326,6 +1343,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     ),
     noiseScale: redSpirit.variance,
     midPokeTerm: getMidPokeTerm(assignmentsRed, assignmentsBlue),
+    sideLaneTerm: redSideLaneTerm,
   });
 
   // UPGRADE 12: Lane snowball — early advantage carries into mid/late (capped)
@@ -1405,6 +1423,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     momentum: blueMomentum,
     profile: matchProfile,
     phases: bluePhases,
+    sideLaneTerm: blueSideLaneTerm,
   });
 
   const redScores = buildTeamPhaseScores({
@@ -1420,6 +1439,7 @@ export function simulateFullMatch(input: MatchSimulationInput): DraftSimulationR
     momentum: redMomentum,
     profile: matchProfile,
     phases: redPhases,
+    sideLaneTerm: redSideLaneTerm,
   });
 
 
@@ -1696,6 +1716,7 @@ function buildOutcomeFactors(
       case "early": return scores.phases.early.phaseTotal;
       case "mid": return scores.phases.mid.phaseTotal;
       case "lateFights": return scores.phases.late.phaseTotal;
+      case "sideLane": return scores.sideLane ?? 0;
       default: return scores[key];
     }
   };

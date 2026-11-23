@@ -157,7 +157,7 @@ export type TeamDraftEvaluation = {
   carryProtectionPenalty: number;
   executionDifficultyPenalty: number;
   rosterExecutionScore: number;
-  compIdentity: "front-to-back" | "pick" | "dive" | "poke" | "teamfight" | "protect-carry" | "balanced";
+  compIdentity: "front-to-back" | "pick" | "dive" | "poke" | "teamfight" | "protect-carry" | "side-lane" | "balanced";
   draftPower: number;
   missingNeeds: NeedStatus[];
   /** COMP_ATTRIBUTES_EXPANSION §3 — nevoile din compoziția adversarului (lipsă cu mecanismul oprit). */

@@ -384,6 +384,47 @@ export function getMidPokeTerm(own: Partial<Record<Role, string>>, enemy: Partia
 }
 
 /**
+ * FRONTLINE_SIDELANE_NEEDS §2.3 — side lane (1-3-1). Aceeași funcție în simulare și în evaluatorul de draft.
+ * pressure(noi) = max(sideLanePressure) + pressureGlobal × Σ globalPressure + waveclear × waveclear-ul mid-ului;
+ * answer(ei) = max(sideLanePressure) + answerGlobal × Σ globalPressure + waveclear × max(waveclear).
+ * `splitpush` e alias pentru sideLanePressure (ca în evaluator).
+ */
+function sideLaneParts(assignments: Partial<Record<Role, string>>) {
+  let side = 0;
+  let global = 0;
+  let waveclear = 0;
+  let midWaveclear = 0;
+  for (const role of TEAM_ROLES) {
+    for (const offer of offersOn(assignments[role] ?? null, role)) {
+      const type = String(offer.type);
+      if (type === "sideLanePressure" || type === "splitpush") side = Math.max(side, offer.strength);
+      else if (type === "globalPressure") global += offer.strength;
+      else if (type === "waveclear") {
+        waveclear = Math.max(waveclear, offer.strength);
+        if (role === "mid") midWaveclear = Math.max(midWaveclear, offer.strength);
+      }
+    }
+  }
+  return { side, global, waveclear, midWaveclear };
+}
+
+export function getSideLaneEdge(own: Partial<Record<Role, string>>, enemy: Partial<Record<Role, string>>): number {
+  const A = DRAFT_THINKING_CONFIG.attributes;
+  const ours = sideLaneParts(own);
+  const theirs = sideLaneParts(enemy);
+  const pressure = ours.side + A.sideLanePressureGlobal * ours.global + A.sideLaneWaveclear * ours.midWaveclear;
+  const answer = theirs.side + A.sideLaneAnswerGlobal * theirs.global + A.sideLaneWaveclear * theirs.waveclear;
+  return clamp(pressure - answer, -A.sideLaneEdgeCap, A.sideLaneEdgeCap);
+}
+
+/** Termenul adăugat în mid și în late (fiecare); 0 dacă nicio echipă n-are identitatea `side-lane` (`active`). */
+export function getSideLanePhaseTerm(own: Partial<Record<Role, string>>, enemy: Partial<Record<Role, string>>, active: boolean): number {
+  if (!active) return 0;
+  const A = DRAFT_THINKING_CONFIG.attributes;
+  return getSideLaneEdge(own, enemy) * A.simSideLanePerPoint * A.simAttributeEffectScale;
+}
+
+/**
  * NEXT_STEPS 6b — partea de globalPressure din objectiveControlScore (aceeași formulă: media pe campioni × 1.6), ca
  * evaluatorul de draft să folosească exact ce adună simularea.
  */

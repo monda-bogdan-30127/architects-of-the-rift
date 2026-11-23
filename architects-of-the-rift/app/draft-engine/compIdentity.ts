@@ -17,9 +17,9 @@ import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { ROLE_ORDER } from "./draftTypes";
 import { getOffers } from "./championRoleAttributes";
 
-export type CompIdentity = "dive" | "poke" | "pick" | "front-to-back" | "teamfight" | "protect-carry";
+export type CompIdentity = "dive" | "poke" | "pick" | "front-to-back" | "teamfight" | "protect-carry" | "side-lane";
 
-export const COMP_IDENTITIES: readonly CompIdentity[] = ["dive", "poke", "pick", "front-to-back", "teamfight", "protect-carry"];
+export const COMP_IDENTITIES: readonly CompIdentity[] = ["dive", "poke", "pick", "front-to-back", "teamfight", "protect-carry", "side-lane"];
 
 export type CompIdentityReading = {
   /** 0..10, normalizat la o compoziție de 5. */
@@ -43,6 +43,8 @@ type IdentityDefinition = {
   desired: (ChampionTag | CompAttribute)[];
   /** Tag-uri care trag în sens opus. */
   avoid: ChampionTag[];
+  /** Ponderile `offers` în semnal (lipsă = 1 fiecare). */
+  offerWeights?: Record<string, number>;
 };
 
 /** Tabela unică: vechile `PLAN_DESIRED_TAGS` / `PLAN_AVOID_TAGS`, seturile din coerență și atributele din evaluator. */
@@ -77,6 +79,14 @@ const IDENTITY_TABLE: Record<CompIdentity, IdentityDefinition> = {
     desired: ["peel", "warden", "enchanter", "frontline", "dps", "anti-dive"],
     avoid: ["dive", "poke"],
   },
+  // FRONTLINE_SIDELANE_NEEDS §2.2 — split push / 1-3-1: un side-laner care poate fi lăsat singur + un mid cu waveclear
+  // și ult-uri globale. Semnalul e 0 fără un side-laner (sideLanePressure ≥ identity.sideLaneGateMin).
+  "side-lane": {
+    offers: ["sideLanePressure", "globalPressure", "waveclear", "disengage"],
+    desired: ["sideLanePressure", "globalPressure", "waveclear"],
+    avoid: [],
+    offerWeights: DRAFT_THINKING_CONFIG.identity.sideLaneOfferWeights,
+  },
 };
 
 const CONFIG = DRAFT_THINKING_CONFIG.identity;
@@ -97,7 +107,7 @@ export function getIdentityOffers(identity: CompIdentity): readonly string[] {
  * NEXT_STEPS 7 — atributele din listele `desired`: contează ca un tag când campionul le oferă
  * (vectorul de compoziție al campionului) cu strength ≥ `identity.desiredAttributeMin`.
  */
-const DESIRED_ATTRIBUTES: readonly CompAttribute[] = ["reliableCC", "roamPressure", "sustainedDamage", "disengage", "backlineAccess"];
+const DESIRED_ATTRIBUTES: readonly CompAttribute[] = ["reliableCC", "roamPressure", "sustainedDamage", "disengage", "backlineAccess", "sideLanePressure", "globalPressure"];
 
 function profileTags(champion: Champion, role: Role | null): Set<string> {
   const profile = role ? getChampionRoleProfile(champion, role) : getChampionRoleProfile(champion);
@@ -133,6 +143,13 @@ export function getCandidateIdentityFit(candidate: Champion, role: Role | null, 
   return Math.max(-3, Math.min(3, score));
 }
 
+/** FRONTLINE_SIDELANE_NEEDS §2.2 — campionul poate ține singur un side lane (`splitpush` e alias, ca în evaluator). */
+export function isSideLaner(champion: Champion, role: Role | null): boolean {
+  return getOffers(champion, role).some(
+    (offer) => (offer.type === "sideLanePressure" || String(offer.type) === "splitpush") && offer.strength >= CONFIG.sideLaneGateMin,
+  );
+}
+
 /** Perechile de identități incompatibile (§5.2). */
 function isIncompatible(a: CompIdentity, b: CompIdentity): boolean {
   return DRAFT_THINKING_CONFIG.cohesion.incompatiblePairs.some(
@@ -164,10 +181,13 @@ export function readCompIdentity(championIds: string[], roles?: Partial<Record<R
   const champions = ids.map((id) => getChampionById(id)).filter((champion): champion is Champion => Boolean(champion));
   const tagSets = champions.map((champion) => profileTags(champion, roleOf.get(champion.id) ?? null));
   const hasHardProtectCarry = champions.some((champion) => getCarryArchetype(champion.id) === "hard-protect");
+  const hasSideLaner = champions.some((champion) => isSideLaner(champion, roleOf.get(champion.id) ?? null));
 
   const signals = { ...empty };
   for (const identity of COMP_IDENTITIES) {
-    let raw = IDENTITY_TABLE[identity].offers.reduce((sum, key) => sum + vectorValue(vector, key), 0);
+    if (identity === "side-lane" && !hasSideLaner) continue;
+    const { offers, offerWeights } = IDENTITY_TABLE[identity];
+    let raw = offers.reduce((sum, key) => sum + vectorValue(vector, key) * (offerWeights?.[key] ?? 1), 0);
     raw += CONFIG.tagWeight * tagSets.reduce((sum, tags) => sum + tagScore(tags, identity), 0);
     if (identity === "protect-carry" && hasHardProtectCarry) raw += CONFIG.hardProtectCarryBonus;
     signals[identity] = Math.max(0, Math.min(10, (raw * 5) / ids.length / CONFIG.signalScale));
@@ -211,6 +231,9 @@ const COMP_COUNTER_BASE: Record<CompIdentity, Partial<Record<CompIdentity, numbe
   "front-to-back": { "pick": 0.5, "dive": -0.3, "poke": -0.8 },
   "teamfight":     { "pick": 0.5, "poke": -0.5 },
   "protect-carry": { "dive": 0.8, "pick": -0.4 },
+  // FRONTLINE_SIDELANE_NEEDS §2.2: bate comp-urile lente, care nu pot forța lupte; pierde contra celor care forțează
+  // 4v5 sau prind side-laner-ul.
+  "side-lane":     { "front-to-back": 0.6, "protect-carry": 0.4, "poke": 0.3, "dive": -0.6, "pick": -0.5, "teamfight": -0.2 },
 };
 
 export const COMP_COUNTER_MATRIX: Record<CompIdentity, Record<CompIdentity, number>> = (() => {

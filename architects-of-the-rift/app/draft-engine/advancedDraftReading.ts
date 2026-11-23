@@ -63,6 +63,8 @@ export function getPlanAdaptiveBanBonus(
     "front-to-back": ["dive", "burst", "assassin"],
     "teamfight":     ["pick", "poke"],
     "protect-carry": ["dive", "pick", "burst", "assassin"],
+    // FRONTLINE_SIDELANE_NEEDS §2.2: engage-ul care forțează 4v5 și pick-ul care prinde side-laner-ul.
+    "side-lane":     ["engage", "pick"],
   };
   const planCounterOffers: Partial<Record<DraftPlanType, CompAttribute[]>> = {
     "dive":      ["disengage"],

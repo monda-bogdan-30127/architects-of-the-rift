@@ -14,12 +14,12 @@ import { getChampionStatsForRole } from "./championRoleStatsSystem";
 import { derivePlayerAdaptationProfile, derivePlayerArchetypeAffinity, derivePlayerPhaseProfile } from "./playerProfileSystem";
 import { evaluateInteractionScore, evaluateRuleSynergy } from "./profileRuleEvaluator";
 import { getLaneMatchupEdge } from "./matchupScoring";
-import { championMetaPower, championPhasePowerScaled, getMidPokeTerm, getTeamChampionPhasePower, globalPressureObjectiveBonus } from "./matchSimulationUtils";
+import { championMetaPower, championPhasePowerScaled, getMidPokeTerm, getSideLanePhaseTerm, getTeamChampionPhasePower, globalPressureObjectiveBonus } from "./matchSimulationUtils";
 import { evaluateTeamfight } from "./teamfightSystem";
 import { MUSTWITH_CONFIG, getCompletedMustWithPairs, hadAvailableUnusedPartner } from "./mustWithPriority";
 import { getBadSynergyPenalty } from "./badSynergy";
 import { resolveRoleAssignments } from "./draftRoleResolver";
-import { readCompIdentity } from "./compIdentity";
+import { isSideLaner, readCompIdentity } from "./compIdentity";
 import { evaluateContextualNeedStatuses } from "./contextualNeeds";
 import { evaluateTeamIdentity } from "./teamIdentitySystem";
 import { evaluateSimulationReadiness } from "./simulationReadinessSystem";
@@ -618,6 +618,20 @@ function evaluateChoiceFit(
  *   globalPressure la obiective (globalPressureObjectiveBonus), al nostru minus al lor, × 0.5.
  * Scor 5 = egal. Adversarul incomplet (n-ar trebui: evaluatorul rulează pe drafturi terminate) → 5.
  */
+/** §2.3: una dintre echipe are identitatea dominantă side-lane (verificarea ieftină întâi: are un side-laner). */
+function isSideLaneGame(own: Partial<Record<Role, string>>, enemy: Partial<Record<Role, string>>): boolean {
+  const hasSideLaner = (assignments: Partial<Record<Role, string>>) =>
+    ROLE_ORDER.some((role) => {
+      const champion = assignments[role] ? getChampionById(assignments[role]!) : null;
+      return champion ? isSideLaner(champion, role) : false;
+    });
+  const ids = (assignments: Partial<Record<Role, string>>) => ROLE_ORDER.map((role) => assignments[role]).filter((id): id is string => Boolean(id));
+  return (
+    (hasSideLaner(own) && readCompIdentity(ids(own), own).dominant === "side-lane") ||
+    (hasSideLaner(enemy) && readCompIdentity(ids(enemy), enemy).dominant === "side-lane")
+  );
+}
+
 function evaluateAttributeMatchupScore(own: Partial<Record<Role, string>>, enemy: Partial<Record<Role, string>>): number {
   const filled = (assignments: Partial<Record<Role, string>>) => ROLE_ORDER.filter((role) => assignments[role]).length;
   if (filled(enemy) < ROLE_ORDER.length || filled(own) < ROLE_ORDER.length) return 5;
@@ -627,7 +641,13 @@ function evaluateAttributeMatchupScore(own: Partial<Record<Role, string>>, enemy
   const poke = getMidPokeTerm(own, enemy) - getMidPokeTerm(enemy, own);
   const ids = (assignments: Partial<Record<Role, string>>) => ROLE_ORDER.map((role) => assignments[role]).filter((id): id is string => Boolean(id));
   const global = (globalPressureObjectiveBonus(ids(own)) - globalPressureObjectiveBonus(ids(enemy))) * 0.5;
-  return clamp(5 + (teamfight + poke + global) * DRAFT_THINKING_CONFIG.draftEvaluation.attributeMatchupScale, 0, 10);
+  // FRONTLINE_SIDELANE_NEEDS §2.3: același termen ca în simulare (intră în mid și în late, deci × 2), activ doar cu
+  // identitatea side-lane la una dintre echipe; × sideLaneDraftScale.
+  const sideLaneActive = isSideLaneGame(own, enemy);
+  const sideLane = sideLaneActive
+    ? (getSideLanePhaseTerm(own, enemy, true) - getSideLanePhaseTerm(enemy, own, true)) * 2 * DRAFT_THINKING_CONFIG.attributes.sideLaneDraftScale
+    : 0;
+  return clamp(5 + (teamfight + poke + global + sideLane) * DRAFT_THINKING_CONFIG.draftEvaluation.attributeMatchupScale, 0, 10);
 }
 
 export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluation {

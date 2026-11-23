@@ -17,11 +17,13 @@ export const OUTCOME_FACTOR_LABELS: Record<OutcomeFactorKey, string> = {
   early: "Early game",
   mid: "Mid game",
   lateFights: "Late fights",
+  sideLane: "Side-lane pressure",
 };
 
 /** RESULTS_DIALOG_TABS §3.2 — tooltip-uri (o propoziție) pentru factorii care se pot confunda. */
 export const OUTCOME_FACTOR_TOOLTIPS: Partial<Record<OutcomeFactorKey, string>> = {
   draft: "How much the draft moved the final result",
+  sideLane: "Split push (1-3-1): side-lane pressure against the enemy's answer to it",
 };
 
 /** §3.3 — bara e plină de la atâta contribuție (scală fixă, ca un +0.05 să arate mic). */

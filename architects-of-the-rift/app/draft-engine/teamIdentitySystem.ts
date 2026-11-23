@@ -59,7 +59,8 @@ export function evaluateTeamIdentity(
   const avoidedTags = (identity.avoidTags ?? []).filter((tag) =>
     teamTags.has(tag)
   );
-  const styleMatched = identity.preferredStyles.includes(compIdentity);
+  // FRONTLINE_SIDELANE_NEEDS §2.2: „side-lane” nu e stil de echipă (nicio echipă n-o preferă), deci comparația e pe string.
+  const styleMatched = (identity.preferredStyles as readonly string[]).includes(compIdentity);
 
   let score = 5;
 

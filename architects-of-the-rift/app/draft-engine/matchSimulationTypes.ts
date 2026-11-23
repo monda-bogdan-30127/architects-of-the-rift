@@ -30,13 +30,17 @@ export type TeamPhaseScores = {
   totalRaw?: number;
   /** Contribuția fiecărui factor la total, cu ponderile din `buildTeamPhaseScores`. */
   contributions?: Record<OutcomeFactorKey, number>;
+  /** FRONTLINE_SIDELANE_NEEDS §2.3: termenul side-lane adăugat în mid și în late (0 fără identitatea side-lane). */
+  sideLane?: number;
   phases: PhaseBreakdown;
 };
 
 /** FEEDBACK_FIXES §6.1 — factorii rezultatului. */
 export type OutcomeFactorKey =
   | "draft" | "players" | "mastery" | "lane" | "objectives" | "execution" | "clutch" | "late"
-  | "momentum" | "variance" | "early" | "mid" | "lateFights";
+  | "momentum" | "variance" | "early" | "mid" | "lateFights"
+  /** FRONTLINE_SIDELANE_NEEDS §2.3 — doar când una dintre echipe are identitatea side-lane (altfel 0, nu apare). */
+  | "sideLane";
 
 export type OutcomeFactor = {
   key: OutcomeFactorKey;

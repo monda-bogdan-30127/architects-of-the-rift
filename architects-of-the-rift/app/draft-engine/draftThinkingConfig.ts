@@ -80,6 +80,12 @@ export const DRAFT_THINKING_CONFIG = {
     strengthBase: 0.5,
     /** Runner-up compatibil cu dominantul și peste prag. */
     compatibleRunnerBonus: 0.1,
+    /**
+     * FRONTLINE_SIDELANE_NEEDS §2.2 — side-lane (1-3-1): semnal doar dacă echipa are un side-laner (offer
+     * `sideLanePressure` ≥ sideLaneGateMin); offers-urile identității cântăresc diferit (sideLanePressure cel mai mult).
+     */
+    sideLaneGateMin: 4,
+    sideLaneOfferWeights: { sideLanePressure: 1.5, globalPressure: 1, waveclear: 0.5, disengage: 0.5 } as Record<string, number>,
   },
 
   // §4 — planul ancorat pe priority pick
@@ -104,6 +110,9 @@ export const DRAFT_THINKING_CONFIG = {
       ["dive", "protect-carry"],
       ["pick", "front-to-back"],
       ["poke", "teamfight"],
+      // FRONTLINE_SIDELANE_NEEDS §2.2
+      ["side-lane", "teamfight"],
+      ["side-lane", "front-to-back"],
     ] as [string, string][],
     /** FEEDBACK_FIXES §5.2 — identități care se întăresc (clarity se măsoară fără ele). */
     compatiblePairs: [
@@ -113,6 +122,9 @@ export const DRAFT_THINKING_CONFIG = {
       ["front-to-back", "protect-carry"],
       ["teamfight", "protect-carry"],
       ["pick", "poke"],
+      // FRONTLINE_SIDELANE_NEEDS §2.2
+      ["side-lane", "pick"],
+      ["side-lane", "poke"],
     ] as [string, string][],
     /** split: runnerUp ≥ splitRatio × dominant. */
     splitRatio: 0.8,
@@ -467,6 +479,21 @@ export const DRAFT_THINKING_CONFIG = {
     simAttributeCapMax: 0.9,
     /** §4 — globalPressure la presiunea de macro (mid / late), lângă roamPressure. */
     simGlobalPressureWeight: 0.5,
+    /**
+     * FRONTLINE_SIDELANE_NEEDS §2.3 — sideLaneEdge (getSideLaneEdge): presiunea noastră pe side lane minus răspunsul lor,
+     * limitat la ±sideLaneEdgeCap. pressure = max(sideLanePressure) + pressureGlobal × Σ globalPressure + waveclear ×
+     * waveclear-ul mid-ului; answer = max(sideLanePressure al lor) + answerGlobal × Σ globalPressure + waveclear × max(waveclear).
+     * Intră în mid și late: edge × simSideLanePerPoint × simAttributeEffectScale, doar dacă una dintre echipe are
+     * identitatea dominantă `side-lane`. Calibrare (1775 de jocuri AI Bo3 / Bo5, activ în 100): câștigătorul se
+     * schimbă în 2,0% din jocurile active la 0,01 (0,02 → 4%, 0,03 → 5%, 0,05 → 13%; ținta 1–3%).
+     */
+    sideLanePressureGlobal: 0.5,
+    sideLaneAnswerGlobal: 0.7,
+    sideLaneWaveclear: 0.3,
+    sideLaneEdgeCap: 3,
+    simSideLanePerPoint: 0.01,
+    /** Evaluatorul de draft: termenul side-lane din attributeMatchupScore × atât (grila §2.4: 1 / 0.75 / 0.5). */
+    sideLaneDraftScale: 1,
   },
 
   // PLAYER_TRAITS §4 — trait-urile jucătorilor (familia resources). Efectele pe pick depind de resourceDemand

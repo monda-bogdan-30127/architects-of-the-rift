@@ -21,6 +21,7 @@ const IDENTITY_LABELS: Record<CompIdentity, string> = {
   "front-to-back": "Front-to-back",
   teamfight: "Teamfight",
   "protect-carry": "Protect the carry",
+  "side-lane": "Side-lane (1-3-1)",
 };
 
 export type IdentitySummary = {

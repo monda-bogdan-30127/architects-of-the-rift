@@ -178,6 +178,8 @@ function getSeriesAdaptationBonus(plan: DraftPlanType, series: ActiveDraftSeries
         "front-to-back": ["poke", "pick"],
         "teamfight":     ["pick", "poke"],
         "protect-carry": ["dive", "pick"],
+        // FRONTLINE_SIDELANE_NEEDS §2.2: forțează 4v5 sau prinde side-laner-ul (COMP_COUNTER_BASE).
+        "side-lane":     ["dive", "pick"],
       };
 
       if (enemyPlanGuess && counters[enemyPlanGuess]?.includes(plan)) {
@@ -317,7 +319,8 @@ export function chooseDraftPlan(args: {
   ]);
   const availableChampions = champions.filter((c) => !unavailable.has(c.id));
 
-  const plans: DraftPlanType[] = ["dive", "poke", "pick", "front-to-back", "teamfight", "protect-carry"];
+  // FRONTLINE_SIDELANE_NEEDS §2.2: side-lane apare doar din roster și meta (nicio echipă n-o are în preferredStyles).
+  const plans: DraftPlanType[] = ["dive", "poke", "pick", "front-to-back", "teamfight", "protect-carry", "side-lane"];
   const scored: Array<{ plan: DraftPlanType; score: number; breakdown: Record<string, number> }> = [];
 
   for (const plan of plans) {
