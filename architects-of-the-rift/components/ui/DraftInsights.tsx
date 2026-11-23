@@ -5,7 +5,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { players } from "@/app/data/players";
-import type { Champion, Role } from "@/app/types/champion";
+import type { Champion, ChampionNeed, MatchupRelation, Role } from "@/app/types/champion";
+import type { Player } from "@/app/types/player";
+import { getRoleMatchups } from "@/app/draft-engine/championMatchups";
+import { describeMatchupDetailed, type MatchupKind } from "@/app/draft-engine/matchupGrades";
+import { getResourceDemand } from "@/app/draft-engine/championResource";
 import type { ChampionMasteryGrade } from "@/app/types/championMastery";
 import { getChampionGrade } from "@/app/utils/championMasteryUtils";
 import { getPlayerChampionHistoryLine, readPlayerHistoryStore } from "@/app/draft-engine/playerHistoryStorage";
@@ -143,6 +147,27 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 const textStyle = { fontSize: 10, fontFamily: FONT, color: "var(--text-secondary)", lineHeight: 1.3 } as const;
 
+const NEED_PRIORITY_LABEL: Record<ChampionNeed["priority"], string> = { 3: "High", 2: "Medium", 1: "Low" };
+const NEED_PRIORITY_COLOR: Record<ChampionNeed["priority"], string> = { 3: "var(--danger)", 2: "var(--warning)", 1: "var(--text-muted)" };
+
+function sortedNeeds(needs: ChampionNeed[] | undefined): ChampionNeed[] {
+  return [...(needs ?? [])].sort((a, b) => b.priority - a.priority);
+}
+
+/** Needs-urile, cu prioritatea (High / Medium / Low) lângă fiecare. */
+function NeedList({ needs }: { needs: ChampionNeed[] }) {
+  return (
+    <>
+      {needs.map((need) => (
+        <div key={need.type} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+          <span style={textStyle}>{COMP_ATTRIBUTE_INFO[need.type]?.needLabel ?? need.type}</span>
+          <span style={{ ...textStyle, fontSize: 9, fontWeight: 700, color: NEED_PRIORITY_COLOR[need.priority] }}>{NEED_PRIORITY_LABEL[need.priority]}</span>
+        </div>
+      ))}
+    </>
+  );
+}
+
 /** Bara de jos (LOCK IN / DRAFT READY): tooltip-ul nu coboară peste ea. */
 const ACTION_BAR_SPACE = 76;
 
@@ -167,7 +192,8 @@ export function ChampionHoverCard({
   }, [anchor, preview, matchups]);
 
   const offers = [...(champion.offers ?? [])].sort((a, b) => b.strength - a.strength).slice(0, 4);
-  const needs = (champion.needs ?? []).filter((need) => need.priority >= 2);
+  // ROSTER_IMPORTS_AND_INFO §3.3: toate needs-urile (71 de campioni au doar prioritate 1), cu prioritatea marcată.
+  const needs = sortedNeeds(champion.needs);
   const weaknesses = [...(champion.weaknesses ?? [])].sort((a, b) => b.severity - a.severity).slice(0, 3);
 
   return createPortal(
@@ -196,7 +222,7 @@ export function ChampionHoverCard({
       )}
       {needs.length > 0 && (
         <Section title="NEEDS">
-          <span style={textStyle}>{needs.map((need) => COMP_ATTRIBUTE_INFO[need.type]?.needLabel ?? need.type).join(", ")}</span>
+          <NeedList needs={needs} />
         </Section>
       )}
       {weaknesses.length > 0 && (
@@ -351,6 +377,170 @@ export function ChampionContextMenu({
           ))}
         </Section>
       )}
+    </div>,
+    document.body
+  );
+}
+
+// ─── ROSTER_IMPORTS_AND_INFO §3: click dreapta pe un campion în tab-ul Mastery (ecranul de roster) ─────────
+const RESOURCE_DEMAND_LABEL: Record<number, string> = { 5: "Very high", 4: "High", 3: "Neutral", 2: "Low", 1: "Minimal" };
+const MATCHUP_PREVIEW = 6;
+
+function MatchupList({ relations, kind }: { relations: readonly MatchupRelation[]; kind: MatchupKind }) {
+  const [expanded, setExpanded] = useState(false);
+  const sorted = [...relations].sort((a, b) => b.level - a.level || a.championId.localeCompare(b.championId));
+  const visible = expanded ? sorted : sorted.slice(0, MATCHUP_PREVIEW);
+  if (sorted.length === 0) return <span style={{ ...textStyle, color: "var(--text-muted)" }}>None listed</span>;
+  return (
+    <>
+      {visible.map((relation) => {
+        // Eticheta conține deja numele adversarului („Counter in lane vs Jayce”); rolul lui doar dacă e altul.
+        const line = describeMatchupDetailed(relation, kind);
+        return (
+          <div key={`${relation.championId}:${relation.vsRole ?? ""}:${relation.phase}`} style={{ display: "flex", flexDirection: "column" }}>
+            <span style={{ ...textStyle, color: kind === "good" ? "var(--success)" : "var(--danger)" }}>
+              {line.label}{relation.vsRole ? <span style={{ color: "var(--text-muted)" }}> ({relation.vsRole})</span> : null}
+            </span>
+            <span style={{ fontSize: 9, fontFamily: FONT, color: "var(--text-muted)", lineHeight: 1.3 }}>{line.reason}</span>
+          </div>
+        );
+      })}
+      {sorted.length > MATCHUP_PREVIEW && (
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          style={{ ...textStyle, alignSelf: "flex-start", background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--text-highlight)" }}
+        >
+          {expanded ? "Show less" : `+${sorted.length - MATCHUP_PREVIEW} more`}
+        </button>
+      )}
+    </>
+  );
+}
+
+export function ChampionInfoPopover({
+  champion, player, position, onClose,
+}: {
+  champion: Champion;
+  player: Player;
+  position: { x: number; y: number };
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const width = 300;
+  const defaultRole = champion.roles.includes(player.role) ? player.role : champion.roles[0];
+  const [role, setRole] = useState<Role>(defaultRole);
+
+  // Se închide la click în afara lui și la Escape (alt click dreapta îl înlocuiește, din pagină).
+  useEffect(() => {
+    const handlePointer = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) onClose();
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("mousedown", handlePointer);
+    window.addEventListener("keydown", handleKey);
+    return () => {
+      window.removeEventListener("mousedown", handlePointer);
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [onClose]);
+
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const left = Math.max(8, Math.min(position.x, window.innerWidth - width - 8));
+    const top = Math.max(8, Math.min(position.y, window.innerHeight - node.offsetHeight - 8));
+    node.style.left = `${left}px`;
+    node.style.top = `${top}px`;
+  }, [position, role]);
+
+  const grade = getChampionGrade(player, champion.id);
+  const colors = GRADE_COLORS[grade];
+  const offers = [...(champion.offers ?? [])].sort((a, b) => b.strength - a.strength);
+  const needs = sortedNeeds(champion.needs);
+  const weaknesses = [...(champion.weaknesses ?? [])].sort((a, b) => b.severity - a.severity);
+  const matchups = getRoleMatchups(champion.id, role);
+  const demand = getResourceDemand(champion.id, role);
+
+  return createPortal(
+    <div
+      ref={ref}
+      role="dialog"
+      aria-label={`${champion.name}: champion info`}
+      onContextMenu={(event) => event.preventDefault()}
+      style={{
+        position: "fixed", zIndex: 140, top: position.y, left: position.x, width, maxHeight: 420, overflowY: "auto",
+        background: "var(--bg-elevated)", border: "1px solid var(--primary)", boxShadow: "0 8px 24px rgba(0,0,0,0.55)",
+        padding: "10px 12px", display: "flex", flexDirection: "column", gap: 9,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <span style={{ fontSize: 12, fontFamily: FONT, fontWeight: 700, color: "var(--text-primary)", textTransform: "uppercase" }}>{champion.name}</span>
+          <span style={{ ...textStyle, color: "var(--text-muted)" }}>{champion.roles.join(" / ")} · {(champion.damageProfile ?? []).join(" + ")}</span>
+        </div>
+        <span
+          title={`${player.name}'s grade`}
+          style={{ minWidth: 24, textAlign: "center", fontSize: 10, fontWeight: 800, fontFamily: FONT, borderRadius: 4, padding: "2px 5px", background: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+        >
+          {grade}
+        </span>
+      </div>
+      {champion.roles.length > 1 && (
+        <div role="tablist" style={{ display: "flex", gap: 4 }}>
+          {champion.roles.map((entry) => (
+            <button
+              key={entry}
+              type="button"
+              role="tab"
+              aria-selected={entry === role}
+              onClick={() => setRole(entry)}
+              style={{
+                ...textStyle, fontSize: 9, fontWeight: 700, textTransform: "uppercase", padding: "2px 7px", cursor: "pointer", borderRadius: 4,
+                border: `1px solid ${entry === role ? "var(--text-highlight)" : "var(--border-default)"}`,
+                background: entry === role ? "rgba(180,140,60,0.12)" : "transparent",
+                color: entry === role ? "var(--text-highlight)" : "var(--text-secondary)",
+              }}
+            >
+              {entry}
+            </button>
+          ))}
+        </div>
+      )}
+      {offers.length > 0 && (
+        <Section title="GOOD AT">
+          {offers.map((offer) => (
+            <div key={offer.type} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={textStyle}>{COMP_ATTRIBUTE_INFO[offer.type]?.label ?? offer.type}</span>
+              <Pips value={offer.strength} />
+            </div>
+          ))}
+        </Section>
+      )}
+      {needs.length > 0 && (
+        <Section title="NEEDS">
+          <NeedList needs={needs} />
+        </Section>
+      )}
+      {weaknesses.length > 0 && (
+        <Section title="WEAK INTO">
+          {weaknesses.map((weakness) => (
+            <div key={weakness.exposedTo} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={textStyle}>{COMP_ATTRIBUTE_INFO[weakness.exposedTo]?.label ?? weakness.exposedTo}</span>
+              <Pips value={weakness.severity} />
+            </div>
+          ))}
+        </Section>
+      )}
+      <Section title="COUNTERS">
+        <MatchupList key={`good:${role}`} relations={matchups.goodVs} kind="good" />
+      </Section>
+      <Section title="COUNTERED BY">
+        <MatchupList key={`weak:${role}`} relations={matchups.weakVs} kind="weak" />
+      </Section>
+      <span style={{ ...textStyle, color: "var(--text-muted)" }}>Resource demand: {RESOURCE_DEMAND_LABEL[demand] ?? "Neutral"} ({demand})</span>
     </div>,
     document.body
   );

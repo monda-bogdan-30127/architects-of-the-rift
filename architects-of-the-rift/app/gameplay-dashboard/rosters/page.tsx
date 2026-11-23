@@ -30,6 +30,7 @@ import type {
   PlayerHistoryStatLine,
 } from "@/app/draft-engine/playerHistoryTypes";
 import SpiritIndicator from "@/components/ui/SpiritIndicator";
+import { ChampionInfoPopover } from "@/components/ui/DraftInsights";
 import SpiritLogTab from "@/components/ui/SpiritLogTab";
 
 type DraftSave = {
@@ -432,6 +433,14 @@ function ChampionMasteryTab({
     return map;
   }, [masteryList, sort]);
 
+  // ROSTER_IMPORTS_AND_INFO §3: click dreapta pe un campion → informații (offers, needs, matchup-uri).
+  const [infoMenu, setInfoMenu] = useState<{ championId: string; x: number; y: number } | null>(null);
+  const openInfo = (championId: string, event: React.MouseEvent) => {
+    event.preventDefault();
+    setInfoMenu({ championId, x: event.clientX, y: event.clientY });
+  };
+  const infoChampion = infoMenu ? champions.find((c) => c.id === infoMenu.championId) ?? null : null;
+
   // Count per grade for summary
   const gradeCounts = useMemo(() => {
     const counts: Record<ChampionMasteryGrade, number> = { SS: 0, S: 0, A: 0, B: 0, C: 0, D: 0, F: 0 };
@@ -517,7 +526,7 @@ function ChampionMasteryTab({
           }}
         >
           {masteryList.map((entry) => (
-            <ChampionMasteryCard key={entry.id} entry={entry} />
+            <ChampionMasteryCard key={entry.id} entry={entry} onContextMenu={openInfo} />
           ))}
         </div>
       ) : (
@@ -535,7 +544,7 @@ function ChampionMasteryTab({
                   }}
                 >
                   {items.map((entry) => (
-                    <ChampionMasteryCard key={entry.id} entry={entry} />
+                    <ChampionMasteryCard key={entry.id} entry={entry} onContextMenu={openInfo} />
                   ))}
                 </div>
               </div>
@@ -543,14 +552,25 @@ function ChampionMasteryTab({
           })}
         </div>
       )}
+      {infoMenu && infoChampion && (
+        <ChampionInfoPopover
+          key={`${infoMenu.championId}:${infoMenu.x}:${infoMenu.y}`}
+          champion={infoChampion}
+          player={player}
+          position={{ x: infoMenu.x, y: infoMenu.y }}
+          onClose={() => setInfoMenu(null)}
+        />
+      )}
     </div>
   );
 }
 
 function ChampionMasteryCard({
   entry,
+  onContextMenu,
 }: {
   entry: { id: string; name: string; image: string; grade: ChampionMasteryGrade };
+  onContextMenu: (championId: string, event: React.MouseEvent) => void;
 }) {
   const colors = GRADE_COLORS[entry.grade];
   const isUnplayable = entry.grade === "F";
@@ -559,6 +579,7 @@ function ChampionMasteryCard({
     <div
       className="flex flex-col items-center gap-[4px]"
       style={{ position: "relative" }}
+      onContextMenu={(event) => onContextMenu(entry.id, event)}
     >
       <div
         style={{
