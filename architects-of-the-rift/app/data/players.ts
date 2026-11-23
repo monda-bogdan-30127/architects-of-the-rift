@@ -3031,7 +3031,7 @@ export const players: Player[] = [
     name: "Massu",
     teamId: "fly",
     role: "adc",
-    nationalities: ["US"], // TODO nationality
+    nationalities: ["CA"],
     image: "/players/lcs/fly/massu.webp",
     seed: { execution: 7.4, mapSense: 7.2, combat: 7.4, resilience: 7.4, stability: 7.3, gameRead: 7.3 },
     bestChampions: ["aphelios", "jhin", "ashe", "xayah", "sivir"],
