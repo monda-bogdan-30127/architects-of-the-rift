@@ -1806,7 +1806,7 @@ export const players: Player[] = [
     name: "Way",
     teamId: "th",
     role: "support",
-    nationalities: ["KR"], // TODO nationality
+    nationalities: ["KR"],
     image: "/players/lec/th/way.webp",
     seed: { execution: 6.2, mapSense: 6.3, combat: 6.3, resilience: 6.3, stability: 6.3, gameRead: 6.4 },
     bestChampions: ["nautilus", "karma", "lulu", "neeko", "rakan"],
@@ -2490,7 +2490,7 @@ export const players: Player[] = [
     name: "Ahn",
     teamId: "tt",
     role: "adc",
-    nationalities: ["KR"], // TODO nationality
+    nationalities: ["CN"],
     image: "/players/lpl/tt/ahn.webp",
     seed: { execution: 6.3, mapSense: 6.4, combat: 6.3, resilience: 6.3, stability: 6.3, gameRead: 6.4 },
     bestChampions: ["xayah", "jhin", "varus", "kaisa", "ezreal"],
@@ -2563,7 +2563,7 @@ export const players: Player[] = [
     name: "Climber",
     teamId: "up",
     role: "jungle",
-    nationalities: ["CN"], // TODO nationality
+    nationalities: ["CN"],
     image: "/players/lpl/up/climber.webp",
     seed: { execution: 6.3, mapSense: 6.4, combat: 6.3, resilience: 6.2, stability: 6.2, gameRead: 6.3 },
     bestChampions: ["wukong", "vi", "poppy", "maokai", "xin-zhao"],
@@ -3019,7 +3019,7 @@ export const players: Player[] = [
     name: "Quad",
     teamId: "fly",
     role: "mid",
-    nationalities: ["US"], // TODO nationality
+    nationalities: ["KR"],
     image: "/players/lcs/fly/quad.webp",
     seed: { execution: 7.1, mapSense: 7.1, combat: 7.1, resilience: 6.9, stability: 6.9, gameRead: 7.1 },
     bestChampions: ["azir", "ahri", "orianna", "sylas", "yone"],
@@ -3043,7 +3043,7 @@ export const players: Player[] = [
     name: "Cryogen",
     teamId: "fly",
     role: "support",
-    nationalities: ["US"], // TODO nationality
+    nationalities: ["VN"],
     image: "/players/lcs/fly/cryogen.webp",
     seed: { execution: 6.6, mapSense: 6.9, combat: 6.6, resilience: 6.7, stability: 6.7, gameRead: 6.9 },
     bestChampions: ["thresh", "nami", "lulu", "karma", "braum"],
