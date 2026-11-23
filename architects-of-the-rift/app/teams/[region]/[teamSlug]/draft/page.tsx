@@ -17,7 +17,8 @@ import { PLAYER_TRAIT_INFO, isActiveTrait } from "@/app/types/playerTraits";
 import { COMMS_TOOLTIP, computeTeamFit, getCommsInfo, getCommsLevel, previewTeamFitChange, type TeamFitChange } from "@/app/utils/playerTraitUtils";
 import TraitChip from "@/components/ui/TraitChip";
 import { ADVICE_COLOR, COMMS_COLORS } from "@/components/ui/TeamFitPanel";
-import { MAX_IMPORTS, countImports, isImportForRegion, isLeagueRegion } from "@/app/data/regions";
+import { MAX_IMPORTS, countImports, getCountryName, isImportForRegion, isLeagueRegion } from "@/app/data/regions";
+import "flag-icons/css/flag-icons.min.css";
 
 /** Rosterul ales ca id-uri (pentru Team Fit). */
 function rosterIdsOf(selected: Partial<Record<Role, Player>>): Partial<Record<Role, string>> {
@@ -131,6 +132,45 @@ function getPlayerRegion(player: Player): string {
   if (player.teamId === "free-agent") return "free-agent";
   const team = teams.find((t) => t.id === player.teamId);
   return team?.region ?? "";
+}
+
+/** ROSTER_IMPORTS_AND_INFO §2 — steagurile naționalităților (SVG din flag-icons; emoji-urile nu apar pe Windows). */
+function NationalityFlags({ codes }: { codes: string[] }) {
+  const shown = codes.slice(0, 2);
+  const rest = codes.length - shown.length;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+      {shown.map((code) => (
+        <span
+          key={code}
+          className={`fi fi-${code.toLowerCase()}`}
+          title={getCountryName(code)}
+          aria-label={getCountryName(code)}
+          style={{ width: 20, height: 15, borderRadius: 2, boxShadow: "0 0 0 1px rgba(255,255,255,0.12)" }}
+        />
+      ))}
+      {rest > 0 && (
+        <span title={codes.slice(2).map(getCountryName).join(", ")} style={{ fontSize: 10, color: "var(--text-secondary)" }}>
+          +{rest}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Badge „IMPORT” lângă nume: jucătorul ar fi import în regiunea echipei userului. */
+function ImportBadge() {
+  return (
+    <span
+      title="Import: takes one of the 2 import slots in your lineup"
+      style={{
+        marginLeft: 6, padding: "1px 5px", borderRadius: 3, fontSize: 8, fontWeight: 800, letterSpacing: "0.08em",
+        color: "var(--warning)", border: "1px solid rgba(245,158,11,0.45)", verticalAlign: "middle",
+      }}
+    >
+      IMPORT
+    </span>
+  );
 }
 
 function calcRating(player: Player): number {
@@ -484,6 +524,8 @@ export default function DraftPage() {
   const [masteryPlayer,      setMasteryPlayer]      = useState<EnrichedPlayer | null>(null);
   // TEAM_FIT_LIVE §4: ascunde jucătorii care ar adăuga un avertisment de Team Fit (oprit implicit)
   const [fitsMyTeam,         setFitsMyTeam]         = useState(false);
+  // ROSTER_IMPORTS_AND_INFO §2: „Locals only” ascunde importurile (jucătorul deja ales rămâne mereu).
+  const [localsOnly,         setLocalsOnly]         = useState(false);
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
@@ -520,6 +562,10 @@ export default function DraftPage() {
       list = list.filter((p) => activeRoleFilters.has(p.role));
     }
 
+    if (localsOnly) {
+      list = list.filter((p) => !p.isImport || selectedPlayers[p.role]?.id === p.id);
+    }
+
     if (activeRegionFilter !== "ALL") {
       if (activeRegionFilter === "FREE AGENTS") {
         list = list.filter((p) => p.teamId === "free-agent");
@@ -547,7 +593,7 @@ export default function DraftPage() {
       return sortDir === "desc" ? diff : -diff;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fitsImportLimit depinde doar de selectedPlayers și leagueRegion
-  }, [enrichedPlayers, activeRoleFilters, activeRegionFilter, sortKey, sortDir, fitsMyTeam, selectedPlayers, leagueRegion]);
+  }, [enrichedPlayers, activeRoleFilters, activeRegionFilter, sortKey, sortDir, fitsMyTeam, localsOnly, selectedPlayers, leagueRegion]);
 
   const selectedRoleSet = useMemo(
     () => new Set(roleOrder.filter((r) => selectedPlayers[r])),
@@ -854,6 +900,16 @@ export default function DraftPage() {
                     {hoveredPlayer.role.toUpperCase()}
                   </span>
 
+                  <span style={{ fontSize: 12, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 6 }}>
+                    <NationalityFlags codes={hoveredPlayer.nationalities} />
+                    Nationality: {hoveredPlayer.nationalities.map(getCountryName).join(" / ")}
+                    {leagueRegion && (
+                      <span style={{ color: hoveredPlayer.isImport ? "var(--warning)" : "var(--success)" }}>
+                        · {hoveredPlayer.isImport ? `Import in ${region.toUpperCase()}` : "Local"}
+                      </span>
+                    )}
+                  </span>
+
                   <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
                     {hoveredPlayer.playstyleIdentity.displayPrimary}
                     {hoveredPlayer.playstyleIdentity.displaySecondary
@@ -935,6 +991,27 @@ export default function DraftPage() {
 
               {/* Region filters — single select; plus „Fits my team” (TEAM_FIT_LIVE §4) */}
               <div style={{ display: "flex", gap: 6 }}>
+                {leagueRegion && (
+                  <button
+                    type="button"
+                    onClick={() => setLocalsOnly((value) => !value)}
+                    aria-pressed={localsOnly}
+                    title={`Hide players who would be imports in ${region.toUpperCase()}`}
+                    style={{
+                      padding:       "5px 14px",
+                      borderRadius:  4,
+                      border:        `1px solid ${localsOnly ? "var(--text-highlight)" : "rgba(255,255,255,0.18)"}`,
+                      background:    localsOnly ? "rgba(180,140,60,0.12)" : "transparent",
+                      color:         localsOnly ? "var(--text-highlight)" : "var(--text-secondary)",
+                      cursor:        "pointer",
+                      fontSize:      11,
+                      fontWeight:    700,
+                      letterSpacing: "0.07em",
+                    }}
+                  >
+                    LOCALS ONLY
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setFitsMyTeam((value) => !value)}
@@ -992,17 +1069,19 @@ export default function DraftPage() {
             }}
           >
             <colgroup>
-              <col style={{ width: "12%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "4%"  }} />
               <col style={{ width: "7%"  }} />
               {TABLE_COLUMNS.map((c) => (
-                <col key={c.key} style={{ width: `${58 / TABLE_COLUMNS.length}%` }} />
+                <col key={c.key} style={{ width: `${54 / TABLE_COLUMNS.length}%` }} />
               ))}
-              <col style={{ width: "18%" }} />
+              <col style={{ width: "16%" }} />
               <col style={{ width: "5%" }} />
             </colgroup>
             <thead>
               <tr>
                 <th style={thStyle}>NAME</th>
+                <th style={thStyle} title="Nationality">NAT</th>
                 <th style={thStyle}>POSITION</th>
                 {TABLE_COLUMNS.map(({ key, label, title }) => {
                   const isActive = sortKey === key;
@@ -1051,12 +1130,13 @@ export default function DraftPage() {
             }}
           >
             <colgroup>
-              <col style={{ width: "12%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "4%"  }} />
               <col style={{ width: "7%"  }} />
               {TABLE_COLUMNS.map((c) => (
-                <col key={c.key} style={{ width: `${58 / TABLE_COLUMNS.length}%` }} />
+                <col key={c.key} style={{ width: `${54 / TABLE_COLUMNS.length}%` }} />
               ))}
-              <col style={{ width: "18%" }} />
+              <col style={{ width: "16%" }} />
               <col style={{ width: "5%" }} />
             </colgroup>
 
@@ -1090,7 +1170,13 @@ export default function DraftPage() {
                       transition:   "background 0.08s, opacity 0.08s",
                     }}
                   >
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{player.name}</td>
+                    <td style={{ ...tdStyle, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {player.name}
+                      {player.isImport && <ImportBadge />}
+                    </td>
+                    <td style={tdStyle}>
+                      <NationalityFlags codes={player.nationalities} />
+                    </td>
 
                     <td
                       style={{

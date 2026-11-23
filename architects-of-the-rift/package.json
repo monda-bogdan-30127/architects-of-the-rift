@@ -13,6 +13,7 @@
     "matchups": "npx tsx scripts/matchups-report.ts"
   },
   "dependencies": {
+    "flag-icons": "^7.2.3",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
