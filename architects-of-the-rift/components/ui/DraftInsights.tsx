@@ -17,6 +17,7 @@ import type { PlayerHistoryStore } from "@/app/draft-engine/playerHistoryTypes";
 import { readTeamSeasonStore } from "@/app/draft-engine/teamSeasonStorage";
 import { COMP_ATTRIBUTE_INFO } from "@/app/types/compAttributes";
 import type { ChampionMatchupLine, IdentitySummary, TeamAttributes, TeamAttribute } from "@/app/draft-engine/draftInsights";
+import { getNeeds, getOffers, getWeaknesses } from "@/app/draft-engine/championRoleAttributes";
 
 const FONT = '"Spiegel", sans-serif';
 
@@ -458,9 +459,10 @@ export function ChampionInfoPopover({
 
   const grade = getChampionGrade(player, champion.id);
   const colors = GRADE_COLORS[grade];
-  const offers = [...(champion.offers ?? [])].sort((a, b) => b.strength - a.strength);
-  const needs = sortedNeeds(champion.needs);
-  const weaknesses = [...(champion.weaknesses ?? [])].sort((a, b) => b.severity - a.severity);
+  // FRONTLINE_SIDELANE_NEEDS §3.2: listele de pe rolul selectat (override-urile pe rol, dacă există).
+  const offers = [...getOffers(champion, role)].sort((a, b) => b.strength - a.strength);
+  const needs = sortedNeeds(getNeeds(champion, role));
+  const weaknesses = [...getWeaknesses(champion, role)].sort((a, b) => b.severity - a.severity);
   const matchups = getRoleMatchups(champion.id, role);
   const demand = getResourceDemand(champion.id, role);
 

@@ -17,6 +17,7 @@ import {
   getHistoryAdjustedDraftFit, 
   getPlayerChampionMatchupHistoryBonus,
 } from "./playerHistoryEvaluator";
+import { getOffers } from "./championRoleAttributes";
 
 const championMap = new Map(champions.map((champion) => [champion.id, champion]));
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -355,9 +356,15 @@ export function teamAssignmentQuality(
 /** Suma `offers` de un tip pe o compoziție (rol → campion). */
 const TEAM_ROLES: Role[] = ["top", "jungle", "mid", "adc", "support"];
 
+/** FRONTLINE_SIDELANE_NEEDS §3.2: offers-urile campionului pe rolul lui (override-ul pe rol, dacă există). */
+function offersOn(championId: string | null, role: Role) {
+  const champion = getChampionByIdSafe(championId);
+  return champion ? getOffers(champion, role) : [];
+}
+
 export function teamOfferSum(assignments: Partial<Record<Role, string>>, type: string): number {
   return TEAM_ROLES.reduce(
-    (sum, role) => sum + (getChampionByIdSafe(assignments[role] ?? null)?.offers ?? []).filter((offer) => offer.type === type).reduce((s, offer) => s + offer.strength, 0),
+    (sum, role) => sum + offersOn(assignments[role] ?? null, role).filter((offer) => offer.type === type).reduce((s, offer) => s + offer.strength, 0),
     0,
   );
 }

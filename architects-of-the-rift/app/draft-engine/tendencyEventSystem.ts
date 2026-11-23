@@ -21,6 +21,7 @@ import {
   playerSkill,
 } from "./matchSimulationUtils";
 import { ROLE_ORDER } from "./draftTypes";
+import { getOffers } from "./championRoleAttributes";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -196,7 +197,7 @@ function evaluateObjectiveContestEvent(
     const champId = assignments[role];
     const champ = getChampionByIdSafe(champId ?? null);
     if (!champ) continue;
-    const obj = champ.offers
+    const obj = getOffers(champ, role)
       .filter((o) => ["objectiveControl", "zoneControl", "engage"].includes(o.type))
       .reduce((sum, o) => sum + o.strength, 0);
     champObjective += obj;

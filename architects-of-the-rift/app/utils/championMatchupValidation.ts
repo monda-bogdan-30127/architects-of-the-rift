@@ -115,7 +115,10 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
       if (entry && isRole(roleKey)) validateRoleEntry(owner, roleKey, entry);
     }
     validateBadSynergy(owner);
-    validateAttributes(owner);
+    validateAttributes(owner.id, owner);
+    for (const [roleKey, entry] of Object.entries(owner.roleData ?? {})) {
+      if (entry && isRole(roleKey) && owner.roles.includes(roleKey)) validateAttributes(`${owner.id}:${roleKey}`, entry);
+    }
   }
 
   // ── badSynergyWith (global pe campion) ───────────────────────────────────
@@ -143,7 +146,9 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
   }
 
   // ── offers / needs / weaknesses (COMP_ATTRIBUTES_EXPANSION §1) ──────────
-  function validateAttributes(owner: Champion) {
+  // FRONTLINE_SIDELANE_NEEDS §3.2: aceleași reguli pentru listele globale și pentru override-urile din roleData
+  // (key = id-ul campionului sau `id:rol`; o listă lipsă din override nu se verifică, înseamnă lista globală).
+  function validateAttributes(key: string, owner: Pick<Champion, "offers" | "needs" | "weaknesses"> | Pick<ChampionRoleData, "offers" | "needs" | "weaknesses">) {
     const isAttribute = (value: unknown) => COMP_ATTRIBUTE_ORDER.includes(value as never);
     const inRange = (value: unknown, max: number) => Number.isInteger(value) && (value as number) >= 1 && (value as number) <= max;
     const lists = [
@@ -155,9 +160,9 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
       const seen = new Set<string>();
       for (const item of list.entries as readonly Record<string, unknown>[]) {
         const attribute = item[list.field];
-        if (!isAttribute(attribute)) error(owner.id, `${list.name}: atribut necunoscut "${String(attribute)}"`);
-        if (!inRange(item[list.scale], list.max)) error(owner.id, `${list.name} ${String(attribute)}: ${list.scale} ${String(item[list.scale])} în afara 1..${list.max}`);
-        if (seen.has(String(attribute))) warning(owner.id, `${list.name} ${String(attribute)}: de două ori`);
+        if (!isAttribute(attribute)) error(key, `${list.name}: atribut necunoscut "${String(attribute)}"`);
+        if (!inRange(item[list.scale], list.max)) error(key, `${list.name} ${String(attribute)}: ${list.scale} ${String(item[list.scale])} în afara 1..${list.max}`);
+        if (seen.has(String(attribute))) warning(key, `${list.name} ${String(attribute)}: de două ori`);
         seen.add(String(attribute));
       }
     }

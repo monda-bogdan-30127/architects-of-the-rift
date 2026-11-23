@@ -7,11 +7,12 @@
 // (oprit până se completează datele noilor atribute); testele îl pornesc cu `setContextualNeedsOverride`.
 
 import { championsById } from "@/app/data/champions";
-import type { Champion } from "@/app/types/champion";
+import type { Champion, Role } from "@/app/types/champion";
 import { COMP_ATTRIBUTE_INFO, type CompAttribute } from "@/app/types/compAttributes";
 import { buildCompVector, getNeedRequirement } from "./draftEvaluator";
 import { getEffectiveFrontline } from "./effectiveFrontline";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
+import { getOffers } from "./championRoleAttributes";
 
 const ATTRS = DRAFT_THINKING_CONFIG.attributes;
 
@@ -103,16 +104,16 @@ export function evaluateContextualNeedStatuses(ownPicks: string[], enemyPicks: s
 }
 
 /** Cât acoperă un campion dintr-o nevoie (suma ponderată a ofertelor lui acceptate). */
-export function getContextualCover(champion: Champion | null | undefined, need: ContextualNeed): number {
+export function getContextualCover(champion: Champion | null | undefined, need: ContextualNeed, role: Role | null = null): number {
   if (!champion) return 0;
-  return (champion.offers ?? []).reduce((sum, offer) => sum + offer.strength * (need.accepts[offer.type] ?? 0), 0);
+  return getOffers(champion, role).reduce((sum, offer) => sum + offer.strength * (need.accepts[offer.type] ?? 0), 0);
 }
 
 /** Atributul prin care campionul acoperă cel mai mult nevoia (pentru „Anti-tank: Vayne answers …”). */
-export function getBestCoverAttribute(champion: Champion | null | undefined, need: ContextualNeed): CompAttribute | null {
+export function getBestCoverAttribute(champion: Champion | null | undefined, need: ContextualNeed, role: Role | null = null): CompAttribute | null {
   let best: CompAttribute | null = null;
   let bestValue = 0;
-  for (const offer of champion?.offers ?? []) {
+  for (const offer of champion ? getOffers(champion, role) : []) {
     const value = offer.strength * (need.accepts[offer.type] ?? 0);
     if (value > bestValue) {
       best = offer.type;
@@ -123,13 +124,13 @@ export function getBestCoverAttribute(champion: Champion | null | undefined, nee
 }
 
 /** §3.3 — termenul de draft: cât din `missing` acoperă candidatul (ca `needFill`), 0..10. */
-export function getContextualNeedFill(statuses: readonly ContextualNeedStatus[], candidate: Champion): { value: number; answered: ContextualNeedStatus | null } {
+export function getContextualNeedFill(statuses: readonly ContextualNeedStatus[], candidate: Champion, role: Role | null = null): { value: number; answered: ContextualNeedStatus | null } {
   let value = 0;
   let answered: ContextualNeedStatus | null = null;
   let answeredValue = 0;
   for (const status of statuses) {
     if (status.missing <= 0) continue;
-    const covered = Math.min(status.missing, getContextualCover(candidate, status));
+    const covered = Math.min(status.missing, getContextualCover(candidate, status, role));
     value += covered * 1.6;
     if (covered > answeredValue) {
       answered = status;

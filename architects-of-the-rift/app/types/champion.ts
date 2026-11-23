@@ -109,6 +109,14 @@ export type ChampionRoleData = {
    * 5 hyper carry, 4 carry, 3 neutru, 2 weakside, 1 nu vrea resurse. Lipsă = 3 (`getResourceDemand`).
    */
   resourceDemand?: ResourceDemand;
+  /**
+   * FRONTLINE_SIDELANE_NEEDS §3.2 — override-uri pe rol pentru campionii flex. Dacă există, ÎNLOCUIESC lista
+   * globală a campionului pe acest rol (nu se adaugă la ea). Lipsă = lista globală. Se citesc doar prin
+   * `getOffers` / `getNeeds` / `getWeaknesses` (draft-engine/championRoleAttributes.ts).
+   */
+  offers?: ChampionOffer[];
+  needs?: ChampionNeed[];
+  weaknesses?: ChampionWeakness[];
 };
 
 export type ResourceDemand = 1 | 2 | 3 | 4 | 5;

@@ -2,6 +2,7 @@ import type { ChampionTag } from "@/app/types/championTags";
 import type { Champion, ChampionRoleProfile, ChampionSynergyRule, Role } from "@/app/types/champion";
 import type { CompAttribute } from "@/app/types/compAttributes";
 import { getChampionStatsForRole } from "./championRoleStatsSystem";
+import { getNeeds, getOffers, getWeaknesses } from "./championRoleAttributes";
 
 const clamp = (value: number, min = 0, max = 10) => Math.max(min, Math.min(max, value));
 const avg = (values: number[]) => (values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0);
@@ -316,6 +317,15 @@ function getContestPriority(champion: Champion, role: Role) {
 /** Cache per obiect campion (datele sunt statice; WeakMap ca să nu țină campionii în viață). */
 const profileCache = new WeakMap<Champion, Map<Role, ChampionRoleProfile>>();
 
+/** Campionul cu listele de pe rol (override-urile), sau chiar obiectul original dacă rolul n-are override. */
+function withRoleAttributes(champion: Champion, role: Role): Champion {
+  const offers = getOffers(champion, role);
+  const needs = getNeeds(champion, role);
+  const weaknesses = getWeaknesses(champion, role);
+  if (offers === champion.offers && needs === champion.needs && weaknesses === champion.weaknesses) return champion;
+  return { ...champion, offers, needs, weaknesses };
+}
+
 export function getChampionRoleProfile(champion: Champion | null, requestedRole?: Role | null) {
   if (!champion) return null;
   const role = requestedRole && hasRole(champion, requestedRole) ? requestedRole : champion.roles[0] ?? null;
@@ -328,7 +338,8 @@ export function getChampionRoleProfile(champion: Champion | null, requestedRole?
   }
   let profile = byRole.get(role);
   if (!profile) {
-    profile = deriveChampionRoleProfile(champion, role);
+    // FRONTLINE_SIDELANE_NEEDS §3.2: profilul pe rol se derivă din offers / needs / weaknesses pe rol.
+    profile = deriveChampionRoleProfile(withRoleAttributes(champion, role), role);
     byRole.set(role, profile);
   }
   return profile;

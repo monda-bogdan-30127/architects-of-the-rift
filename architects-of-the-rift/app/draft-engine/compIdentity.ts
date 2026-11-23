@@ -15,6 +15,7 @@ import { buildCompVector, getChampionById } from "./draftEvaluator";
 import { resolveRoleAssignments } from "./draftRoleResolver";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { ROLE_ORDER } from "./draftTypes";
+import { getOffers } from "./championRoleAttributes";
 
 export type CompIdentity = "dive" | "poke" | "pick" | "front-to-back" | "teamfight" | "protect-carry";
 
@@ -101,7 +102,7 @@ const DESIRED_ATTRIBUTES: readonly CompAttribute[] = ["reliableCC", "roamPressur
 function profileTags(champion: Champion, role: Role | null): Set<string> {
   const profile = role ? getChampionRoleProfile(champion, role) : getChampionRoleProfile(champion);
   const tags = new Set<string>(profile?.tags ?? []);
-  const vector = buildCompVector([champion.id]) as unknown as Record<string, number>;
+  const vector = buildCompVector([champion.id], role ? { [role]: champion.id } : undefined) as unknown as Record<string, number>;
   for (const attribute of DESIRED_ATTRIBUTES) {
     if (vectorValue(vector, attribute) >= CONFIG.desiredAttributeMin) tags.add(attribute);
   }
@@ -125,7 +126,7 @@ export function getCandidateIdentityFit(candidate: Champion, role: Role | null, 
   const tags = profileTags(candidate, role);
   let score = tagScore(tags, identity);
   const offers = IDENTITY_TABLE[identity].offers;
-  for (const offer of candidate.offers ?? []) {
+  for (const offer of getOffers(candidate, role)) {
     if (offers.includes(String(offer.type))) score += offer.strength * CONFIG.fitOfferWeight;
   }
   if (identity === "protect-carry" && getCarryArchetype(candidate.id) === "hard-protect") score += 1;
@@ -159,7 +160,7 @@ export function readCompIdentity(championIds: string[], roles?: Partial<Record<R
   const roleOf = new Map<string, Role>();
   for (const role of ROLE_ORDER) if (assignments[role]) roleOf.set(assignments[role]!, role);
 
-  const vector = buildCompVector(ids) as unknown as Record<string, number>;
+  const vector = buildCompVector(ids, assignments) as unknown as Record<string, number>;
   const champions = ids.map((id) => getChampionById(id)).filter((champion): champion is Champion => Boolean(champion));
   const tagSets = champions.map((champion) => profileTags(champion, roleOf.get(champion.id) ?? null));
   const hasHardProtectCarry = champions.some((champion) => getCarryArchetype(champion.id) === "hard-protect");

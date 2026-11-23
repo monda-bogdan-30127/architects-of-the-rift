@@ -33,6 +33,9 @@ import {
   getChampionGrade,
   gradeToComfortScore,
 } from "@/app/utils/championMasteryUtils";
+import { getNeeds, getOffers, getWeaknesses, roleIn } from "./championRoleAttributes";
+
+type Assignments = Partial<Record<Role, string>>;
 
 const championMap = new Map(champions.map((champion) => [champion.id, champion]));
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -89,17 +92,17 @@ function advancedPrimary(player: Player, key: keyof Player["advancedProfile"]["p
   return typeof value === "number" ? clamp(value / 10, 0, 10) : fallback;
 }
 
-function getOfferStrength(champion: Champion | null, attributes: string[]) {
+function getOfferStrength(champion: Champion | null, attributes: string[], role: Role | null = null) {
   if (!champion) return 0;
-  return champion.offers
+  return getOffers(champion, role)
     .filter((offer) => attributes.includes(normalizeAttribute(String(offer.type))))
     .reduce((sum, offer) => sum + offer.strength, 0);
 }
 
-function evaluateStructuralScore(championIds: string[], attributes: string[], target: number) {
+function evaluateStructuralScore(championIds: string[], attributes: string[], target: number, assignments?: Assignments) {
   const total = championIds.reduce((sum, championId) => {
     const champion = getChampionById(championId);
-    return sum + getOfferStrength(champion, attributes);
+    return sum + getOfferStrength(champion, attributes, roleIn(assignments, championId));
   }, 0);
   return clamp((total / Math.max(1, target)) * 10, 0, 10);
 }
@@ -257,12 +260,12 @@ function evaluatePhasePowerScore(assignments: Partial<Record<Role, string>>, ene
   return clamp(5 + (scale * weighted) / totalWeight, 0, 10);
 }
 
-function evaluateWeaknessPenalty(allyChampionIds: string[], enemyVector: TeamCompVector) {
+function evaluateWeaknessPenalty(allyChampionIds: string[], enemyVector: TeamCompVector, assignments?: Assignments) {
   let penalty = 0;
   for (const championId of allyChampionIds) {
     const champion = getChampionById(championId);
     if (!champion) continue;
-    for (const weakness of champion.weaknesses) {
+    for (const weakness of getWeaknesses(champion, roleIn(assignments, championId))) {
       const exposure = vectorValue(enemyVector, String(weakness.exposedTo));
       penalty += Math.min(weakness.severity * 0.25 * exposure, 2);
     }
@@ -502,25 +505,29 @@ export function getComfortScore(player: Player | null, champion: Champion): numb
 // FRONTLINE_SIDELANE_NEEDS §1.2 — frontline-ul efectiv (în effectiveFrontline.ts, ca să-l poată folosi și teamfightSystem).
 export { getEffectiveFrontline, hasTeamFrontline } from "./effectiveFrontline";
 
-export function buildCompVector(championIds: string[]): TeamCompVector {
+/**
+ * Suma `offers` pe compoziție. FRONTLINE_SIDELANE_NEEDS §3.2: cu asignarea (rol → campion), fiecare campion
+ * folosește override-ul de pe rolul lui (`getOffers`); fără, lista globală.
+ */
+export function buildCompVector(championIds: string[], assignments?: Assignments): TeamCompVector {
   const vector = createEmptyCompVector();
   for (const championId of championIds) {
     const champion = getChampionById(championId);
     if (!champion) continue;
-    for (const offer of champion.offers) addVectorValue(vector, String(offer.type), offer.strength);
+    for (const offer of getOffers(champion, roleIn(assignments, championId))) addVectorValue(vector, String(offer.type), offer.strength);
   }
   return vector;
 }
 
-export function evaluateNeedStatuses(championIds: string[]): NeedStatus[] {
-  const vector = buildCompVector(championIds);
+export function evaluateNeedStatuses(championIds: string[], assignments?: Assignments): NeedStatus[] {
+  const vector = buildCompVector(championIds, assignments);
   // §1.2: nevoia `frontline` se măsoară pe frontline-ul efectiv (bruiserii × bruiserFactor).
-  (vector as Record<string, number>).frontline = getEffectiveFrontline(championIds);
+  (vector as Record<string, number>).frontline = getEffectiveFrontline(championIds, assignments);
   const statusMap = new Map<string, NeedStatus>();
   for (const championId of championIds) {
     const champion = getChampionById(championId);
     if (!champion) continue;
-    for (const need of champion.needs) {
+    for (const need of getNeeds(champion, roleIn(assignments, championId))) {
       const required = getNeedRequirement(need.priority);
       const type = normalizeAttribute(String(need.type));
       if (!COMP_ATTRIBUTE_ORDER.includes(type as never)) continue;
@@ -624,14 +631,6 @@ function evaluateAttributeMatchupScore(own: Partial<Record<Role, string>>, enemy
 }
 
 export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluation {
-  const vector = buildCompVector(context.championIds);
-  const enemyVector = buildCompVector(context.enemyChampionIds);
-  const missingNeeds = evaluateNeedStatuses(context.championIds);
-  // COMP_ATTRIBUTES_EXPANSION §3.3: nevoile contextuale (din compoziția lor) contează ca nevoile fixe.
-  const contextualNeeds = evaluateContextualNeedStatuses(context.championIds, context.enemyChampionIds);
-  const satisfiedNeeds =
-    missingNeeds.filter((need) => need.missing === 0).length + contextualNeeds.filter((need) => need.missing === 0).length;
-  const needScore = clamp((satisfiedNeeds / Math.max(1, missingNeeds.length + contextualNeeds.length)) * 10, 0, 10);
   const hasAssignments = (value?: Partial<Record<Role, string>>): value is Partial<Record<Role, string>> =>
     Boolean(value && Object.values(value).some(Boolean));
   const assignments = hasAssignments(context.assignments)
@@ -641,6 +640,15 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
   const enemyAssignments = hasAssignments(context.enemyAssignments)
     ? context.enemyAssignments
     : resolveRoleAssignments(context.enemyChampionIds, enemyRoster);
+  // FRONTLINE_SIDELANE_NEEDS §3.2: vectorii și nevoile pe rolurile asignate (override-urile pe rol).
+  const vector = buildCompVector(context.championIds, assignments);
+  const enemyVector = buildCompVector(context.enemyChampionIds, enemyAssignments);
+  const missingNeeds = evaluateNeedStatuses(context.championIds, assignments);
+  // COMP_ATTRIBUTES_EXPANSION §3.3: nevoile contextuale (din compoziția lor) contează ca nevoile fixe.
+  const contextualNeeds = evaluateContextualNeedStatuses(context.championIds, context.enemyChampionIds);
+  const satisfiedNeeds =
+    missingNeeds.filter((need) => need.missing === 0).length + contextualNeeds.filter((need) => need.missing === 0).length;
+  const needScore = clamp((satisfiedNeeds / Math.max(1, missingNeeds.length + contextualNeeds.length)) * 10, 0, 10);
   const unavailable = context.unavailableChampionIds
     ? new Set([...context.unavailableChampionIds, ...context.enemyChampionIds])
     : null;
@@ -651,16 +659,16 @@ export function evaluateTeamDraft(context: TeamDraftContext): TeamDraftEvaluatio
     context.enemyChampionIds.map(getChampionById).filter((champion): champion is Champion => Boolean(champion))
   );
   const phasePowerScore = evaluatePhasePowerScore(assignments, enemyAssignments);
-  const weaknessPenalty = evaluateWeaknessPenalty(context.championIds, enemyVector);
-  const engageScore = evaluateStructuralScore(context.championIds, ENGAGE_ATTRIBUTES, 11);
-  const frontlineScore = evaluateStructuralScore(context.championIds, FRONTLINE_ATTRIBUTES, 12);
+  const weaknessPenalty = evaluateWeaknessPenalty(context.championIds, enemyVector, assignments);
+  const engageScore = evaluateStructuralScore(context.championIds, ENGAGE_ATTRIBUTES, 11, assignments);
+  const frontlineScore = evaluateStructuralScore(context.championIds, FRONTLINE_ATTRIBUTES, 12, assignments);
   const damageBalanceScore = evaluateDamageBalance(context.championIds);
   const roleCoverageScore = evaluateRoleCoverage(context.championIds);
-  const executionEaseScore = evaluateStructuralScore(context.championIds, EXECUTION_HELP_ATTRIBUTES, 12);
-  const protectionScore = evaluateStructuralScore(context.championIds, PROTECTION_ATTRIBUTES, 10);
-  const antiDiveScore = evaluateStructuralScore(context.championIds, ANTI_DIVE_ATTRIBUTES, 10);
-  const primaryEngageScore = evaluateStructuralScore(context.championIds, PRIMARY_ENGAGE_ATTRIBUTES, 9);
-  const followUpScore = evaluateStructuralScore(context.championIds, FOLLOW_UP_ATTRIBUTES, 9);
+  const executionEaseScore = evaluateStructuralScore(context.championIds, EXECUTION_HELP_ATTRIBUTES, 12, assignments);
+  const protectionScore = evaluateStructuralScore(context.championIds, PROTECTION_ATTRIBUTES, 10, assignments);
+  const antiDiveScore = evaluateStructuralScore(context.championIds, ANTI_DIVE_ATTRIBUTES, 10, assignments);
+  const primaryEngageScore = evaluateStructuralScore(context.championIds, PRIMARY_ENGAGE_ATTRIBUTES, 9, assignments);
+  const followUpScore = evaluateStructuralScore(context.championIds, FOLLOW_UP_ATTRIBUTES, 9, assignments);
   const rangeProfileScore = evaluateRangeProfile(context.championIds);
   const shortRangePenalty = evaluateShortRangePenalty(context.championIds);
   const carryProtectionPenalty = evaluateCarryProtectionPenalty(context.championIds, vector);

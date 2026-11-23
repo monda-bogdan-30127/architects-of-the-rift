@@ -133,6 +133,7 @@ import {
   getTargetBanningBonus,
   getPredictiveBanBonus,
 } from "./championMasteryAdvanced";
+import { getOffers, getWeaknesses, roleIn } from "./championRoleAttributes";
 
 
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -423,11 +424,11 @@ function getBlindRiskPenalty(
   return penalty;
 }
 
-function getNeedFillScore(ownPicks: string[], candidate: Champion) {
-  const statuses = evaluateNeedStatuses(ownPicks);
+function getNeedFillScore(ownPicks: string[], candidate: Champion, ownAssignments: Partial<Record<Role, string>>, role: Role | null) {
+  const statuses = evaluateNeedStatuses(ownPicks, ownAssignments);
   if (!statuses.length) return 4;
 
-  const offerTypes = new Set((candidate.offers ?? []).map((offer) => String(offer.type)));
+  const offerTypes = new Set(getOffers(candidate, role).map((offer) => String(offer.type)));
   let value = 0;
 
   for (const need of statuses.slice(0, 3)) {
@@ -617,15 +618,15 @@ function getCounterValueScore(args: {
   return { score: clamp(total + 5, 0, 10), details };
 }
 
-function getWeaknessPenalty(enemyPicks: string[], candidate: Champion) {
+function getWeaknessPenalty(enemyPicks: string[], candidate: Champion, enemyAssignments: Partial<Record<Role, string>>, role: Role | null) {
   let penalty = 0;
 
   for (const enemyId of enemyPicks) {
     const enemy = getChampionById(enemyId);
     if (!enemy) continue;
 
-    const enemyOfferTypes = new Set((enemy.offers ?? []).map((offer) => String(offer.type)));
-    for (const weakness of candidate.weaknesses ?? []) {
+    const enemyOfferTypes = new Set(getOffers(enemy, roleIn(enemyAssignments, enemyId)).map((offer) => String(offer.type)));
+    for (const weakness of getWeaknesses(candidate, role)) {
       if (enemyOfferTypes.has(String(weakness.exposedTo))) {
         penalty += weakness.severity * 0.8;
       }
@@ -985,9 +986,9 @@ export function scorePickCandidate(
     const relation = getBadSynergy(candidate.id, pickedId);
     return relation ? [{ partnerId: pickedId, level: relation.level, note: relation.note }] : [];
   });
-  const needFill = getNeedFillScore(ownState.picks, candidate);
+  const needFill = getNeedFillScore(ownState.picks, candidate, ctx.own.assignments, projected.projectedRole);
   // COMP_ATTRIBUTES_EXPANSION §3.3 — nevoile din compoziția lor (oprite până se completează datele).
-  const contextualFill = getContextualNeedFill(evaluateContextualNeedStatuses(ownState.picks, enemyState.picks), candidate);
+  const contextualFill = getContextualNeedFill(evaluateContextualNeedStatuses(ownState.picks, enemyState.picks), candidate, projected.projectedRole);
   // COMP_ATTRIBUTES_EXPANSION §2.2 — resurse: prea multe carry-uri care vor gold, focusul pe bot / în altă parte.
   const resourceEffect = getResourcePickEffect(candidate, projected.projectedRole, ctx);
   // PLAYER_TRAITS §7.4 — ordinea de pick pe lane: rolul unui counter-picker se lasă pentru mai târziu.
@@ -1020,7 +1021,7 @@ export function scorePickCandidate(
     candidateRole: projected.projectedRole,
     predictions: advCtx.enemyPredictions,
   });
-  const weaknessPenalty = getWeaknessPenalty(enemyState.picks, candidate);
+  const weaknessPenalty = getWeaknessPenalty(enemyState.picks, candidate, ctx.enemy.assignments, projected.projectedRole);
   // §8: creativity → toleranța la off-meta.
   const offMetaPenalty = getOffMetaPenalty(candidate, series, projected.projectedRole) * ctx.style.offMetaTolerance;
   const archetypeAffinity = getArchetypeAffinityScore(roster, projected.projectedRole, candidate);

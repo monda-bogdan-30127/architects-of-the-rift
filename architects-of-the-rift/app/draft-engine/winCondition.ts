@@ -13,6 +13,7 @@ import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { ROLE_ORDER } from "./draftTypes";
 import { getResourceDemand } from "./championResource";
 import { hasTrait } from "@/app/utils/playerTraitUtils";
+import { getNeeds, getOffers } from "./championRoleAttributes";
 
 const WIN = DRAFT_THINKING_CONFIG.winCondition;
 const playersById = new Map(players.map((player) => [player.id, player]));
@@ -23,8 +24,8 @@ export type WinCondition = {
   kind: "carry" | "jungle-tempo" | "teamfight-engage" | "split";
 };
 
-const offerOf = (champion: Champion, type: string) =>
-  Math.max(0, ...(champion.offers ?? []).filter((offer) => String(offer.type) === type).map((offer) => offer.strength));
+const offerOf = (champion: Champion, type: string, role: Role | null = null) =>
+  Math.max(0, ...getOffers(champion, role).filter((offer) => String(offer.type) === type).map((offer) => offer.strength));
 
 function carryContribution(champion: Champion, role: Role): number {
   const tags = new Set(getChampionRoleProfile(champion, role)?.tags ?? []);
@@ -46,13 +47,13 @@ function identityOfferSum(champion: Champion, role: Role, identity: NonNullable<
   // Un support nu câștigă win condition-ul la egalitate: doar dacă are deja scorul de identitate cel mai mare.
   if (carryPotential && role === "support") return 0;
   const offers = carryPotential ? CARRY_POTENTIAL_OFFERS : getIdentityOffers(identity);
-  return (champion.offers ?? []).filter((offer) => offers.includes(String(offer.type))).reduce((sum, offer) => sum + offer.strength, 0);
+  return getOffers(champion, role).filter((offer) => offers.includes(String(offer.type))).reduce((sum, offer) => sum + offer.strength, 0);
 }
 
 function kindOf(champion: Champion, role: Role, identity: CompIdentityReading["dominant"]): WinCondition["kind"] {
   const tags = new Set(getChampionRoleProfile(champion, role)?.tags ?? []);
   if (role === "jungle" && (identity === "dive" || identity === "pick")) return "jungle-tempo";
-  if (role === "top" && Math.max(offerOf(champion, "sideLanePressure"), offerOf(champion, "splitpush")) >= 4) return "split";
+  if (role === "top" && Math.max(offerOf(champion, "sideLanePressure", role), offerOf(champion, "splitpush", role)) >= 4) return "split";
   if (tags.has("engage") && (identity === "teamfight" || identity === "dive")) return "teamfight-engage";
   return "carry";
 }
@@ -124,7 +125,7 @@ export function getWinConditionEffect(
   const carry = getChampionById(winCondition.championId);
   if (!carry) return { bonus: 0, line: null };
 
-  const enabledNeed = (carry.needs ?? []).find(
+  const enabledNeed = getNeeds(carry, winCondition.role).find(
     (need) => need.priority >= WIN.minNeedPriority && offerOf(candidate, String(need.type)) >= WIN.minOfferStrength,
   );
   if (enabledNeed) {

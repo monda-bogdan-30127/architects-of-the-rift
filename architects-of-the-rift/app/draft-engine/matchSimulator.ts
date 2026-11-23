@@ -130,6 +130,7 @@ import {
   appendGameToSpiritAccumulator,
   flushSeriesToSpiritEngine,
 } from "./playerSpiritAccumulator";
+import { getOffers } from "./championRoleAttributes";
 
 // At the start of each simulation/draft:
 clearSignatureSlotCache();
@@ -371,26 +372,20 @@ function determineMatchProfile(args: {
   redDraft: ReturnType<typeof evaluateTeamDraft>;
   laneVolatility: number;
 }): MatchProfile {
-  const allBlue = ROLE_ORDER.map((role) => args.blueAssignments[role] ?? null).filter(
-    Boolean
-  ) as string[];
-  const allRed = ROLE_ORDER.map((role) => args.redAssignments[role] ?? null).filter(
-    Boolean
-  ) as string[];
 
-  const blueLanePrio = allBlue
-    .map((id) => getChampionById(id))
-    .filter(Boolean)
-    .flatMap((champion) => champion?.offers ?? [])
+  // FRONTLINE_SIDELANE_NEEDS §3.2: offers pe rolul asignat.
+  const offersOf = (assignments: Partial<Record<Role, string>>) =>
+    ROLE_ORDER.flatMap((role) => {
+      const champion = getChampionById(assignments[role] ?? "");
+      return champion ? getOffers(champion, role) : [];
+    });
+  const blueLanePrio = offersOf(args.blueAssignments)
     .filter((offer) =>
       ["earlyPrio", "roamPressure", "objectiveControl"].includes(String(offer.type))
     )
     .reduce((sum, offer) => sum + offer.strength, 0);
 
-  const redLanePrio = allRed
-    .map((id) => getChampionById(id))
-    .filter(Boolean)
-    .flatMap((champion) => champion?.offers ?? [])
+  const redLanePrio = offersOf(args.redAssignments)
     .filter((offer) =>
       ["earlyPrio", "roamPressure", "objectiveControl"].includes(String(offer.type))
     )

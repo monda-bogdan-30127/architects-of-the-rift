@@ -27,6 +27,7 @@ import {
 import { ROLE_ORDER } from "./draftTypes";
 import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import { getEffectiveFrontline, hasTeamFrontline } from "./effectiveFrontline";
+import { getOffers } from "./championRoleAttributes";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,11 @@ export type TeamfightResult = {
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 type TeamProfiles = Array<{ role: Role; profile: ChampionRoleProfile; championId: string }>;
+
+/** Rol → campion din profiluri (pentru override-urile pe rol, FRONTLINE_SIDELANE_NEEDS §3.2). */
+function assignmentsOf(profiles: TeamProfiles): Partial<Record<Role, string>> {
+  return Object.fromEntries(profiles.map((p) => [p.role, p.championId]));
+}
 
 function getProfiles(assignments: Partial<Record<Role, string>>): TeamProfiles {
   const result: TeamProfiles = [];
@@ -204,7 +210,7 @@ function evaluateFrontlinePresence(profiles: TeamProfiles): number {
   // FRONTLINE_SIDELANE_NEEDS §1.2: bonusul de tank e gradual pe frontline-ul efectiv (era binar pe tag-ul
   // `frontline`: un campion cu offer 3 primea tot bonusul, doi bruiseri cu 2 nimic).
   const F = DRAFT_THINKING_CONFIG.frontline;
-  const effective = getEffectiveFrontline(profiles.map((p) => p.championId));
+  const effective = getEffectiveFrontline(profiles.map((p) => p.championId), assignmentsOf(profiles));
   const tankBonus = F.tankBonus * Math.min(1, effective / F.tankBonusFull);
   const doubleFrontBonus = F.doubleFrontBonus * clamp((effective - F.tankBonusFull) / F.doubleFrontRange, 0, 1);
 
@@ -256,7 +262,7 @@ function evaluateConditionsMet(profiles: TeamProfiles): number {
 
     if (cond.requiresFrontline) {
       totalConditions += 1;
-      if (!hasTeamFrontline(profiles.map((p) => p.championId))) unmetCount += 1;
+      if (!hasTeamFrontline(profiles.map((p) => p.championId), assignmentsOf(profiles))) unmetCount += 1;
     }
     if (cond.requiresEngage) {
       totalConditions += 1;
@@ -340,7 +346,7 @@ function offerSum(assignments: Partial<Record<Role, string>>, type: string): num
   let total = 0;
   for (const role of ROLE_ORDER) {
     const champion = getChampionByIdSafe(assignments[role] ?? null);
-    for (const offer of champion?.offers ?? []) if (offer.type === type) total += offer.strength;
+    for (const offer of champion ? getOffers(champion, role) : []) if (offer.type === type) total += offer.strength;
   }
   return total;
 }

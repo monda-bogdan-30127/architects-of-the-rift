@@ -26,6 +26,7 @@ import { getSeasonFavorites } from "./seasonThreatSystem";
 import { createPriorityLookup } from "./priorityValue";
 import { getWinCondition } from "./winCondition";
 import { computeTeamChemistry } from "./personalitySystem";
+import { getNeeds } from "./championRoleAttributes";
 
 const playersById = new Map(players.map((player) => [player.id, player]));
 const name = (championId: string) => championsById[championId]?.name ?? championId;
@@ -110,7 +111,7 @@ function compositionPillar(ownPicks: string[], ownAssignments: Assignments, rost
   const winCondition = getWinCondition(ownPicks, ownAssignments, reading, roster);
   if (winCondition) {
     const carry = championsById[winCondition.championId];
-    const needs = (carry?.needs ?? []).filter((need) => need.priority >= WEAKNESS_COVER_CONFIG.minNeedPriority);
+    const needs = (carry ? getNeeds(carry, winCondition.role) : []).filter((need) => need.priority >= WEAKNESS_COVER_CONFIG.minNeedPriority);
     const coverage = getWeaknessCoverage(winCondition.championId, ownPicks);
     const kind = winCondition.kind.replace(/-/g, " ");
     const label = `Win condition: ${name(winCondition.championId)} (${kind})`;
@@ -126,10 +127,10 @@ function compositionPillar(ownPicks: string[], ownAssignments: Assignments, rost
   }
 
   // Nevoile de bază ale compoziției.
-  const vector = buildCompVector(ownPicks) as unknown as Record<string, number>;
+  const vector = buildCompVector(ownPicks, ownAssignments) as unknown as Record<string, number>;
   const required = config.baseNeedMin;
   // FRONTLINE_SIDELANE_NEEDS §1.2: frontline-ul efectiv (bruiserii × bruiserFactor).
-  if (getEffectiveFrontline(ownPicks) < required) {
+  if (getEffectiveFrontline(ownPicks, ownAssignments) < required) {
     points -= 1;
     notes.add("No frontline");
   }
@@ -172,8 +173,8 @@ function compositionPillar(ownPicks: string[], ownAssignments: Assignments, rost
       notes.add(`No answer to ${need.subject}`, need.reason);
       continue;
     }
-    const answerer = [...ownPicks].sort((a, b) => getContextualCover(championsById[b], need) - getContextualCover(championsById[a], need))[0];
-    const attribute = answerer ? getBestCoverAttribute(championsById[answerer], need) : null;
+    const answerer = [...ownPicks].sort((a, b) => getContextualCover(championsById[b], need, roleOf(ownAssignments, b)) - getContextualCover(championsById[a], need, roleOf(ownAssignments, a)))[0];
+    const attribute = answerer ? getBestCoverAttribute(championsById[answerer], need, roleOf(ownAssignments, answerer)) : null;
     if (answerer && attribute) notes.add(`${COMP_ATTRIBUTE_INFO[attribute].label}: ${name(answerer)} answers ${need.subject.replace(/ \(.*\)$/, "")}`);
   }
   const kinds = ownPicks.map((id) => championsById[id]).filter((champion): champion is Champion => Boolean(champion)).map(mainDamage);

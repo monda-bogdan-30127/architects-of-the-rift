@@ -19,6 +19,7 @@ import { DRAFT_THINKING_CONFIG } from "./draftThinkingConfig";
 import type { LaneOrder } from "./laneOrder";
 import { getActiveTrait } from "@/app/utils/playerTraitUtils";
 import { getResourceDemand } from "./championResource";
+import { getOffers } from "./championRoleAttributes";
 
 function earlyStatScore(championId: string | null, role: Role) {
   const champion = getChampionByIdSafe(championId);
@@ -38,7 +39,7 @@ function jungleInfluence(role: Role, playerId: string | null, championId: string
   const champion = getChampionByIdSafe(championId);
   if (!player || !champion) return 5;
 
-  const roam = champion.offers
+  const roam = getOffers(champion, "jungle")
     .filter((offer) => ["roamPressure", "engage", "earlyPrio", "reliableCC"].includes(offer.type))
     .reduce((sum, offer) => sum + offer.strength, 0);
 

@@ -16,6 +16,7 @@ import type { BucketId, IntentId } from "./draftTypes";
 import { getWeaknessCoverage, WEAKNESS_COVER_CONFIG } from "./matchupGrades";
 import { getMatchupValue } from "./matchupScoring";
 import { getSeasonChampionThreat } from "./seasonThreatSystem";
+import { getNeeds } from "./championRoleAttributes";
 
 const INTENTS = DRAFT_THINKING_CONFIG.intents;
 const LOOKAHEAD = DRAFT_THINKING_CONFIG.lookahead;
@@ -214,13 +215,13 @@ function answer(ctx: DraftContext): Intent {
 
 function buildIdentity(ctx: DraftContext): Intent {
   const picks = ctx.own.picks;
-  const missing = picks.length ? evaluateNeedStatuses(picks).filter((need) => need.missing > 0).length : 0;
+  const missing = picks.length ? evaluateNeedStatuses(picks, ctx.own.assignments).filter((need) => need.missing > 0).length : 0;
   const hasAdc = Boolean(ctx.own.assignments.adc);
   // FRONTLINE_SIDELANE_NEEDS §1.2: frontline-ul efectiv, ca în raport.
-  const gateMissing = picks.length >= 3 && (getEffectiveFrontline(picks) < DRAFT_THINKING_CONFIG.report.composition.baseNeedMin || (!hasAdc && !ctx.own.openRoles.includes("adc")));
+  const gateMissing = picks.length >= 3 && (getEffectiveFrontline(picks, ctx.own.assignments) < DRAFT_THINKING_CONFIG.report.composition.baseNeedMin || (!hasAdc && !ctx.own.openRoles.includes("adc")));
   const winCondition = ctx.ownWinCondition;
   const winNeeds = winCondition
-    ? (championsById[winCondition.championId]?.needs ?? []).filter((need) => need.priority >= WEAKNESS_COVER_CONFIG.minNeedPriority).length
+    ? (championsById[winCondition.championId] ? getNeeds(championsById[winCondition.championId]!, winCondition.role) : []).filter((need) => need.priority >= WEAKNESS_COVER_CONFIG.minNeedPriority).length
     : 0;
   const winUncovered = winCondition && winNeeds > 0 && getWeaknessCoverage(winCondition.championId, picks) < 1;
   // FEEDBACK_FIXES §10.5: „jucăm prin bot” crește urgența de a construi identitatea (combo-ul).
