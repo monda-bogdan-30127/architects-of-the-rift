@@ -17,23 +17,77 @@ import type { Role } from "@/app/types/champion";
 import type { PlayerGameScore, MatchProfile } from "./matchSimulationTypes";
 import { getChampionByIdSafe, clamp, seededNoise } from "./matchSimulationUtils";
 import { getChampionStatsForRole } from "./championRoleStatsSystem";
+import { getChampionKdaType, KDA_TYPE_FACTOR } from "./championKdaType";
+import { champions } from "@/app/data/champions";
 
-// ─── Role expectations ───────────────────────────────────────────────────────
-// Weights add up roughly to 1.0 but are normalized again during allocation.
-const ROLE_PROFILE: Record<
-  Role,
-  {
-    killWeight: number;
-    deathWeight: number;
-    assistBase: number;
-  }
-> = {
-  top:     { killWeight: 0.15, deathWeight: 0.21, assistBase: 0.42 },
-  jungle:  { killWeight: 0.19, deathWeight: 0.19, assistBase: 0.60 },
-  mid:     { killWeight: 0.27, deathWeight: 0.19, assistBase: 0.50 },
-  adc:     { killWeight: 0.31, deathWeight: 0.18, assistBase: 0.47 },
-  support: { killWeight: 0.08, deathWeight: 0.23, assistBase: 0.74 },
+// ─── KDA_WORLDS_2026: constantele generatorului ─────────────────────────────
+// KDA-ul se generează după rezultat (nu decide meciul), deci constantele stau aici, nu în draftThinkingConfig.
+export const KDA_CONFIG = {
+  /**
+   * Cotele pe rol: pornite de la Worlds 2026 Main Event (§1.2: cota din kill-urile / death-urile echipei și
+   * asist-uri / (kill-urile echipei − kill-urile proprii)), apoi ajustate ca REZULTATUL (după nota jucătorului,
+   * factorul de campion și zgomot) să iasă pe valorile reale (scripts/kda-calibration.ts). Normalizate la alocare.
+   */
+  roleProfile: {
+    top:     { killWeight: 0.200, deathWeight: 0.193, assistBase: 0.425 },
+    jungle:  { killWeight: 0.205, deathWeight: 0.222, assistBase: 0.605 },
+    mid:     { killWeight: 0.257, deathWeight: 0.193, assistBase: 0.522 },
+    adc:     { killWeight: 0.290, deathWeight: 0.204, assistBase: 0.507 },
+    support: { killWeight: 0.049, deathWeight: 0.194, assistBase: 0.741 },
+  } as Record<Role, { killWeight: number; deathWeight: number; assistBase: number }>,
+  /** Factorul de campion (§3.2): death-uri × f^(−deathExponent), participare × f^assistExponent, kill-uri × f^killExponent. */
+  deathExponent: 1,
+  assistExponent: 0.25,
+  killExponent: 0.3,
+  /** shrink = pick-uri / (pick-uri + shrinkPicks) între KDA-ul de pro relativ și factorul pe tip. */
+  shrinkPicks: 15,
+  factorMin: 0.7,
+  factorMax: 1.4,
 };
+
+const ROLE_PROFILE = KDA_CONFIG.roleProfile;
+
+// ─── Factorul de campion (§3.2) ─────────────────────────────────────────────
+/** Mediana KDA-ului de pro pe rol, pe campionii cu pick-uri pe acel rol (o dată). */
+const roleKdaMedians = new Map<Role, number>();
+function roleKdaMedian(role: Role): number {
+  const cached = roleKdaMedians.get(role);
+  if (cached !== undefined) return cached;
+  const values = champions
+    .filter((champion) => champion.roles.includes(role))
+    .map((champion) => getChampionStatsForRole(champion, role))
+    .filter((stats) => (stats.picks ?? 0) > 0 && typeof stats.kda === "number")
+    .map((stats) => stats.kda as number)
+    .sort((a, b) => a - b);
+  const median = values.length ? values[Math.floor(values.length / 2)] : 3;
+  roleKdaMedians.set(role, median);
+  return median;
+}
+
+const kdaFactorCache = new Map<string, number>();
+/**
+ * 1 = media rolului. Din KDA-ul de pro relativ la mediana rolului, micșorat spre factorul pe tip după numărul de
+ * pick-uri (shrink = pick-uri / (pick-uri + 15)); fără pick-uri, doar tipul. Limitat la 0,7–1,4.
+ */
+export function getChampionKdaFactor(championId: string, role: Role): number {
+  const key = `${championId}:${role}`;
+  const cached = kdaFactorCache.get(key);
+  if (cached !== undefined) return cached;
+  const champion = getChampionByIdSafe(championId);
+  const typeFactor = KDA_TYPE_FACTOR[getChampionKdaType(championId, role)];
+  let factor = typeFactor;
+  if (champion) {
+    const stats = getChampionStatsForRole(champion, role);
+    const picks = stats.picks ?? 0;
+    if (picks > 0 && typeof stats.kda === "number") {
+      const shrink = picks / (picks + KDA_CONFIG.shrinkPicks);
+      factor = shrink * (stats.kda / roleKdaMedian(role)) + (1 - shrink) * typeFactor;
+    }
+  }
+  const result = clamp(factor, KDA_CONFIG.factorMin, KDA_CONFIG.factorMax);
+  kdaFactorCache.set(key, result);
+  return result;
+}
 
 // ─── Exact integer budget allocator ─────────────────────────────────────────
 // Uses largest-remainder allocation:
@@ -89,13 +143,14 @@ function generateTeamKills(args: {
   let base: number;
   switch (args.matchProfile) {
     case "snowball":
-      base = args.isWinner ? 22 : 7;
+      base = args.isWinner ? 21 : 6;
       break;
     case "scaling":
-      base = args.isWinner ? 14 : 10;
+      base = args.isWinner ? 13 : 9;
       break;
     default:
-      base = args.isWinner ? 17 : 11;
+      // KDA_WORLDS_2026 §3.3: −1 pe ambele (media ~14,2 → ~13,2 kill-uri pe echipă, ca la Worlds 2026).
+      base = args.isWinner ? 16 : 10;
       break;
   }
 
@@ -168,14 +223,8 @@ export function generatePlayerKDAs(args: {
       const roleProfile = ROLE_PROFILE[player.role] ?? ROLE_PROFILE.mid;
       const scoreNorm = clamp((player.score - 4) / 6, 0, 1);
 
-      const champion = getChampionByIdSafe(player.championId);
-      const championKda =
-        (champion ? getChampionStatsForRole(champion, player.role).kda : null) ?? 3;
-      const championMultiplier = clamp(
-        1 + (championKda - 3) * 0.04,
-        0.88,
-        1.15
-      );
+      // §3.2: factorul de campion (KDA de pro / tip), înlocuiește vechiul multiplicator doar pe kill-uri.
+      const championMultiplier = Math.pow(getChampionKdaFactor(player.championId, player.role), KDA_CONFIG.killExponent);
 
       const playerVariance =
         1 +
@@ -228,9 +277,13 @@ export function generatePlayerKDAs(args: {
       // that one player absorbs nearly every death.
       const scoreMultiplier = 0.62 + inverseScore * 1.05;
 
+      // §3.2: campionii cu KDA mare mor mai rar (engage mai des, enchanterii / mage-urile de control mai rar).
+      const championDeathFactor = Math.pow(getChampionKdaFactor(player.championId, player.role), -KDA_CONFIG.deathExponent);
+
       return (
         roleProfile.deathWeight *
         scoreMultiplier *
+        championDeathFactor *
         playerVariance
       );
     });
@@ -262,9 +315,10 @@ export function generatePlayerKDAs(args: {
       );
 
       const participationRate = clamp(
-        roleProfile.assistBase +
+        (roleProfile.assistBase +
           (scoreNorm - 0.5) * 0.24 +
-          participationVariance,
+          participationVariance) *
+          Math.pow(getChampionKdaFactor(player.championId, player.role), KDA_CONFIG.assistExponent),
         0.08,
         0.92
       );
