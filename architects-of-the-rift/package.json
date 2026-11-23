@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "validate:matchups": "npx tsx scripts/validate-matchups.ts",
-    "check": "tsc --noEmit && npm run lint && npm run validate:matchups",
+    "validate:players": "npx tsx scripts/validate-players.ts",
+    "check": "tsc --noEmit && npm run lint && npm run validate:matchups && npm run validate:players",
     "matchups": "npx tsx scripts/matchups-report.ts"
   },
   "dependencies": {

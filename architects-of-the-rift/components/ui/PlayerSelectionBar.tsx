@@ -13,6 +13,11 @@ type Props = {
   isOverBudget: boolean;
   onRemovePlayer: (role: Role) => void;
   onReady: () => void;
+  /** ROSTER_IMPORTS_AND_INFO §1.5: importurile din lineup (null = fără regulă de import). */
+  importCount?: number | null;
+  maxImports?: number;
+  /** Motivul pentru care Ready e dezactivat în afară de roluri / buget (ex. prea multe importuri). */
+  blockedReason?: string | null;
 };
 
 // TEAM_FIT_LIVE §2: unde stă panoul Team Fit — „column” (lângă sloturi) sau „strip” (bandă deasupra sloturilor).
@@ -35,9 +40,14 @@ export default function PlayerSelectionBar({
   isOverBudget,
   onRemovePlayer,
   onReady,
+  importCount = null,
+  maxImports = 2,
+  blockedReason = null,
 }: Props) {
   const allRolesFilled = roleOrder.every((role) => selectedPlayers[role]);
-  const isReadyDisabled = !allRolesFilled || isOverBudget;
+  const isReadyDisabled = !allRolesFilled || isOverBudget || Boolean(blockedReason);
+  // La limită galben, peste limită roșu (n-ar trebui să se poată).
+  const importColor = importCount === null ? undefined : importCount > maxImports ? "var(--danger)" : importCount === maxImports ? "var(--warning)" : "var(--text-highlight)";
 
   return (
     <div
@@ -118,6 +128,14 @@ export default function PlayerSelectionBar({
       {TEAM_FIT_LAYOUT === "column" && <TeamFitPanel selectedPlayers={selectedPlayers} />}
 
       <div className="flex items-center gap-[16px]">
+        {importCount !== null && (
+          <div className="flex flex-col items-start gap-[4px]" title={`At most ${maxImports} imports in the lineup`}>
+            <p className="label text-[var(--text-primary)]">IMPORTS</p>
+            <p className="h3" style={{ color: importColor }}>
+              {importCount}/{maxImports}
+            </p>
+          </div>
+        )}
         <div className="flex flex-col items-start gap-[4px]">
           <p className="label text-[var(--text-primary)]">LEFT RP</p>
           <p
@@ -128,9 +146,11 @@ export default function PlayerSelectionBar({
           </p>
         </div>
 
-        <Button variant="main" onClick={onReady} disabled={isReadyDisabled}>
-          READY!
-        </Button>
+        <span title={blockedReason ?? undefined}>
+          <Button variant="main" onClick={onReady} disabled={isReadyDisabled}>
+            READY!
+          </Button>
+        </span>
       </div>
       </div>
     </div>

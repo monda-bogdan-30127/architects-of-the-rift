@@ -1,3 +1,4 @@
+import type { LeagueRegion } from "@/app/data/regions";
 import type { Role } from "./champion";
 import type { PlayerTrait } from "./playerTraits";
 
@@ -199,6 +200,10 @@ export type Player = {
   bestChampions: string[];
   comfortChampions: string[];
   championPool: string[];
+  /** ROSTER_IMPORTS_AND_INFO §1.3 — naționalitățile (coduri ISO 3166-1 alpha-2, cel puțin una). */
+  nationalities: string[];
+  /** §1.4 — regiunile în care jucătorul e rezident (nu ocupă loc de import), indiferent de naționalitate. */
+  residentRegions?: LeagueRegion[];
   rosterPoints: number;
   sortOrder: number;
   phaseProfile?: PlayerPhaseProfile;

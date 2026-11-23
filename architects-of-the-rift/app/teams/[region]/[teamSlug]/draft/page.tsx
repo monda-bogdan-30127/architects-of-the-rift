@@ -17,6 +17,7 @@ import { PLAYER_TRAIT_INFO, isActiveTrait } from "@/app/types/playerTraits";
 import { COMMS_TOOLTIP, computeTeamFit, getCommsInfo, getCommsLevel, previewTeamFitChange, type TeamFitChange } from "@/app/utils/playerTraitUtils";
 import TraitChip from "@/components/ui/TraitChip";
 import { ADVICE_COLOR, COMMS_COLORS } from "@/components/ui/TeamFitPanel";
+import { MAX_IMPORTS, countImports, isImportForRegion, isLeagueRegion } from "@/app/data/regions";
 
 /** Rosterul ales ca id-uri (pentru Team Fit). */
 function rosterIdsOf(selected: Partial<Record<Role, Player>>): Partial<Record<Role, string>> {
@@ -81,10 +82,10 @@ type SortKey = "rosterPoints" | "rating" | "mec" | "mac" | "comms" | "tfg" | "cl
 type SortDir = "asc" | "desc";
 
 type EnrichedPlayer = Player & {
-  effectiveRp:  number;
   rating:       number;
   playerRegion: string;
-  isCrossGroup: boolean;
+  /** ROSTER_IMPORTS_AND_INFO §1.5: import față de regiunea echipei userului. */
+  isImport:     boolean;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -98,17 +99,6 @@ const REGION_BUDGET: Record<string, number> = {
   lcs: 37,
 };
 const DEFAULT_BUDGET = 38;
-
-/**
- * Group A: LCK + LPL   |   Group B: LEC + LCS
- * Picking a player from a different group costs +1 RP.
- */
-const REGION_GROUPS: Record<string, string> = {
-  lck: "A",
-  lpl: "A",
-  lec: "B",
-  lcs: "B",
-};
 
 const REGION_FILTER_OPTIONS = ["ALL", "LCK", "LPL", "LEC", "LCS", "FREE AGENTS"] as const;
 type RegionFilter = (typeof REGION_FILTER_OPTIONS)[number];
@@ -143,17 +133,6 @@ function getPlayerRegion(player: Player): string {
   return team?.region ?? "";
 }
 
-function checkCrossGroup(playerRegion: string, myRegion: string): boolean {
-  if (playerRegion === "free-agent") return false;
-  const myGroup     = REGION_GROUPS[myRegion];
-  const playerGroup = REGION_GROUPS[playerRegion];
-  return !!myGroup && !!playerGroup && myGroup !== playerGroup;
-}
-
-function getEffectiveRp(player: Player, myRegion: string): number {
-  return player.rosterPoints + (checkCrossGroup(getPlayerRegion(player), myRegion) ? 1 : 0);
-}
-
 function calcRating(player: Player): number {
   const { mec, mac, tfg, clt, con, iq } = player.stats;
   return Math.round((mec + mac + tfg + clt + con + iq) / 6);
@@ -161,7 +140,7 @@ function calcRating(player: Player): number {
 
 function getStatValue(player: EnrichedPlayer, key: SortKey): number {
   switch (key) {
-    case "rosterPoints": return player.effectiveRp;
+    case "rosterPoints": return player.rosterPoints;
     case "rating":       return player.rating;
     case "mec":          return player.stats.mec;
     case "mac":          return player.stats.mac;
@@ -513,18 +492,26 @@ export default function DraftPage() {
     [teamSlug],
   );
 
+  // ROSTER_IMPORTS_AND_INFO §1: regiunea de ligă a echipei userului (regula de import se aplică doar ei).
+  const leagueRegion = isLeagueRegion(region) ? region : null;
+
   const enrichedPlayers = useMemo<EnrichedPlayer[]>(() => {
-    return players.map((p) => {
-      const playerRegion = getPlayerRegion(p);
-      return {
-        ...p,
-        effectiveRp:  getEffectiveRp(p, region),
-        rating:       calcRating(p),
-        playerRegion,
-        isCrossGroup: checkCrossGroup(playerRegion, region),
-      };
-    });
-  }, [region]);
+    return players.map((p) => ({
+      ...p,
+      rating:       calcRating(p),
+      playerRegion: getPlayerRegion(p),
+      isImport:     leagueRegion ? isImportForRegion(p, leagueRegion) : false,
+    }));
+  }, [leagueRegion]);
+
+  // §1.5: cel mult MAX_IMPORTS importuri în lineup. Un jucător încape dacă lineup-ul cu el pe rolul lui (înlocuind
+  // pe cine e acolo) rămâne în limită; jucătorul deja ales încape mereu.
+  const importCount = leagueRegion ? countImports(Object.values(selectedPlayers).filter((p): p is Player => Boolean(p)), leagueRegion) : 0;
+  const fitsImportLimit = (player: EnrichedPlayer) => {
+    if (!leagueRegion || !player.isImport || selectedPlayers[player.role]?.id === player.id) return true;
+    const others = roleOrder.flatMap((r) => (r !== player.role && selectedPlayers[r] ? [selectedPlayers[r]!] : []));
+    return countImports(others, leagueRegion) + 1 <= MAX_IMPORTS;
+  };
 
   const displayPlayers = useMemo<EnrichedPlayer[]>(() => {
     let list = enrichedPlayers;
@@ -546,11 +533,12 @@ export default function DraftPage() {
     }
 
     // TEAM_FIT_LIVE §4: „Fits my team” ascunde cine ar adăuga un avertisment; jucătorul deja ales rămâne mereu.
+    // ROSTER_IMPORTS_AND_INFO §1.5: ascunde și importurile care nu mai încap.
     if (fitsMyTeam) {
       const roster = rosterIdsOf(selectedPlayers);
       list = list.filter((p) =>
         selectedPlayers[p.role]?.id === p.id ||
-        !previewTeamFitChange(roster, p).added.some((advice) => advice.level === "warning"),
+        (fitsImportLimit(p) && !previewTeamFitChange(roster, p).added.some((advice) => advice.level === "warning")),
       );
     }
 
@@ -558,7 +546,8 @@ export default function DraftPage() {
       const diff = getStatValue(b, sortKey) - getStatValue(a, sortKey);
       return sortDir === "desc" ? diff : -diff;
     });
-  }, [enrichedPlayers, activeRoleFilters, activeRegionFilter, sortKey, sortDir, fitsMyTeam, selectedPlayers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fitsImportLimit depinde doar de selectedPlayers și leagueRegion
+  }, [enrichedPlayers, activeRoleFilters, activeRegionFilter, sortKey, sortDir, fitsMyTeam, selectedPlayers, leagueRegion]);
 
   const selectedRoleSet = useMemo(
     () => new Set(roleOrder.filter((r) => selectedPlayers[r])),
@@ -567,13 +556,15 @@ export default function DraftPage() {
 
   const usedBudget = useMemo(() => {
     return Object.values(selectedPlayers).reduce((sum, p) => {
-      return sum + (p ? getEffectiveRp(p, region) : 0);
+      return sum + (p ? p.rosterPoints : 0);
     }, 0);
-  }, [selectedPlayers, region]);
+  }, [selectedPlayers]);
 
   const leftRp          = maxBudget - usedBudget;
   const allRolesFilled  = roleOrder.every((r) => selectedPlayers[r]);
-  const isReadyDisabled = !allRolesFilled || leftRp < 0;
+  const overImportLimit = importCount > MAX_IMPORTS;
+  const isReadyDisabled = !allRolesFilled || leftRp < 0 || overImportLimit;
+  const importLimitText = `Import limit reached (${MAX_IMPORTS}/${MAX_IMPORTS}): at least ${5 - MAX_IMPORTS} players must be from ${region.toUpperCase()}`;
 
   // ── Preview data ───────────────────────────────────────────────────────────
 
@@ -589,6 +580,7 @@ export default function DraftPage() {
       setSelectedPlayers((cur) => { const n = { ...cur }; delete n[role]; return n; });
       return;
     }
+    if (!fitsImportLimit(player)) return;
     setSelectedPlayers((cur) => ({ ...cur, [role]: player }));
   };
 
@@ -860,19 +852,6 @@ export default function DraftPage() {
                     }}
                   >
                     {hoveredPlayer.role.toUpperCase()}
-                    {hoveredPlayer.isCrossGroup && (
-                      <span
-                        style={{
-                          padding:      "1px 6px",
-                          borderRadius: 3,
-                          background:   "rgba(180,140,60,0.2)",
-                          fontSize:     10,
-                          fontWeight:   700,
-                        }}
-                      >
-                        +1 RP (cross-region)
-                      </span>
-                    )}
                   </span>
 
                   <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
@@ -1086,6 +1065,9 @@ export default function DraftPage() {
                 const isSelected     = selectedPlayers[player.role]?.id === player.id;
                 const isRoleOccupied = !isSelected && selectedRoleSet.has(player.role);
                 const isHovered      = hoveredPlayer?.id === player.id;
+                // ROSTER_IMPORTS_AND_INFO §1.5: al treilea import nu se poate selecta (rândul estompat, cu motivul).
+                const isImportBlocked = !isSelected && !isRoleOccupied && !fitsImportLimit(player);
+                const isDisabled      = isRoleOccupied || isImportBlocked;
 
                 const rowBg = isSelected
                   ? "rgba(180,140,60,0.13)"
@@ -1096,13 +1078,14 @@ export default function DraftPage() {
                 return (
                   <tr
                     key={player.id}
-                    onClick={() => !isRoleOccupied && handleSelectPlayer(player)}
+                    onClick={() => !isDisabled && handleSelectPlayer(player)}
                     onMouseEnter={() => setHoveredPlayer(player)}
                     onMouseLeave={() => setHoveredPlayer(null)}
+                    title={isImportBlocked ? importLimitText : undefined}
                     style={{
-                      cursor:       isRoleOccupied ? "not-allowed" : "pointer",
+                      cursor:       isDisabled ? "not-allowed" : "pointer",
                       background:   rowBg,
-                      opacity:      isRoleOccupied ? 0.35 : 1,
+                      opacity:      isDisabled ? 0.35 : 1,
                       borderBottom: "1px solid rgba(255,255,255,0.04)",
                       transition:   "background 0.08s, opacity 0.08s",
                     }}
@@ -1121,23 +1104,7 @@ export default function DraftPage() {
                       {player.role.toUpperCase()}
                     </td>
 
-                    {/* Effective RP — +1 badge shown when cross-group */}
-                    <td style={tdStyle}>
-                      {player.effectiveRp}
-                      {player.isCrossGroup && (
-                        <span
-                          style={{
-                            marginLeft: 4,
-                            fontSize:   9,
-                            color:      "var(--text-highlight)",
-                            fontWeight: 700,
-                            opacity:    0.75,
-                          }}
-                        >
-                          +1
-                        </span>
-                      )}
-                    </td>
+                    <td style={tdStyle}>{player.rosterPoints}</td>
 
                     <td style={tdStyle}>{player.rating}</td>
                     <td style={tdStyle}>{player.stats.mec}</td>
@@ -1211,6 +1178,9 @@ export default function DraftPage() {
         selectedPlayers={selectedPlayers}
         leftRp={leftRp}
         isOverBudget={leftRp < 0}
+        importCount={leagueRegion ? importCount : null}
+        maxImports={MAX_IMPORTS}
+        blockedReason={overImportLimit ? `Too many imports (${importCount}/${MAX_IMPORTS}): at least ${5 - MAX_IMPORTS} players must be from ${region.toUpperCase()}` : null}
         onRemovePlayer={handleRemovePlayer}
         onReady={handleOpenReadyDialog}
       />
