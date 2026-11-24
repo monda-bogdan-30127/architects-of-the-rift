@@ -1,5 +1,6 @@
 // KDA_WORLDS_2026 §3.2 — tipul campionului pentru KDA (fallback-ul factorului de campion și raportul pe tip din
 // scripts/kda-calibration.ts). Regulile citesc offers (vectorul de compoziție al campionului) și resourceDemand.
+// FRONTLINE_SIDELANE_NEEDS §3.2: offers-urile de pe rol (override-urile pe rol, dacă există).
 
 import type { Role } from "@/app/types/champion";
 import { getResourceDemand } from "./championResource";
@@ -28,7 +29,7 @@ export const KDA_TYPE_FACTOR: Record<ChampionKdaType, number> = {
 const PRESENT_MIN = 3;
 
 export function getChampionKdaType(championId: string, role: Role): ChampionKdaType {
-  const vector = buildCompVector([championId]) as unknown as Record<string, number>;
+  const vector = buildCompVector([championId], { [role]: championId }) as unknown as Record<string, number>;
   const value = (key: string) => vector[key] ?? 0;
   switch (role) {
     case "support":
