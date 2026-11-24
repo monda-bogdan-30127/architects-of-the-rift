@@ -21,7 +21,7 @@ export const nautilus = createChampion({
     { type: "engage", strength: 5 },
     { type: "pick", strength: 4 },
     { type: "reliableCC", strength: 5 },
-    { type: "frontline", strength: 3 }
+    { type: "frontline", strength: 4 }
   ],
 
   needs: [

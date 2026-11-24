@@ -22,7 +22,8 @@ export const reksai = createChampion({
   offers: [
     { type: "earlyPrio", strength: 4 },
     { type: "pick", strength: 4 },
-    { type: "sideLanePressure", strength: 3 }
+    { type: "sideLanePressure", strength: 3 },
+    { type: "frontline", strength: 2 }
   ],
 
   needs: [

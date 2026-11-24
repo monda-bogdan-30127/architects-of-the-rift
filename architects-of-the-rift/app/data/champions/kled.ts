@@ -22,7 +22,8 @@ export const kled = createChampion({
   offers: [
     { type: "engage", strength: 4 },
     { type: "sideLanePressure", strength: 4 },
-    { type: "burstDamage", strength: 3 }
+    { type: "burstDamage", strength: 3 },
+    { type: "frontline", strength: 2 }
   ],
 
   needs: [

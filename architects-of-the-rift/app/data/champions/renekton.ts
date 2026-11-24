@@ -23,7 +23,8 @@ export const renekton = createChampion({
     { type: "earlyPrio", strength: 5 },
     { type: "engage", strength: 3 },
     { type: "burstDamage", strength: 3 },
-    { type: "sideLanePressure", strength: 3 }
+    { type: "sideLanePressure", strength: 3 },
+    { type: "frontline", strength: 2 }
   ],
 
   needs: [

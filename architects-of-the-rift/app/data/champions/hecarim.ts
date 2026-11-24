@@ -13,7 +13,8 @@ export const hecarim = createChampion({
     { type: "dive", strength: 4 },
     { type: "backlineAccess", strength: 4 },
     { type: "objectiveControl", strength: 3 },
-    { type: "roamPressure", strength: 3 }
+    { type: "roamPressure", strength: 3 },
+    { type: "frontline", strength: 2 }
   ],
 
   needs: [

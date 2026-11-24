@@ -12,7 +12,7 @@ export const amumu = createChampion({
     { type: "engage", strength: 5 },
     { type: "followUp", strength: 5 },
     { type: "reliableCC", strength: 4 },
-    { type: "frontline", strength: 3 }
+    { type: "frontline", strength: 4 }
   ],
 
   needs: [

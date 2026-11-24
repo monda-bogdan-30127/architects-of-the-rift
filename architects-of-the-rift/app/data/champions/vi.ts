@@ -23,7 +23,8 @@ export const vi = createChampion({
     { type: "engage", strength: 5 },
     { type: "pick", strength: 4 },
     { type: "backlineAccess", strength: 5 },
-    { type: "reliableCC", strength: 4 }
+    { type: "reliableCC", strength: 4 },
+    { type: "frontline", strength: 2 }
   ],
 
   needs: [

@@ -25,7 +25,8 @@ export const wukong = createChampion({
     { type: "engage", strength: 4 },
     { type: "dive", strength: 4 },
     { type: "followUp", strength: 4 },
-    { type: "reliableCC", strength: 3 }
+    { type: "reliableCC", strength: 3 },
+    { type: "frontline", strength: 2 }
   ],
 
   needs: [

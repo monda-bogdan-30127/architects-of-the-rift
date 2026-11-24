@@ -793,7 +793,8 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
 
 // ─── 20. Identitate împărțită (DRAFT_THINKING §5.2) ───────────────────────────
 {
-  // Comp de engage (Xin + K'Sante) → un pick de poke (Jayce) o împarte: `split-identity`.
+  // Comp de engage (Xin + K'Sante) → un pick de poke (Xerath) o împarte: `split-identity`. (Era Jayce, la limită:
+  // poke 2,73 față de teamfight 2,83; cu frontline 2 la Xin Zhao, comp-ul e clar teamfight și Jayce nu mai împarte.)
   // (Lucian / Milio din exemplul spec-ului: în date trag spre pick / protect-carry, compatibile cu
   // teamfight-ul lui Xin + K'Sante, deci fără split — afișate doar pentru referință.)
   const series = newSeries("s20", BLUE, RED);
@@ -806,14 +807,14 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
   };
   const step = getCurrentStep(game)!;
   const score = (id: string) => scoreDraftCandidate(champions.find((c) => c.id === id)!, step, game, series, save);
-  const jayce = score("jayce");
+  const xerath = score("xerath");
   const lucian = score("lucian");
   const milio = score("milio");
   const line = (entry: DraftCandidateBreakdown) => entry.explanation?.find((text) => text.includes("would mix")) ?? "—";
   check(
-    "20. Xin + K'Sante (engage) → Jayce (poke): split-identity",
-    hasTag(jayce, "split-identity"),
-    `Jayce: „${line(jayce)}”; Lucian split=${hasTag(lucian, "split-identity")}, Milio split=${hasTag(milio, "split-identity")}; identitate: ${jayce.identity?.dominant ?? "—"}`,
+    "20. Xin + K'Sante (engage) → Xerath (poke): split-identity",
+    hasTag(xerath, "split-identity"),
+    `Xerath: „${line(xerath)}”; Lucian split=${hasTag(lucian, "split-identity")}, Milio split=${hasTag(milio, "split-identity")}; identitate: ${xerath.identity?.dominant ?? "—"}`,
   );
 }
 

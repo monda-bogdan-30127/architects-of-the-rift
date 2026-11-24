@@ -22,7 +22,7 @@ export const nunu = createChampion({
   offers: [
     { type: "engage", strength: 3 },
     { type: "objectiveControl", strength: 4 },
-    { type: "frontline", strength: 3 },
+    { type: "frontline", strength: 4 },
     { type: "roamPressure", strength: 3 }
   ],
 

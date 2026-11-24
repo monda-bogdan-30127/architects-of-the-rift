@@ -26,7 +26,8 @@ export const gnar = createChampion({
     { type: "poke", strength: 3 },
     { type: "disengage", strength: 3 },
     { type: "engage", strength: 3 },
-    { type: "reliableCC", strength: 3 }
+    { type: "reliableCC", strength: 3 },
+    { type: "frontline", strength: 2 }
   ],
 
   needs: [

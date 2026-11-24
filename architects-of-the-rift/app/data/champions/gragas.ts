@@ -23,7 +23,7 @@ export const gragas = createChampion({
     { type: "disengage", strength: 5 },
     { type: "engage", strength: 3 },
     { type: "burstDamage", strength: 3 },
-    { type: "frontline", strength: 3 }
+    { type: "frontline", strength: 4 }
   ],
 
   needs: [

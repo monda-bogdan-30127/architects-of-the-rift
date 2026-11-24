@@ -25,7 +25,8 @@ export const ambessa = createChampion({
     { type: "dive", strength: 4 },
     { type: "backlineAccess", strength: 4 },
     { type: "sustainedDamage", strength: 3 },
-    { type: "sideLanePressure", strength: 3 }
+    { type: "sideLanePressure", strength: 3 },
+    { type: "frontline", strength: 2 }
   ],
 
   needs: [

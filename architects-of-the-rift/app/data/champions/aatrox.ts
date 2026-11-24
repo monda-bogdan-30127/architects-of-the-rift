@@ -25,7 +25,8 @@ export const aatrox = createChampion({
     { type: "objectiveControl", strength: 3 },
     { type: "roamPressure", strength: 3 },
     { type: "sideLanePressure", strength: 3 },
-    { type: "sustainedDamage", strength: 3 }
+    { type: "sustainedDamage", strength: 3 },
+    { type: "frontline", strength: 3 }
   ],
 
   needs: [

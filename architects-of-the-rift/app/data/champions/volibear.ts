@@ -24,7 +24,8 @@ export const volibear = createChampion({
     { type: "engage", strength: 4 },
     { type: "pick", strength: 4 },
     { type: "backlineAccess", strength: 3 },
-    { type: "earlyPrio", strength: 3 }
+    { type: "earlyPrio", strength: 3 },
+    { type: "frontline", strength: 3 }
   ],
 
   needs: [
