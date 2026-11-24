@@ -28,7 +28,8 @@ export const milio = createChampion({
   ],
 
   needs: [
-    { type: "frontline", priority: 2 }
+    { type: "frontline", priority: 2 },
+    { type: "sustainedDamage", priority: 2 }
   ],
 
   weaknesses: [

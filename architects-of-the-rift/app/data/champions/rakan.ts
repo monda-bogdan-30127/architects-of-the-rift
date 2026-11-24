@@ -25,7 +25,7 @@ export const rakan = createChampion({
   ],
 
   needs: [
-    { type: "followUp", priority: 1 }
+    { type: "followUp", priority: 2 }
   ],
 
   weaknesses: [

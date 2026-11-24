@@ -27,7 +27,8 @@ export const bard = createChampion({
   ],
 
   needs: [
-    { type: "frontline", priority: 1 }
+    { type: "frontline", priority: 1 },
+    { type: "followUp", priority: 1 }
   ],
 
   weaknesses: [

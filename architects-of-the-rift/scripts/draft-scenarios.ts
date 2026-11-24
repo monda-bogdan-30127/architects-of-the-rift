@@ -1414,7 +1414,8 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     .sort((a, b) => b.priority.value - a.priority.value)
     .map((entry) => entry.id);
 
-  // 12. Albaștrii banează toți tier 1-urile pe care le voiau roșii → Preparation A (nu D).
+  // 12. Albaștrii banează toți tier 1-urile pe care le voiau roșii → Preparation A sau B (nu C, nu D): banarea lor nu
+  // duce la o notă proastă, indiferent ce tier 2 aleg roșii după (asta nu ține de scenariu și se schimbă cu datele).
   {
     // Albaștrii au 3 ban-uri în faza 1: dacă roșii vor mai mult de 3 tier 1, restul îl banează chiar roșii
     // (nu-l mai ia nimeni, deci nu contează), ca toate tier 1-urile lor să fie acoperite.
@@ -1427,8 +1428,8 @@ const supportChampions = champions.filter((c) => c.roles.includes("support") && 
     const { game } = runDraft({ series, save, bans: sequenceBans });
     const report = buildDraftPillarReport(resolveFinishedDraftAssignments(game, series, save), "blue", series, save, rosters);
     check(
-      "R15.12 Banăm tier 1-urile pe care le voiau ei → Preparation A",
-      wanted.length > 0 && report.preparation.grade === "A",
+      "R15.12 Banăm tier 1-urile pe care le voiau ei → Preparation A sau B",
+      wanted.length > 0 && (report.preparation.grade === "A" || report.preparation.grade === "B"),
       `tier 1 voiți de ei: ${wanted.join(", ") || "—"}; ban-uri albaștri ${blueBans.join(", ")}; Preparation ${report.preparation.grade}: ${report.preparation.notes.slice(0, 3).join(" | ")}`,
     );
   }

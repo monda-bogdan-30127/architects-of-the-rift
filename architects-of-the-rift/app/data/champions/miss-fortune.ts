@@ -27,7 +27,8 @@ export const missFortune = createChampion({
 
   needs: [
     { type: "frontline", priority: 2 },
-    { type: "peel", priority: 2 }
+    { type: "peel", priority: 2 },
+    { type: "reliableCC", priority: 2 }
   ],
 
   weaknesses: [

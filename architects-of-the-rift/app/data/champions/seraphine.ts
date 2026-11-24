@@ -29,7 +29,8 @@ export const seraphine = createChampion({
   ],
 
   needs: [
-    { type: "frontline", priority: 1 }
+    { type: "frontline", priority: 1 },
+    { type: "sustainedDamage", priority: 1 }
   ],
 
   weaknesses: [
