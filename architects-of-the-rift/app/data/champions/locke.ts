@@ -23,11 +23,12 @@ export const locke = createChampion({
     { type: "burstDamage", strength: 5 },
     { type: "backlineAccess", strength: 4 },
     { type: "roamPressure", strength: 4 },
-    { type: "pick", strength: 3 }
+    { type: "pick", strength: 2 }
   ],
 
   needs: [
-    { type: "frontline", priority: 1 }
+    { type: "frontline", priority: 1 },
+    { type: "engage", priority: 2 }
   ],
 
   weaknesses: [

@@ -27,7 +27,8 @@ export const swain = createChampion({
   ],
 
   needs: [
-    { type: "peel", priority: 1 }
+    { type: "peel", priority: 1 },
+    { type: "engage", priority: 1 }
   ],
 
   weaknesses: [

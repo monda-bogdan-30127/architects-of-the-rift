@@ -27,7 +27,8 @@ export const hwei = createChampion({
   ],
 
   needs: [
-    { type: "frontline", priority: 1 }
+    { type: "frontline", priority: 1 },
+    { type: "peel", priority: 1 }
   ],
 
   weaknesses: [

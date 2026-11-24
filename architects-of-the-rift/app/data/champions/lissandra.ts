@@ -27,7 +27,8 @@ export const lissandra = createChampion({
   ],
 
   needs: [
-    { type: "frontline", priority: 1 }
+    { type: "frontline", priority: 1 },
+    { type: "followUp", priority: 2 }
   ],
 
   weaknesses: [
