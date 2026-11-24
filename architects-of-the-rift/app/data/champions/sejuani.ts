@@ -30,7 +30,8 @@ export const sejuani = createChampion({
   ],
 
   needs: [
-    { type: "sustainedDamage", priority: 2 }
+    { type: "sustainedDamage", priority: 2 },
+    { type: "dive", priority: 1 }
   ],
 
   weaknesses: [

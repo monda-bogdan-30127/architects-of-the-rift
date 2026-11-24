@@ -24,7 +24,8 @@ export const nidalee = createChampion({
   ],
 
   needs: [
-    { type: "frontline", priority: 2 }
+    { type: "frontline", priority: 2 },
+    { type: "earlyPrio", priority: 1 }
   ],
 
   weaknesses: [

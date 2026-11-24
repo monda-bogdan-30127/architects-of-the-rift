@@ -28,7 +28,8 @@ export const kindred = createChampion({
   ],
 
   needs: [
-    { type: "frontline", priority: 2 }
+    { type: "frontline", priority: 2 },
+    { type: "peel", priority: 1 }
   ],
 
   weaknesses: [
