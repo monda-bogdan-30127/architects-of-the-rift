@@ -28,7 +28,8 @@ export const renekton = createChampion({
   ],
 
   needs: [
-    { type: "followUp", priority: 1 }
+    { type: "followUp", priority: 1 },
+    { type: "earlyPrio", priority: 2 }
   ],
 
   weaknesses: [

@@ -29,7 +29,8 @@ export const olaf = createChampion({
   ],
 
   needs: [
-    { type: "engage", priority: 1 }
+    { type: "engage", priority: 1 },
+    { type: "followUp", priority: 2 }
   ],
 
   weaknesses: [

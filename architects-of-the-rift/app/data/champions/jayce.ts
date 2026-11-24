@@ -26,7 +26,8 @@ export const jayce = createChampion({
   ],
 
   needs: [
-    { type: "frontline", priority: 1 }
+    { type: "frontline", priority: 2 },
+    { type: "disengage", priority: 1 }
   ],
 
   weaknesses: [

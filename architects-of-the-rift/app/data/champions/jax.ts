@@ -27,7 +27,8 @@ export const jax = createChampion({
   ],
 
   needs: [
-    { type: "engage", priority: 1 }
+    { type: "engage", priority: 1 },
+    { type: "waveclear", priority: 2 }
   ],
 
   weaknesses: [

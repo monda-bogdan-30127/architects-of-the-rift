@@ -31,7 +31,7 @@ export const gnar = createChampion({
   ],
 
   needs: [
-    { type: "followUp", priority: 1 },
+    { type: "followUp", priority: 2 },
     { type: "frontline", priority: 1 }
   ],
 

@@ -25,7 +25,8 @@ export const ornn = createChampion({
   ],
 
   needs: [
-    { type: "followUp", priority: 2 }
+    { type: "followUp", priority: 2 },
+    { type: "sustainedDamage", priority: 1 }
   ],
 
   weaknesses: [

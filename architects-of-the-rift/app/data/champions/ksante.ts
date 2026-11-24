@@ -27,7 +27,8 @@ export const ksante = createChampion({
   ],
 
   needs: [
-    { type: "sustainedDamage", priority: 1 }
+    { type: "sustainedDamage", priority: 1 },
+    { type: "followUp", priority: 2 }
   ],
 
   weaknesses: [

@@ -29,7 +29,8 @@ export const galio = createChampion({
   ],
 
   needs: [
-    { type: "sustainedDamage", priority: 1 }
+    { type: "sustainedDamage", priority: 1 },
+    { type: "dive", priority: 2 }
   ],
 
   weaknesses: [
