@@ -27,7 +27,8 @@ export const chogath = createChampion({
   ],
 
   needs: [
-    { type: "followUp", priority: 1 }
+    { type: "followUp", priority: 1 },
+    { type: "sustainedDamage", priority: 1 }
   ],
 
   weaknesses: [

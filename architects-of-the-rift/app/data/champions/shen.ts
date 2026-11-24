@@ -28,7 +28,8 @@ export const shen = createChampion({
   ],
 
   needs: [
-    { type: "followUp", priority: 3 }
+    { type: "followUp", priority: 3 },
+    { type: "sustainedDamage", priority: 1 }
   ],
 
   weaknesses: [

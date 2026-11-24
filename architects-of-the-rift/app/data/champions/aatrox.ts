@@ -30,7 +30,8 @@ export const aatrox = createChampion({
   ],
 
   needs: [
-    { type: "followUp", priority: 1 }
+    { type: "followUp", priority: 1 },
+    { type: "reliableCC", priority: 1 }
   ],
 
   weaknesses: [
