@@ -26,7 +26,7 @@ export const viktor = createChampion({
 
   needs: [
     { type: "frontline", priority: 2 },
-    { type: "peel", priority: 1 }
+    { type: "peel", priority: 2 }
   ],
 
   weaknesses: [

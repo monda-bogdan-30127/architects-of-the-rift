@@ -26,7 +26,8 @@ export const akali = createChampion({
   ],
 
   needs: [
-    { type: "frontline", priority: 1 }
+    { type: "frontline", priority: 1 },
+    { type: "engage", priority: 1 }
   ],
 
   weaknesses: [
