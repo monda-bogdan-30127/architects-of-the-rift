@@ -21,7 +21,6 @@ export const riven = createChampion({
 
   offers: [
     { type: "sideLanePressure", strength: 4 },
-    { type: "splitpush", strength: 4 },
     { type: "sustainedDamage", strength: 3 }
   ],
 

@@ -20,7 +20,6 @@ export const yorick = createChampion({
   ],
 
   offers: [
-    { type: "splitpush", strength: 5 },
     { type: "sideLanePressure", strength: 5 },
     { type: "waveclear", strength: 3 }
   ],

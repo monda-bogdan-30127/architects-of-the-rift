@@ -9,7 +9,6 @@ export const tryndamere = createChampion({
   attackType: "melee",
 
   offers: [
-    { type: "splitpush", strength: 5 },
     { type: "sideLanePressure", strength: 5 },
     { type: "sustainedDamage", strength: 4 }
   ],

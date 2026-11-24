@@ -22,7 +22,6 @@ export const fiora = createChampion({
   offers: [
     { type: "antiCC", strength: 2 },
     { type: "antiTank", strength: 5 },
-    { type: "splitpush", strength: 5 },
     { type: "sideLanePressure", strength: 5 },
     { type: "sustainedDamage", strength: 4 }
   ],

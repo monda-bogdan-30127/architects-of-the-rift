@@ -21,7 +21,6 @@ export const gwen = createChampion({
 
   offers: [
     { type: "antiTank", strength: 5 },
-    { type: "splitpush", strength: 4 },
     { type: "sideLanePressure", strength: 4 },
     { type: "sustainedDamage", strength: 4 }
   ],

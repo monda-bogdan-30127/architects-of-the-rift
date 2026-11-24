@@ -22,7 +22,7 @@ export const jayce = createChampion({
     { type: "poke", strength: 5 },
     { type: "siege", strength: 4 },
     { type: "earlyPrio", strength: 4 },
-    { type: "sideLanePressure", strength: 3 }
+    { type: "sideLanePressure", strength: 4 }
   ],
 
   needs: [

@@ -19,7 +19,6 @@ export const jax = createChampion({
   ],
 
   offers: [
-    { type: "splitpush", strength: 5 },
     { type: "sideLanePressure", strength: 5 },
     { type: "sustainedDamage", strength: 4 },
     { type: "scaling", strength: 4 },

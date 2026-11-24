@@ -68,7 +68,7 @@ export function getPlanAdaptiveBanBonus(
   };
   const planCounterOffers: Partial<Record<DraftPlanType, CompAttribute[]>> = {
     "dive":      ["disengage"],
-    "teamfight": ["splitpush"],
+    "teamfight": ["sideLanePressure"], // DATA_BRIEF §4: `splitpush` nu mai apare în date (alias)
   };
 
   const threateningTags = planCounters[plan.type] ?? [];

@@ -161,6 +161,8 @@ export function validateChampionRoleMatchups(champions: Champion[] = defaultCham
       for (const item of list.entries as readonly Record<string, unknown>[]) {
         const attribute = item[list.field];
         if (!isAttribute(attribute)) error(key, `${list.name}: atribut necunoscut "${String(attribute)}"`);
+        // DATA_BRIEF_FRONTLINE_NEEDS §4: `splitpush` e alias pentru `sideLanePressure` (în vector se adunau amândouă).
+        if (attribute === "splitpush") error(key, `${list.name}: "splitpush" e alias, folosește "sideLanePressure"`);
         if (!inRange(item[list.scale], list.max)) error(key, `${list.name} ${String(attribute)}: ${list.scale} ${String(item[list.scale])} în afara 1..${list.max}`);
         if (seen.has(String(attribute))) warning(key, `${list.name} ${String(attribute)}: de două ori`);
         seen.add(String(attribute));

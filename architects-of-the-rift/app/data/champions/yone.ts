@@ -20,7 +20,6 @@ export const yone = createChampion({
   ],
 
   offers: [
-    { type: "splitpush", strength: 4 },
     { type: "sideLanePressure", strength: 4 },
     { type: "sustainedDamage", strength: 4 }
   ],

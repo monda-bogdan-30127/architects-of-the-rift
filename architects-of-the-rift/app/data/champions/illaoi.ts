@@ -9,8 +9,7 @@ export const illaoi = createChampion({
   attackType: "melee",
 
   offers: [
-    { type: "sideLanePressure", strength: 5 },
-    { type: "splitpush", strength: 4 },
+    { type: "sideLanePressure", strength: 4 },
     { type: "sustainedDamage", strength: 4 },
     { type: "frontline", strength: 2 }
   ],

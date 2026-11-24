@@ -9,7 +9,7 @@ export const akshan = createChampion({
   attackType: "ranged",
 
   offers: [
-    { type: "sideLanePressure", strength: 4 },
+    { type: "sideLanePressure", strength: 3 },
     { type: "roamPressure", strength: 4 },
     { type: "burstDamage", strength: 3 }
   ],

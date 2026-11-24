@@ -22,7 +22,6 @@ export const irelia = createChampion({
   offers: [
     { type: "dive", strength: 4 },
     { type: "sideLanePressure", strength: 4 },
-    { type: "splitpush", strength: 4 },
     { type: "backlineAccess", strength: 3 },
     { type: "sustainedDamage", strength: 3 }
   ],

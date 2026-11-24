@@ -173,6 +173,8 @@ Atributele adăugate de `COMP_ATTRIBUTES_EXPANSION` (definițiile și exemplele 
 | `sustain` | heal / regen de echipă contra poke (pe sine: maxim 2) | comp-uri care câștigă doar prin poke |
 | `globalPressure` | ult global sau semi-global (TF, Shen, Galio) | split pusheri izolați |
 
+**`splitpush` nu se scrie:** e alias pentru `sideLanePressure` (presiunea pe side lane / split push). În vectorul de compoziție amândouă intră pe aceeași cheie și se adună, deci un campion cu ambele conta dublu. Validatorul dă eroare pentru `splitpush` în date; alias-ul rămâne doar în cod, pentru compatibilitate. Scala pentru `sideLanePressure`: 5 side-laner care ține singur linia contra oricui (Fiora, Jax, Tryndamere, Yorick), 4 side-laner real (Camille, Gwen, Jayce), 2–3 poate împinge un val.
+
 ## Override-uri pe rol (`roleData[rol].offers` / `needs` / `weaknesses`, opționale)
 
 Pentru campionii flex care aduc altceva echipei (sau au alte nevoi) pe un rol secundar. Dacă există, **înlocuiesc** lista globală pe acel rol; pe celelalte roluri rămâne lista globală. Engine-ul le citește prin `getOffers` / `getNeeds` / `getWeaknesses`.

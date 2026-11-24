@@ -23,7 +23,6 @@ export const belveth = createChampion({
     { type: "antiTank", strength: 3 },
     { type: "objectiveControl", strength: 4 },
     { type: "sustainedDamage", strength: 4 },
-    { type: "splitpush", strength: 3 },
     { type: "sideLanePressure", strength: 3 }
   ],
 
