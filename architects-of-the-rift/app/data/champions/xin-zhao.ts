@@ -25,7 +25,8 @@ export const xinZhao = createChampion({
   ],
 
   needs: [
-    { type: "followUp", priority: 2 }
+    { type: "followUp", priority: 2 },
+    { type: "earlyPrio", priority: 1 }
   ],
 
   weaknesses: [
