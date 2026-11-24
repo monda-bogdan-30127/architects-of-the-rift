@@ -98,6 +98,19 @@ export const seraphine = createChampion({
       resourceDemand: 4,
       goodVs: [],
       stats: null,
+      offers: [
+        { type: "sustainedDamage", strength: 3 },
+        { type: "scaling", strength: 4 },
+        { type: "waveclear", strength: 4 },
+        { type: "zoneControl", strength: 3 },
+        { type: "peel", strength: 2 },
+        { type: "sustain", strength: 2 },
+        { type: "disengage", strength: 3 },
+      ],
+      needs: [
+        { type: "frontline", priority: 2 },
+        { type: "peel", priority: 1 },
+      ],
     },
   },
 });

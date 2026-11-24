@@ -117,6 +117,17 @@ export const shen = createChampion({
         xpDiffAt15: -666,
         soloqKrChallengerWinRate: null,
       },
+      offers: [
+        { type: "globalPressure", strength: 5 },
+        { type: "sideLanePressure", strength: 4 },
+        { type: "frontline", strength: 4 },
+        { type: "antiDive", strength: 3 },
+        { type: "followUp", strength: 3 },
+      ],
+      needs: [
+        { type: "followUp", priority: 2 },
+        { type: "waveclear", priority: 1 },
+      ],
     },
   },
 });

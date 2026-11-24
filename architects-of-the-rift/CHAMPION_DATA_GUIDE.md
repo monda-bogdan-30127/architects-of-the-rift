@@ -12,6 +12,7 @@ Cum sunt organizate datele campionilor și cum le modifici de mână. Căile sun
 | Sinergii (`synergyWith`) și anti-sinergii (`badSynergyWith`): global pe campion, nu pe rol | în fișierul campionului; penalizarea pe `level` în `app/draft-engine/badSynergy.ts` |
 | Gradele de mastery ale jucătorilor (SS…F) | `app/data/championMasteryOverrides.ts` |
 | Corecții manuale ale profilului pe rol (abilități, threat, identitate pe faze…) | `roleData[rol].profile` în fișierul campionului |
+| `offers` / `needs` / `weaknesses` diferite pe un rol (campioni flex) | `roleData[rol].offers` / `needs` / `weaknesses` în fișierul campionului (vezi „Override-uri pe rol”) |
 | Cum se derivă profilul automat | `app/draft-engine/championProfileSystem.ts` |
 | Imaginea campionului | `public/champions/<id>.png` |
 | Definițiile matchup-urilor (`level`, `phase`), ponderile și curbele | `app/draft-engine/matchupGrades.ts` |
@@ -23,6 +24,7 @@ Engine-ul citește datele pe rol **doar** prin getter-e:
 - `getRoleMatchups` / `getMustWith` / `getMustWithPartners` din `app/draft-engine/championMatchups.ts`;
 - `getChampionStatsForRole` din `app/draft-engine/championRoleStatsSystem.ts`;
 - `getChampionRoleProfile` din `app/draft-engine/championProfileSystem.ts`;
+- `getOffers` / `getNeeds` / `getWeaknesses` din `app/draft-engine/championRoleAttributes.ts` (override-urile pe rol);
 - anti-sinergiile (`badSynergyWith`, global) prin `getBadSynergy` / `getTotalBadSynergy` din `app/draft-engine/badSynergy.ts`.
 
 Nimic altceva nu citește `champion.roleData` direct, cu excepția validatorului.
@@ -81,7 +83,7 @@ export const poppy = createChampion({
 Reguli de formatare, la fel în toate fișierele:
 
 - **Ordinea câmpurilor:** identitate (`id`, `name`, `image`, `roles`, `damageProfile`, `attackType`) → compoziție (`synergyWith`, `badSynergyWith` dacă există, `offers`, `needs`, `weaknesses`, `playerScaling`, `carryProfile` dacă e explicit) → `stats` → `roleData`.
-- **`roleData` are exact cheile din `roles`, în aceeași ordine.** Într-un rol: `goodVs`, `mustWith` (opțional, doar dacă există), `stats`, `resourceDemand` (opțional), apoi `profile` (opțional).
+- **`roleData` are exact cheile din `roles`, în aceeași ordine.** Într-un rol: `goodVs`, `mustWith` (opțional, doar dacă există), `stats`, `resourceDemand` (opțional), `offers` / `needs` / `weaknesses` (opționale, override-uri pe rol), apoi `profile` (opțional).
 - **Nu se scrie `weakVs`** (e generat automat, vezi mai jos) și **nici `mustWith: []`**. Validatorul dă eroare la ambele.
 - `synergyWith` e global pe campion, nu pe rol.
 - `attackType` (`"melee"` / `"ranged"`) e range-ul atacului de bază și dă tag-ul `melee` / `ranged` din profilul derivat. La formele schimbătoare (Jayce, Nidalee, Elise, Gnar, Kayle) se trece forma dominantă în pro. Dacă scrii `tags` într-un `profile` manual, tag-ul de range trebuie să fie același.
@@ -170,6 +172,37 @@ Atributele adăugate de `COMP_ATTRIBUTES_EXPANSION` (definițiile și exemplele 
 | `antiCC` | cleanse, spell shield, imunitate la CC (pe sine: maxim 3) | campioni care depind de un CC (hook, engage) |
 | `sustain` | heal / regen de echipă contra poke (pe sine: maxim 2) | comp-uri care câștigă doar prin poke |
 | `globalPressure` | ult global sau semi-global (TF, Shen, Galio) | split pusheri izolați |
+
+## Override-uri pe rol (`roleData[rol].offers` / `needs` / `weaknesses`, opționale)
+
+Pentru campionii flex care aduc altceva echipei (sau au alte nevoi) pe un rol secundar. Dacă există, **înlocuiesc** lista globală pe acel rol; pe celelalte roluri rămâne lista globală. Engine-ul le citește prin `getOffers` / `getNeeds` / `getWeaknesses`.
+
+- **Se scrie lista completă**, nu doar diferența: un override fără un atribut din lista globală înseamnă că pe acel rol campionul nu-l mai are.
+- **Doar unde campionul chiar joacă diferit** pe rol. Dacă diferența e mică, lista globală e suficientă.
+- Fiecare listă e independentă: poți pune doar `offers` (needs și weaknesses rămân globale).
+- **`weaknesses` pe rol:** doar când override-ul de `offers` contrazice o slăbiciune globală. Exemplu: Vayne pe top are `earlyPrio: 3` ca offer (lane bully contra melee-urilor), deci override-ul de `weaknesses` de pe top scoate `exposedTo: earlyPrio` (global, pentru ADC-ul slab în early) și păstrează restul.
+- Validatorul aplică aceleași reguli ca la listele globale (atribut cunoscut, scală, duplicate), pe roluri din `roles`.
+
+```ts
+// shen.ts, top: side lane + R global; pe support rămâne lista globală (mai mult peel)
+top: {
+  goodVs: [/* … */],
+  stats: { /* … */ },
+  offers: [
+    { type: "globalPressure", strength: 5 },
+    { type: "sideLanePressure", strength: 4 },
+    { type: "frontline", strength: 4 },
+    { type: "antiDive", strength: 3 },
+    { type: "followUp", strength: 3 },
+  ],
+  needs: [
+    { type: "followUp", priority: 2 },
+    { type: "waveclear", priority: 1 },
+  ],
+},
+```
+
+Override-urile de acum: Seraphine adc, Poppy jungle, Shen top, Vayne top (cu `weaknesses`), Jayce jungle, Camille support.
 
 ## `resourceDemand` (`roleData[rol].resourceDemand`, opțional)
 

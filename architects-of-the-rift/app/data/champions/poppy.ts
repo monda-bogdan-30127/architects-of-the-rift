@@ -111,6 +111,15 @@ export const poppy = createChampion({
         { championId: "zaahen", level: 2, phase: "all", note: "W stops the E dash" },
       ],
       stats: null,
+      offers: [
+        { type: "pick", strength: 4 },
+        { type: "antiDive", strength: 4 },
+        { type: "frontline", strength: 4 },
+        { type: "disengage", strength: 3 },
+      ],
+      needs: [
+        { type: "followUp", priority: 2 },
+      ],
       profile: {
         tags: ["melee", "frontline", "tank", "engage", "utility", "teamfight"],
         abilities: [

@@ -1690,12 +1690,17 @@ function withTestData<T>(
     const step = getCurrentStep(game)!;
     const vayne = champions.find((c) => c.id === "vayne")!;
     const needs = getContextualNeeds(game.picksBlue);
-    // Vayne are acum antiTank 5 în date: baza „fără” îl scoate temporar (nevoile contextuale pornite în ambele).
+    // Vayne are acum antiTank 5 în date: baza „fără” îl scoate temporar (nevoile contextuale pornite în ambele), și din
+    // lista globală, și din override-ul de pe top (FRONTLINE_SIDELANE_NEEDS §3.2: pe top se citește override-ul).
     const realOffers = vayne.offers;
+    const topData = vayne.roleData.top;
+    const realTopOffers = topData?.offers;
     vayne.offers = realOffers.filter((offer) => offer.type !== "antiTank");
+    if (topData && realTopOffers) topData.offers = realTopOffers.filter((offer) => offer.type !== "antiTank");
     setContextualNeedsOverride(true); // golește cache-ul de statusuri
     const without = scoreDraftCandidate(vayne, step, game, series, save);
     vayne.offers = realOffers;
+    if (topData && realTopOffers) topData.offers = realTopOffers;
     const withAntiTank = withTestData({ offers: realOffers.some((offer) => offer.type === "antiTank") ? {} : { vayne: [{ type: "antiTank", strength: 5 }] } }, () => {
       setContextualNeedsOverride(true); // golește cache-ul de statusuri
       return scoreDraftCandidate(vayne, step, game, series, save);

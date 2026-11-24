@@ -158,6 +158,16 @@ export const jayce = createChampion({
         xpDiffAt15: 86,
         soloqKrChallengerWinRate: null,
       },
+      offers: [
+        { type: "poke", strength: 4 },
+        { type: "earlyPrio", strength: 4 },
+        { type: "roamPressure", strength: 3 },
+        { type: "burstDamage", strength: 3 },
+        { type: "siege", strength: 2 },
+      ],
+      needs: [
+        { type: "frontline", priority: 2 },
+      ],
     },
   },
 });

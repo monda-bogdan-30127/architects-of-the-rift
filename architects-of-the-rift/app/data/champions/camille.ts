@@ -124,6 +124,16 @@ export const camille = createChampion({
         xpDiffAt15: -244,
         soloqKrChallengerWinRate: null,
       },
+      offers: [
+        { type: "pick", strength: 4 },
+        { type: "engage", strength: 3 },
+        { type: "dive", strength: 4 },
+        { type: "backlineAccess", strength: 4 },
+        { type: "antiTank", strength: 3 },
+      ],
+      needs: [
+        { type: "followUp", priority: 2 },
+      ],
     },
   },
 });

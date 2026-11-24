@@ -111,6 +111,23 @@ export const vayne = createChampion({
         xpDiffAt15: -844,
         soloqKrChallengerWinRate: null,
       },
+      offers: [
+        { type: "antiTank", strength: 5 },
+        { type: "sustainedDamage", strength: 4 },
+        { type: "sideLanePressure", strength: 4 },
+        { type: "scaling", strength: 3 },
+        { type: "earlyPrio", strength: 3 },
+      ],
+      needs: [
+        { type: "frontline", priority: 2 },
+        { type: "peel", priority: 1 },
+      ],
+      weaknesses: [
+        { exposedTo: "dive", severity: 3 },
+        { exposedTo: "backlineAccess", severity: 3 },
+        { exposedTo: "pick", severity: 3 },
+        { exposedTo: "engage", severity: 1 },
+      ],
     },
   },
 });
