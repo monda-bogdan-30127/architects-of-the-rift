@@ -24,7 +24,8 @@ export const elise = createChampion({
   ],
 
   needs: [
-    { type: "frontline", priority: 1 }
+    { type: "frontline", priority: 1 },
+    { type: "followUp", priority: 1 }
   ],
 
   weaknesses: [

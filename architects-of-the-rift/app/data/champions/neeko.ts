@@ -26,7 +26,8 @@ export const neeko = createChampion({
   ],
 
   needs: [
-    { type: "frontline", priority: 2 }
+    { type: "frontline", priority: 2 },
+    { type: "followUp", priority: 2 }
   ],
 
   weaknesses: [
