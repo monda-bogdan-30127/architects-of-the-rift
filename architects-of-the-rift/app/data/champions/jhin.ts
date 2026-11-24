@@ -29,7 +29,8 @@ export const jhin = createChampion({
 
   needs: [
     { type: "frontline", priority: 2 },
-    { type: "peel", priority: 1 }
+    { type: "peel", priority: 1 },
+    { type: "reliableCC", priority: 1 }
   ],
 
   weaknesses: [

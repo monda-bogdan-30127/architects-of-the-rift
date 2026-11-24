@@ -31,7 +31,8 @@ export const kalista = createChampion({
   ],
 
   needs: [
-    { type: "frontline", priority: 2 }
+    { type: "frontline", priority: 2 },
+    { type: "engage", priority: 2 }
   ],
 
   weaknesses: [
