@@ -130,7 +130,7 @@ function compositionPillar(ownPicks: string[], ownAssignments: Assignments, rost
   const vector = buildCompVector(ownPicks, ownAssignments) as unknown as Record<string, number>;
   const required = config.baseNeedMin;
   // FRONTLINE_SIDELANE_NEEDS §1.2: frontline-ul efectiv (bruiserii × bruiserFactor).
-  if (getEffectiveFrontline(ownPicks, ownAssignments) < required) {
+  if (getEffectiveFrontline(ownPicks, ownAssignments) < config.frontlineNeedMin) {
     points -= 1;
     notes.add("No frontline");
   }

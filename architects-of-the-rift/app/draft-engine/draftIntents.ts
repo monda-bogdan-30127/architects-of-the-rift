@@ -218,7 +218,7 @@ function buildIdentity(ctx: DraftContext): Intent {
   const missing = picks.length ? evaluateNeedStatuses(picks, ctx.own.assignments).filter((need) => need.missing > 0).length : 0;
   const hasAdc = Boolean(ctx.own.assignments.adc);
   // FRONTLINE_SIDELANE_NEEDS §1.2: frontline-ul efectiv, ca în raport.
-  const gateMissing = picks.length >= 3 && (getEffectiveFrontline(picks, ctx.own.assignments) < DRAFT_THINKING_CONFIG.report.composition.baseNeedMin || (!hasAdc && !ctx.own.openRoles.includes("adc")));
+  const gateMissing = picks.length >= 3 && (getEffectiveFrontline(picks, ctx.own.assignments) < DRAFT_THINKING_CONFIG.report.composition.frontlineNeedMin || (!hasAdc && !ctx.own.openRoles.includes("adc")));
   const winCondition = ctx.ownWinCondition;
   const winNeeds = winCondition
     ? (championsById[winCondition.championId] ? getNeeds(championsById[winCondition.championId]!, winCondition.role) : []).filter((need) => need.priority >= WEAKNESS_COVER_CONFIG.minNeedPriority).length

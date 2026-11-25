@@ -85,7 +85,9 @@ export const DRAFT_THINKING_CONFIG = {
      * `sideLanePressure` ≥ sideLaneGateMin); offers-urile identității cântăresc diferit (sideLanePressure cel mai mult).
      */
     sideLaneGateMin: 4,
-    sideLaneOfferWeights: { sideLanePressure: 1.5, globalPressure: 1, waveclear: 0.5, disengage: 0.5 } as Record<string, number>,
+    // Recalibrare după date (fără `splitpush` dublat): 1,5 / 1 / 0,5 / 0,5 dădeau side-lane dominantă la 0%; acum ~7% din
+    // comp-urile finale (ținta 5–12%).
+    sideLaneOfferWeights: { sideLanePressure: 3.5, globalPressure: 2, waveclear: 0.75, disengage: 0.5 } as Record<string, number>,
   },
 
   // §4 — planul ancorat pe priority pick
@@ -383,6 +385,12 @@ export const DRAFT_THINKING_CONFIG = {
        * și 36% nici engage nici disengage (un singur frontliner cu ofertă 4 nu ajungea). Cu 4: 18% / 5%.
        */
       baseNeedMin: 4,
+      /**
+       * FRONTLINE_SIDELANE_NEEDS §4 — „No frontline” pe frontline-ul efectiv (bruiserii × 0,8): sub atât. 3,2 = doi bruiseri
+       * cu frontline 2 (~2/3 dintr-un tank, cum îi descrie spec-ul). Cu 4 (baseNeedMin), 18,5% din echipe (15,5% erau
+       * exact 2 + 2); cu 3,2, 3%. Engage / disengage rămân pe baseNeedMin.
+       */
+      frontlineNeedMin: 3.2,
       /** „Damage pe un singur tip”: atâția campioni (din 5) cu același tip principal. */
       singleDamageMin: 4,
     },
@@ -455,7 +463,8 @@ export const DRAFT_THINKING_CONFIG = {
       frontline: [8, 12],
       cc: [24, 28],
       poke: [8, 12],
-      sidelane: [8, Infinity],
+      // DATA_BRIEF §4: era 8 cu `splitpush` numărat de două ori (activare 6,2%); fără dublare, 6 → 7,5%.
+      sidelane: [6, Infinity],
     },
     /** §4 — simulare: reducerile din teamfight (plafon, per punct de atribut al adversarului). */
     simAntiTankCap: 0.35,
